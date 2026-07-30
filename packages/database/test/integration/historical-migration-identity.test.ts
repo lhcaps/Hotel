@@ -120,10 +120,10 @@ describe('migration provenance (durable manifest)', () => {
       fileName: entry.fileName,
       sha256: entry.sha256,
     })),
-  )('migration $fileName (index $index) SHA-256 matches manifest', ({ fileName, sha256 }) => {
+  )('migration $fileName (index $index) SHA-256 matches manifest', ({ fileName, sha256: expectedSha256 }) => {
     const fullPath = resolve(DRIZZLE_DIR, fileName);
     const content = readFileSync(fullPath, 'utf8');
-    expect(sha256(content)).toBe(sha256);
+    expect(sha256(content)).toBe(expectedSha256);
   });
 
   it('each informational previousIntroductionReference is recorded as metadata only', () => {
