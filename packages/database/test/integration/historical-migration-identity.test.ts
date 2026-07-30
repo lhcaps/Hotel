@@ -1,218 +1,143 @@
 /**
- * Historical migration identity proof.
+ * Phase 1 durable migration provenance proof.
  *
- * Each migration .sql file must be byte-identical with the blob in the
- * commit that introduced it. This test asserts that the working tree
- * matches the historical blob for every released .sql migration, referenced by
- * the commits that introduced them:
+ * The published repository is squashed into a single clean root commit, so the
+ * historical ancestry used by the legacy test cannot be relied upon any more.
+ * Migration provenance is now encoded in
+ * `packages/database/drizzle/meta/migration-provenance.json`. This test asserts
+ * durable invariants without consulting git ancestry:
  *
- *   - 0000 and 0001: ddd3455 (phase 2 database foundation)
- *   - 0002..0004: corresponding intermediate commits
- *   - 0005 and 0006: 7698353 (phase 5 booking hold guest access)
- *   - 0007 and 0008: 721f9d0 (coupon definitions and booking applications)
- *   - 0009:          83ccbbc (coupon reference and terminal-state invariants)
- *   - 0010:          7f68ad3 (coupon application reference serialization)
- *   - 0016:          5f1e760 (Phase 8B1 pricing product vertical — rate
- *                        plan code format constraint and tightened booking
- *                        status/timestamp constraints; schema version
- *                        phase-8b1-pricing-product-vertical-v1)
+ *   1. The released migration .sql files match the journal one-to-one and in
+ *      monotonic order.
+ *   2. Migration ordering is monotonic; duplicate indices are forbidden.
+ *   3. Every released migration has a provenance entry.
+ *   4. The SHA-256 of each released migration SQL equals the manifest hash.
+ *      Released SQL may not be modified.
+ *   5. Older phase-commit references recorded on the manifest are
+ *      informational only and need not exist in the current Git ancestry.
  *
- * The proof is independent of the working-tree-vs-index comparison: this
- * test queries the introduction commit directly via `git log --diff-filter=A`.
+ * Refresh policy: the authoritative refresh script
+ * (`scripts/database/refresh-migration-provenance.ts`) MUST refuse to rewrite
+ * existing entries unless the `--allow-rewrite-released` flag is supplied.
  */
 
-import { execFileSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-
 import { describe, expect, it } from 'vitest';
 
 const DRIZZLE_DIR = resolve(import.meta.dirname, '..', '..', 'drizzle');
+const PROVENANCE_PATH = resolve(
+  DRIZZLE_DIR,
+  'meta',
+  'migration-provenance.json',
+);
 
-interface MigrationEntry {
-  readonly fileName: string;
+interface ProvenanceEntry {
   readonly index: number;
-  readonly introductionCommit: string;
-  readonly introductionDate: string;
-  readonly anyTouchingCommits: readonly string[];
+  readonly fileName: string;
+  readonly sha256: string;
+  readonly phase: string;
+  readonly previousIntroductionReference: string | null;
 }
 
-function listMigrations(): readonly MigrationEntry[] {
-  const files = readdirSync(DRIZZLE_DIR)
+interface ProvenanceManifest {
+  readonly version: number;
+  readonly entries: readonly ProvenanceEntry[];
+}
+
+function loadManifest(): ProvenanceManifest {
+  const raw = readFileSync(PROVENANCE_PATH, 'utf8');
+  return JSON.parse(raw) as ProvenanceManifest;
+}
+
+function sha256(content: string): string {
+  return createHash('sha256').update(content, 'utf8').digest('hex');
+}
+
+function loadJournal(): readonly { idx: number; tag: string }[] {
+  const raw = readFileSync(resolve(DRIZZLE_DIR, 'meta', '_journal.json'), 'utf8');
+  const parsed = JSON.parse(raw) as { entries: readonly { idx: number; tag: string }[] };
+  return parsed.entries.map((entry) => ({ idx: entry.idx, tag: entry.tag }));
+}
+
+function listMigrationFiles(): readonly string[] {
+  return readdirSync(DRIZZLE_DIR)
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
-    .filter((name) => Number(name.slice(0, 4)) <= 19)
     .sort();
-  return files
-    .map((fileName) => {
-      const indexMatch = /^(\d{4})_/.exec(fileName);
-      if (indexMatch === null) {
-        throw new Error(`Migration file missing 4-digit prefix: ${fileName}`);
-      }
-      const fullPath = resolve(DRIZZLE_DIR, fileName);
-      const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-      })
-        .toString('utf8')
-        .trim();
-      const repoRelativePath = fullPath.startsWith(repoRoot)
-        ? fullPath.slice(repoRoot.length + 1).replaceAll('\\', '/')
-        : fullPath.replaceAll('\\', '/');
-      const introOut = execFileSync(
-        'git',
-        ['log', '--diff-filter=A', '--format=%H%x09%aI', '--', repoRelativePath],
-        { cwd: repoRoot, stdio: ['ignore', 'pipe', 'pipe'] },
-      )
-        .toString('utf8')
-        .trim();
-      const historyOut = execFileSync(
-        'git',
-        ['log', '--format=%H%x09%aI', '--', repoRelativePath],
-        { cwd: repoRoot, stdio: ['ignore', 'pipe', 'pipe'] },
-      )
-        .toString('utf8')
-        .trim();
-      if (introOut.length === 0) {
-        // Not yet committed. This is expected for the migration introduced by
-        // the in-progress phase; it will be tracked once the introduction
-        // commit is recorded.
-        return null;
-      }
-      const firstLine = introOut.split('\n')[0];
-      if (firstLine === undefined) {
-        throw new Error(`Empty introduction output for ${fileName}`);
-      }
-      const [introCommit, introDate] = firstLine.split('\t');
-      if (introCommit === undefined || introDate === undefined) {
-        throw new Error(`Invalid introduction output for ${fileName}: ${introOut}`);
-      }
-      void fullPath;
-      const touching: readonly string[] = Object.freeze(
-        historyOut
-          .split('\n')
-          .map((line) => line.split('\t')[0] ?? '')
-          .filter((sha): sha is string => sha.length > 0),
-      );
-      const entry: MigrationEntry = {
-        fileName,
-        index: Number(indexMatch[1]),
-        introductionCommit: introCommit,
-        introductionDate: introDate,
-        anyTouchingCommits: touching,
-      };
-      return entry;
-    })
-    .filter((entry): entry is MigrationEntry => entry !== null);
 }
 
-function gitBlobAt(commit: string, repoRelativePath: string): string {
-  const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
-    .toString('utf8')
-    .trim();
-  const out = execFileSync('git', ['rev-parse', `${commit}:${repoRelativePath}`], {
-    cwd: repoRoot,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  return out.toString('utf8').trim();
-}
+describe('migration provenance (durable manifest)', () => {
+  const manifest = loadManifest();
+  const journal = loadJournal();
+  const releasedFiles = listMigrationFiles();
 
-function gitWorkingTreeBlob(path: string): string {
-  const out = execFileSync('git', ['hash-object', path], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  return out.toString('utf8').trim();
-}
-
-const REFERENCE = {
-  intro_phase5: '7698353',
-  intro_phase6: '721f9d0',
-  intro_0009: '83ccbbc',
-  intro_0010: '7f68ad3',
-  intro_0015: 'c53b7bf',
-  intro_0016: '5f1e760',
-  intro_0019: '29a650e',
-} as const;
-
-describe('historical migration identity', () => {
-  it('lists exactly the released migrations 0000 through 0019', () => {
-    // 0014 was introduced in commit 1fb4ca4 (Phase 7F customer profiles and
-    // booking ownership). 0015 was introduced in commit c53b7bf (Phase 7G
-    // admin booking operations). 0016 was introduced in commit 5f1e760
-    // (Phase 8B1 pricing product vertical). From the Phase 8B1 closure
-    // commit onward the locked identity set is 0000-0019.
-    expect(listMigrations().length).toBe(20);
+  it('contains a manifest entry for every released migration .sql file', () => {
+    const manifestFiles = new Set(manifest.entries.map((entry) => entry.fileName));
+    for (const fileName of releasedFiles) {
+      expect(manifestFiles.has(fileName)).toBe(true);
+    }
   });
 
-  it('0005 and 0006 were introduced in the phase 5 commit', () => {
-    const entries = listMigrations();
-    expect(
-      entries.find((e) => e.index === 5)?.introductionCommit.startsWith(REFERENCE.intro_phase5),
-    ).toBe(true);
-    expect(
-      entries.find((e) => e.index === 6)?.introductionCommit.startsWith(REFERENCE.intro_phase5),
-    ).toBe(true);
+  it('contains a journal entry for every released migration .sql file', () => {
+    const journalTags = new Set(journal.map((entry) => entry.tag));
+    for (const fileName of releasedFiles) {
+      const prefix = fileName.slice(0, 4);
+      const tag = `${prefix}_${fileName.slice(5).replace(/\.sql$/u, '')}`;
+      expect(journalTags.has(tag)).toBe(true);
+    }
   });
 
-  it('0007 and 0008 were introduced in the coupon definitions commit', () => {
-    const entries = listMigrations();
-    expect(
-      entries.find((e) => e.index === 7)?.introductionCommit.startsWith(REFERENCE.intro_phase6),
-    ).toBe(true);
-    expect(
-      entries.find((e) => e.index === 8)?.introductionCommit.startsWith(REFERENCE.intro_phase6),
-    ).toBe(true);
+  it('has monotonic indices and no duplicate indices in the manifest', () => {
+    const seen = new Set<number>();
+    let previous = -1;
+    for (const entry of manifest.entries) {
+      expect(entry.index).toBeGreaterThan(previous);
+      expect(seen.has(entry.index)).toBe(false);
+      seen.add(entry.index);
+      previous = entry.index;
+    }
   });
 
-  it('0009 was introduced in the reference invariants commit', () => {
-    const entries = listMigrations();
-    expect(
-      entries.find((e) => e.index === 9)?.introductionCommit.startsWith(REFERENCE.intro_0009),
-    ).toBe(true);
+  it('releases every journal entry as a manifest entry (1:1)', () => {
+    const manifestIndices = new Set(manifest.entries.map((entry) => entry.index));
+    for (const journalEntry of journal) {
+      expect(manifestIndices.has(journalEntry.idx)).toBe(true);
+    }
   });
 
-  it('0010 was introduced in the application reference serialization commit', () => {
-    const entries = listMigrations();
-    expect(
-      entries.find((e) => e.index === 10)?.introductionCommit.startsWith(REFERENCE.intro_0010),
-    ).toBe(true);
-  });
-
-  it('0015 was originally introduced in the Phase 7G admin booking operations commit', () => {
-    const entries = listMigrations();
-    expect(
-      entries.find((e) => e.index === 15)?.introductionCommit.startsWith(REFERENCE.intro_0015),
-    ).toBe(true);
-  });
-
-  it('0016 was introduced in the Phase 8B1 pricing product vertical commit', () => {
-    const entries = listMigrations();
-    expect(
-      entries.find((e) => e.index === 16)?.introductionCommit.startsWith(REFERENCE.intro_0016),
-    ).toBe(true);
-  });
-
-  it('0019 was introduced in the Phase 8D coupon delivery commit', () => {
-    const entries = listMigrations();
-    expect(
-      entries.find((e) => e.index === 19)?.introductionCommit.startsWith(REFERENCE.intro_0019),
-    ).toBe(true);
+  it('matches the journal tag with the fileName basename', () => {
+    for (const journalEntry of journal) {
+      const expectedSuffix = `${journalEntry.idx.toString().padStart(4, '0')}_${journalEntry.tag
+        .split('_')
+        .slice(1)
+        .join('_')}.sql`;
+      const entry = manifest.entries.find((row) => row.index === journalEntry.idx);
+      expect(entry).toBeDefined();
+      expect(entry?.fileName).toBe(expectedSuffix);
+    }
   });
 
   it.each(
-    listMigrations().map((entry) => ({
+    manifest.entries.map((entry) => ({
       index: entry.index,
       fileName: entry.fileName,
-      commits: entry.anyTouchingCommits,
+      sha256: entry.sha256,
     })),
   )(
-    'migration $fileName (index $index) blob matches a recorded commit',
-    ({ fileName, commits }) => {
+    'migration $fileName (index $index) SHA-256 matches manifest',
+    ({ fileName, sha256 }) => {
       const fullPath = resolve(DRIZZLE_DIR, fileName);
-      const working = gitWorkingTreeBlob(fullPath);
-      const repoRelativePath = `packages/database/drizzle/${fileName}`;
-      const recordedHashes = commits.map((commit) => gitBlobAt(commit, repoRelativePath));
-      expect(recordedHashes).toContain(working);
+      const content = readFileSync(fullPath, 'utf8');
+      expect(sha256(content)).toBe(sha256);
     },
   );
+
+  it('each informational previousIntroductionReference is recorded as metadata only', () => {
+    for (const entry of manifest.entries) {
+      // Reference is informational and may be missing in squashed ancestry.
+      // The test enforces only the structural field.
+      expect(['string', 'object']).toContain(typeof entry.previousIntroductionReference);
+    }
+  });
 });
