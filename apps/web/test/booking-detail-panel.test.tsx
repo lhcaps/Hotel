@@ -106,7 +106,7 @@ describe('BookingDetailPanel', () => {
         onLogout={vi.fn()}
       />,
     );
-    expect(await screen.findByRole('button', { name: 'Print confirmation' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'In mã xác nhận' })).toBeInTheDocument();
   });
 
   it('handles session errors by surfacing an unauthorized message', async () => {

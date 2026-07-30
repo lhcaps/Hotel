@@ -203,7 +203,7 @@ export function BookingDetailPanel({ bookingCode, email, onLogout }: BookingDeta
         onClick={() => window.print()}
         type="button"
       >
-        Print confirmation
+        {translate(locale, 'hold.printConfirmation')}
       </button>
 
       <button

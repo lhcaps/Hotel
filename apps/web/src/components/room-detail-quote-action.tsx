@@ -94,8 +94,12 @@ export function RoomDetailQuoteAction({
         >
           <strong>{translatePlanLabel(locale, offer.planCode)}</strong>
           <span className="block text-sm">
-            {offer.includedDurationMinutes} minutes included
-            {offer.extraUnits > 0 ? `, plus ${offer.extraUnits} extra hour(s)` : ''}
+            {translate(locale, 'ratePlan.includeDuration', {
+              minutes: offer.includedDurationMinutes,
+            })}
+            {offer.extraUnits > 0
+              ? `, ${translate(locale, 'ratePlan.extraHourCopy', { count: offer.extraUnits })}`
+              : ''}
           </span>
           <span className="block text-sm">{formatVnd(locale, offer.totalAmountVnd)}</span>
         </button>
