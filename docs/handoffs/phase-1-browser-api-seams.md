@@ -15,7 +15,7 @@ Phase 3 (ADMIN vertical).
 | Branch                          | `phase1-browser-api-seams`                                                                                                              |
 | Phase 1 start SHA (github-main) | `495b9a7476d94d052c052973326f4bccb9eb99ad`                                                                                              |
 | Functional HEAD (last code)     | `2fc59fb9abc26b0da1d72348d9da08abd4b6086a`                                                                                              |
-| Phase 1.1 final SHA             | `50c08255921d53cffe30ebd961285d5e254a3313`                                                                                              |
+| Phase 1.1 final SHA             | `f2f8ca058518e66564ef76eb1f456fe0dcf69d56`                                                                                              |
 | Working tree at end of phase    | clean (Next.js dev tooling rewrites `apps/web/next-env.d.ts` during Playwright runs; restored on each closure)                          |
 | Phase 0 production changes      | 0                                                                                                                                       |
 | Phase 1 production changes      | YES (see Rollback boundary for the exact source files)                                                                                 |
@@ -29,6 +29,7 @@ adds 2 more commits: the new browser payment-redirect tests and this handoff
 reconciliation.
 
 ```
+f2f8ca0 docs(handoff): pin phase 1.1 final sha in repository state table
 50c0825 docs(handoff): reconcile phase 1 closure evidence
 86b9c3d test(e2e): prove simulator redirects through the browser
 2fc59fb test(api,web): align nearby priceability test with expandMinutes > 0 and clean unused helper
