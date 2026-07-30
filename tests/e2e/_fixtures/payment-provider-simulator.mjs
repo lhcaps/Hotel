@@ -65,9 +65,53 @@ if (DISABLED_IN_PRODUCTION) {
   process.exit(0);
 }
 
+// Phase 2 adds an opt-in browser-side redirect from the simulator's pay page
+// back to the booking page. The URL must be loopback-only; non-loopback hosts
+// are refused to keep the simulator a safe loopback fixture. Tests opt in via
+// `POST /__control/<provider>` with `{ backRedirectUrl: '<loopback-url>' }`.
+// Omitting the field disables the redirect so the original redirect-only
+// behaviour remains the default.
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+
+function isLoopbackHost(hostname) {
+  const lower = hostname.toLowerCase();
+  if (LOOPBACK_HOSTS.has(lower)) return true;
+  if (lower.startsWith('[') && lower.endsWith(']')) {
+    return LOOPBACK_HOSTS.has(lower.slice(1, -1));
+  }
+  return false;
+}
+
+function validateBackRedirectUrl(rawUrl) {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error('backRedirectUrl.malformedUrl');
+  }
+  const protocol = parsed.protocol.toLowerCase();
+  if (protocol !== 'http:' && protocol !== 'https:') {
+    throw new Error('backRedirectUrl.unsupportedScheme');
+  }
+  if (!isLoopbackHost(parsed.hostname)) {
+    throw new Error('backRedirectUrl.hostNotLoopback');
+  }
+  return parsed.toString();
+}
+
 const providerState = {
-  momo: { mode: 'verify', redirectDelayMs: 0, duplicateIpns: false },
-  vnpay: { mode: 'verify', redirectDelayMs: 0, duplicateIpns: false },
+  momo: {
+    mode: 'verify',
+    redirectDelayMs: 0,
+    duplicateIpns: false,
+    backRedirectUrl: '',
+  },
+  vnpay: {
+    mode: 'verify',
+    redirectDelayMs: 0,
+    duplicateIpns: false,
+    backRedirectUrl: '',
+  },
 };
 
 const requestCounts = {
@@ -287,7 +331,7 @@ async function postMomoIpn(ipn) {
 async function renderMomoPayPage(response, url) {
   const orderId = url.searchParams.get('orderId') ?? '';
   const amount = Number.parseInt(url.searchParams.get('amount') ?? '0', 10);
-  const { mode, redirectDelayMs, duplicateIpns } = providerState.momo;
+  const { mode, redirectDelayMs, duplicateIpns, backRedirectUrl } = providerState.momo;
   const resultCode = mode === 'cancel' ? 1006 : mode === 'tamper' ? 0 : 0;
   const tamper = mode === 'tamper';
   const ipn = buildMomoIpn({
@@ -305,13 +349,13 @@ async function renderMomoPayPage(response, url) {
       }
     })();
   }, redirectDelayMs);
-  const body = `<!doctype html>
-<html><head><title>MoMo simulator</title></head><body>
-<h1>MoMo simulator</h1>
-<p>Order: <code>${escapeHtml(orderId)}</code></p>
-<p>Amount: <code>${amount}</code></p>
-<p>Mode: <code>${escapeHtml(mode)}</code></p>
-</body></html>`;
+  const body = renderSimulatorCheckoutPage({
+    title: 'MoMo simulator',
+    orderId,
+    amount,
+    mode,
+    backRedirectUrl,
+  });
   htmlResponse(response, 200, body);
 }
 
@@ -369,7 +413,7 @@ async function getVnpayIpn(url) {
 async function renderVnpayPayPage(response, url) {
   const orderId = url.searchParams.get('vnp_TxnRef') ?? '';
   const amount = Number.parseInt(url.searchParams.get('vnp_Amount') ?? '0', 10) / 100;
-  const { mode, redirectDelayMs, duplicateIpns } = providerState.vnpay;
+  const { mode, redirectDelayMs, duplicateIpns, backRedirectUrl } = providerState.vnpay;
   const success = mode === 'verify';
   const tamper = mode === 'tamper';
   const ipnUrl = buildVnpayIpnUrl({
@@ -387,14 +431,38 @@ async function renderVnpayPayPage(response, url) {
       }
     })();
   }, redirectDelayMs);
-  const body = `<!doctype html>
-<html><head><title>VNPAY simulator</title></head><body>
-<h1>VNPAY simulator</h1>
+  const body = renderSimulatorCheckoutPage({
+    title: 'VNPAY simulator',
+    orderId,
+    amount,
+    mode,
+    backRedirectUrl,
+  });
+  htmlResponse(response, 200, body);
+}
+
+function renderSimulatorCheckoutPage({ title, orderId, amount, mode, backRedirectUrl }) {
+  const redirectScript =
+    backRedirectUrl === ''
+      ? ''
+      : `<script>
+        // Phase 2 browser vertical: the simulator is configured with a
+        // loopback back-redirect URL. Wait briefly for the IPN to settle on
+        // the API side, then send the browser back to the booking detail.
+        // The redirect is opt-in per provider state and refuses non-loopback
+        // hosts at control time.
+        window.setTimeout(function () {
+          window.location.replace(${JSON.stringify(backRedirectUrl)});
+        }, 750);
+      </script>`;
+  return `<!doctype html>
+<html><head><title>${escapeHtml(title)}</title></head><body>
+<h1>${escapeHtml(title)}</h1>
 <p>Order: <code>${escapeHtml(orderId)}</code></p>
 <p>Amount: <code>${amount}</code></p>
 <p>Mode: <code>${escapeHtml(mode)}</code></p>
+${redirectScript}
 </body></html>`;
-  htmlResponse(response, 200, body);
 }
 
 async function handleControl(request, response, provider, url) {
@@ -418,10 +486,27 @@ async function handleControl(request, response, provider, url) {
   if (typeof body.duplicateIpns === 'boolean') {
     state.duplicateIpns = body.duplicateIpns;
   }
+  if (typeof body.backRedirectUrl === 'string') {
+    if (body.backRedirectUrl.trim() === '') {
+      state.backRedirectUrl = '';
+    } else {
+      try {
+        state.backRedirectUrl = validateBackRedirectUrl(body.backRedirectUrl);
+      } catch (error) {
+        jsonResponse(response, 400, {
+          ok: false,
+          provider,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return;
+      }
+    }
+  }
   if (body.reset === true) {
     state.mode = 'verify';
     state.redirectDelayMs = 0;
     state.duplicateIpns = false;
+    state.backRedirectUrl = '';
   }
   jsonResponse(response, 200, { ok: true, provider, state, counts: requestCounts });
   log(`control.${provider}`, { state });
