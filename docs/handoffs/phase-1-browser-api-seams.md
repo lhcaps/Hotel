@@ -10,17 +10,17 @@ Phase 3 (ADMIN vertical).
 
 ## Repository state
 
-| Item                            | Value                                                                                                                                   |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Branch                          | `phase1-browser-api-seams`                                                                                                              |
-| Phase 1 start SHA (github-main) | `495b9a7476d94d052c052973326f4bccb9eb99ad`                                                                                              |
-| Functional HEAD (last code)     | `2fc59fb9abc26b0da1d72348d9da08abd4b6086a`                                                                                              |
-| Phase 1.1 closure commits        | `86b9c3d` (e2e), `50c0825` (handoff reconciliation); see commit chain for follow-up SHA edits |
-| Working tree at end of phase    | clean (Next.js dev tooling rewrites `apps/web/next-env.d.ts` during Playwright runs; restored on each closure)                          |
-| Phase 0 production changes      | 0                                                                                                                                       |
-| Phase 1 production changes      | YES (see Rollback boundary for the exact source files)                                                                                 |
-| Released migration SQL changes  | 0                                                                                                                                       |
-| Package version changes         | 0                                                                                                                                       |
+| Item                            | Value                                                                                                          |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Branch                          | `phase1-browser-api-seams`                                                                                     |
+| Phase 1 start SHA (github-main) | `495b9a7476d94d052c052973326f4bccb9eb99ad`                                                                     |
+| Functional HEAD (last code)     | `2fc59fb9abc26b0da1d72348d9da08abd4b6086a`                                                                     |
+| Phase 1.1 closure commits       | `86b9c3d` (e2e), `50c0825` (handoff reconciliation); see commit chain for follow-up SHA edits                  |
+| Working tree at end of phase    | clean (Next.js dev tooling rewrites `apps/web/next-env.d.ts` during Playwright runs; restored on each closure) |
+| Phase 0 production changes      | 0                                                                                                              |
+| Phase 1 production changes      | YES (see Rollback boundary for the exact source files)                                                         |
+| Released migration SQL changes  | 0                                                                                                              |
+| Package version changes         | 0                                                                                                              |
 
 ## Commit chain (16 forward-only commits)
 
@@ -244,19 +244,19 @@ Web on 3100, MoMo + VNPAY simulator on 3090, disposable PostgreSQL).
 
 ### Functional runs (Phase 1, commit `da5918d`)
 
-| Run | Command | Result | Duration |
-|-----|---------|--------|----------|
-| 1   | `pnpm exec playwright test tests/e2e/phase1-browser-api-seams.spec.ts --workers=1 --retries=0` | 2 / 2 passed | 14.1 s |
-| 2   | same | 2 / 2 passed | 13.9 s |
+| Run | Command                                                                                        | Result       | Duration |
+| --- | ---------------------------------------------------------------------------------------------- | ------------ | -------- |
+| 1   | `pnpm exec playwright test tests/e2e/phase1-browser-api-seams.spec.ts --workers=1 --retries=0` | 2 / 2 passed | 14.1 s   |
+| 2   | same                                                                                           | 2 / 2 passed | 13.9 s   |
 
 Coverage: A (nearby), B (cross-midnight). No deterministic skips, no retries.
 
 ### Phase 1.1 closure runs (after payment-redirect scenarios were added)
 
-| Run | Command | Result | Duration |
-|-----|---------|--------|----------|
-| 1   | `pnpm exec playwright test tests/e2e/phase1-browser-api-seams.spec.ts --workers=1 --retries=0` | 6 / 6 passed | 17.8 s |
-| 2   | same | 6 / 6 passed | 17.2 s |
+| Run | Command                                                                                        | Result       | Duration |
+| --- | ---------------------------------------------------------------------------------------------- | ------------ | -------- |
+| 1   | `pnpm exec playwright test tests/e2e/phase1-browser-api-seams.spec.ts --workers=1 --retries=0` | 6 / 6 passed | 17.8 s   |
+| 2   | same                                                                                           | 6 / 6 passed | 17.2 s   |
 
 Coverage on both runs: A (nearby), B (cross-midnight), D (MoMo redirect),
 E (VNPAY redirect), F (unsafe external HTTP rejection), G (production
@@ -264,14 +264,14 @@ runtime helper rejection). No deterministic skips, no retries, 1 worker.
 
 Per-test breakdown (Phase 1.1, Run 1 ≈ Run 2):
 
-| Test | Real network | What it asserts |
-|------|--------------|-----------------|
-| A. EXACT EMPTY → NEARBY             | `/api/v1/public/availability/nearby` POST mocked   | exactly one call to public route, zero calls to old route, localized interval, real offer |
-| B. CROSS MIDNIGHT                   | `/api/v1/availability/search` POST captured        | checkIn `2026-07-31T23:00:00+07:00`, checkOut `2026-08-01T02:00:00+07:00` |
-| D. MOMO BROWSER REDIRECT            | real API + real simulator at `127.0.0.1:3090`      | click MoMo → browser navigates to `http://127.0.0.1:3090/momo-test/pay?orderId=…` |
-| E. VNPAY BROWSER REDIRECT           | real API + real simulator at `127.0.0.1:3090`      | click VNPAY → browser navigates to `http://127.0.0.1:3090/vnpay-test/pay?vnp_TxnRef=…` |
-| F. UNSAFE REDIRECT                  | `/api/v1/public/bookings/.../payments/momo/attempts` mocked to return `http://evil.example/pay` | click MoMo → no navigation; localized alert visible; button returns to enabled |
-| G. PRODUCTION RUNTIME HELPER        | helper called directly                              | `assertSafePaymentRedirect('http://127.0.0.1:3090/...', 'production')` throws; HTTPS still accepted |
+| Test                         | Real network                                                                                    | What it asserts                                                                                     |
+| ---------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| A. EXACT EMPTY → NEARBY      | `/api/v1/public/availability/nearby` POST mocked                                                | exactly one call to public route, zero calls to old route, localized interval, real offer           |
+| B. CROSS MIDNIGHT            | `/api/v1/availability/search` POST captured                                                     | checkIn `2026-07-31T23:00:00+07:00`, checkOut `2026-08-01T02:00:00+07:00`                           |
+| D. MOMO BROWSER REDIRECT     | real API + real simulator at `127.0.0.1:3090`                                                   | click MoMo → browser navigates to `http://127.0.0.1:3090/momo-test/pay?orderId=…`                   |
+| E. VNPAY BROWSER REDIRECT    | real API + real simulator at `127.0.0.1:3090`                                                   | click VNPAY → browser navigates to `http://127.0.0.1:3090/vnpay-test/pay?vnp_TxnRef=…`              |
+| F. UNSAFE REDIRECT           | `/api/v1/public/bookings/.../payments/momo/attempts` mocked to return `http://evil.example/pay` | click MoMo → no navigation; localized alert visible; button returns to enabled                      |
+| G. PRODUCTION RUNTIME HELPER | helper called directly                                                                          | `assertSafePaymentRedirect('http://127.0.0.1:3090/...', 'production')` throws; HTTPS still accepted |
 
 D and E use `cancel` simulator mode so the payment stays PENDING and
 does not promote the booking while later assertions run. F intercepts the
@@ -281,23 +281,23 @@ HTTP-rejection contract.
 
 ## Validation totals (Phase 1.1 closure re-run)
 
-| Gate                       | Result                                                                       |
-| -------------------------- | ---------------------------------------------------------------------------- |
-| `pnpm format:check`        | exit 0                                                                       |
-| `pnpm lint`                | 9 / 9 packages clean                                                         |
-| `pnpm typecheck`           | 9 / 9 packages clean                                                         |
+| Gate                       | Result                                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm format:check`        | exit 0                                                                                                                         |
+| `pnpm lint`                | 9 / 9 packages clean                                                                                                           |
+| `pnpm typecheck`           | 9 / 9 packages clean                                                                                                           |
 | `pnpm test:unit`           | 21 worker + 56 api + 43 web = 666 tests passed (auth + booking + contracts + config + database + observability + web + worker) |
-| `pnpm build`               | 9 / 9 packages build (`@room/web` Next.js production build OK)               |
-| `pnpm db:check`            | `Everything's fine 🐶🔥`                                                     |
-| `pnpm db:test`             | 22 files, **164 / 164 tests passed**                                         |
-| `pnpm test:integration`    | 24 files, **132 / 132 tests passed**                                         |
-| `pnpm test:pricing`        | 1 file, **29 / 29 tests passed**                                             |
-| `pnpm test:availability`   | 1 file, **5 / 5 tests passed**                                               |
-| `pnpm test:quotes`         | 1 file, **3 / 3 tests passed**                                               |
-| `pnpm check:openapi`       | `admin: 43 ops, public: 22 ops`; coupon schema 11/11                         |
-| `pnpm check:endpoints`     | `85 runtime routes; 81 documented; 4 allowlisted`                            |
-| `pnpm check:i18n-critical` | `CRITICAL_SOURCE_FILES_SCANNED=112`, `DIRECT_VI_COPY_CRITICAL_SOURCE=0`      |
-| `pnpm audit:deps`          | 1 low, 2 moderate (no high or critical)                                      |
+| `pnpm build`               | 9 / 9 packages build (`@room/web` Next.js production build OK)                                                                 |
+| `pnpm db:check`            | `Everything's fine 🐶🔥`                                                                                                       |
+| `pnpm db:test`             | 22 files, **164 / 164 tests passed**                                                                                           |
+| `pnpm test:integration`    | 24 files, **132 / 132 tests passed**                                                                                           |
+| `pnpm test:pricing`        | 1 file, **29 / 29 tests passed**                                                                                               |
+| `pnpm test:availability`   | 1 file, **5 / 5 tests passed**                                                                                                 |
+| `pnpm test:quotes`         | 1 file, **3 / 3 tests passed**                                                                                                 |
+| `pnpm check:openapi`       | `admin: 43 ops, public: 22 ops`; coupon schema 11/11                                                                           |
+| `pnpm check:endpoints`     | `85 runtime routes; 81 documented; 4 allowlisted`                                                                              |
+| `pnpm check:i18n-critical` | `CRITICAL_SOURCE_FILES_SCANNED=112`, `DIRECT_VI_COPY_CRITICAL_SOURCE=0`                                                        |
+| `pnpm audit:deps`          | 1 low, 2 moderate (no high or critical)                                                                                        |
 
 ## Phase 1 acceptance verdicts
 
