@@ -6,7 +6,14 @@ import { useEffect, useRef, useState } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert';
 import { Button } from '../../../components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../../components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '../../../components/ui/card';
 import { Field, FieldGroup, FieldLabel } from '../../../components/ui/field';
 import { Input } from '../../../components/ui/input';
 import { Spinner } from '../../../components/ui/spinner';
@@ -146,11 +153,7 @@ export default function AdminLoginPage() {
             </FieldGroup>
           </CardContent>
           <CardFooter className="admin-login-card-footer">
-            <Button
-              className="admin-login-submit"
-              disabled={pending}
-              type="submit"
-            >
+            <Button className="admin-login-submit" disabled={pending} type="submit">
               {pending ? (
                 <>
                   <Spinner aria-hidden="true" />

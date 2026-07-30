@@ -13,13 +13,16 @@
 - Lines: 142
 
 ### Top-level declarations / exports
+
 - `export class AdminBookingOperationsController`
 - `type AdminRequest`
 
 ### Function / method signatures
+
 - None detected by static scan.
 
 ### Database tables / schema references
+
 - `@Get('bookings')`
 - `@Get('bookings/:bookingCode')`
 - `@Post('bookings/:bookingCode/cancel')`
@@ -35,9 +38,11 @@
 - `} from '@room/contracts';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `new Date(),`
 - `return this.lifecycle.cancel(request.actor, bookingCode, body, new Date());`
 - `return this.lifecycle.checkIn(request.actor, bookingCode, new Date());`
@@ -47,6 +52,7 @@
 - `return this.lifecycle.markNoShow(request.actor, bookingCode, body, new Date());`
 
 ### Money / arithmetic operations
+
 - `@Get('bookings/:bookingCode')`
 - `@Get('operational-reviews/:reviewId')`
 - `@Post('bookings/:bookingCode/cancel')`
@@ -63,6 +69,7 @@
 - `} from '@room/contracts';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Body() body: unknown,`
 - `@Controller('admin')`
 - `@Get('bookings')`
@@ -221,12 +228,7 @@ export class AdminBookingOperationsController {
     @Body() body: unknown,
     @Req() request: AdminRequest,
   ): Promise<AdminOperationalReviewDetail> {
-    return this.lifecycle.resolveOperationalReview(
-      request.actor,
-      reviewId,
-      body,
-      new Date(),
-    );
+    return this.lifecycle.resolveOperationalReview(request.actor, reviewId, body, new Date());
   }
 }
 ```
@@ -237,12 +239,14 @@ export class AdminBookingOperationsController {
 - Lines: 36
 
 ### Top-level declarations / exports
+
 - `export class BookingTransitionError extends Error`
 - `export class NoShowBeforeCheckInError extends Error`
 - `export class OperationalReviewAlreadyResolvedError extends Error`
 - `export class OperationalReviewNotFoundError extends Error`
 
 ### Function / method signatures
+
 - `public constructor()`
 - `public constructor(message?: string)`
 - `super('No-show can only be marked at or after the expected check-in time.')`
@@ -251,18 +255,23 @@ export class AdminBookingOperationsController {
 - `super(message ?? 'Booking transition is not allowed for the current state.')`
 
 ### Database tables / schema references
+
 - None detected by static scan.
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - None detected by static scan.
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -312,14 +321,17 @@ export class OperationalReviewAlreadyResolvedError extends Error {
 - Lines: 28
 
 ### Top-level declarations / exports
+
 - `export class BookingDetailController`
 - `interface RequestLike`
 
 ### Function / method signatures
+
 - `if (token === null)`
 - `public async get(@Param('bookingCode') bookingCode: string, @Req() request: RequestLike)`
 
 ### Database tables / schema references
+
 - `@Controller('public/bookings')`
 - `import { BookingDetailService } from './services/booking-detail.service.js';`
 - `import { Controller, Get, Inject, Param, Req, Version } from '@nestjs/common';`
@@ -327,12 +339,15 @@ export class OperationalReviewAlreadyResolvedError extends Error {
 - `import { parseGuestSessionCookie } from './cookie.js';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `return this.details.getByBookingCode(bookingCode, token, new Date());`
 
 ### Money / arithmetic operations
+
 - `@Controller('public/bookings')`
 - `import { BookingDetailService } from './services/booking-detail.service.js';`
 - `import { Controller, Get, Inject, Param, Req, Version } from '@nestjs/common';`
@@ -340,6 +355,7 @@ export class OperationalReviewAlreadyResolvedError extends Error {
 - `import { parseGuestSessionCookie } from './cookie.js';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Controller('public/bookings')`
 - `@Get(':bookingCode')`
 - `@Version('1')`
@@ -350,7 +366,10 @@ export class OperationalReviewAlreadyResolvedError extends Error {
 import { Controller, Get, Inject, Param, Req, Version } from '@nestjs/common';
 
 import { BookingDetailService } from './services/booking-detail.service.js';
-import { GuestSessionRequiredError, GuestSessionService } from './services/guest-session.service.js';
+import {
+  GuestSessionRequiredError,
+  GuestSessionService,
+} from './services/guest-session.service.js';
 import { parseGuestSessionCookie } from './cookie.js';
 
 interface RequestLike {
@@ -383,27 +402,34 @@ export class BookingDetailController {
 - Lines: 16
 
 ### Top-level declarations / exports
+
 - `export class BookingHoldStatusController`
 
 ### Function / method signatures
+
 - `public getStatus(@Body() body: unknown)`
 
 ### Database tables / schema references
+
 - `import { Body, Controller, Inject, Post, Version } from '@nestjs/common';`
 - `import { BookingHoldStatusService } from './services/booking-hold-status.service.js';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `return this.status.status(body, new Date());`
 
 ### Money / arithmetic operations
+
 - `@Controller('public/booking-holds')`
 - `import { Body, Controller, Inject, Post, Version } from '@nestjs/common';`
 - `import { BookingHoldStatusService } from './services/booking-hold-status.service.js';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Controller('public/booking-holds')`
 - `@Post('status')`
 - `@Version('1')`
@@ -435,13 +461,16 @@ export class BookingHoldStatusController {
 - Lines: 44
 
 ### Top-level declarations / exports
+
 - `export class BookingHoldController`
 - `interface RequestWithCorrelation`
 
 ### Function / method signatures
+
 - None detected by static scan.
 
 ### Database tables / schema references
+
 - `* valid session. Guest bookings remain the default; absence of a CUSTOMER`
 - `@Controller('public/quotes')`
 - `@Post(':quoteId/bookings')`
@@ -450,12 +479,15 @@ export class BookingHoldStatusController {
 - `import { CustomerSessionService } from '../auth/customer-session.service.js';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `* Resolve an ACTIVE CUSTOMER user id only when the request carries a`
 - `* session is intentionally non-fatal here.`
 - `* valid session. Guest bookings remain the default; absence of a CUSTOMER`
@@ -468,6 +500,7 @@ export class BookingHoldStatusController {
 - `import { CustomerSessionService } from '../auth/customer-session.service.js';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Body() body: unknown,`
 - `@Controller('public/quotes')`
 - `@Param('quoteId') quoteId: string,`
@@ -530,14 +563,17 @@ export class BookingHoldController {
 - Lines: 182
 
 ### Top-level declarations / exports
+
 - `export class BookingModule`
 - `export const GUEST_RATE_LIMIT_CONFIG`
 - `export const GUEST_SECRETS`
 
 ### Function / method signatures
+
 - None detected by static scan.
 
 ### Database tables / schema references
+
 - `import { AdminBookingLifecycleService } from './services/admin-booking-lifecycle.service.js';`
 - `import { AdminBookingOperationsController } from './admin-booking-operations.controller.js';`
 - `import { AdminBookingRepository } from './repositories/admin-booking.repository.js';`
@@ -565,12 +601,15 @@ export class BookingHoldController {
 - `} from './repositories/guest-access.repository.js';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `import { AdminBookingLifecycleService } from './services/admin-booking-lifecycle.service.js';`
 - `import { AdminBookingOperationsController } from './admin-booking-operations.controller.js';`
 - `import { AdminBookingRepository } from './repositories/admin-booking.repository.js';`
@@ -598,6 +637,7 @@ export class BookingHoldController {
 - `} from './repositories/guest-access.repository.js';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -793,6 +833,7 @@ export class BookingModule {}
 - Lines: 89
 
 ### Top-level declarations / exports
+
 - `export const GUEST_SESSION_COOKIE_NAME`
 - `export function buildClearCookieHeader(`
 - `export function parseGuestSessionCookie(rawValue: string): Buffer | null`
@@ -804,22 +845,27 @@ export class BookingModule {}
 - `function base64UrlEncode(buffer: Buffer): string`
 
 ### Function / method signatures
+
 - `export function parseGuestSessionCookie(rawValue: string)`
 - `function base64UrlDecode(value: string)`
 - `function base64UrlEncode(buffer: Buffer)`
 - `if (secureFlag)`
 
 ### Database tables / schema references
+
 - `import { Buffer } from 'node:buffer';`
 - `return Buffer.from(value, 'base64url');`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `*`
 - `* Attributes: HttpOnly, SameSite=Lax, Path=/, Secure in production,`
 - `* Cookie serialization / parsing for the Phase 5 guest session cookie.`
@@ -833,6 +879,7 @@ export class BookingModule {}
 - `const maxAge = Math.max(0, Math.floor(attributes.ttlSeconds));`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -911,9 +958,7 @@ export function serializeGuestSessionExpiry(
   return serializeGuestSessionCookie(Buffer.alloc(0), attributes);
 }
 
-export function buildClearCookieHeader(
-  attributes: GuestSessionCookieAttributes,
-): string {
+export function buildClearCookieHeader(attributes: GuestSessionCookieAttributes): string {
   const secureFlag = attributes.nodeEnv === 'production';
   const parts = [
     `${GUEST_SESSION_COOKIE_NAME}=`,
@@ -935,31 +980,38 @@ export function buildClearCookieHeader(
 - Lines: 40
 
 ### Top-level declarations / exports
+
 - `export class GuestAccessLogoutController`
 - `interface RequestLike`
 
 ### Function / method signatures
+
 - `buildClearCookieHeader(attributes)`
 
 ### Database tables / schema references
+
 - `import type { FastifyReply } from 'fastify';`
 - `import { Controller, Inject, Post, Req, Res, Version } from '@nestjs/common';`
 - `import { GuestLogoutService } from './services/guest-logout.service.js';`
 - `} from './cookie.js';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `const result = await this.service.logout(token, new Date());`
 
 ### Money / arithmetic operations
+
 - `@Controller('public/guest-access')`
 - `import { Controller, Inject, Post, Req, Res, Version } from '@nestjs/common';`
 - `import { GuestLogoutService } from './services/guest-logout.service.js';`
 - `} from './cookie.js';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Controller('public/guest-access')`
 - `@Post('logout')`
 - `@Req() request: RequestLike,`
@@ -985,9 +1037,7 @@ interface RequestLike {
 
 @Controller('public/guest-access')
 export class GuestAccessLogoutController {
-  public constructor(
-    @Inject(GuestLogoutService) private readonly service: GuestLogoutService,
-  ) {}
+  public constructor(@Inject(GuestLogoutService) private readonly service: GuestLogoutService) {}
 
   @Post('logout')
   @Version('1')
@@ -1017,6 +1067,7 @@ export class GuestAccessLogoutController {
 - Lines: 108
 
 ### Top-level declarations / exports
+
 - `class OtpRateLimitedHttpError extends Error`
 - `export class GuestAccessOtpController`
 - `function extractIp(request: RequestLike, _trustedCidrs: readonly`
@@ -1025,6 +1076,7 @@ export class GuestAccessLogoutController {
 - `interface RequestLike`
 
 ### Function / method signatures
+
 - `extractIp(request, [])`
 - `function extractIp(request: RequestLike, _trustedCidrs: readonly { readonly cidr: string }[])`
 - `function readSessionCookie(request: RequestLike)`
@@ -1036,6 +1088,7 @@ export class GuestAccessLogoutController {
 - `super('OTP rate-limited')`
 
 ### Database tables / schema references
+
 - `import type { FastifyReply } from 'fastify';`
 - `import { Body, Controller, Inject, Post, Req, Res, Version } from '@nestjs/common';`
 - `import { Buffer } from 'node:buffer';`
@@ -1044,12 +1097,15 @@ export class GuestAccessLogoutController {
 - `} from './services/guest-access-otp-verify.service.js';`
 
 ### External HTTP calls
+
 - `return await this.requestService.request(body, extractIp(request, []));`
 
 ### Timezone / date handling
+
 - `new Date(),`
 
 ### Money / arithmetic operations
+
 - `// Without trusted proxies we fall back to socket address (no spoofable`
 - `// hook level when the deploy wants to honour X-Forwarded-For.`
 - `// surface). TRUSTED_PROXY_CIDRS handling is enforced at the Fastify`
@@ -1062,6 +1118,7 @@ export class GuestAccessLogoutController {
 - `} from './services/guest-access-otp-verify.service.js';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Body() body: unknown,`
 - `@Controller('public/guest-access')`
 - `@Post('otp/request')`
@@ -1084,7 +1141,10 @@ import {
   serializeGuestSessionCookie,
   type GuestSessionCookieAttributes,
 } from './cookie.js';
-import { GuestAccessOtpRequestService, OtpRateLimitedError } from './services/guest-access-otp-request.service.js';
+import {
+  GuestAccessOtpRequestService,
+  OtpRateLimitedError,
+} from './services/guest-access-otp-request.service.js';
 import {
   GuestAccessOtpVerifyService,
   OtpInvalidOrExpiredError,
@@ -1107,7 +1167,10 @@ function readSessionCookie(request: RequestLike): Buffer | null {
   return parseGuestSessionCookie(raw);
 }
 
-function extractIp(request: RequestLike, _trustedCidrs: readonly { readonly cidr: string }[]): string {
+function extractIp(
+  request: RequestLike,
+  _trustedCidrs: readonly { readonly cidr: string }[],
+): string {
   const socketAddress = request.socket?.remoteAddress ?? null;
   // Without trusted proxies we fall back to socket address (no spoofable
   // surface). TRUSTED_PROXY_CIDRS handling is enforced at the Fastify
@@ -1189,6 +1252,7 @@ void buildClearCookieHeader;
 - Lines: 107
 
 ### Top-level declarations / exports
+
 - `const CIDR_REGEX`
 - `export function extractRequestIp(`
 - `export function parseCidrList(value: string): ProxyCidrEntry[]`
@@ -1201,6 +1265,7 @@ void buildClearCookieHeader;
 - `function parseCidrOrThrow(cidr: string): ProxyCidrEntry`
 
 ### Function / method signatures
+
 - `export function parseCidrList(value: string)`
 - `for (const byte of bytes)`
 - `for (const entry of trustedCidrs)`
@@ -1223,15 +1288,19 @@ void buildClearCookieHeader;
 - `return (ipInt & mask) === (cidrInt & mask)`
 
 ### Database tables / schema references
+
 - None detected by static scan.
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `*`
 - `* Extract the client IP for rate-limit/audit use.`
 - `* Production must be deployed behind a known trusted proxy. The CIDR`
@@ -1245,6 +1314,7 @@ void buildClearCookieHeader;
 - `const match = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(value);`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -1308,7 +1378,9 @@ function ipv4ToInt(value: string): number | null {
   if (octets.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) {
     return null;
   }
-  return ((octets[0] ?? 0) << 24) | ((octets[1] ?? 0) << 16) | ((octets[2] ?? 0) << 8) | (octets[3] ?? 0);
+  return (
+    ((octets[0] ?? 0) << 24) | ((octets[1] ?? 0) << 16) | ((octets[2] ?? 0) << 8) | (octets[3] ?? 0)
+  );
 }
 
 function ipMatchesCidr(ip: string, cidr: string): boolean {
@@ -1365,6 +1437,7 @@ export function extractRequestIp(
 - Lines: 734
 
 ### Top-level declarations / exports
+
 - `const SAFE_PAYLOAD_KEYS`
 - `export class AdminBookingRepository`
 - `export interface AdminBookingDetailCoupon`
@@ -1394,6 +1467,7 @@ export function extractRequestIp(
 - `interface ListFilters`
 
 ### Function / method signatures
+
 - `for (const [key, value] of Object.entries(payload as Record<string, unknown>))`
 - `function asBigInt(value: string | number | bigint, _field: string)`
 - `function asDate(value: Date | string, field: string)`
@@ -1427,6 +1501,7 @@ export function extractRequestIp(
 - `public constructor(private readonly pool: DatabasePool)`
 
 ### Database tables / schema references
+
 - `FROM audit_events`
 - `FROM bookings b`
 - `FROM operational_reviews`
@@ -1447,23 +1522,26 @@ export function extractRequestIp(
 - `SELECT rv.id              AS review_id,`
 - `\`EXISTS (SELECT 1 FROM operational_reviews rv2 WHERE rv2.booking_id = b.id AND rv2.status = 'RESOLVED')\`,`
 - `\`NOT EXISTS (SELECT 1 FROM operational_reviews rv3 WHERE rv3.booking_id = b.id)\`,`
-- `\`SELECT b.id                       AS booking_id,`
+- `\`SELECT b.id AS booking_id,`
 - `\`SELECT id, event_type, actor_type, actor_id, occurred_at, payload`
-- `\`SELECT rv.id              AS review_id,`
+- `\`SELECT rv.id AS review_id,`
 - `if (query.checkInFrom !== undefined) {`
 - `if (query.checkInTo !== undefined) {`
 - `import type { DatabasePool } from '@room/database';`
 - `} from '@room/contracts';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `const parsed = new Date(value);`
 - `params.push(new Date(query.checkInFrom));`
 - `params.push(new Date(query.checkInTo));`
 
 ### Money / arithmetic operations
+
 - `: asBigInt(row.payment_amount_vnd, 'payment_amount_vnd'),`
 - `SELECT *`
 - `SELECT COUNT(*)::text AS count`
@@ -1491,6 +1569,7 @@ export function extractRequestIp(
 - `} from '@room/contracts';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -1498,27 +1577,13 @@ export function extractRequestIp(
 ```typescript
 import type { DatabasePool } from '@room/database';
 
-import type {
-  AdminBookingListQuery,
-  AdminOperationalReviewListQuery,
-} from '@room/contracts';
+import type { AdminBookingListQuery, AdminOperationalReviewListQuery } from '@room/contracts';
 
 export type AdminBookingStatus =
-  | 'HOLD'
-  | 'CONFIRMED'
-  | 'EXPIRED'
-  | 'CANCELLED'
-  | 'NO_SHOW'
-  | 'CHECKED_IN'
-  | 'CHECKED_OUT';
+  'HOLD' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED' | 'NO_SHOW' | 'CHECKED_IN' | 'CHECKED_OUT';
 
 export type AdminPaymentStatusSummary =
-  | 'NONE'
-  | 'PENDING'
-  | 'SUCCEEDED'
-  | 'REVIEW_REQUIRED'
-  | 'CANCELLED'
-  | 'EXPIRED';
+  'NONE' | 'PENDING' | 'SUCCEEDED' | 'REVIEW_REQUIRED' | 'CANCELLED' | 'EXPIRED';
 
 export type AdminReviewPresence = 'OPEN' | 'RESOLVED' | 'NONE';
 
@@ -1829,7 +1894,9 @@ function toAdminBookingDetailRow(row: AdminBookingDetailDbRow): AdminBookingDeta
     maxOccupancy: row.max_occupancy,
     coupon: readDetailCoupon(row),
     paymentAmountVnd:
-      row.payment_amount_vnd === null ? null : asBigInt(row.payment_amount_vnd, 'payment_amount_vnd'),
+      row.payment_amount_vnd === null
+        ? null
+        : asBigInt(row.payment_amount_vnd, 'payment_amount_vnd'),
     paymentConfirmationSource: row.payment_confirmation_source,
     paymentSucceededAt: asOptionalDate(row.payment_succeeded_at, 'payment_succeeded_at'),
     reviewId: row.review_id,
@@ -1887,10 +1954,7 @@ interface ListFilters {
   params: unknown[];
 }
 
-function buildListFilters(
-  propertyId: string,
-  query: AdminBookingListQuery,
-): ListFilters {
+function buildListFilters(propertyId: string, query: AdminBookingListQuery): ListFilters {
   const conditions: string[] = ['b.property_id = $1'];
   const params: unknown[] = [propertyId];
   let index = 2;
@@ -2019,9 +2083,7 @@ export class AdminBookingRepository {
     };
   }
 
-  public async findDetailByBookingCode(
-    bookingCode: string,
-  ): Promise<AdminBookingDetailRow | null> {
+  public async findDetailByBookingCode(bookingCode: string): Promise<AdminBookingDetailRow | null> {
     const result = await this.pool.query<AdminBookingDetailDbRow>(
       `SELECT b.id                       AS booking_id,
               b.booking_code             AS booking_code,
@@ -2097,9 +2159,7 @@ export class AdminBookingRepository {
     return toAdminBookingDetailRow(row);
   }
 
-  public async listTimelineByBookingId(
-    bookingId: string,
-  ): Promise<AdminBookingTimelineRow[]> {
+  public async listTimelineByBookingId(bookingId: string): Promise<AdminBookingTimelineRow[]> {
     const result = await this.pool.query<{
       id: string;
       event_type: string;
@@ -2131,7 +2191,7 @@ export class AdminBookingRepository {
     const status = query.status ?? 'OPEN';
     const limit = query.pageSize;
     const offset = (query.page - 1) * query.pageSize;
-    const conditions: string[] = ['rv.property_id = $1', "rv.status = $2"];
+    const conditions: string[] = ['rv.property_id = $1', 'rv.status = $2'];
     const params: unknown[] = [propertyId, status];
     let index = 3;
     if (query.bookingCode !== undefined) {
@@ -2238,6 +2298,7 @@ export class AdminBookingRepository {
 - Lines: 182
 
 ### Top-level declarations / exports
+
 - `export class BookingDetailRepository`
 - `export function toBookingDetailRecord(row: DetailRow): BookingDetailRecord`
 - `export interface BookingDetailCouponSnapshot`
@@ -2249,6 +2310,7 @@ export class AdminBookingRepository {
 - `interface DetailRow`
 
 ### Function / method signatures
+
 - `export function toBookingDetailRecord(row: DetailRow)`
 - `function asBigIntAmount(value: string | number | bigint)`
 - `function asDate(value: Date | string, field: string)`
@@ -2265,21 +2327,25 @@ export class AdminBookingRepository {
 - `public constructor(private readonly client: DatabaseClient)`
 
 ### Database tables / schema references
+
 - `FROM bookings b`
 - `JOIN booking_contacts bc ON bc.booking_id = b.id`
 - `JOIN properties p   ON p.id = b.property_id`
 - `JOIN room_types rt  ON rt.property_id = b.property_id AND rt.id = b.room_type_id`
 - `LEFT JOIN booking_coupon_applications bca`
 - `import { sql, type DatabaseClient } from '@room/database';`
-- `sql\`SELECT b.id            AS booking_id,`
+- `sql\`SELECT b.id AS booking_id,`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `const parsed = new Date(value);`
 
 ### Money / arithmetic operations
+
 - `const big = typeof value === 'string' ? BigInt(value) : value;`
 - `const discount = asOptionalBigIntAmount(row.coupon_discount_amount_vnd);`
 - `const final = asOptionalBigIntAmount(row.coupon_final_amount_vnd);`
@@ -2297,6 +2363,7 @@ export class AdminBookingRepository {
 - `readonly grossAmountVnd: number;`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -2492,6 +2559,7 @@ export class BookingDetailRepository {
 - Lines: 595
 
 ### Top-level declarations / exports
+
 - `export class GuestAccessRepository`
 - `export interface ActiveChallengeLookup`
 - `export interface BookingContactLookup`
@@ -2509,8 +2577,9 @@ export class BookingDetailRepository {
 - `interface ChallengeLookupRow`
 
 ### Function / method signatures
+
 - `VALUES
-           (gen_random_uuid()`
+       (gen_random_uuid()`
 - `for (let i = 0; i < a.length; i += 1)`
 - `function parseSqlTimestamp(value: Date | string, field: string)`
 - `function timingSafeEqualStrings(a: string, b: string)`
@@ -2538,6 +2607,7 @@ export class BookingDetailRepository {
 - `timingSafeEqualStrings(params.otp, expectedOtp)`
 
 ### Database tables / schema references
+
 - `'SELECT CURRENT_TIMESTAMP AS database_now',`
 - `* we can use SELECT FOR UPDATE without fighting Drizzle's transaction`
 - `FROM bookings b`
@@ -2550,9 +2620,9 @@ export class BookingDetailRepository {
 - `\`INSERT INTO guest_sessions`
 - `\`INSERT INTO outbox_events`
 - `\`SELECT COUNT(*)::text AS count`
-- `\`SELECT b.id            AS booking_id,`
+- `\`SELECT b.id AS booking_id,`
 - `\`SELECT email_digest FROM booking_contacts WHERE booking_id = $1\`,`
-- `\`SELECT goc.id           AS challenge_id,`
+- `\`SELECT goc.id AS challenge_id,`
 - `\`UPDATE guest_otp_challenges`
 - `\`UPDATE guest_sessions`
 - `import { Buffer } from 'node:buffer';`
@@ -2560,14 +2630,16 @@ export class BookingDetailRepository {
 - `import { sql, type DatabaseClient, type DatabasePool } from '@room/database';`
 - `parts: [Buffer.from(normalizeChallengeRef(challengeRef), 'utf8')],`
 - `parts: [Buffer.from(normalizedRef, 'utf8')],`
-- `sql\`SELECT b.id              AS booking_id,`
-- `sql\`SELECT id            AS challenge_id,`
+- `sql\`SELECT b.id AS booking_id,`
+- `sql\`SELECT id AS challenge_id,`
 - `} from '@room/booking';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `: new Date(databaseNowRaw);`
 - `const expiresAt = new Date(databaseNow.getTime() + this.config.otpTtlMs);`
 - `const parsed = new Date(value);`
@@ -2575,6 +2647,7 @@ export class BookingDetailRepository {
 - `return value instanceof Date ? value : new Date(value);`
 
 ### Money / arithmetic operations
+
 - `*`
 - `*                 consume + insert session + audit + outbox.`
 - `*                 replace active challenge, insert challenge + outbox.`
@@ -2606,6 +2679,7 @@ export class BookingDetailRepository {
 - `} from '@room/booking';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -2675,7 +2749,11 @@ export type RequestOtpOutcome =
       readonly serverTime: Date;
     }
   | { readonly kind: 'DECOY_ISSUED'; readonly challengeRef: string; readonly serverTime: Date }
-  | { readonly kind: 'OTP_RATE_LIMITED'; readonly retryAfterSeconds: number; readonly serverTime: Date };
+  | {
+      readonly kind: 'OTP_RATE_LIMITED';
+      readonly retryAfterSeconds: number;
+      readonly serverTime: Date;
+    };
 
 export interface ConsumeOtpParams {
   readonly challengeRef: string;
@@ -2763,9 +2841,7 @@ export class GuestAccessRepository {
     };
   }
 
-  public async findActiveChallenge(
-    bookingId: string,
-  ): Promise<ActiveChallengeLookup | null> {
+  public async findActiveChallenge(bookingId: string): Promise<ActiveChallengeLookup | null> {
     const result = await this.database.execute<ActiveChallengeRow & Record<string, unknown>>(
       sql`SELECT id            AS challenge_id,
                  created_at    AS created_at
@@ -2859,12 +2935,7 @@ export class GuestAccessRepository {
           WHERE booking_id = $1
             AND email_digest = $2
             AND created_at > $3::timestamptz - ($4::bigint * INTERVAL '1 millisecond')`,
-        [
-          bookingRow.booking_id,
-          contactEmailDigest,
-          databaseNow,
-          this.config.requestWindowMs,
-        ],
+        [bookingRow.booking_id, contactEmailDigest, databaseNow, this.config.requestWindowMs],
       );
       const requestCount = Number(requestCountResult.rows[0]?.count ?? '0');
       if (requestCount >= this.config.requestLimit) {
@@ -3040,11 +3111,13 @@ export class GuestAccessRepository {
            JOIN bookings b ON b.id = goc.booking_id
           WHERE goc.challenge_ref_digest = $1
           FOR UPDATE`,
-        [computeDigest({
-          secretKey: this.secrets.challengeRefSecret,
-          domainLabel: DIGEST_DOMAIN_LABELS.challengeRef,
-          parts: [Buffer.from(normalizedRef, 'utf8')],
-        })],
+        [
+          computeDigest({
+            secretKey: this.secrets.challengeRefSecret,
+            domainLabel: DIGEST_DOMAIN_LABELS.challengeRef,
+            parts: [Buffer.from(normalizedRef, 'utf8')],
+          }),
+        ],
       );
       const challengeRow = lookupResult.rows[0];
 
@@ -3057,10 +3130,7 @@ export class GuestAccessRepository {
         await client.query('COMMIT');
         return failureOutcome;
       }
-      if (
-        challengeRow.consumed_at !== null ||
-        challengeRow.replaced_at !== null
-      ) {
+      if (challengeRow.consumed_at !== null || challengeRow.replaced_at !== null) {
         await client.query('COMMIT');
         return failureOutcome;
       }
@@ -3214,6 +3284,7 @@ function timingSafeEqualStrings(a: string, b: string): boolean {
 - Lines: 63
 
 ### Top-level declarations / exports
+
 - `export class GuestSessionRepository`
 - `export function digestSessionToken(sessionSecret: Buffer, token: Buffer): Buffer`
 - `export interface GuestSessionRecord`
@@ -3221,6 +3292,7 @@ function timingSafeEqualStrings(a: string, b: string): boolean {
 - `interface SessionLookupRow`
 
 ### Function / method signatures
+
 - `export function digestSessionToken(sessionSecret: Buffer, token: Buffer)`
 - `function parseSqlTimestamp(value: Date | string, field: string)`
 - `if (Number.isNaN(parsed.getTime()))`
@@ -3229,23 +3301,28 @@ function timingSafeEqualStrings(a: string, b: string): boolean {
 - `public constructor(private readonly pool: DatabasePool)`
 
 ### Database tables / schema references
+
 - `FROM guest_sessions`
-- `\`SELECT id          AS session_id,`
+- `\`SELECT id AS session_id,`
 - `import { Buffer } from 'node:buffer';`
 - `import { computeDigest, DIGEST_DOMAIN_LABELS } from '@room/booking';`
 - `import { type DatabasePool } from '@room/database';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `const parsed = new Date(value);`
 
 ### Money / arithmetic operations
+
 - `import { computeDigest, DIGEST_DOMAIN_LABELS } from '@room/booking';`
 - `import { type DatabasePool } from '@room/database';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -3322,15 +3399,18 @@ export class GuestSessionRepository {
 - Lines: 43
 
 ### Top-level declarations / exports
+
 - `export function loadGuestSecrets(source: GuestSecretSource): GuestSecrets`
 - `export interface GuestSecretSource`
 - `export interface GuestSecrets`
 
 ### Function / method signatures
+
 - `export function loadGuestSecrets(source: GuestSecretSource)`
 - `if (buffer.length < minLength)`
 
 ### Database tables / schema references
+
 - `* Buffer-typed secrets loaded from the API environment for guest access.`
 - `const challengeRefSecret = Buffer.from(source.GUEST_CHALLENGE_REF_SECRET, 'utf8');`
 - `const ipDigestSecret = Buffer.from(source.BOOKING_IP_DIGEST_SECRET, 'utf8');`
@@ -3339,12 +3419,15 @@ export class GuestSessionRepository {
 - `import { Buffer } from 'node:buffer';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `*`
 - `* Buffer-typed secrets loaded from the API environment for guest access.`
 - `* No raw secret value crosses the module boundary.`
@@ -3353,6 +3436,7 @@ export class GuestSessionRepository {
 - `/**`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -3409,6 +3493,7 @@ export function loadGuestSecrets(source: GuestSecretSource): GuestSecrets {
 - Lines: 771
 
 ### Top-level declarations / exports
+
 - `export class AdminBookingLifecycleService`
 - `function asDate(value: Date | string, field: string): Date`
 - `function bigIntToNumber(value: bigint): number`
@@ -3421,6 +3506,7 @@ export function loadGuestSecrets(source: GuestSecretSource): GuestSecrets {
 - `interface BookingLifecycleRow`
 
 ### Function / method signatures
+
 - `VALUES ($1, $2, $3, 'PAID_CANCELLATION', 'OPEN', $4, $5)`
 - `VALUES ($1, 'BOOKING', $2, $3, $4::jsonb, 'PENDING')`
 - `VALUES ($1, 'BOOKING', $2, $3, 'ADMIN', $4, $5::jsonb, now())`
@@ -3453,6 +3539,7 @@ export function loadGuestSecrets(source: GuestSecretSource): GuestSecrets {
 - `switch (status)`
 
 ### Database tables / schema references
+
 - `FROM bookings`
 - `\`INSERT INTO audit_events (`
 - `\`INSERT INTO audit_events (property_id, aggregate_type, aggregate_id, event_type, actor_type, actor_id, payload, occurred_at)`
@@ -3480,9 +3567,11 @@ export function loadGuestSecrets(source: GuestSecretSource): GuestSecrets {
 - `} from '@room/database';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `checkIn: row.checkIn.toISOString(),`
 - `checkOut: row.checkOut.toISOString(),`
 - `const parsed = new Date(value);`
@@ -3496,6 +3585,7 @@ export function loadGuestSecrets(source: GuestSecretSource): GuestSecrets {
 - `succeededAt: row.paymentSucceededAt?.toISOString() ?? null,`
 
 ### Money / arithmetic operations
+
 - `: bigIntToNumber(row.paymentAmountVnd),`
 - `? bigIntToNumber(row.finalAmountVnd)`
 - `\`SELECT COUNT(*)::text AS count FROM payments WHERE booking_id = $1 AND status = 'SUCCEEDED'\`,`
@@ -3520,15 +3610,13 @@ export function loadGuestSecrets(source: GuestSecretSource): GuestSecrets {
 - `} from '@room/database';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
 
 ```typescript
-import {
-  type DatabasePool,
-  type DatabasePoolClient,
-} from '@room/database';
+import { type DatabasePool, type DatabasePoolClient } from '@room/database';
 
 import {
   adminBookingCancelRequestSchema,
@@ -3789,10 +3877,7 @@ export class AdminBookingLifecycleService {
     private readonly repository: AdminBookingRepository,
   ) {}
 
-  public async listBookings(
-    propertyId: string,
-    query: unknown,
-  ): Promise<AdminBookingListResponse> {
+  public async listBookings(propertyId: string, query: unknown): Promise<AdminBookingListResponse> {
     const parsed = adminBookingListQuerySchema.parse(query);
     const result = await this.repository.listBookings(propertyId, parsed);
     return adminBookingListResponseSchema.parse({
@@ -3803,10 +3888,7 @@ export class AdminBookingLifecycleService {
     });
   }
 
-  public async getDetail(
-    bookingCode: string,
-    now: Date,
-  ): Promise<AdminBookingDetail> {
+  public async getDetail(bookingCode: string, now: Date): Promise<AdminBookingDetail> {
     const detail = await this.repository.findDetailByBookingCode(bookingCode);
     if (detail === null) {
       throw new BookingNotFoundError();
@@ -3827,9 +3909,7 @@ export class AdminBookingLifecycleService {
         throw new BookingTransitionError('Booking is already cancelled.');
       }
       if (row.status !== 'HOLD' && row.status !== 'CONFIRMED') {
-        throw new BookingTransitionError(
-          `Cannot cancel a booking in status ${row.status}.`,
-        );
+        throw new BookingTransitionError(`Cannot cancel a booking in status ${row.status}.`);
       }
       const from = row.status;
       const paid = await isPaymentSucceeded(client, row.id);
@@ -3899,9 +3979,7 @@ export class AdminBookingLifecycleService {
   ): Promise<AdminBookingDetail> {
     return this.runTransition(actor, bookingCode, now, async (client, row) => {
       if (row.status !== 'CONFIRMED') {
-        throw new BookingTransitionError(
-          `Cannot check in a booking in status ${row.status}.`,
-        );
+        throw new BookingTransitionError(`Cannot check in a booking in status ${row.status}.`);
       }
       await client.query(
         `UPDATE bookings
@@ -3935,9 +4013,7 @@ export class AdminBookingLifecycleService {
   ): Promise<AdminBookingDetail> {
     return this.runTransition(actor, bookingCode, now, async (client, row) => {
       if (row.status !== 'CHECKED_IN') {
-        throw new BookingTransitionError(
-          `Cannot check out a booking in status ${row.status}.`,
-        );
+        throw new BookingTransitionError(`Cannot check out a booking in status ${row.status}.`);
       }
       await client.query(
         `UPDATE bookings
@@ -4273,12 +4349,7 @@ async function enqueueBookingOutbox(
         payload, status
      )
      VALUES ($1, 'BOOKING', $2, $3, $4::jsonb, 'PENDING')`,
-    [
-      input.propertyId,
-      input.bookingId,
-      input.eventType,
-      JSON.stringify(input.payload),
-    ],
+    [input.propertyId, input.bookingId, input.eventType, JSON.stringify(input.payload)],
   );
 }
 
@@ -4304,12 +4375,14 @@ function toSummaryItem(row: AdminOperationalReviewSummaryRow) {
 - Lines: 86
 
 ### Top-level declarations / exports
+
 - `export class BookingDetailService`
 - `export class BookingNotFoundError extends Error`
 - `function maskPhone(phoneE164: string): string`
 - `function toResponse(record: BookingDetailRecord, serverTime: Date): BookingDetailResponse`
 
 ### Function / method signatures
+
 - `function maskPhone(phoneE164: string)`
 - `function toResponse(record: BookingDetailRecord, serverTime: Date)`
 - `if (phoneE164.length <= 4)`
@@ -4318,6 +4391,7 @@ function toSummaryItem(row: AdminOperationalReviewSummaryRow) {
 - `super('Booking not found')`
 
 ### Database tables / schema references
+
 - `import { Buffer } from 'node:buffer';`
 - `import { GuestSessionService } from './guest-session.service.js';`
 - `import { maskEmailForDisplay } from '@room/booking';`
@@ -4325,15 +4399,18 @@ function toSummaryItem(row: AdminOperationalReviewSummaryRow) {
 - `} from '@room/contracts';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `checkIn: record.checkIn.toISOString(),`
 - `checkOut: record.checkOut.toISOString(),`
 - `holdExpiresAt: record.holdExpiresAt === null ? null : record.holdExpiresAt.toISOString(),`
 - `serverTime: serverTime.toISOString(),`
 
 ### Money / arithmetic operations
+
 - `amountVnd: record.finalAmountVnd,`
 - `discountAmountVnd: record.coupon.discountAmountVnd,`
 - `finalAmountVnd: record.coupon.finalAmountVnd,`
@@ -4344,6 +4421,7 @@ function toSummaryItem(row: AdminOperationalReviewSummaryRow) {
 - `} from '@room/contracts';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -4443,11 +4521,13 @@ export class BookingDetailService {
 - Lines: 81
 
 ### Top-level declarations / exports
+
 - `export class BookingHoldStatusService`
 - `function parseSqlTimestamp(value: Date | string, field: string): Date`
 - `interface StatusLookupRow`
 
 ### Function / method signatures
+
 - `AND (bc.email_digest IS NULL OR bc.email_digest = ${emailDigest})`
 - `function parseSqlTimestamp(value: Date | string, field: string)`
 - `if (Number.isNaN(parsed.getTime()))`
@@ -4458,6 +4538,7 @@ export class BookingDetailService {
 - `public async status(input: unknown, now: Date): Promise<BookingHoldStatusResponse>`
 
 ### Database tables / schema references
+
 - `FROM bookings b`
 - `LEFT JOIN booking_contacts bc ON bc.booking_id = b.id`
 - `import type { GuestAccessSecrets } from '../repositories/guest-access.repository.js';`
@@ -4465,24 +4546,28 @@ export class BookingDetailService {
 - `import { computeDigest, DIGEST_DOMAIN_LABELS } from '@room/booking';`
 - `import { sql, type DatabaseClient } from '@room/database';`
 - `parts: [Buffer.from(request.email, 'utf8')],`
-- `sql\`SELECT b.id            AS booking_id,`
+- `sql\`SELECT b.id AS booking_id,`
 - `} from '@room/contracts';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `const parsed = new Date(value);`
 - `holdExpiresAt: expiresAt.toISOString(),`
 - `serverTime: now.toISOString(),`
 
 ### Money / arithmetic operations
+
 - `import type { GuestAccessSecrets } from '../repositories/guest-access.repository.js';`
 - `import { computeDigest, DIGEST_DOMAIN_LABELS } from '@room/booking';`
 - `import { sql, type DatabaseClient } from '@room/database';`
 - `} from '@room/contracts';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -4577,12 +4662,14 @@ export class BookingHoldStatusService {
 - Lines: 169
 
 ### Top-level declarations / exports
+
 - `export class BookingHoldError extends Error`
 - `export class BookingHoldService`
 - `export interface BookingHoldServiceOptions`
 - `function couponSnapshotToResponse(`
 
 ### Function / method signatures
+
 - `if (snapshot === undefined)`
 - `private mapError(error: unknown): BookingHoldError`
 - `public constructor(private readonly options: BookingHoldServiceOptions)`
@@ -4590,6 +4677,7 @@ export class BookingHoldStatusService {
 - `switch (name)`
 
 ### Database tables / schema references
+
 - `import { Buffer } from 'node:buffer';`
 - `import { type DatabasePool } from '@room/database';`
 - `return new BookingHoldError('ALLOCATION_BUSY', 'All free rooms are currently locked', {`
@@ -4597,14 +4685,17 @@ export class BookingHoldStatusService {
 - `} from '@room/contracts';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `checkIn: result.checkIn.toISOString(),`
 - `checkOut: result.checkOut.toISOString(),`
 - `holdExpiresAt: result.holdExpiresAt.toISOString(),`
 
 ### Money / arithmetic operations
+
 - `amountVnd: result.amountVnd,`
 - `discountAmountVnd: snapshot.discountAmountVnd,`
 - `finalAmountVnd: snapshot.finalAmountVnd,`
@@ -4614,6 +4705,7 @@ export class BookingHoldStatusService {
 - `} from '@room/contracts';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -4796,11 +4888,13 @@ export class BookingHoldService {
 - Lines: 86
 
 ### Top-level declarations / exports
+
 - `export class GuestAccessOtpRequestService`
 - `export class OtpBookingNotFoundError extends Error`
 - `export class OtpRateLimitedError extends Error`
 
 ### Function / method signatures
+
 - `if (outcome.kind === 'OTP_RATE_LIMITED')`
 - `public constructor()`
 - `public constructor(retryAfterSeconds: number)`
@@ -4808,6 +4902,7 @@ export class BookingHoldService {
 - `super(\`OTP rate-limited; retry after ${retryAfterSeconds}s\`)`
 
 ### Database tables / schema references
+
 - `import type { GuestAccessRepository } from '../repositories/guest-access.repository.js';`
 - `import { Buffer } from 'node:buffer';`
 - `import { computeDigest, DIGEST_DOMAIN_LABELS } from '@room/booking';`
@@ -4817,21 +4912,25 @@ export class BookingHoldService {
 - `} from '@room/contracts';`
 
 ### External HTTP calls
+
 - `public async request(`
 
 ### Timezone / date handling
+
 - `: new Date(outcome.serverTime.getTime() + this.config.otpTtlMs).toISOString(),`
 - `? outcome.expiresAt.toISOString()`
 - `now: new Date(),`
 - `serverTime: outcome.serverTime.toISOString(),`
 
 ### Money / arithmetic operations
+
 - `import type { GuestAccessRepository } from '../repositories/guest-access.repository.js';`
 - `import { computeDigest, DIGEST_DOMAIN_LABELS } from '@room/booking';`
 - `} from '../repositories/guest-access.repository.js';`
 - `} from '@room/contracts';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -4877,10 +4976,7 @@ export class GuestAccessOtpRequestService {
     private readonly config: GuestAccessRateLimitConfig,
   ) {}
 
-  public async request(
-    input: unknown,
-    requestIp: string,
-  ): Promise<GuestAccessOtpRequestResponse> {
+  public async request(input: unknown, requestIp: string): Promise<GuestAccessOtpRequestResponse> {
     const request: GuestAccessOtpRequest = guestAccessOtpRequestSchema.parse(input);
 
     const requestIpDigest = computeDigest({
@@ -4917,8 +5013,7 @@ export class GuestAccessOtpRequestService {
         outcome.kind === 'CHALLENGE_ISSUED'
           ? outcome.expiresAt.toISOString()
           : new Date(outcome.serverTime.getTime() + this.config.otpTtlMs).toISOString(),
-      cooldownSeconds:
-        outcome.kind === 'CHALLENGE_ISSUED' ? outcome.cooldownSeconds : 0,
+      cooldownSeconds: outcome.kind === 'CHALLENGE_ISSUED' ? outcome.cooldownSeconds : 0,
       serverTime: outcome.serverTime.toISOString(),
     });
   }
@@ -4931,15 +5026,18 @@ export class GuestAccessOtpRequestService {
 - Lines: 63
 
 ### Top-level declarations / exports
+
 - `export class GuestAccessOtpVerifyService`
 - `export class OtpInvalidOrExpiredError extends Error`
 
 ### Function / method signatures
+
 - `if (outcome.kind !== 'CONSUMED')`
 - `public constructor()`
 - `super('OTP is invalid or expired')`
 
 ### Database tables / schema references
+
 - `import type { GuestAccessRepository } from '../repositories/guest-access.repository.js';`
 - `import type { GuestAccessSecrets } from '../repositories/guest-access.repository.js';`
 - `import { Buffer } from 'node:buffer';`
@@ -4948,19 +5046,23 @@ export class GuestAccessOtpRequestService {
 - `} from '@room/contracts';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `expiresAt: outcome.sessionExpiresAt.toISOString(),`
 - `issuedAt: now.toISOString(),`
 
 ### Money / arithmetic operations
+
 - `import type { GuestAccessRepository } from '../repositories/guest-access.repository.js';`
 - `import type { GuestAccessSecrets } from '../repositories/guest-access.repository.js';`
 - `import { computeDigest, DIGEST_DOMAIN_LABELS } from '@room/booking';`
 - `} from '@room/contracts';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -5037,30 +5139,37 @@ export class GuestAccessOtpVerifyService {
 - Lines: 20
 
 ### Top-level declarations / exports
+
 - `export class GuestLogoutService`
 
 ### Function / method signatures
+
 - `if (sessionToken !== null)`
 - `public async logout(sessionToken: Buffer | null, now: Date): Promise<GuestLogoutResponse>`
 
 ### Database tables / schema references
+
 - `import type { GuestAccessRepository } from '../repositories/guest-access.repository.js';`
 - `import { Buffer } from 'node:buffer';`
 - `import { GuestSessionService } from './guest-session.service.js';`
 - `import { guestLogoutResponseSchema, type GuestLogoutResponse } from '@room/contracts';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `return guestLogoutResponseSchema.parse({ loggedOutAt: now.toISOString() });`
 
 ### Money / arithmetic operations
+
 - `import type { GuestAccessRepository } from '../repositories/guest-access.repository.js';`
 - `import { GuestSessionService } from './guest-session.service.js';`
 - `import { guestLogoutResponseSchema, type GuestLogoutResponse } from '@room/contracts';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -5094,6 +5203,7 @@ export class GuestLogoutService {
 - Lines: 81
 
 ### Top-level declarations / exports
+
 - `export class GuestSessionInvalidError extends Error`
 - `export class GuestSessionRequiredError extends Error`
 - `export class GuestSessionService`
@@ -5101,6 +5211,7 @@ export class GuestLogoutService {
 - `export interface AuthenticatedSession`
 
 ### Function / method signatures
+
 - `if (record === null) throw new GuestSessionInvalidError()`
 - `if (session.bookingId !== expectedBookingId)`
 - `if (token === null) return Promise.reject(new GuestSessionRequiredError())`
@@ -5112,23 +5223,28 @@ export class GuestLogoutService {
 - `super('Guest session is not bound to this booking')`
 
 ### Database tables / schema references
+
 - `import type { GuestAccessSecrets } from '../repositories/guest-access.repository.js';`
 - `import { Buffer } from 'node:buffer';`
 - `import { computeDigest, DIGEST_DOMAIN_LABELS } from '@room/booking';`
 - `} from '../repositories/guest-session.repository.js';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `import type { GuestAccessSecrets } from '../repositories/guest-access.repository.js';`
 - `import { computeDigest, DIGEST_DOMAIN_LABELS } from '@room/booking';`
 - `} from '../repositories/guest-session.repository.js';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -5182,16 +5298,14 @@ export class GuestSessionService {
   public authenticate(token: Buffer | null, now: Date): Promise<AuthenticatedSession> {
     if (token === null) return Promise.reject(new GuestSessionRequiredError());
     const tokenDigest = digestSessionToken(this.secrets.sessionSecret, token);
-    return this.repository
-      .findActiveSession(tokenDigest, now)
-      .then((record) => {
-        if (record === null) throw new GuestSessionInvalidError();
-        return {
-          sessionId: record.sessionId,
-          bookingId: record.bookingId,
-          expiresAt: record.expiresAt,
-        };
-      });
+    return this.repository.findActiveSession(tokenDigest, now).then((record) => {
+      if (record === null) throw new GuestSessionInvalidError();
+      return {
+        sessionId: record.sessionId,
+        bookingId: record.bookingId,
+        expiresAt: record.expiresAt,
+      };
+    });
   }
 
   public requireForBooking(
@@ -5223,11 +5337,13 @@ export class GuestSessionService {
 - Lines: 86
 
 ### Top-level declarations / exports
+
 - `export class ClaimBookingController`
 - `function hashGuestToken(rawToken: string | null, secret: string): Buffer | null`
 - `interface RequestLike`
 
 ### Function / method signatures
+
 - `function hashGuestToken(rawToken: string | null, secret: string)`
 - `if (cookieValue === null || secret.length < 32)`
 - `if (error instanceof ClaimBookingError)`
@@ -5236,6 +5352,7 @@ export class GuestSessionService {
 - `if (tokenDigest === null)`
 
 ### Database tables / schema references
+
 - `@Controller('customer/bookings')`
 - `hmac.update(Buffer.from(secret, 'utf8'));`
 - `hmac.update(parsed);`
@@ -5246,12 +5363,15 @@ export class GuestSessionService {
 - `} from '@nestjs/common';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `@Controller('customer/bookings')`
 - `@Post(':bookingCode/claim')`
 - `import { ClaimBookingError, ClaimBookingService } from './claim-booking.service.js';`
@@ -5260,6 +5380,7 @@ export class GuestSessionService {
 - `} from '@nestjs/common';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Controller('customer/bookings')`
 - `@HttpCode(HttpStatus.OK)`
 - `@Param('bookingCode') bookingCode: string,`
@@ -5313,25 +5434,16 @@ export class ClaimBookingController {
   @Post(':bookingCode/claim')
   @Version('1')
   @HttpCode(HttpStatus.OK)
-  public async claim(
-    @Param('bookingCode') bookingCode: string,
-    @Req() request: RequestLike,
-  ) {
+  public async claim(@Param('bookingCode') bookingCode: string, @Req() request: RequestLike) {
     const actor = await this.sessions.requireCustomer(request);
     const cookieValue = request.cookies?.['rm_guest_session_v1'] ?? null;
     const secret = process.env['GUEST_SESSION_SECRET'] ?? '';
     if (cookieValue === null || secret.length < 32) {
-      throw new HttpException(
-        { code: 'GUEST_SESSION_REQUIRED' },
-        HttpStatus.UNAUTHORIZED,
-      );
+      throw new HttpException({ code: 'GUEST_SESSION_REQUIRED' }, HttpStatus.UNAUTHORIZED);
     }
     const tokenDigest = hashGuestToken(cookieValue, secret);
     if (tokenDigest === null) {
-      throw new HttpException(
-        { code: 'GUEST_SESSION_MALFORMED' },
-        HttpStatus.UNAUTHORIZED,
-      );
+      throw new HttpException({ code: 'GUEST_SESSION_MALFORMED' }, HttpStatus.UNAUTHORIZED);
     }
     try {
       return await this.claims.claim({
@@ -5364,6 +5476,7 @@ export class ClaimBookingController {
 - Lines: 176
 
 ### Top-level declarations / exports
+
 - `export class ClaimBookingError extends Error`
 - `export class ClaimBookingService`
 - `export interface ClaimBookingInput`
@@ -5372,6 +5485,7 @@ export class ClaimBookingController {
 - `type DbTransaction`
 
 ### Function / method signatures
+
 - `if (booking === undefined)`
 - `if (booking.customerUserId === null)`
 - `if (customerRow === undefined)`
@@ -5384,6 +5498,7 @@ export class ClaimBookingController {
 - `super(message)`
 
 ### Database tables / schema references
+
 - `.from(bookingContacts)`
 - `.from(bookings)`
 - `.from(guestSessions)`
@@ -5410,12 +5525,15 @@ export class ClaimBookingController {
 - `} from '@room/database';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `.set({ customerUserId: input.userId, updatedAt: new Date() })`
 
 ### Money / arithmetic operations
+
 - `*`
 - `*   only — never sufficient on its own to claim.`
 - `* - Email equivalence with booking contact is recorded as audit metadata`
@@ -5430,6 +5548,7 @@ export class ClaimBookingController {
 - `} from '@room/database';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -5478,9 +5597,7 @@ export interface ClaimBookingResult {
   readonly wasAlreadyClaimed: boolean;
 }
 
-type DbTransaction = Parameters<
-  Parameters<DatabaseClient['transaction']>[0]
->[0];
+type DbTransaction = Parameters<Parameters<DatabaseClient['transaction']>[0]>[0];
 
 /**
  * Links a guest booking to the CUSTOMER's user id once the CUSTOMER proves
@@ -5619,23 +5736,29 @@ export class ClaimBookingService {
 - Lines: 32
 
 ### Top-level declarations / exports
+
 - `export class CustomerAuditAdapter implements CustomerAuditRecorder`
 
 ### Function / method signatures
+
 - `public constructor(private readonly database: DatabaseClient)`
 
 ### Database tables / schema references
+
 - `await this.database.insert(auditEvents).values({`
 - `import type { CustomerAuditRecorder } from './customer-profile.service.js';`
 - `import { auditEvents, type DatabaseClient } from '@room/database';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `* Payload contains only field names that changed — never phone numbers,`
 - `* Thin adapter that maps CUSTOMER profile mutations to the audit log.`
 - `* addresses, or emails.`
@@ -5645,6 +5768,7 @@ export class ClaimBookingService {
 - `import { auditEvents, type DatabaseClient } from '@room/database';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -5690,6 +5814,7 @@ export class CustomerAuditAdapter implements CustomerAuditRecorder {
 - Lines: 140
 
 ### Top-level declarations / exports
+
 - `export class CustomerBookingNotFoundError extends Error`
 - `export class CustomerBookingService`
 - `export interface CustomerBookingDetail`
@@ -5697,12 +5822,14 @@ export class CustomerAuditAdapter implements CustomerAuditRecorder {
 - `export interface CustomerBookingSummary`
 
 ### Function / method signatures
+
 - `if (row === undefined)`
 - `public constructor()`
 - `public constructor(private readonly database: DatabaseClient)`
 - `super('Booking not found for this CUSTOMER')`
 
 ### Database tables / schema references
+
 - `.from(bookings)`
 - `.from(payments)`
 - `.orderBy(sql\`${bookings.createdAt} DESC\`, sql\`${bookings.id} DESC\`)`
@@ -5728,14 +5855,17 @@ export class CustomerAuditAdapter implements CustomerAuditRecorder {
 - `} from '@room/database';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `checkIn: row.checkIn.toISOString(),`
 - `checkOut: row.checkOut.toISOString(),`
 - `createdAt: row.createdAt.toISOString(),`
 
 ### Money / arithmetic operations
+
 - `// Authoritative payment status is derived from the \`payments\` table.`
 - `// The \`payment_attempts\` table is the provider-side state; the`
 - `// The \`payments\` row is the single source of truth for the booking's`
@@ -5756,18 +5886,13 @@ export class CustomerAuditAdapter implements CustomerAuditRecorder {
 - `} from '@room/database';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
 
 ```typescript
-import {
-  bookings,
-  type DatabaseClient,
-  eq,
-  payments,
-  sql,
-} from '@room/database';
+import { bookings, type DatabaseClient, eq, payments, sql } from '@room/database';
 
 export interface CustomerBookingSummary {
   readonly bookingId: string;
@@ -5840,8 +5965,7 @@ export class CustomerBookingService {
     }));
     const hasMore = rows.length > options.limit;
     const last = items[items.length - 1];
-    const nextCursor =
-      hasMore && last !== undefined ? `${last.createdAt}|${last.bookingId}` : null;
+    const nextCursor = hasMore && last !== undefined ? `${last.createdAt}|${last.bookingId}` : null;
     return { items, nextCursor };
   }
 
@@ -5909,6 +6033,7 @@ export class CustomerBookingService {
 - Lines: 69
 
 ### Top-level declarations / exports
+
 - `const DEFAULT_LIMIT`
 - `const MAX_LIMIT`
 - `export class CustomerBookingsController`
@@ -5916,12 +6041,14 @@ export class CustomerBookingService {
 - `interface RequestLike`
 
 ### Function / method signatures
+
 - `function clampLimit(rawLimit: string | undefined)`
 - `if (!Number.isFinite(value) || value <= 0)`
 - `if (error instanceof CustomerBookingNotFoundError)`
 - `if (rawLimit === undefined)`
 
 ### Database tables / schema references
+
 - `@Controller('customer/bookings')`
 - `@Inject(CustomerBookingService) private readonly bookings: CustomerBookingService,`
 - `import { CustomerSessionService } from '../auth/customer-session.service.js';`
@@ -5931,12 +6058,15 @@ export class CustomerBookingService {
 - `} from '@nestjs/common';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `@Controller('customer/bookings')`
 - `const value = Number.parseInt(rawLimit, 10);`
 - `import { CustomerSessionService } from '../auth/customer-session.service.js';`
@@ -5944,6 +6074,7 @@ export class CustomerBookingService {
 - `} from '@nestjs/common';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Controller('customer/bookings')`
 - `@Get(':bookingCode')`
 - `@Get()`
@@ -6003,10 +6134,7 @@ export class CustomerBookingsController {
 
   @Get(':bookingCode')
   @Version('1')
-  public async detail(
-    @Req() request: RequestLike,
-    @Param('bookingCode') bookingCode: string,
-  ) {
+  public async detail(@Req() request: RequestLike, @Param('bookingCode') bookingCode: string) {
     const actor = await this.sessions.requireCustomer(request);
     try {
       return await this.bookings.detailForCustomer(actor.userId, bookingCode);
@@ -6033,15 +6161,18 @@ function clampLimit(rawLimit: string | undefined): number {
 - Lines: 67
 
 ### Top-level declarations / exports
+
 - `export class CustomerProfileController`
 - `interface RequestLike`
 
 ### Function / method signatures
+
 - `if (error instanceof CustomerProfileValidationError)`
 - `if (profile === null)`
 - `public async get(@Req() request: RequestLike)`
 
 ### Database tables / schema references
+
 - `import { CustomerProfileService } from './customer-profile.service.js';`
 - `import { CustomerProfileValidationError } from './customer-profile.schema.js';`
 - `import { CustomerSessionService } from '../auth/customer-session.service.js';`
@@ -6049,12 +6180,15 @@ function clampLimit(rawLimit: string | undefined): number {
 - `} from '@nestjs/common';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `@Controller('customer/profile')`
 - `import { CustomerProfileService } from './customer-profile.service.js';`
 - `import { CustomerProfileValidationError } from './customer-profile.schema.js';`
@@ -6063,6 +6197,7 @@ function clampLimit(rawLimit: string | undefined): number {
 - `} from '@nestjs/common';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Body() body: unknown,`
 - `@Controller('customer/profile')`
 - `@Get()`
@@ -6118,10 +6253,7 @@ export class CustomerProfileController {
   @Patch()
   @Version('1')
   @HttpCode(HttpStatus.OK)
-  public async patch(
-    @Req() request: RequestLike,
-    @Body() body: unknown,
-  ) {
+  public async patch(@Req() request: RequestLike, @Body() body: unknown) {
     const actor = await this.sessions.requireCustomer(request);
     let patch;
     try {
@@ -6149,6 +6281,7 @@ export class CustomerProfileController {
 - Lines: 99
 
 ### Top-level declarations / exports
+
 - `const COUNTRY_PATTERN`
 - `const PHONE_PATTERN`
 - `export class CustomerProfileValidationError extends Error`
@@ -6159,6 +6292,7 @@ export class CustomerProfileController {
 - `function validatePhone(value: unknown):`
 
 ### Function / method signatures
+
 - `export function parseCustomerProfilePatch(input: unknown)`
 - `function throwIssues(issues: readonly string[])`
 - `function trimOrNull(value: unknown, max: number)`
@@ -6182,19 +6316,24 @@ export class CustomerProfileController {
 - `throwIssues(issues)`
 
 ### Database tables / schema references
+
 - None detected by static scan.
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `const COUNTRY_PATTERN = /^[A-Z]{2}$/;`
 - `const PHONE_PATTERN = /^\+[1-9][0-9]{6,14}$/;`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -6231,7 +6370,9 @@ function trimOrNull(value: unknown, max: number): string | null {
   return trimmed.slice(0, max);
 }
 
-function validatePhone(value: unknown): { ok: true; value: string | null } | { ok: false; reason: string } {
+function validatePhone(
+  value: unknown,
+): { ok: true; value: string | null } | { ok: false; reason: string } {
   if (value === null || value === undefined) return { ok: true, value: null };
   if (typeof value !== 'string') return { ok: false, reason: 'Phone must be a string' };
   const trimmed = value.trim();
@@ -6307,11 +6448,13 @@ function throwIssues(issues: readonly string[]): never {
 - Lines: 186
 
 ### Top-level declarations / exports
+
 - `export class CustomerProfileService`
 - `export interface CustomerAuditRecorder`
 - `export interface CustomerProfile`
 
 ### Function / method signatures
+
 - `if (patch.addressLine1 !== undefined) changed.push('addressLine1')`
 - `if (patch.addressLine2 !== undefined) changed.push('addressLine2')`
 - `if (patch.countryCode !== undefined && patch.countryCode !== 'VN')`
@@ -6328,6 +6471,7 @@ function throwIssues(issues: readonly string[]): never {
 - `public async getProfile(userId: string): Promise<CustomerProfile | null>`
 
 ### Database tables / schema references
+
 - `.from(users)`
 - `.insert(customerProfiles)`
 - `.leftJoin(customerProfiles, eq(customerProfiles.userId, users.id))`
@@ -6357,13 +6501,16 @@ function throwIssues(issues: readonly string[]): never {
 - `} from '@room/database';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `.set({ name: patch.name, updatedAt: new Date() })`
 - `updatedAt: (row.updatedAt ?? new Date()).toISOString(),`
 
 ### Money / arithmetic operations
+
 - `* ACTIVE CUSTOMER user. The CUSTOMER row itself supplies the authoritative`
 - `* Reads and patches the customer_profiles row associated with the given`
 - `* email and display name. Email cannot be modified through this surface.`
@@ -6373,18 +6520,13 @@ function throwIssues(issues: readonly string[]): never {
 - `} from '@room/database';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
 
 ```typescript
-import {
-  customerProfiles,
-  type DatabaseClient,
-  eq,
-  sql,
-  users,
-} from '@room/database';
+import { customerProfiles, type DatabaseClient, eq, sql, users } from '@room/database';
 
 import type { CustomerProfilePatchInput } from './customer-profile.schema.js';
 
@@ -6572,13 +6714,16 @@ export class CustomerProfileService {
 - Lines: 57
 
 ### Top-level declarations / exports
+
 - `export class CustomerModule`
 - `export const CUSTOMER_AUDIT_ADAPTER`
 
 ### Function / method signatures
+
 - None detected by static scan.
 
 ### Database tables / schema references
+
 - `import { AppDatabaseModule } from '../database/database.module.js';`
 - `import { AuthModule } from '../auth/auth.module.js';`
 - `import { ClaimBookingController } from './claim-booking.controller.js';`
@@ -6592,12 +6737,15 @@ export class CustomerProfileService {
 - `import { Module } from '@nestjs/common';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `import { AppDatabaseModule } from '../database/database.module.js';`
 - `import { AuthModule } from '../auth/auth.module.js';`
 - `import { ClaimBookingController } from './claim-booking.controller.js';`
@@ -6611,6 +6759,7 @@ export class CustomerProfileService {
 - `import { Module } from '@nestjs/common';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -6633,11 +6782,7 @@ export const CUSTOMER_AUDIT_ADAPTER = Symbol('CUSTOMER_AUDIT_ADAPTER');
 
 @Module({
   imports: [AppDatabaseModule, AuthModule],
-  controllers: [
-    CustomerProfileController,
-    ClaimBookingController,
-    CustomerBookingsController,
-  ],
+  controllers: [CustomerProfileController, ClaimBookingController, CustomerBookingsController],
   providers: [
     {
       provide: CUSTOMER_AUDIT_ADAPTER,
@@ -6666,11 +6811,7 @@ export const CUSTOMER_AUDIT_ADAPTER = Symbol('CUSTOMER_AUDIT_ADAPTER');
         new CustomerBookingService(database.client),
     },
   ],
-  exports: [
-    CustomerProfileService,
-    ClaimBookingService,
-    CustomerBookingService,
-  ],
+  exports: [CustomerProfileService, ClaimBookingService, CustomerBookingService],
 })
 export class CustomerModule {}
 ```
@@ -6681,26 +6822,33 @@ export class CustomerModule {}
 - Lines: 11
 
 ### Top-level declarations / exports
+
 - `export class AvailabilityController`
 
 ### Function / method signatures
+
 - None detected by static scan.
 
 ### Database tables / schema references
+
 - `import { AvailabilityService } from './availability.service.js';`
 - `import { Body, Controller, Inject, Post, Version } from '@nestjs/common';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `import { AvailabilityService } from './availability.service.js';`
 - `import { Body, Controller, Inject, Post, Version } from '@nestjs/common';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Controller('availability')`
 - `@Post('search') @Version('1') public search(@Body() body: unknown) {`
 
@@ -6726,15 +6874,18 @@ export class AvailabilityController {
 - Lines: 58
 
 ### Top-level declarations / exports
+
 - `export class AvailabilityRepository implements AvailabilityRepositoryPort`
 - `type AvailabilityDatabase`
 
 ### Function / method signatures
+
 - `if (property === undefined)`
 - `public async search(input: AvailabilitySearchRequest)`
 - `public constructor(private readonly database: AvailabilityDatabase)`
 
 ### Database tables / schema references
+
 - `availableRoomCount: rooms.filter(`
 - `const [roomTypes, rooms, blocks] = await Promise.all([`
 - `const property = await this.database.query.properties.findFirst({`
@@ -6747,18 +6898,22 @@ export class AvailabilityController {
 - `this.database.query.rooms.findMany({`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `operators.gt(block.endsAt, new Date(input.checkIn)),`
 - `operators.lt(block.startsAt, new Date(input.checkOut)),`
 
 ### Money / arithmetic operations
+
 - `import type { AvailabilityRepositoryPort } from './availability.service.js';`
 - `import type { AvailabilitySearchRequest } from '@room/contracts';`
 - `import { type DatabaseClient } from '@room/database';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -6830,27 +6985,34 @@ export class AvailabilityRepository implements AvailabilityRepositoryPort {
 - Lines: 26
 
 ### Top-level declarations / exports
+
 - `export class AvailabilityService`
 - `export interface AvailabilityRepositoryPort`
 
 ### Function / method signatures
+
 - `public async search(input: unknown)`
 - `public constructor(private readonly repository: AvailabilityRepositoryPort)`
 - `search(input: AvailabilitySearchRequest): Promise<`
 
 ### Database tables / schema references
+
 - `} from '@room/contracts';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `} from '@room/contracts';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -6890,6 +7052,7 @@ export class AvailabilityService {
 - Lines: 149
 
 ### Top-level declarations / exports
+
 - `const REVALIDATION_NOTICE`
 - `export class CouponExpiredError extends Error`
 - `export class CouponMinimumNotMetError extends Error`
@@ -6901,6 +7064,7 @@ export class AvailabilityService {
 - `export interface ProvisionalCouponEvaluation`
 
 ### Function / method signatures
+
 - `export function toCouponQuoteSummary(evaluation: ProvisionalCouponEvaluation)`
 - `if (!Number.isFinite(now.getTime()))`
 - `if (!definition)`
@@ -6911,6 +7075,7 @@ export class AvailabilityService {
 - `public constructor(private readonly database: Pick<DatabaseClient, 'execute' | 'query'>)`
 
 ### Database tables / schema references
+
 - `const definition = await this.database.query.coupons.findFirst({`
 - `const nowResult = await this.database.execute(sql\`SELECT CURRENT_TIMESTAMP AS now\`);`
 - `const scoped = await this.database.query.couponRoomTypes.findFirst({`
@@ -6921,12 +7086,15 @@ export class AvailabilityService {
 - `import { sql, type DatabaseClient } from '@room/database';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `const now = nowValue instanceof Date ? new Date(nowValue.getTime()) : new Date(String(nowValue));`
 
 ### Money / arithmetic operations
+
 - `*`
 - `* Coupon repository (provisional, quote-time only).`
 - `* Phase 6C forbids quote-time quota reservation: a quote is allowed to load`
@@ -6962,6 +7130,7 @@ export class AvailabilityService {
 - `readonly minimumOrderAmountVnd: bigint;`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -7028,13 +7197,12 @@ export class CouponRepository {
    * Throws domain errors if the coupon cannot be applied to the given
    * probe so the API layer can return a Problem Details response.
    */
-  public async evaluateForQuote(
-    probe: CouponQuoteProbe,
-  ): Promise<ProvisionalCouponEvaluation> {
+  public async evaluateForQuote(probe: CouponQuoteProbe): Promise<ProvisionalCouponEvaluation> {
     const normalized = normalizeCouponCode(probe.couponCode);
     const nowResult = await this.database.execute(sql`SELECT CURRENT_TIMESTAMP AS now`);
     const nowValue = (nowResult.rows[0] as { now?: unknown } | undefined)?.now;
-    const now = nowValue instanceof Date ? new Date(nowValue.getTime()) : new Date(String(nowValue));
+    const now =
+      nowValue instanceof Date ? new Date(nowValue.getTime()) : new Date(String(nowValue));
     if (!Number.isFinite(now.getTime())) {
       throw new Error('Database did not return its current timestamp.');
     }
@@ -7124,23 +7292,29 @@ export function toCouponQuoteSummary(evaluation: ProvisionalCouponEvaluation): C
 - Lines: 51
 
 ### Top-level declarations / exports
+
 - `export const InvalidPricingIntervalError`
 - `export const RULE_VERSION`
 - `export function calculatePricing(input: PricingInput, catalog: PricingCatalog): PricingBreakdown`
 
 ### Function / method signatures
+
 - `export function calculatePricing(input: PricingInput, catalog: PricingCatalog)`
 
 ### Database tables / schema references
+
 - `} from './selection-rule-matcher.js';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `* Public API: compute the Phase 7B pricing breakdown for a quote.`
 - `* The catalog must reflect the current ADMIN-owned rate-plan configuration.`
 - `* \`calculatePricing\` is now a thin wrapper around the pure rule matcher.`
@@ -7149,6 +7323,7 @@ export function toCouponQuoteSummary(evaluation: ProvisionalCouponEvaluation): C
 - `} from './selection-rule-matcher.js';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -7213,12 +7388,15 @@ export function calculatePricing(input: PricingInput, catalog: PricingCatalog): 
 - Lines: 12
 
 ### Top-level declarations / exports
+
 - `export class QuoteController`
 
 ### Function / method signatures
+
 - `public constructor(@Inject(QuoteService) private readonly quotes: QuoteService)`
 
 ### Database tables / schema references
+
 - `@Controller('quotes')`
 - `import { Body, Controller, Get, Inject, Param, Post, Version } from '@nestjs/common';`
 - `import { QuoteService } from './quote.service.js';`
@@ -7227,16 +7405,20 @@ export function calculatePricing(input: PricingInput, catalog: PricingCatalog): 
 - `return this.quotes.issue(body);`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `import { Body, Controller, Get, Inject, Param, Post, Version } from '@nestjs/common';`
 - `import { QuoteService } from './quote.service.js';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Controller('quotes')`
 - `@Get(':id') @Version('1') public get(@Param('id') id: string) {`
 - `@Post() @Version('1') public issue(@Body() body: unknown) {`
@@ -7264,11 +7446,13 @@ export class QuoteController {
 - Lines: 162
 
 ### Top-level declarations / exports
+
 - `export class QuoteRepository implements QuoteRepositoryPort`
 - `function databaseTimestamp(result:`
 - `type Database`
 
 ### Function / method signatures
+
 - `Number(price.amountVnd)`
 - `function databaseTimestamp(result: { readonly rows: readonly unknown[] })`
 - `if (!Number.isFinite(timestamp.getTime()))`
@@ -7280,6 +7464,7 @@ export class QuoteController {
 - `public constructor(private readonly database: Database)`
 
 ### Database tables / schema references
+
 - `? await this.database.query.roomTypes.findFirst({`
 - `await this.database.insert(quotes).values({`
 - `const [tier, plans, prices, rooms, blocks] = await Promise.all([`
@@ -7301,9 +7486,11 @@ export class QuoteController {
 - `this.database.query.rooms.findMany({`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `checkIn: new Date(input.checkIn),`
 - `checkOut: new Date(input.checkOut),`
 - `const expiresAt = new Date(now.getTime() + 900_000);`
@@ -7313,6 +7500,7 @@ export class QuoteController {
 - `op.lt(row.startsAt, new Date(input.checkOut)),`
 
 ### Money / arithmetic operations
+
 - `.filter((price) => price.ratePlanId === plan.id)`
 - `.map((price) => [`
 - `Number(price.amountVnd),`
@@ -7340,6 +7528,7 @@ export class QuoteController {
 - `where: (row, op) => op.eq(row.id, roomType.priceTierId),`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -7515,6 +7704,7 @@ export class QuoteRepository implements QuoteRepositoryPort {
 - Lines: 127
 
 ### Top-level declarations / exports
+
 - `export class CouponExpiredError extends Error`
 - `export class CouponInvalidInputError extends Error`
 - `export class CouponMinimumNotMetError extends Error`
@@ -7528,6 +7718,7 @@ export class QuoteRepository implements QuoteRepositoryPort {
 - `export interface QuoteServiceOptions`
 
 ### Function / method signatures
+
 - `catalogFor(input: CreateQuoteRequest): Promise<`
 - `get(id: string): Promise<`
 - `if (error instanceof Error && error.name === 'CouponExpiredError')`
@@ -7543,17 +7734,21 @@ export class QuoteRepository implements QuoteRepositoryPort {
 - `public async issue(input: unknown)`
 
 ### Database tables / schema references
+
 - `import { CouponRepository, type ProvisionalCouponEvaluation } from './coupon.repository.js';`
 - `import { createQuoteRequestSchema, quoteSchema, type CreateQuoteRequest } from '@room/contracts';`
 - `} from './pricing-engine.js';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `).totalAmountVnd,`
 - `grossAmountVnd: Math.trunc(`
 - `import { CouponRepository, type ProvisionalCouponEvaluation } from './coupon.repository.js';`
@@ -7563,6 +7758,7 @@ export class QuoteRepository implements QuoteRepositoryPort {
 - `} from './pricing-engine.js';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -7703,13 +7899,16 @@ export class QuoteService {
 - Lines: 74
 
 ### Top-level declarations / exports
+
 - `export class RatePlanController`
 
 ### Function / method signatures
+
 - `public constructor(@Inject(RatePlanService) private readonly ratePlans: RatePlanService)`
 - `public inactivate(@Req() request: { actor: ActorContext }, @Param('id') id: string)`
 
 ### Database tables / schema references
+
 - `import type { ActorContext } from '../auth/actor-context.js';`
 - `import { AdminPermissionGuard } from '../auth/admin-permission.guard.js';`
 - `import { RatePlanService } from './rate-plan.service.js';`
@@ -7723,12 +7922,15 @@ export class QuoteService {
 - `} from '@nestjs/common';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `@Controller('admin/rate-plans')`
 - `@Param('priceTierId') priceTierId: string,`
 - `@Patch(':id/prices/:priceTierId')`
@@ -7744,6 +7946,7 @@ export class QuoteService {
 - `} from '@nestjs/common';`
 
 ### Routing decorators / endpoint declarations
+
 - `@Body() body: unknown,`
 - `@Controller('admin/rate-plans')`
 - `@Get() @Version('1') @RequirePermissions('pricing.rate_plan.read') public list() {`
@@ -7843,6 +8046,7 @@ export class RatePlanController {
 - Lines: 280
 
 ### Top-level declarations / exports
+
 - `export class RatePlanRepository implements RatePlanRepositoryPort`
 - `function databaseFor(transaction: unknown, fallback: RatePlanDatabase): TransactionalPool`
 - `function rowToRecord(row: RatePlanRow, priceRows: readonly RatePlanPriceRow[]): RatePlanRecord`
@@ -7855,6 +8059,7 @@ export class RatePlanController {
 - `type TransactionalPool`
 
 ### Function / method signatures
+
 - `eq(ratePlanPrices.priceTierId, priceTierId)`
 - `eq(ratePlanPrices.propertyId, propertyId)`
 - `eq(ratePlanPrices.ratePlanId, planId)`
@@ -7878,6 +8083,7 @@ export class RatePlanController {
 - `public constructor(private readonly database: RatePlanDatabase)`
 
 ### Database tables / schema references
+
 - `.returning({ id: ratePlanPrices.id });`
 - `.update(ratePlanPrices)`
 - `.update(ratePlans)`
@@ -7902,14 +8108,17 @@ export class RatePlanController {
 - `} from './rate-plan.service.js';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `.set({ amountVnd: BigInt(amountVnd), updatedAt: new Date() })`
 - `.set({ status, updatedAt: new Date() })`
 - `const updates: Record<string, unknown> = { updatedAt: new Date() };`
 
 ### Money / arithmetic operations
+
 - `.set({ amountVnd: BigInt(amountVnd), updatedAt: new Date() })`
 - `// Acquire the row-level lock with FOR UPDATE so concurrent ADMIN`
 - `// COMMIT/ROLLBACK.`
@@ -7953,6 +8162,7 @@ export class RatePlanController {
 - `} from './rate-plan.service.js';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -8246,6 +8456,7 @@ export class RatePlanRepository implements RatePlanRepositoryPort {
 - Lines: 319
 
 ### Top-level declarations / exports
+
 - `export class RatePlanService`
 - `export interface RatePlanRecord`
 - `export interface RatePlanRepositoryPort`
@@ -8258,6 +8469,7 @@ export class RatePlanRepository implements RatePlanRepositoryPort {
 - `function withPrices(`
 
 ### Function / method signatures
+
 - `for (const [key, value] of Object.entries(cmdRecord))`
 - `for (const [key, value] of Object.entries(patch))`
 - `for (const price of record.prices)`
@@ -8289,6 +8501,7 @@ export class RatePlanRepository implements RatePlanRepositoryPort {
 - `validateActiveRuleSet(catalog, { requiredPriceTierCodes: tierIds })`
 
 ### Database tables / schema references
+
 - `// The Zod contract differentiates "omitted" from "explicit null" via`
 - `const patch = selectionRulePatchFrom(target, command);`
 - `function selectionRulePatchFrom(`
@@ -8300,12 +8513,15 @@ export class RatePlanRepository implements RatePlanRepositoryPort {
 - `} from '@room/contracts';`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - None detected by static scan.
 
 ### Money / arithmetic operations
+
 - `(priceTierId) =>`
 - `* Acquire the row-level lock on every rate plan of the given property`
 - `* The lock must remain held until COMMIT.`
@@ -8341,6 +8557,7 @@ export class RatePlanRepository implements RatePlanRepositoryPort {
 - `} from '@room/contracts';`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -8673,6 +8890,7 @@ export class RatePlanService {
 - Lines: 448
 
 ### Top-level declarations / exports
+
 - `const PHASE_7B_BASE_PLAN_CODES: readonly BasePlanCode[]`
 - `export class InvalidPricingIntervalError extends Error`
 - `export class PricingConfigurationError extends Error`
@@ -8708,6 +8926,7 @@ export class RatePlanService {
 - `function validateTimezone(timezone: string): void`
 
 ### Function / method signatures
+
 - `activePrice(catalog, 'EXTRA_HOUR', input.priceTierCode, PricingExtraPriceMissingError)`
 - `activePrice(catalog, 'EXTRA_HOUR', tierCode, PricingExtraPriceMissingError)`
 - `activePrice(catalog, winner.code, tierCode, PricingPriceMissingError)`
@@ -8749,13 +8968,16 @@ export class RatePlanService {
 - `validateTimezone(input.timezone)`
 
 ### Database tables / schema references
+
 - `* (\`ratePlans\` + \`ratePlanPrices\`) and a {@link PricingInput} describing a`
 - `* The matcher accepts an immutable PricingCatalog derived from PostgreSQL`
 
 ### External HTTP calls
+
 - None detected by static scan.
 
 ### Timezone / date handling
+
 - `const date = new Date(value);`
 - `const parts = new Intl.DateTimeFormat('en-GB', {`
 - `date.getUTCMilliseconds() !== 0 ||`
@@ -8765,6 +8987,7 @@ export class RatePlanService {
 - `new Intl.DateTimeFormat('en-GB', { timeZone: timezone }).format();`
 
 ### Money / arithmetic operations
+
 - `*`
 - `*   - it never logs;`
 - `*   - it never mutates its arguments.`
@@ -8808,6 +9031,7 @@ export class RatePlanService {
 - `{ code: winner.code as RatePlanCode, amountVnd: baseAmountVnd, units: 1 },`
 
 ### Routing decorators / endpoint declarations
+
 - None detected by static scan.
 
 ### Verbatim source
@@ -9266,15 +9490,21 @@ export function validateActiveRuleSet(
 ## Relevant API test cases
 
 ### `apps/api/test/availability.service.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\availability.service.test.ts`
+
 ### Test case titles
+
 - `describe('AvailabilityService'`
 - `it('rejects unaligned or over-24-hour intervals before database lookup'`
 - `it('returns only safe room-type availability, excluding blocked physical rooms'`
 
 ### `apps/api/test/booking/booking-detail.service.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\booking\booking-detail.service.test.ts`
+
 ### Test case titles
+
 - `describe('BookingDetailService'`
 - `it('emits a null holdExpiresAt when the booking is not in HOLD state'`
 - `it('exposes a safe coupon summary when an active application is attached'`
@@ -9285,8 +9515,11 @@ export function validateActiveRuleSet(
 - `it('throws when the booking code is unknown'`
 
 ### `apps/api/test/booking/booking-hold-status.service.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\booking\booking-hold-status.service.test.ts`
+
 ### Test case titles
+
 - `describe('BookingHoldStatusService'`
 - `it('executes the status query exactly once per call'`
 - `it('parses string timestamps returned by the driver'`
@@ -9297,8 +9530,11 @@ export function validateActiveRuleSet(
 - `it('returns UNKNOWN when no row matches the bookingCode + email digest pair'`
 
 ### `apps/api/test/booking/booking-hold.service.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\booking\booking-hold.service.test.ts`
+
 ### Test case titles
+
 - `describe('BookingHoldService'`
 - `it('exposes the expected error code on BookingHoldError'`
 - `it('forwards the normalized contact and parameters to createBookingHoldWithRetry'`
@@ -9308,8 +9544,11 @@ export function validateActiveRuleSet(
 - `it('surfaces a safe coupon summary when the booking HOLD includes one'`
 
 ### `apps/api/test/customer/customer-profile.schema.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\customer\customer-profile.schema.test.ts`
+
 ### Test case titles
+
 - `describe('parseCustomerProfilePatch'`
 - `it('parses a full payload with E.164 phone and address fields'`
 - `it('parses a minimal payload with just name'`
@@ -9323,8 +9562,11 @@ export function validateActiveRuleSet(
 - `it('truncates oversize text fields to the documented maximums'`
 
 ### `apps/api/test/customer-session.service.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\customer-session.service.test.ts`
+
 ### Test case titles
+
 - `describe('CustomerSessionService — security boundary'`
 - `it('does not leak ADMIN actor context when a CUSTOMER request is made'`
 - `it('passes the request id and headers to the underlying session reader'`
@@ -9333,8 +9575,11 @@ export function validateActiveRuleSet(
 - `it('returns the actor for an ACTIVE CUSTOMER session'`
 
 ### `apps/api/test/integration/admin-booking-lifecycle.integration.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\integration\admin-booking-lifecycle.integration.test.ts`
+
 ### Test case titles
+
 - `describe('Audit / rollback'`
 - `describe('Cancel CONFIRMED'`
 - `describe('Cancel HOLD'`
@@ -9369,8 +9614,11 @@ export function validateActiveRuleSet(
 - `it('reports not-found errors cleanly'`
 
 ### `apps/api/test/integration/availability.integration.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\integration\availability.integration.test.ts`
+
 ### Test case titles
+
 - `describe('availability inventory search'`
 - `it('reports an exhausted type, then restores it after the source block is released'`
 - `it('returns active room types in deterministic name order, ignores inactive data, and creates no reservation'`
@@ -9378,8 +9626,11 @@ export function validateActiveRuleSet(
 - `it('uses [) inventory blocks, excludes only blocked rooms, and exposes no physical IDs'`
 
 ### `apps/api/test/integration/coupon-quote.integration.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\integration\coupon-quote.integration.test.ts`
+
 ### Test case titles
+
 - `describe('coupon-aware quote issuance'`
 - `it('applies a fixed discount provisionally without creating an application row'`
 - `it('applies a percentage discount with a maximum cap'`
@@ -9389,8 +9640,11 @@ export function validateActiveRuleSet(
 - `it('rejects an unknown coupon code with a safe public error'`
 
 ### `apps/api/test/integration/customer-module.integration.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\integration\customer-module.integration.test.ts`
+
 ### Test case titles
+
 - `describe('customer module — profile, ownership, claim, payment status'`
 - `it('STAGE F: DISABLED CUSTOMER cannot claim a booking even with a valid guest session'`
 - `it('STAGE G: profile is empty for a fresh CUSTOMER and patches create a row + audit event'`
@@ -9400,8 +9654,11 @@ export function validateActiveRuleSet(
 - `it('STAGE J: detailForCustomer returns authoritative paymentStatus from the payments table'`
 
 ### `apps/api/test/integration/customer-oauth.deterministic.integration.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\integration\customer-oauth.deterministic.integration.test.ts`
+
 ### Test case titles
+
 - `describe('deterministic OAuth — different Google subject, same email (CASE 3)'`
 - `describe('deterministic OAuth — disabled CUSTOMER (CASE 12)'`
 - `describe('deterministic OAuth — first Google sign-in (CASE 1)'`
@@ -9420,31 +9677,43 @@ export function validateActiveRuleSet(
 - `it('sign-in succeeds for ACTIVE CUSTOMER and fails for DISABLED CUSTOMER'`
 
 ### `apps/api/test/integration/public-booking.integration.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\integration\public-booking.integration.test.ts`
+
 ### Test case titles
+
 - `describe('public booking + guest access vertical slice'`
 - `it('rejects a fifth OTP request within the request window for the same booking + email'`
 - `it('returns a decoy OTP response when the booking code is well-formed but unknown'`
 - `it('runs HOLD → OTP request → verify → cookie → detail → logout end-to-end'`
 
 ### `apps/api/test/integration/quote.integration.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\integration\quote.integration.test.ts`
+
 ### Test case titles
+
 - `describe('immutable quote issuance'`
 - `it('issues a persisted immutable snapshot with database-time 15-minute expiry and no inventory reservation'`
 - `it('rejects incomplete pricing and unavailable inventory without writing a quote'`
 
 ### `apps/api/test/integration/rate-plan.integration.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\integration\rate-plan.integration.test.ts`
+
 ### Test case titles
+
 - `describe('rate plan administration transaction'`
 - `it('rejects a selection rule that breaks the rule set'`
 - `it('rejects incomplete activation, then activates after an audited price update'`
 - `it('updates a selection rule and validates the tentative rule set'`
 
 ### `apps/api/test/pricing-engine.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\pricing-engine.test.ts`
+
 ### Test case titles
+
 - `describe('deterministic pricing engine'`
 - `it('does not let a malformed inactive plan block an unrelated public quote'`
 - `it('keeps base and extra price failures distinct within the configuration hierarchy'`
@@ -9458,15 +9727,21 @@ export function validateActiveRuleSet(
 - `it('uses the property-owned timezone supplied with the quote input'`
 
 ### `apps/api/test/quote.service.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\quote.service.test.ts`
+
 ### Test case titles
+
 - `describe('QuoteService'`
 - `it('does not issue an unavailable quote'`
 - `it('turns an inactive or incomplete pricing catalog into a safe typed failure'`
 
 ### `apps/api/test/rate-plan.service.test.ts`
+
 - Full path: `D:\Study\Project\Room Management\apps\api\test\rate-plan.service.test.ts`
+
 ### Test case titles
+
 - `describe('RatePlanService'`
 - `it('activates a complete plan and audits it in the same transaction'`
 - `it('rejects activation when any active room-type tier is not priced'`

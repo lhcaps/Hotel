@@ -16,21 +16,21 @@ verified.
 
 ## 2. Gate results (documentation phase)
 
-| Gate | Result |
-| --- | --- |
-| Gate 0 — Repository Truth | PASS — branch and worktree verified; Phase 8C source/test work in working tree. |
-| Gate A — Documentation and Evidence Reconciliation | PASS — Phase 8B.1 docs corrected; ADR-0011 accepted. |
-| Gate B.0 — Single Settlement Authority | PASS — boundary preserved. |
-| Gate B.1 — Cryptographic Conformance (definitive) | PASS — vectors enumerated in `docs/audit/phase-8c/cryptographic-vectors.md`. |
-| Gate B.1 — Cryptographic Conformance (run) | pending — awaiting command evidence. |
-| Gate B.2 — Cross-Provider Race Matrix (definitive) | PASS — 10 scenarios enumerated in `docs/audit/phase-8c/cross-provider-race-matrix.md`. |
-| Gate B.2 — Cross-Provider Race Matrix (run) | pending — awaiting command evidence. |
-| Gate B.3 — Reconciliation Cycle Integration (definitive) | PASS — `apps/worker/src/reconciliation/` wired. |
-| Gate B.3 — Reconciliation Cycle Integration (run) | pending — awaiting command evidence. |
-| Gate B.4 — Cross-Cutting Docs | PASS — payment-state-machine, business-invariants, user-journeys, payment-architecture, admin-api-contract, AUTH_RBAC_POLICY, threat-model, .env.example all updated. |
-| Gate B.5 — Phase 8B.1 Regression Re-run | pending — awaiting command evidence. |
-| Gate C — Live Sandbox Acceptance | EXTERNAL_BLOCKED. |
-| Gate D — Production Acceptance | EXTERNAL_BLOCKED. |
+| Gate                                                     | Result                                                                                                                                                                |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gate 0 — Repository Truth                                | PASS — branch and worktree verified; Phase 8C source/test work in working tree.                                                                                       |
+| Gate A — Documentation and Evidence Reconciliation       | PASS — Phase 8B.1 docs corrected; ADR-0011 accepted.                                                                                                                  |
+| Gate B.0 — Single Settlement Authority                   | PASS — boundary preserved.                                                                                                                                            |
+| Gate B.1 — Cryptographic Conformance (definitive)        | PASS — vectors enumerated in `docs/audit/phase-8c/cryptographic-vectors.md`.                                                                                          |
+| Gate B.1 — Cryptographic Conformance (run)               | pending — awaiting command evidence.                                                                                                                                  |
+| Gate B.2 — Cross-Provider Race Matrix (definitive)       | PASS — 10 scenarios enumerated in `docs/audit/phase-8c/cross-provider-race-matrix.md`.                                                                                |
+| Gate B.2 — Cross-Provider Race Matrix (run)              | pending — awaiting command evidence.                                                                                                                                  |
+| Gate B.3 — Reconciliation Cycle Integration (definitive) | PASS — `apps/worker/src/reconciliation/` wired.                                                                                                                       |
+| Gate B.3 — Reconciliation Cycle Integration (run)        | pending — awaiting command evidence.                                                                                                                                  |
+| Gate B.4 — Cross-Cutting Docs                            | PASS — payment-state-machine, business-invariants, user-journeys, payment-architecture, admin-api-contract, AUTH_RBAC_POLICY, threat-model, .env.example all updated. |
+| Gate B.5 — Phase 8B.1 Regression Re-run                  | pending — awaiting command evidence.                                                                                                                                  |
+| Gate C — Live Sandbox Acceptance                         | EXTERNAL_BLOCKED.                                                                                                                                                     |
+| Gate D — Production Acceptance                           | EXTERNAL_BLOCKED.                                                                                                                                                     |
 
 ## 3. Settlement authority boundary (Gate B.0)
 
@@ -95,18 +95,18 @@ VNPAY space encoding `+` vs `%20`) are
 Scenarios and expected outcomes are in
 `docs/audit/phase-8c/cross-provider-race-matrix.md`. The summary:
 
-| # | Scenario | Expected outcome |
-| --- | --- | --- |
-| 1 | Duplicate MoMo success | One `SUCCEEDED`, one `DUPLICATE` |
-| 2 | Duplicate VNPAY success | One `SUCCEEDED`, one `DUPLICATE` |
-| 3 | MoMo success vs VNPAY success | One `SUCCEEDED`, one `REVIEW_REQUIRED` (CROSS_PROVIDER_TRANSACTION_CONFLICT) |
-| 4 | Provider success vs HOLD expiry | `REVIEW_REQUIRED` (BOOKING_EXPIRED) |
-| 5 | Provider success vs ADMIN cancellation | `REVIEW_REQUIRED` (PAID_CANCELLATION) |
-| 6 | Success vs coupon redemption race | Coupon redeem at most once |
-| 7 | Success vs inventory release | `REVIEW_REQUIRED` if inventory released |
-| 8 | Duplicate provider transaction ID | `TRANSACTION_CONFLICT` |
-| 9 | Duplicate provider event ID | `DUPLICATE` |
-| 10 | Reconciliation cycle drives a verified event | One `SUCCEEDED` through the canonical core |
+| #   | Scenario                                     | Expected outcome                                                             |
+| --- | -------------------------------------------- | ---------------------------------------------------------------------------- |
+| 1   | Duplicate MoMo success                       | One `SUCCEEDED`, one `DUPLICATE`                                             |
+| 2   | Duplicate VNPAY success                      | One `SUCCEEDED`, one `DUPLICATE`                                             |
+| 3   | MoMo success vs VNPAY success                | One `SUCCEEDED`, one `REVIEW_REQUIRED` (CROSS_PROVIDER_TRANSACTION_CONFLICT) |
+| 4   | Provider success vs HOLD expiry              | `REVIEW_REQUIRED` (BOOKING_EXPIRED)                                          |
+| 5   | Provider success vs ADMIN cancellation       | `REVIEW_REQUIRED` (PAID_CANCELLATION)                                        |
+| 6   | Success vs coupon redemption race            | Coupon redeem at most once                                                   |
+| 7   | Success vs inventory release                 | `REVIEW_REQUIRED` if inventory released                                      |
+| 8   | Duplicate provider transaction ID            | `TRANSACTION_CONFLICT`                                                       |
+| 9   | Duplicate provider event ID                  | `DUPLICATE`                                                                  |
+| 10  | Reconciliation cycle drives a verified event | One `SUCCEEDED` through the canonical core                                   |
 
 Run output (per-scenario pass/fail and total count):
 **pending — awaiting command evidence**.
@@ -117,14 +117,14 @@ The worker tick is wired under
 `apps/worker/src/reconciliation/claim-reconciliation-batch.ts` and
 the matching `process-reconciliation.ts` job driver. Configuration:
 
-| Variable | Bound | Default (placeholder) | Source |
-| --- | --- | --- | --- |
-| `WORKER_RECONCILIATION_INTERVAL_MS` | positive integer | 5000 | `.env.example` placeholder |
-| `WORKER_RECONCILIATION_BATCH_SIZE` | 1..200 | 50 | `.env.example` placeholder |
-| `WORKER_RECONCILIATION_LEASE_TTL_MS` | 1000..300000 | 30000 | `.env.example` placeholder |
-| `WORKER_RECONCILIATION_QUERY_TIMEOUT_MS` | 1000..60000 | 10000 | `.env.example` placeholder |
-| Reconciliation policy `maxAttempts` | 1..32 | 8 | `DEFAULT_RECONCILIATION_POLICY` |
-| Reconciliation policy `delayMinutes` | 1..1440 per entry | `[1,5,15,60,240]` | `DEFAULT_RECONCILIATION_DELAY_MINUTES` |
+| Variable                                 | Bound             | Default (placeholder) | Source                                 |
+| ---------------------------------------- | ----------------- | --------------------- | -------------------------------------- |
+| `WORKER_RECONCILIATION_INTERVAL_MS`      | positive integer  | 5000                  | `.env.example` placeholder             |
+| `WORKER_RECONCILIATION_BATCH_SIZE`       | 1..200            | 50                    | `.env.example` placeholder             |
+| `WORKER_RECONCILIATION_LEASE_TTL_MS`     | 1000..300000      | 30000                 | `.env.example` placeholder             |
+| `WORKER_RECONCILIATION_QUERY_TIMEOUT_MS` | 1000..60000       | 10000                 | `.env.example` placeholder             |
+| Reconciliation policy `maxAttempts`      | 1..32             | 8                     | `DEFAULT_RECONCILIATION_POLICY`        |
+| Reconciliation policy `delayMinutes`     | 1..1440 per entry | `[1,5,15,60,240]`     | `DEFAULT_RECONCILIATION_DELAY_MINUTES` |
 
 Run output (processed count, lease recovery rate, exhaustion rate):
 **pending — awaiting command evidence**.

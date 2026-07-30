@@ -8,13 +8,15 @@ const excludedPathParts = ['/messages.ts', '/locale-provider.tsx'];
 
 async function collectFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
-  const nested = await Promise.all(entries.map(async (entry) => {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) return collectFiles(path);
-    if (!entry.isFile() || !/\.(?:ts|tsx)$/.test(entry.name)) return [];
-    if (entry.name.includes('.test.') || entry.name.includes('.stories.')) return [];
-    return [path];
-  }));
+  const nested = await Promise.all(
+    entries.map(async (entry) => {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) return collectFiles(path);
+      if (!entry.isFile() || !/\.(?:ts|tsx)$/.test(entry.name)) return [];
+      if (entry.name.includes('.test.') || entry.name.includes('.stories.')) return [];
+      return [path];
+    }),
+  );
   return nested.flat();
 }
 
@@ -27,7 +29,9 @@ for (const file of files) {
   const lines = (await readFile(file, 'utf8')).split(/\r?\n/u);
   lines.forEach((line, index) => {
     if (vietnameseCharacter.test(line)) {
-      findings.push(`${relative(root, file)}:${index + 1}: ${line.trim()} | replacement key: translate(locale, '<required-key>')`);
+      findings.push(
+        `${relative(root, file)}:${index + 1}: ${line.trim()} | replacement key: translate(locale, '<required-key>')`,
+      );
     }
   });
 }

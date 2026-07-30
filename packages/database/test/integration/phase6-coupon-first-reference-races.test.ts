@@ -48,10 +48,7 @@ interface CallerPool {
   close(): Promise<void>;
 }
 
-function createIndependentCallerPool(
-  databaseUrl: string,
-  applicationName: string,
-): CallerPool {
+function createIndependentCallerPool(databaseUrl: string, applicationName: string): CallerPool {
   const pool = createDatabasePool(databaseUrl, { max: 2, applicationName });
   return {
     pool,
@@ -80,14 +77,8 @@ async function createHarness(): Promise<DisposableHarness> {
     max: 2,
     applicationName: 'race-admin',
   });
-  const callerOne = createIndependentCallerPool(
-    database.databaseUrl,
-    'race-caller-one',
-  );
-  const callerTwo = createIndependentCallerPool(
-    database.databaseUrl,
-    'race-caller-two',
-  );
+  const callerOne = createIndependentCallerPool(database.databaseUrl, 'race-caller-one');
+  const callerTwo = createIndependentCallerPool(database.databaseUrl, 'race-caller-two');
   return {
     database,
     adminPool,
@@ -152,13 +143,7 @@ async function seedFixture(
     await client.query(
       `INSERT INTO coupons (id, property_id, normalized_code, status, discount_type, fixed_amount_vnd, percentage_basis_points, maximum_discount_vnd, minimum_order_amount_vnd, valid_from, valid_until, applies_to_all_room_types, total_usage_limit, per_customer_limit)
        VALUES ($1, $2, 'RACE01', 'ACTIVE', 'FIXED', 10000, NULL, NULL, $5, CURRENT_TIMESTAMP - interval '1 day', CURRENT_TIMESTAMP + interval '30 days', $3, $4, NULL)`,
-      [
-        couponId,
-        propertyId,
-        options.scope === 'all',
-        options.totalUsageLimit ?? null,
-        minimum,
-      ],
+      [couponId, propertyId, options.scope === 'all', options.totalUsageLimit ?? null, minimum],
     );
     if (options.scope === 'scoped') {
       await client.query(
@@ -276,9 +261,7 @@ async function seedQuoteWithCoupon(
   return { quoteId, couponSnapshot };
 }
 
-async function attemptScopeMutation<T>(
-  operation: Promise<T>,
-): Promise<'succeeded' | 'rejected'> {
+async function attemptScopeMutation<T>(operation: Promise<T>): Promise<'succeeded' | 'rejected'> {
   try {
     await operation;
     return 'succeeded';
@@ -365,13 +348,7 @@ describe('phase 6C application reference closure — ordered-semantics evidence'
           // Reference (quote) commits second via callerTwo with the new
           // definition (minimum 7000, fixed 10000).
           await expectNoDeadlock(
-            seedQuoteWithCoupon(
-              localHarness.callerTwo.pool,
-              fixture,
-              gross,
-              7_000,
-              fixed,
-            ),
+            seedQuoteWithCoupon(localHarness.callerTwo.pool, fixture, gross, 7_000, fixed),
           );
 
           const couponRow = await localHarness.adminPool.query<{
@@ -407,13 +384,7 @@ describe('phase 6C application reference closure — ordered-semantics evidence'
             initialMinimumOrderVnd: 0,
           });
           await expectNoDeadlock(
-            seedQuoteWithCoupon(
-              localHarness.callerTwo.pool,
-              fixture,
-              gross,
-              0,
-              fixed,
-            ),
+            seedQuoteWithCoupon(localHarness.callerTwo.pool, fixture, gross, 0, fixed),
           );
           // Mutation must be rejected because the coupon is now referenced.
           await expect(
@@ -459,23 +430,18 @@ describe('phase 6C application reference closure — ordered-semantics evidence'
             ),
           );
           const referenceResult = await expectNoDeadlock(
-            seedQuoteWithCoupon(
-              localHarness.callerTwo.pool,
-              fixture,
-              359_000,
-              0,
-              10_000,
-            ).then(() => 'reference' as const),
+            seedQuoteWithCoupon(localHarness.callerTwo.pool, fixture, 359_000, 0, 10_000).then(
+              () => 'reference' as const,
+            ),
           );
           expect(insertResult).toBe('succeeded');
           expect(referenceResult).toBe('reference');
           const couponRow = await localHarness.adminPool.query<{
             first_referenced_at: Date | null;
             applies_to_all_room_types: boolean;
-          }>(
-            `SELECT first_referenced_at, applies_to_all_room_types FROM coupons WHERE id = $1`,
-            [fixture.couponId],
-          );
+          }>(`SELECT first_referenced_at, applies_to_all_room_types FROM coupons WHERE id = $1`, [
+            fixture.couponId,
+          ]);
           const row = couponRow.rows[0];
           expect(row).toBeDefined();
           expect(row?.first_referenced_at).not.toBeNull();
@@ -490,13 +456,7 @@ describe('phase 6C application reference closure — ordered-semantics evidence'
         try {
           const fixture = await seedFixture(localHarness.adminPool, { scope: 'scoped' });
           await expectNoDeadlock(
-            seedQuoteWithCoupon(
-              localHarness.callerTwo.pool,
-              fixture,
-              359_000,
-              0,
-              10_000,
-            ),
+            seedQuoteWithCoupon(localHarness.callerTwo.pool, fixture, 359_000, 0, 10_000),
           );
           const insertResult = await expectNoDeadlock(
             attemptScopeMutation(
@@ -526,13 +486,9 @@ describe('phase 6C application reference closure — ordered-semantics evidence'
             ),
           );
           const referenceResult = await expectNoDeadlock(
-            seedQuoteWithCoupon(
-              localHarness.callerTwo.pool,
-              fixture,
-              359_000,
-              0,
-              10_000,
-            ).then(() => 'reference' as const),
+            seedQuoteWithCoupon(localHarness.callerTwo.pool, fixture, 359_000, 0, 10_000).then(
+              () => 'reference' as const,
+            ),
           );
           expect(updateResult).toBe('succeeded');
           expect(referenceResult).toBe('reference');
@@ -553,13 +509,7 @@ describe('phase 6C application reference closure — ordered-semantics evidence'
         try {
           const fixture = await seedFixture(localHarness.adminPool, { scope: 'scoped' });
           await expectNoDeadlock(
-            seedQuoteWithCoupon(
-              localHarness.callerTwo.pool,
-              fixture,
-              359_000,
-              0,
-              10_000,
-            ),
+            seedQuoteWithCoupon(localHarness.callerTwo.pool, fixture, 359_000, 0, 10_000),
           );
           const updateResult = await expectNoDeadlock(
             attemptScopeMutation(
@@ -589,13 +539,9 @@ describe('phase 6C application reference closure — ordered-semantics evidence'
             ),
           );
           const referenceResult = await expectNoDeadlock(
-            seedQuoteWithCoupon(
-              localHarness.callerTwo.pool,
-              fixture,
-              359_000,
-              0,
-              10_000,
-            ).then(() => 'reference' as const),
+            seedQuoteWithCoupon(localHarness.callerTwo.pool, fixture, 359_000, 0, 10_000).then(
+              () => 'reference' as const,
+            ),
           );
           expect(deleteResult).toBe('succeeded');
           expect(referenceResult).toBe('reference');
@@ -616,13 +562,7 @@ describe('phase 6C application reference closure — ordered-semantics evidence'
         try {
           const fixture = await seedMultiScopeFixture(localHarness.adminPool);
           await expectNoDeadlock(
-            seedQuoteWithCoupon(
-              localHarness.callerTwo.pool,
-              fixture,
-              359_000,
-              0,
-              10_000,
-            ),
+            seedQuoteWithCoupon(localHarness.callerTwo.pool, fixture, 359_000, 0, 10_000),
           );
           const deleteResult = await expectNoDeadlock(
             attemptScopeMutation(
@@ -648,12 +588,9 @@ describe('phase 6C application reference closure — ordered-semantics evidence'
       // booking/contact/block/booking_coupon_application atomically. The
       // application INSERT is the operation protected by migration 0010's
       // combined FOR UPDATE + first-reference trigger.
-      const { createBookingHoldWithRetry } = await import(
-        '../../../booking/src/services/create-booking-hold.js'
-      );
-      const { normalizeContact } = await import(
-        '../../../booking/src/contact.js'
-      );
+      const { createBookingHoldWithRetry } =
+        await import('../../../booking/src/services/create-booking-hold.js');
+      const { normalizeContact } = await import('../../../booking/src/contact.js');
 
       const DIGEST_SECRET = Buffer.from('phase6c-race-secret-32-bytes-long');
 
@@ -846,9 +783,8 @@ describe('phase 6C application reference closure — ordered-semantics evidence'
       // rejects and reports the exact failing statements. The test simply
       // verifies that the operations complete cleanly under the corrected
       // migration 0010 serialization.
-      const { createBookingHoldWithRetry } = await import(
-        '../../../booking/src/services/create-booking-hold.js'
-      );
+      const { createBookingHoldWithRetry } =
+        await import('../../../booking/src/services/create-booking-hold.js');
       const { normalizeContact } = await import('../../../booking/src/contact.js');
       const DIGEST_SECRET = Buffer.from('phase6c-race-e4-secret-32-bytes-long');
 
@@ -867,13 +803,7 @@ describe('phase 6C application reference closure — ordered-semantics evidence'
             ),
           );
           await expectNoDeadlock(
-            seedQuoteWithCoupon(
-              localHarness.callerTwo.pool,
-              fixture,
-              359_000,
-              0,
-              10_000,
-            ),
+            seedQuoteWithCoupon(localHarness.callerTwo.pool, fixture, 359_000, 0, 10_000),
           );
         } finally {
           await localHarness.close();

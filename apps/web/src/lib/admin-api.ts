@@ -439,21 +439,25 @@ export const publicApi = {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
-    }).then((response): AvailabilitySearchResponse => availabilitySearchResponseSchema.parse(response)),
+    }).then((response): AvailabilitySearchResponse =>
+      availabilitySearchResponseSchema.parse(response),
+    ),
   searchNearbyAvailability: (body: NearbyAvailabilityRequest) =>
     request<unknown>('/availability/nearby', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(nearbyAvailabilityRequestSchema.parse(body)),
-    }).then(
-      (response): NearbyAvailabilityResponse => nearbyAvailabilityResponseSchema.parse(response),
+    }).then((response): NearbyAvailabilityResponse =>
+      nearbyAvailabilityResponseSchema.parse(response),
     ),
   eligibleOffers: (body: unknown) =>
     request<unknown>('/quotes/offers', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
-    }).then((response): AvailabilityOfferResponse => availabilityOfferResponseSchema.parse(response)),
+    }).then((response): AvailabilityOfferResponse =>
+      availabilityOfferResponseSchema.parse(response),
+    ),
   issueQuote: (body: unknown) =>
     request<{ id: string }>('/quotes', {
       method: 'POST',

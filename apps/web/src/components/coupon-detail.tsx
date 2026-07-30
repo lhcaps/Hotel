@@ -24,8 +24,7 @@ export function CouponDetail({ id }: { id: string }) {
       );
   useEffect(load, [id, locale]);
   async function disable() {
-    if (!globalThis.confirm(translate(locale, 'coupon.disableConfirm')))
-      return;
+    if (!globalThis.confirm(translate(locale, 'coupon.disableConfirm'))) return;
     setPending(true);
     try {
       await adminApi.disableCoupon(id);
@@ -33,7 +32,9 @@ export function CouponDetail({ id }: { id: string }) {
       load();
     } catch (reason) {
       setError(
-        reason instanceof AdminApiError ? translate(locale, 'coupon.disableError') : translate(locale, 'coupon.unexpectedError'),
+        reason instanceof AdminApiError
+          ? translate(locale, 'coupon.disableError')
+          : translate(locale, 'coupon.unexpectedError'),
       );
     } finally {
       setPending(false);
@@ -56,7 +57,8 @@ export function CouponDetail({ id }: { id: string }) {
       <Link href="/admin/coupons">← {translate(locale, 'coupon.backToList')}</Link>
       <h1>{coupon.code}</h1>
       <p>
-        {translate(locale, 'coupon.lifecycle')}: <strong>{coupon.lifecycle}</strong> · Database status: {coupon.status}
+        {translate(locale, 'coupon.lifecycle')}: <strong>{coupon.lifecycle}</strong> · Database
+        status: {coupon.status}
       </p>
       {message && <p role="status">{message}</p>}
       <div className="coupon-detail">
@@ -66,22 +68,29 @@ export function CouponDetail({ id }: { id: string }) {
             ? formatVnd(locale, coupon.fixedAmountVnd ?? 0)
             : `${(coupon.percentageBasisPoints ?? 0) / 100}%`}
         </p>
-        <p>{translate(locale, 'coupon.minimum')}: {formatVnd(locale, coupon.minimumOrderAmountVnd)}</p>
+        <p>
+          {translate(locale, 'coupon.minimum')}: {formatVnd(locale, coupon.minimumOrderAmountVnd)}
+        </p>
         <p>
           {translate(locale, 'coupon.validity')}: {formatDateTime(locale, coupon.validFrom)} —{' '}
           {formatDateTime(locale, coupon.validUntil)}
         </p>
         <p>
           {translate(locale, 'coupon.scope')}:{' '}
-          {coupon.appliesToAllRoomTypes ? translate(locale, 'coupon.allRoomTypes') : coupon.roomTypeIds.join(', ')}
+          {coupon.appliesToAllRoomTypes
+            ? translate(locale, 'coupon.allRoomTypes')
+            : coupon.roomTypeIds.join(', ')}
         </p>
         <p>
-          {translate(locale, 'coupon.totalLimit')}: {coupon.totalUsageLimit ?? translate(locale, 'coupon.unlimited')} · {translate(locale, 'coupon.perCustomerLimit')}:{' '}
+          {translate(locale, 'coupon.totalLimit')}:{' '}
+          {coupon.totalUsageLimit ?? translate(locale, 'coupon.unlimited')} ·{' '}
+          {translate(locale, 'coupon.perCustomerLimit')}:{' '}
           {coupon.perCustomerLimit ?? translate(locale, 'coupon.unlimited')}
         </p>
         <p>
-          {translate(locale, 'coupon.activeReservations')}: {coupon.counts.activeReservations} · {translate(locale, 'coupon.redeemed')}: {coupon.counts.redeemed} · {translate(locale, 'coupon.released')}:{' '}
-          {coupon.counts.released}
+          {translate(locale, 'coupon.activeReservations')}: {coupon.counts.activeReservations} ·{' '}
+          {translate(locale, 'coupon.redeemed')}: {coupon.counts.redeemed} ·{' '}
+          {translate(locale, 'coupon.released')}: {coupon.counts.released}
         </p>
       </div>
       {coupon.status === 'ACTIVE' && (

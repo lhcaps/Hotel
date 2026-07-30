@@ -46,16 +46,14 @@ export class GuestSessionService {
   public authenticate(token: Buffer | null, now: Date): Promise<AuthenticatedSession> {
     if (token === null) return Promise.reject(new GuestSessionRequiredError());
     const tokenDigest = digestSessionToken(this.secrets.sessionSecret, token);
-    return this.repository
-      .findActiveSession(tokenDigest, now)
-      .then((record) => {
-        if (record === null) throw new GuestSessionInvalidError();
-        return {
-          sessionId: record.sessionId,
-          bookingId: record.bookingId,
-          expiresAt: record.expiresAt,
-        };
-      });
+    return this.repository.findActiveSession(tokenDigest, now).then((record) => {
+      if (record === null) throw new GuestSessionInvalidError();
+      return {
+        sessionId: record.sessionId,
+        bookingId: record.bookingId,
+        expiresAt: record.expiresAt,
+      };
+    });
   }
 
   public requireForBooking(

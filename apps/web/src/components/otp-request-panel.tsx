@@ -105,9 +105,7 @@ export function OtpRequestPanel({ onOtpRequested }: OtpRequestPanelProps) {
       <h2 id={`${formId}-heading`} className="text-xl font-semibold">
         {translate(locale, 'otp.requestHeading')}
       </h2>
-      <p className="mt-2 text-sm text-slate-600">
-        {translate(locale, 'otp.requestHelp')}
-      </p>
+      <p className="mt-2 text-sm text-slate-600">{translate(locale, 'otp.requestHelp')}</p>
 
       <div className="mt-4 space-y-4">
         <div>

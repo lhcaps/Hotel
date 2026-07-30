@@ -22,7 +22,10 @@ import {
   migrateDatabase,
   type DatabasePool,
 } from '@room/database';
-import { createPreparedGuardedTestDatabase, type GuardedTestDatabase } from '@room/database/testing';
+import {
+  createPreparedGuardedTestDatabase,
+  type GuardedTestDatabase,
+} from '@room/database/testing';
 import { redeemCouponApplication } from '../../src/repository/coupon-reservation.js';
 import { CouponApplicationNotRedeemableError } from '../../src/coupon/coupon-errors.js';
 
@@ -131,11 +134,7 @@ describe('redeemCouponApplication', () => {
   });
 
   it('transitions RESERVED to REDEEMED, writes one audit event, and is idempotent on the same key', async () => {
-    const { bookingId, propertyId } = await seedReservableApplication(
-      pool,
-      'RESERVED',
-      true,
-    );
+    const { bookingId, propertyId } = await seedReservableApplication(pool, 'RESERVED', true);
     const eventKey = `pay-${randomUUID()}`;
 
     const first = await db.transaction(async (tx) =>
@@ -265,18 +264,14 @@ describe('redeemCouponApplication', () => {
     const { bookingId } = await seedReservableApplication(pool, 'RESERVED', true);
     const eventKey = `pay-${randomUUID()}`;
 
-    const before = await pool.query<{ now: Date }>(
-      `SELECT CURRENT_TIMESTAMP AS now`,
-    );
+    const before = await pool.query<{ now: Date }>(`SELECT CURRENT_TIMESTAMP AS now`);
     await db.transaction(async (tx) =>
       redeemCouponApplication(tx, {
         bookingId,
         verifiedPaymentEventKey: eventKey,
       }),
     );
-    const after = await pool.query<{ now: Date }>(
-      `SELECT CURRENT_TIMESTAMP AS now`,
-    );
+    const after = await pool.query<{ now: Date }>(`SELECT CURRENT_TIMESTAMP AS now`);
 
     const redeemedRow = await pool.query<{ redeemed_at: Date | null }>(
       `SELECT redeemed_at FROM booking_coupon_applications WHERE booking_id = $1`,

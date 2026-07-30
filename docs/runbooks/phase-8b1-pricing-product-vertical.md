@@ -57,6 +57,7 @@ curl -X POST -H 'content-type: application/json' \
 ```
 
 The response must include:
+
 - `exactResult.pricing.ruleVersion == "phase-8b-cheapest-eligible-pricing-v1"`
 - `recommendations` ≤ 3 items
 - `advisoryExpiresAt` and `generatedAt` ISO strings

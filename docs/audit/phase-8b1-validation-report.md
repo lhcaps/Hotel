@@ -11,11 +11,11 @@ immutable audit ledger.
 
 ## 2. Gate results
 
-| Gate | Result |
-| --- | --- |
-| Gate 0 — Repository Truth | PASS |
-| Gate A — Documentation and Evidence Reconciliation | PASS |
-| Gate B — Authoritative Pricing Call Graph | PASS |
+| Gate                                               | Result |
+| -------------------------------------------------- | ------ |
+| Gate 0 — Repository Truth                          | PASS   |
+| Gate A — Documentation and Evidence Reconciliation | PASS   |
+| Gate B — Authoritative Pricing Call Graph          | PASS   |
 
 ## 3. Code call graph (Gate B)
 

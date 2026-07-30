@@ -35,29 +35,29 @@ This was an AUDIT phase. The audit:
 
 Honest evidence-derived verdict:
 
-| Final verdict | Value |
-|---|---|
-| PHASE_8A_AUDIT | COMPLETE |
-| DETERMINISTIC_PRICING_ASSURANCE | VERIFIED_WITH_LIMITATION |
-| DETERMINISTIC_PAYMENT_ASSURANCE | VERIFIED_WITH_LIMITATION |
-| LIVE_MOMO_ACCEPTANCE | EXTERNAL_BLOCKED |
-| LIVE_VNPAY_ACCEPTANCE | EXTERNAL_BLOCKED |
-| DEPLOYMENT_READINESS | NOT_VERIFIED |
-| OBSERVABILITY_READINESS | VERIFIED_WITH_LIMITATION |
-| SECURITY_READINESS | VERIFIED_WITH_LIMITATION |
-| PERFORMANCE_BASELINE | VERIFIED_WITH_LIMITATION |
-| CAPACITY_TARGETS | BUSINESS_OR_OPERATIONS_DECISION_REQUIRED |
-| PRODUCTION_READINESS | NO |
+| Final verdict                   | Value                                    |
+| ------------------------------- | ---------------------------------------- |
+| PHASE_8A_AUDIT                  | COMPLETE                                 |
+| DETERMINISTIC_PRICING_ASSURANCE | VERIFIED_WITH_LIMITATION                 |
+| DETERMINISTIC_PAYMENT_ASSURANCE | VERIFIED_WITH_LIMITATION                 |
+| LIVE_MOMO_ACCEPTANCE            | EXTERNAL_BLOCKED                         |
+| LIVE_VNPAY_ACCEPTANCE           | EXTERNAL_BLOCKED                         |
+| DEPLOYMENT_READINESS            | NOT_VERIFIED                             |
+| OBSERVABILITY_READINESS         | VERIFIED_WITH_LIMITATION                 |
+| SECURITY_READINESS              | VERIFIED_WITH_LIMITATION                 |
+| PERFORMANCE_BASELINE            | VERIFIED_WITH_LIMITATION                 |
+| CAPACITY_TARGETS                | BUSINESS_OR_OPERATIONS_DECISION_REQUIRED |
+| PRODUCTION_READINESS            | NO                                       |
 
 ## 4. Gap Counts
 
-| Severity | Count |
-|---|---|
-| P0 | 4 (PRICING-001, OBSERVABILITY-001, DEPLOYMENT-001; plus production-acceptance gates PAYMENT-002/003 which count as P0 once acceptance is reached) |
-| P1 | 9 |
-| P2 | 6 |
-| P3 | 3 |
-| **Total** | **22** |
+| Severity  | Count                                                                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0        | 4 (PRICING-001, OBSERVABILITY-001, DEPLOYMENT-001; plus production-acceptance gates PAYMENT-002/003 which count as P0 once acceptance is reached) |
+| P1        | 9                                                                                                                                                 |
+| P2        | 6                                                                                                                                                 |
+| P3        | 3                                                                                                                                                 |
+| **Total** | **22**                                                                                                                                            |
 
 ## 5. Required Final Verdicts (verbatim)
 
@@ -106,12 +106,12 @@ Audit-only test files (no production code changed):
 
 ## 7. Regression Baseline (this audit)
 
-| Command | Result |
-|---|---|
-| `pnpm lint` | PASS — 9/9 packages |
-| `pnpm typecheck` | PASS — 9/9 packages |
+| Command          | Result                                                                                                    |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| `pnpm lint`      | PASS — 9/9 packages                                                                                       |
+| `pnpm typecheck` | PASS — 9/9 packages                                                                                       |
 | `pnpm test:unit` | PASS — 189/189 tests in @room/api, 196/196 in @room/booking, 143/143 in @room/worker, plus other packages |
-| `pnpm build` | PASS — 9/9 packages |
+| `pnpm build`     | PASS — 9/9 packages                                                                                       |
 
 The audit-phase8a tests add ~25 cases; the production code path is unchanged.
 

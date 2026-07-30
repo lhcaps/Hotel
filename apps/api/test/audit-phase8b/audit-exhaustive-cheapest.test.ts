@@ -17,7 +17,7 @@ import { auditEnumerate } from '../audit-phase8a/audit-independent-oracle.js';
 
 function utcOf(localHour: number, localMinute: number, dayOfMonth = 22): string {
   const localMinutesOfDay = localHour * 60 + localMinute;
-  const utcMinutesOfDay = ((localMinutesOfDay - 7 * 60) % (24 * 60) + 24 * 60) % (24 * 60);
+  const utcMinutesOfDay = (((localMinutesOfDay - 7 * 60) % (24 * 60)) + 24 * 60) % (24 * 60);
   const utcHour = Math.floor(utcMinutesOfDay / 60);
   const utcMinute = utcMinutesOfDay % 60;
   if (utcMinute % 15 !== 0) {
@@ -113,7 +113,9 @@ interface Scenario {
   readonly label: string;
 }
 
-function enumerateScenarios(dates: readonly { readonly day: number; readonly label: string }[]): readonly Scenario[] {
+function enumerateScenarios(
+  dates: readonly { readonly day: number; readonly label: string }[],
+): readonly Scenario[] {
   const out: Scenario[] = [];
   for (const date of dates) {
     for (let localMinute = 0; localMinute <= 23 * 60 + 45; localMinute += 15) {
@@ -145,7 +147,13 @@ describe('Phase 8B cheapest-eligible pricing oracle match', () => {
     const catalog = buildCatalog();
     let compared = 0;
     let mismatches = 0;
-    const mismatchSamples: { label: string; productionPlan: string; oraclePlan: string; productionTotal: number; oracleTotal: number }[] = [];
+    const mismatchSamples: {
+      label: string;
+      productionPlan: string;
+      oraclePlan: string;
+      productionTotal: number;
+      oracleTotal: number;
+    }[] = [];
     for (const scenario of scenarios) {
       const production = calculatePricingWithStrategy(
         {
@@ -155,7 +163,7 @@ describe('Phase 8B cheapest-eligible pricing oracle match', () => {
           timezone: 'Asia/Ho_Chi_Minh',
         },
         catalog,
-          'CHEAPEST_ELIGIBLE_THEN_PRIORITY',
+        'CHEAPEST_ELIGIBLE_THEN_PRIORITY',
       );
       const oracle = auditEnumerate(
         {
@@ -206,7 +214,7 @@ describe('Phase 8B cheapest-eligible pricing oracle match', () => {
           timezone: 'Asia/Ho_Chi_Minh',
         },
         catalog,
-          'CHEAPEST_ELIGIBLE_THEN_PRIORITY',
+        'CHEAPEST_ELIGIBLE_THEN_PRIORITY',
       );
       const oracle = auditEnumerate(
         {
@@ -246,7 +254,7 @@ describe('Phase 8B cheapest-eligible pricing oracle match', () => {
           timezone: 'Asia/Ho_Chi_Minh',
         },
         catalog,
-          'CHEAPEST_ELIGIBLE_THEN_PRIORITY',
+        'CHEAPEST_ELIGIBLE_THEN_PRIORITY',
       );
       const oracle = auditEnumerate(
         {

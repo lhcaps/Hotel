@@ -116,7 +116,8 @@ const messages = {
     'search.fromPrice': 'Từ {amount}',
     'search.noOffer': 'Chưa có giá phù hợp cho khoảng thời gian này.',
     'search.noMatchTitle': 'Không còn phòng đúng thời gian bạn chọn',
-    'search.noMatchHelp': 'Vui lòng chọn khoảng thời gian khác hoặc xem các lựa chọn gần thời gian của bạn bên dưới.',
+    'search.noMatchHelp':
+      'Vui lòng chọn khoảng thời gian khác hoặc xem các lựa chọn gần thời gian của bạn bên dưới.',
     'search.selectedInterval': 'Khoảng thời gian đã chọn',
     'search.capacity': 'Tối đa {count} khách',
     'search.available': 'Có phòng',

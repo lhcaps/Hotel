@@ -89,19 +89,19 @@ Mailpit remains the deterministic default. `pnpm test:email:live` returned `SMTP
 
 All results below ran after the capture-helper correction; the documentation-only commit follows them.
 
-| Command / evidence | Final result |
-| --- | --- |
-| `pnpm check:providers`, `check:features`, `check:google-oauth` | PASS for repository readiness; external statuses remain the explicit BLOCKED values above |
-| `pnpm check:i18n-critical` | PASS: 76 files scanned, 0 direct Vietnamese copy |
-| `pnpm check:endpoints` / `pnpm check:openapi` | PASS: 78 runtime = 74 documented + 4 allowlisted; admin 39, public 19, coupon validation 11/11 |
-| `pnpm lint`, `pnpm typecheck`, `pnpm build` | PASS: 9/9 lint, 9/9 typecheck, 9/9 build tasks |
-| `pnpm test:unit` | PASS: database 17, contracts 263, API 307, worker 150, plus remaining package suites; existing non-failing test logs are not product failures |
-| `pnpm db:check`, `pnpm db:status`, `pnpm db:test` | PASS; schema `phase-8d-client-acceptance-v1`; 22 files / 165 integration tests |
-| `pnpm audit --prod --audit-level=high` | PASS exit status; audit reports 1 low and 1 moderate, no high severity |
-| focused axe suite | PASS: 10 files / 48 tests, `AXE_CRITICAL=0` |
-| `pnpm test:e2e` post-fix run 1 | PASS: 72 tests plus 1 unavailable-provider assertion; no hydration diagnostic |
-| `pnpm test:e2e` post-fix run 2 | PASS: 72 tests plus 1 unavailable-provider assertion; no hydration diagnostic |
-| `pnpm demo:preflight`, `demo:lifecycle-test`, `demo:smoke` | PASS; lifecycle 15/15 twice, smoke 22/22, four owned PIDs gone, disposable databases removed, port 3001 unchanged (`PID 53976`) |
+| Command / evidence                                             | Final result                                                                                                                                  |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm check:providers`, `check:features`, `check:google-oauth` | PASS for repository readiness; external statuses remain the explicit BLOCKED values above                                                     |
+| `pnpm check:i18n-critical`                                     | PASS: 76 files scanned, 0 direct Vietnamese copy                                                                                              |
+| `pnpm check:endpoints` / `pnpm check:openapi`                  | PASS: 78 runtime = 74 documented + 4 allowlisted; admin 39, public 19, coupon validation 11/11                                                |
+| `pnpm lint`, `pnpm typecheck`, `pnpm build`                    | PASS: 9/9 lint, 9/9 typecheck, 9/9 build tasks                                                                                                |
+| `pnpm test:unit`                                               | PASS: database 17, contracts 263, API 307, worker 150, plus remaining package suites; existing non-failing test logs are not product failures |
+| `pnpm db:check`, `pnpm db:status`, `pnpm db:test`              | PASS; schema `phase-8d-client-acceptance-v1`; 22 files / 165 integration tests                                                                |
+| `pnpm audit --prod --audit-level=high`                         | PASS exit status; audit reports 1 low and 1 moderate, no high severity                                                                        |
+| focused axe suite                                              | PASS: 10 files / 48 tests, `AXE_CRITICAL=0`                                                                                                   |
+| `pnpm test:e2e` post-fix run 1                                 | PASS: 72 tests plus 1 unavailable-provider assertion; no hydration diagnostic                                                                 |
+| `pnpm test:e2e` post-fix run 2                                 | PASS: 72 tests plus 1 unavailable-provider assertion; no hydration diagnostic                                                                 |
+| `pnpm demo:preflight`, `demo:lifecycle-test`, `demo:smoke`     | PASS; lifecycle 15/15 twice, smoke 22/22, four owned PIDs gone, disposable databases removed, port 3001 unchanged (`PID 53976`)               |
 
 ## 14. Production blockers
 

@@ -59,7 +59,10 @@ describe('VNPAY canonical query: production matches audit oracle', () => {
 
   it('produces identical HMAC-SHA512 signatures', () => {
     const prod = signVnpayCanonicalQuery(PROD_SECRET, auditBuildVnpayCanonicalQuery(sampleFields));
-    const oracle = auditSignVnpayCanonicalQuery(PROD_SECRET, auditBuildVnpayCanonicalQuery(sampleFields));
+    const oracle = auditSignVnpayCanonicalQuery(
+      PROD_SECRET,
+      auditBuildVnpayCanonicalQuery(sampleFields),
+    );
     expect(prod).toBe(oracle);
   });
 
@@ -77,10 +80,18 @@ describe('VNPAY canonical query: production matches audit oracle', () => {
     const tamperedTxn = { ...sampleFields, vnp_TxnRef: 'OTHER-ORDER' };
     const tamperedResponse = { ...sampleFields, vnp_ResponseCode: '01' };
     const tamperedTmn = { ...sampleFields, vnp_TmnCode: 'OTHERMERCH' };
-    expect(hasValidVnpaySignature(PROD_SECRET, auditBuildVnpayCanonicalQuery(tamperedAmount), sig)).toBe(false);
-    expect(hasValidVnpaySignature(PROD_SECRET, auditBuildVnpayCanonicalQuery(tamperedTxn), sig)).toBe(false);
-    expect(hasValidVnpaySignature(PROD_SECRET, auditBuildVnpayCanonicalQuery(tamperedResponse), sig)).toBe(false);
-    expect(hasValidVnpaySignature(PROD_SECRET, auditBuildVnpayCanonicalQuery(tamperedTmn), sig)).toBe(false);
+    expect(
+      hasValidVnpaySignature(PROD_SECRET, auditBuildVnpayCanonicalQuery(tamperedAmount), sig),
+    ).toBe(false);
+    expect(
+      hasValidVnpaySignature(PROD_SECRET, auditBuildVnpayCanonicalQuery(tamperedTxn), sig),
+    ).toBe(false);
+    expect(
+      hasValidVnpaySignature(PROD_SECRET, auditBuildVnpayCanonicalQuery(tamperedResponse), sig),
+    ).toBe(false);
+    expect(
+      hasValidVnpaySignature(PROD_SECRET, auditBuildVnpayCanonicalQuery(tamperedTmn), sig),
+    ).toBe(false);
   });
 
   it('rejects malformed signature shapes (length, hex)', () => {
@@ -184,7 +195,9 @@ describe('MoMo canonical string: production matches audit oracle', () => {
 
   it('signs identically with HMAC-SHA256', () => {
     const canonical = auditBuildMomoInitiationCanonical(initiationFields);
-    expect(signMomoCanonicalString(SECRET, canonical)).toBe(auditSignMomoCanonical(SECRET, canonical));
+    expect(signMomoCanonicalString(SECRET, canonical)).toBe(
+      auditSignMomoCanonical(SECRET, canonical),
+    );
   });
 
   it('rejects tampered field negative vectors', () => {
@@ -198,7 +211,9 @@ describe('MoMo canonical string: production matches audit oracle', () => {
       { ...initiationFields, requestType: 'payWithMethod' as const },
     ];
     for (const variant of variants) {
-      const variantCanonical = auditBuildMomoInitiationCanonical(variant as typeof initiationFields);
+      const variantCanonical = auditBuildMomoInitiationCanonical(
+        variant as typeof initiationFields,
+      );
       expect(hasValidMomoSignature(SECRET, variantCanonical, sig)).toBe(false);
     }
   });

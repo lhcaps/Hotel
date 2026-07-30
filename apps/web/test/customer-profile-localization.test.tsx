@@ -11,9 +11,18 @@ describe('customer profile localization', () => {
         <CustomerProfileClient
           apiBase="http://api.local/api/v1"
           initialProfile={{
-            userId: 'user-1', email: 'guest@example.test', name: 'Guest', phone: null,
-            addressLine1: null, addressLine2: null, ward: null, district: null,
-            province: null, postalCode: null, countryCode: 'VN', updatedAt: '2027-01-01T00:00:00.000Z',
+            userId: 'user-1',
+            email: 'guest@example.test',
+            name: 'Guest',
+            phone: null,
+            addressLine1: null,
+            addressLine2: null,
+            ward: null,
+            district: null,
+            province: null,
+            postalCode: null,
+            countryCode: 'VN',
+            updatedAt: '2027-01-01T00:00:00.000Z',
           }}
         />
       </LocaleProvider>,

@@ -11,7 +11,12 @@ import {
   type AdminPaymentSummary,
 } from '../../../lib/admin-api';
 import { useLocale } from '../../../components/locale-provider';
-import { formatDateTime, formatVnd, translate, translatePaymentStatus } from '../../../lib/i18n/messages';
+import {
+  formatDateTime,
+  formatVnd,
+  translate,
+  translatePaymentStatus,
+} from '../../../lib/i18n/messages';
 
 const PAGE_SIZE = 20;
 
@@ -30,9 +35,9 @@ const REVIEW_OPTIONS = ['', 'needs_review', 'normal'] as const;
 
 interface Filters {
   readonly bookingCode: string;
-  readonly status: typeof STATUS_OPTIONS[number];
-  readonly provider: typeof PROVIDER_OPTIONS[number];
-  readonly review: typeof REVIEW_OPTIONS[number];
+  readonly status: (typeof STATUS_OPTIONS)[number];
+  readonly provider: (typeof PROVIDER_OPTIONS)[number];
+  readonly review: (typeof REVIEW_OPTIONS)[number];
   readonly createdFrom: string;
   readonly createdTo: string;
 }
@@ -136,14 +141,14 @@ export default function AdminPaymentsPage() {
         <label>
           {translate(locale, 'admin.status')}
           <select
-            onChange={(event) =>
-              updateFilter('status', event.target.value as Filters['status'])
-            }
+            onChange={(event) => updateFilter('status', event.target.value as Filters['status'])}
             value={filters.status}
           >
             {STATUS_OPTIONS.map((value) => (
               <option key={value} value={value}>
-                {value === '' ? translate(locale, 'admin.all') : translatePaymentStatus(locale, value)}
+                {value === ''
+                  ? translate(locale, 'admin.all')
+                  : translatePaymentStatus(locale, value)}
               </option>
             ))}
           </select>
@@ -166,9 +171,7 @@ export default function AdminPaymentsPage() {
         <label>
           {translate(locale, 'admin.review')}
           <select
-            onChange={(event) =>
-              updateFilter('review', event.target.value as Filters['review'])
-            }
+            onChange={(event) => updateFilter('review', event.target.value as Filters['review'])}
             value={filters.review}
           >
             {REVIEW_OPTIONS.map((value) => (
@@ -239,9 +242,7 @@ export default function AdminPaymentsPage() {
                 </td>
                 <td>{providerLabel(item.provider)}</td>
                 <td>{translatePaymentStatus(locale, item.status)}</td>
-                <td>
-                  {formatVnd(locale, item.amountVnd)}
-                </td>
+                <td>{formatVnd(locale, item.amountVnd)}</td>
                 <td>{item.attemptCount}</td>
                 <td>
                   {item.needsReview ? (
@@ -255,7 +256,9 @@ export default function AdminPaymentsPage() {
                 <td>{item.reconciliationStatus}</td>
                 <td>{formatDateTime(locale, item.lastEventAt)}</td>
                 <td>
-                  <Link href={`/admin/payments/${item.paymentId}`}>{translate(locale, 'admin.open')}</Link>
+                  <Link href={`/admin/payments/${item.paymentId}`}>
+                    {translate(locale, 'admin.open')}
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -263,16 +266,10 @@ export default function AdminPaymentsPage() {
         </table>
       ) : null}
       <div className="admin-pagination">
-        <button
-          disabled={page <= 1}
-          onClick={() => refresh(page - 1, filters)}
-          type="button"
-        >
+        <button disabled={page <= 1} onClick={() => refresh(page - 1, filters)} type="button">
           {translate(locale, 'admin.previousPage')}
         </button>
-        <span>
-          {translate(locale, 'admin.paymentPageOf', { page, totalPages, totalItems })}
-        </span>
+        <span>{translate(locale, 'admin.paymentPageOf', { page, totalPages, totalItems })}</span>
         <button
           disabled={page >= totalPages}
           onClick={() => refresh(page + 1, filters)}

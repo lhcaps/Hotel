@@ -38,7 +38,9 @@ export default async function CustomerProfilePage() {
   if (response.status === 401) {
     return (
       <main>
-        <p><a href="/login">{translate(locale, 'account.signInProfile')}</a></p>
+        <p>
+          <a href="/login">{translate(locale, 'account.signInProfile')}</a>
+        </p>
       </main>
     );
   }

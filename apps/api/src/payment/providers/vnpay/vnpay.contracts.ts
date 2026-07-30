@@ -30,9 +30,15 @@ const vnpayQueryDrResponseSchema = z
     vnp_TxnRef: nonEmpty.max(100),
     vnp_Amount: z.string().regex(/^\d+$/),
     vnp_TransactionNo: z.string().regex(/^\d+$/).optional(),
-    vnp_TransactionStatus: z.string().regex(/^\d{2}$/).optional(),
+    vnp_TransactionStatus: z
+      .string()
+      .regex(/^\d{2}$/)
+      .optional(),
     vnp_BankCode: z.string().max(50).optional(),
-    vnp_PayDate: z.string().regex(/^\d{14}$/).optional(),
+    vnp_PayDate: z
+      .string()
+      .regex(/^\d{14}$/)
+      .optional(),
     vnp_Message: z.string().max(1_000),
     vnp_SecureHash: z.string().regex(/^[a-f0-9]{128}$/),
   })

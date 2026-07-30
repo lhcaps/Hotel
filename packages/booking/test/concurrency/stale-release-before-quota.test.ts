@@ -1,10 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import {
-  createDatabasePool,
-  migrateDatabase,
-  type DatabasePool,
-} from '@room/database';
+import { createDatabasePool, migrateDatabase, type DatabasePool } from '@room/database';
 import {
   createPreparedGuardedTestDatabase,
   type GuardedTestDatabase,
@@ -19,11 +15,14 @@ const DIGEST_SECRET = Buffer.from('task6c-test-secret-32-bytes-long');
 const HOLD_DURATION_MS = 15 * 60 * 1000;
 const COUPON_CODE = 'STALE-REL';
 
-function normalizedContact(label: string, overrides: {
-  readonly email?: string;
-  readonly phone?: string;
-  readonly fullName?: string;
-} = {}): NormalizedContact {
+function normalizedContact(
+  label: string,
+  overrides: {
+    readonly email?: string;
+    readonly phone?: string;
+    readonly fullName?: string;
+  } = {},
+): NormalizedContact {
   return normalizeContact(
     {
       fullName: overrides.fullName ?? `Stale Release ${label}`,
@@ -303,7 +302,13 @@ async function seedStaleHoldsForQuota(
         `INSERT INTO room_inventory_blocks
          (property_id, room_id, booking_id, block_type, starts_at, ends_at, status)
          VALUES ($1, $2, $3, 'BOOKING', $4, $5, 'ACTIVE')`,
-        [scenario.propertyId, assignedRoomId, bookingId, checkIn.toISOString(), checkOut.toISOString()],
+        [
+          scenario.propertyId,
+          assignedRoomId,
+          bookingId,
+          checkIn.toISOString(),
+          checkOut.toISOString(),
+        ],
       );
       const isReserved = applicationStatus === 'RESERVED';
       const reservedAtSql = isReserved ? 'CURRENT_TIMESTAMP' : 'NULL::timestamptz';
@@ -347,9 +352,18 @@ describe('phase 6C stale-release before quota counting', () => {
     database = await createPreparedGuardedTestDatabase(baseUrl, async (guarded) => {
       await migrateDatabase(guarded.databaseUrl);
     });
-    adminPool = createDatabasePool(database.databaseUrl, { max: 4, applicationName: 'stale-admin' });
-    servicePool = createDatabasePool(database.databaseUrl, { max: 4, applicationName: 'stale-svc' });
-    observerPool = createDatabasePool(database.databaseUrl, { max: 2, applicationName: 'stale-obs' });
+    adminPool = createDatabasePool(database.databaseUrl, {
+      max: 4,
+      applicationName: 'stale-admin',
+    });
+    servicePool = createDatabasePool(database.databaseUrl, {
+      max: 4,
+      applicationName: 'stale-svc',
+    });
+    observerPool = createDatabasePool(database.databaseUrl, {
+      max: 2,
+      applicationName: 'stale-obs',
+    });
   });
 
   afterAll(async () => {
@@ -411,7 +425,11 @@ describe('phase 6C stale-release before quota counting', () => {
   //    through actual new HOLD success for a fresh contact, not by count.
   // ─────────────────────────────────────────────────────────────────────
   it('case 2: RELEASED application does not count — proven by actual new HOLD success', async () => {
-    const scenario = await seedFixture(adminPool, { totalUsageLimit: 1, roomCount: 2, extraFreshQuotes: 1 });
+    const scenario = await seedFixture(adminPool, {
+      totalUsageLimit: 1,
+      roomCount: 2,
+      extraFreshQuotes: 1,
+    });
     const first = await createBookingHoldWithRetry(servicePool, {
       quoteId: scenario.freshQuoteId,
       contact: normalizedContact('case2-first'),
@@ -453,7 +471,11 @@ describe('phase 6C stale-release before quota counting', () => {
   //    HOLD returns COUPON_LIMIT_REACHED.
   // ─────────────────────────────────────────────────────────────────────
   it('case 3: REDEEMED application counts — second HOLD returns COUPON_LIMIT_REACHED', async () => {
-    const scenario = await seedFixture(adminPool, { totalUsageLimit: 1, roomCount: 2, extraFreshQuotes: 1 });
+    const scenario = await seedFixture(adminPool, {
+      totalUsageLimit: 1,
+      roomCount: 2,
+      extraFreshQuotes: 1,
+    });
     const first = await createBookingHoldWithRetry(servicePool, {
       quoteId: scenario.freshQuoteId,
       contact: normalizedContact('case3-first'),
@@ -541,10 +563,7 @@ describe('phase 6C stale-release before quota counting', () => {
     let lockedCaught: unknown;
     try {
       await locker.query('BEGIN');
-      await locker.query(
-        `SELECT id FROM bookings WHERE id = $1 FOR UPDATE`,
-        [staleBookingId],
-      );
+      await locker.query(`SELECT id FROM bookings WHERE id = $1 FOR UPDATE`, [staleBookingId]);
 
       try {
         await createBookingHoldWithRetry(servicePool, {
@@ -766,7 +785,9 @@ describe('phase 6C stale-release before quota counting', () => {
       `SELECT application_status FROM booking_coupon_applications WHERE booking_id = $1`,
       [staleBookingId],
     );
-    expect(requiredRow(application, 'stale application rollback').application_status).toBe('ASSOCIATED');
+    expect(requiredRow(application, 'stale application rollback').application_status).toBe(
+      'ASSOCIATED',
+    );
 
     const block = await adminPool.query<{ status: string }>(
       `SELECT status FROM room_inventory_blocks WHERE booking_id = $1`,

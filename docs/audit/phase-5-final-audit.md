@@ -34,7 +34,7 @@ high-severity advisories`). Patches `next`, `nodemailer`, and
 public booking vertical flow`). The legacy stabilization commit whose
   401-vs-200 race fix is retained by the Phase 6B closure.
 - **Repository final documentation HEAD** — the closure commit
-(`fix(worker): close continuous scheduler acceptance gaps`). This is
+  (`fix(worker): close continuous scheduler acceptance gaps`). This is
   the branch HEAD today. It adds Playwright continuous-worker ownership,
   scheduler contract verification, doc updates (runbooks, handoff, audit,
   `.env.example`), and a focused one-shot smoke.
@@ -43,25 +43,25 @@ Do not check out `1a552ee` and treat it as the Final HEAD. It is the
 implementation evidence HEAD, not the latest commit. The Final HEAD is
 the closure commit, on top of `a74f6b1` and `e6a5a56`.
 
-| Item                                | Value                                                                       |
-| ----------------------------------- | --------------------------------------------------------------------------- |
-| Branch                              | `phase5-booking-hold-guest-access`                                          |
+| Item                                | Value                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------ |
+| Branch                              | `phase5-booking-hold-guest-access`                                             |
 | Stage B implementation HEAD         | `e6a5a56` (`feat(worker): replace one-shot loop with scheduler-driven worker`) |
-| Dependency remediation HEAD         | `a74f6b1` (`chore(deps): patch phase 5 high-severity advisories`)           |
-| Implementation evidence HEAD        | `1a552ee` (`fix(e2e): stabilize public booking vertical flow`)              |
+| Dependency remediation HEAD         | `a74f6b1` (`chore(deps): patch phase 5 high-severity advisories`)              |
+| Implementation evidence HEAD        | `1a552ee` (`fix(e2e): stabilize public booking vertical flow`)                 |
 | Repository final documentation HEAD | the closure commit (`fix(worker): close continuous scheduler acceptance gaps`) |
-| Final audit evidence correction     | `f11f49e` (`docs: correct phase 5 final audit evidence`)                    |
-| Stabilization commit                | `1a552ee` (`fix(e2e): stabilize public booking vertical flow`)              |
-| Original Task 10 commit             | `c60e2cd` (`docs: close phase 5 demo audit and handoff`)                    |
-| Task 9 commit                       | `8960b09` (`feat(contracts): publish phase 5 public booking api`)           |
-| Task 8 commit                       | `ca51b17` (`feat(web): add public booking hold and guest access flow`)      |
-| Task 7 commit                       | `84dd383` (`feat(api): add public booking and guest access endpoints`)      |
-| Task 6 commit                       | `5186cc4` (`feat(worker): deliver transactional outbox emails through smtp`) |
-| OTP email commit                    | `f4e0801` (`feat(worker): deliver booking otp challenge emails`)            |
-| Task 5 commit                       | `5f630d4` (`feat(worker): expire stale booking holds atomically`)           |
-| Task 4 commit                       | `801b7f0` (`test(booking): prove critical allocation concurrency`)          |
-| Task 3 atomic HOLD closure          | `4f77ffb` (`fix(booking): close final phase 5 task 3 audit defects`)        |
-| Phase 0–4 baseline                  | `7698353` (migration identity baseline)                                     |
+| Final audit evidence correction     | `f11f49e` (`docs: correct phase 5 final audit evidence`)                       |
+| Stabilization commit                | `1a552ee` (`fix(e2e): stabilize public booking vertical flow`)                 |
+| Original Task 10 commit             | `c60e2cd` (`docs: close phase 5 demo audit and handoff`)                       |
+| Task 9 commit                       | `8960b09` (`feat(contracts): publish phase 5 public booking api`)              |
+| Task 8 commit                       | `ca51b17` (`feat(web): add public booking hold and guest access flow`)         |
+| Task 7 commit                       | `84dd383` (`feat(api): add public booking and guest access endpoints`)         |
+| Task 6 commit                       | `5186cc4` (`feat(worker): deliver transactional outbox emails through smtp`)   |
+| OTP email commit                    | `f4e0801` (`feat(worker): deliver booking otp challenge emails`)               |
+| Task 5 commit                       | `5f630d4` (`feat(worker): expire stale booking holds atomically`)              |
+| Task 4 commit                       | `801b7f0` (`test(booking): prove critical allocation concurrency`)             |
+| Task 3 atomic HOLD closure          | `4f77ffb` (`fix(booking): close final phase 5 task 3 audit defects`)           |
+| Phase 0–4 baseline                  | `7698353` (migration identity baseline)                                        |
 
 ## 3. Commit chain
 
@@ -105,14 +105,14 @@ handoff, audit, `.env.example`), and a focused one-shot smoke.
 
 ## 6. Architecture summary
 
-| Layer          | Owner                | Notes                                                                                                                                       |
-| -------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| API            | `apps/api`           | NestJS on Fastify. Mounts `/api/v1/admin/*` (cookie auth) and `/api/v1/public/*` (cookie or unauth).                                        |
-| Web            | `apps/web`           | Next.js 16 (App Router, RSC). Public pages: `/booking/search`, `/booking/quote/[quoteId]`, `/booking/manage`. Admin pages under `/admin/*`. |
+| Layer          | Owner                | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API            | `apps/api`           | NestJS on Fastify. Mounts `/api/v1/admin/*` (cookie auth) and `/api/v1/public/*` (cookie or unauth).                                                                                                                                                                                                                                                                                                                                                      |
+| Web            | `apps/web`           | Next.js 16 (App Router, RSC). Public pages: `/booking/search`, `/booking/quote/[quoteId]`, `/booking/manage`. Admin pages under `/admin/*`.                                                                                                                                                                                                                                                                                                               |
 | Worker         | `apps/worker`        | Scheduler-driven. Two explicit modes: `continuous` (default; runs `HOLD_EXPIRATION` and `OUTBOX_DELIVERY` on independent fixed-delay intervals with bounded exponential backoff, same-job overlap guards, and SIGINT/SIGTERM graceful shutdown) and `once` (recovery/debug; runs expiration once then outbox once and exits 0). PostgreSQL time is the correctness authority for expirations; the outbox uses claim-and-lease; delivery is at-least-once. |
-| Database       | `packages/database`  | Drizzle ORM, migrations 0000–0006. Schema version `phase-5-booking-hold-guest-access-v1`.                                                   |
-| Booking domain | `packages/booking`   | Pricing engine, allocation (FOR UPDATE SKIP LOCKED on `rooms`), outbox writers, expiration job.                                             |
-| Contracts      | `packages/contracts` | Zod schemas + JSON schema export. All public surfaces validated at the boundary.                                                            |
+| Database       | `packages/database`  | Drizzle ORM, migrations 0000–0006. Schema version `phase-5-booking-hold-guest-access-v1`.                                                                                                                                                                                                                                                                                                                                                                 |
+| Booking domain | `packages/booking`   | Pricing engine, allocation (FOR UPDATE SKIP LOCKED on `rooms`), outbox writers, expiration job.                                                                                                                                                                                                                                                                                                                                                           |
+| Contracts      | `packages/contracts` | Zod schemas + JSON schema export. All public surfaces validated at the boundary.                                                                                                                                                                                                                                                                                                                                                                          |
 
 ## 7. Schema version
 
@@ -318,17 +318,17 @@ types, rooms, amenities, rate plans, maintenance blocks, property).
 
 ## 14. Port and process ownership
 
-| Port | Owner                          | Started by               | Tear-down                       |
-| ---- | ------------------------------ | ------------------------ | ------------------------------- |
-| 5432 | PostgreSQL 18 (Docker)         | Docker Compose           | not deleted                     |
-| 6379 | Redis 8 (Docker)               | Docker Compose           | not deleted                     |
-| 1025 | Mailpit SMTP (Docker)          | Docker Compose           | not deleted                     |
-| 8025 | Mailpit HTTP (Docker)          | Docker Compose           | not deleted                     |
-| 3000 | QLLaw web (Next.js)            | QLLaw dev shell          | not signalled                   |
-| 3001 | QLLaw API (Fastify)            | QLLaw dev shell          | not signalled                   |
-| 3100 | `@room/web` Next.js dev        | Playwright `globalSetup` | `taskkill.exe /pid <pid> /t /f` |
-| 3101 | `@room/api` NestJS dev         | Playwright `globalSetup` | `taskkill.exe /pid <pid> /t /f` |
-| n/a  | `@room/worker` continuous run  | Playwright `globalSetup` | SIGTERM (graceful) → bounded force-kill |
+| Port | Owner                         | Started by               | Tear-down                               |
+| ---- | ----------------------------- | ------------------------ | --------------------------------------- |
+| 5432 | PostgreSQL 18 (Docker)        | Docker Compose           | not deleted                             |
+| 6379 | Redis 8 (Docker)              | Docker Compose           | not deleted                             |
+| 1025 | Mailpit SMTP (Docker)         | Docker Compose           | not deleted                             |
+| 8025 | Mailpit HTTP (Docker)         | Docker Compose           | not deleted                             |
+| 3000 | QLLaw web (Next.js)           | QLLaw dev shell          | not signalled                           |
+| 3001 | QLLaw API (Fastify)           | QLLaw dev shell          | not signalled                           |
+| 3100 | `@room/web` Next.js dev       | Playwright `globalSetup` | `taskkill.exe /pid <pid> /t /f`         |
+| 3101 | `@room/api` NestJS dev        | Playwright `globalSetup` | `taskkill.exe /pid <pid> /t /f`         |
+| n/a  | `@room/worker` continuous run | Playwright `globalSetup` | SIGTERM (graceful) → bounded force-kill |
 
 This run never called `Stop-Process -Name node` and never signalled a
 process outside the Playwright `globalSetup` teardown path. The
@@ -496,7 +496,7 @@ is not reproducible on this run.
 - The `playwright.config.ts` `retries=0` setting means a transient
   failure aborts the run. This is intentional per the prompt.
 - Booking-HOLD allocation locks `rooms` rows with `FOR UPDATE SKIP
-  LOCKED`, and the `room_inventory_blocks` GiST exclusion constraint
+LOCKED`, and the `room_inventory_blocks` GiST exclusion constraint
   enforces no-overlap at insert time. There is no separate
   `inventory_allocations` table and no Phase-5 row in any such table.
 - At-least-once duplicate-send window: a worker crash after SMTP send
@@ -601,7 +601,7 @@ Required pre-deployment remediation:
 | availability     | yes         | pricing-engine tests + availability integration                                                                                              | step 1–2 of demo                                    | no               | single-property scope; no distributed multi-region inventory; deferred production capacity hardening                                                                                                                                                                          |
 | quote            | yes         | quote integration                                                                                                                            | step 2                                              | no               | 15-min expiry                                                                                                                                                                                                                                                                 |
 | pricing          | yes         | pricing-engine tests                                                                                                                         | step 2                                              | no               | VND only                                                                                                                                                                                                                                                                      |
-| booking HOLD     | yes         | create-booking-hold tests + booking concurrency proof (`801b7f0`)                                                                            | step 4                                              | no               | continuous worker (`e6a5a56`); one-shot mode retained for recovery scripts                                                                     |
+| booking HOLD     | yes         | create-booking-hold tests + booking concurrency proof (`801b7f0`)                                                                            | step 4                                              | no               | continuous worker (`e6a5a56`); one-shot mode retained for recovery scripts                                                                                                                                                                                                    |
 | room allocation  | yes         | `findAllocatableRooms` `FOR UPDATE SKIP LOCKED` on `rooms` + `room_inventory_blocks` GiST exclusion                                          | demo                                                | no               | single-region                                                                                                                                                                                                                                                                 |
 | concurrency      | yes         | `801b7f0` proof suite (`last-room-race`, `two-room-race`, `exclusion-rollback`, same-quote-different-contact, same-quote-equivalent-contact) | demo                                                | no               | Task 4 proves five focused concurrency scenarios: last-room race; two-room race; same quote / equivalent contact; same quote / different contact; real GiST exclusion rollback. `maxAttempts=5` belongs to booking-code collision retry and is not a concurrency-count claim. |
 | expiration       | yes         | `5f630d4` `expireStaleHolds` tests (23 active, 1 lifecycle)                                                                                  | not visible in 15-min demo                          | no               | bounded by `maxBatches=4`, `batchSize=50`; `exhaustedSafetyBound` reports via `StaleHoldCleanupRetryError`                                                                                                                                                                    |

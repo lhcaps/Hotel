@@ -69,9 +69,7 @@ export function OtpVerifyPanel({ challengeRef, onVerified }: OtpVerifyPanelProps
       <h2 id={`${formId}-heading`} className="text-xl font-semibold">
         {translate(locale, 'otp.verifyHeading')}
       </h2>
-      <p className="mt-2 text-sm text-slate-600">
-        {translate(locale, 'otp.verifyHelp')}
-      </p>
+      <p className="mt-2 text-sm text-slate-600">{translate(locale, 'otp.verifyHelp')}</p>
 
       <div className="mt-4">
         <label htmlFor={otpId} className="block text-sm font-medium">

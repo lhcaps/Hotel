@@ -40,7 +40,7 @@ export const RULE_VERSION_PHASE_8B = 'phase-8b-cheapest-eligible-pricing-v1' as 
 
 export type CheapestRuleVersion = typeof RULE_VERSION_PHASE_8B;
 export type PricingRuleVersionPhase8B =
-  | (typeof import('./selection-rule-matcher.js').RULE_VERSION_PHASE_4)
+  | typeof import('./selection-rule-matcher.js').RULE_VERSION_PHASE_4
   | typeof RULE_VERSION_PHASE_7B
   | typeof RULE_VERSION_PHASE_8B;
 
@@ -59,10 +59,7 @@ export interface PricingSelectionResult {
   readonly candidates: readonly PricingCandidate[];
   readonly policy: 'CHEAPEST_ELIGIBLE_THEN_PRIORITY';
   readonly tieReason:
-    | 'LOWEST_GROSS'
-    | 'PRIORITY_TIE_BREAK'
-    | 'EXTRA_UNITS_TIE_BREAK'
-    | 'STABLE_PLAN_TIE_BREAK';
+    'LOWEST_GROSS' | 'PRIORITY_TIE_BREAK' | 'EXTRA_UNITS_TIE_BREAK' | 'STABLE_PLAN_TIE_BREAK';
 }
 
 const KNOWN_ORDER = [
@@ -217,15 +214,17 @@ export function evaluatePricingCandidates(
         continue;
       }
     }
-    out.push(Object.freeze({
-      planCode: code,
-      priority: entry.priority,
-      includedDurationMinutes: baseMinutes,
-      extraUnits,
-      baseAmountVnd,
-      extraAmountVnd,
-      grossAmountVnd: baseAmountVnd + extraAmountVnd,
-    }));
+    out.push(
+      Object.freeze({
+        planCode: code,
+        priority: entry.priority,
+        includedDurationMinutes: baseMinutes,
+        extraUnits,
+        baseAmountVnd,
+        extraAmountVnd,
+        grossAmountVnd: baseAmountVnd + extraAmountVnd,
+      }),
+    );
   }
   return out;
 }
@@ -381,11 +380,10 @@ export function ruleSetValidationFromCatalog(
           );
         }
       }
-      const winnerEntry =
-        matched
-          .map((code) => catalog[code])
-          .filter((entry): entry is CatalogEntry => entry !== undefined)
-          .sort((a, b) => b.priority - a.priority)[0];
+      const winnerEntry = matched
+        .map((code) => catalog[code])
+        .filter((entry): entry is CatalogEntry => entry !== undefined)
+        .sort((a, b) => b.priority - a.priority)[0];
       if (winnerEntry === undefined) continue;
       const baseMinutes = winnerEntry.includedDurationMinutes;
       const extraUnits = Math.max(0, Math.ceil((duration - baseMinutes) / 60));

@@ -118,12 +118,8 @@
           "name": "accounts_user_fk",
           "tableFrom": "accounts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -214,12 +210,8 @@
           "name": "amenities_property_fk",
           "tableFrom": "amenities",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -229,10 +221,7 @@
         "amenities_property_id_id_uq": {
           "name": "amenities_property_id_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "id"
-          ]
+          "columns": ["property_id", "id"]
         }
       },
       "policies": {},
@@ -345,12 +334,8 @@
           "name": "audit_events_property_fk",
           "tableFrom": "audit_events",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -445,12 +430,8 @@
           "name": "booking_contacts_booking_fk",
           "tableFrom": "booking_contacts",
           "tableTo": "bookings",
-          "columnsFrom": [
-            "booking_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["booking_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -699,12 +680,8 @@
           "name": "booking_coupon_applications_property_fk",
           "tableFrom": "booking_coupon_applications",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -712,14 +689,8 @@
           "name": "booking_coupon_applications_booking_fk",
           "tableFrom": "booking_coupon_applications",
           "tableTo": "bookings",
-          "columnsFrom": [
-            "property_id",
-            "booking_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "booking_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -727,14 +698,8 @@
           "name": "booking_coupon_applications_coupon_fk",
           "tableFrom": "booking_coupon_applications",
           "tableTo": "coupons",
-          "columnsFrom": [
-            "property_id",
-            "coupon_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "coupon_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1055,12 +1020,8 @@
           "name": "bookings_property_fk",
           "tableFrom": "bookings",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1068,14 +1029,8 @@
           "name": "bookings_property_room_type_fk",
           "tableFrom": "bookings",
           "tableTo": "room_types",
-          "columnsFrom": [
-            "property_id",
-            "room_type_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "room_type_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1083,16 +1038,8 @@
           "name": "bookings_property_room_fk",
           "tableFrom": "bookings",
           "tableTo": "rooms",
-          "columnsFrom": [
-            "property_id",
-            "room_type_id",
-            "room_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "room_type_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "room_type_id", "room_id"],
+          "columnsTo": ["property_id", "room_type_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1100,12 +1047,8 @@
           "name": "bookings_quote_fk",
           "tableFrom": "bookings",
           "tableTo": "quotes",
-          "columnsFrom": [
-            "quote_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["quote_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1113,12 +1056,8 @@
           "name": "bookings_customer_user_fk",
           "tableFrom": "bookings",
           "tableTo": "users",
-          "columnsFrom": [
-            "customer_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["customer_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1128,19 +1067,12 @@
         "bookings_property_id_uq": {
           "name": "bookings_property_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "id"
-          ]
+          "columns": ["property_id", "id"]
         },
         "bookings_property_room_id_uq": {
           "name": "bookings_property_room_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "room_id",
-            "id"
-          ]
+          "columns": ["property_id", "room_id", "id"]
         }
       },
       "policies": {},
@@ -1262,14 +1194,8 @@
           "name": "coupon_room_types_coupon_fk",
           "tableFrom": "coupon_room_types",
           "tableTo": "coupons",
-          "columnsFrom": [
-            "property_id",
-            "coupon_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "coupon_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1277,14 +1203,8 @@
           "name": "coupon_room_types_room_type_fk",
           "tableFrom": "coupon_room_types",
           "tableTo": "room_types",
-          "columnsFrom": [
-            "property_id",
-            "room_type_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "room_type_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1292,10 +1212,7 @@
       "compositePrimaryKeys": {
         "coupon_room_types_pk": {
           "name": "coupon_room_types_pk",
-          "columns": [
-            "coupon_id",
-            "room_type_id"
-          ]
+          "columns": ["coupon_id", "room_type_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1451,12 +1368,8 @@
           "name": "coupons_property_fk",
           "tableFrom": "coupons",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1466,10 +1379,7 @@
         "coupons_property_id_id_uq": {
           "name": "coupons_property_id_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "id"
-          ]
+          "columns": ["property_id", "id"]
         }
       },
       "policies": {},
@@ -1581,12 +1491,8 @@
           "name": "customer_profiles_user_fk",
           "tableFrom": "customer_profiles",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1790,12 +1696,8 @@
           "name": "guest_otp_challenges_booking_fk",
           "tableFrom": "guest_otp_challenges",
           "tableTo": "bookings",
-          "columnsFrom": [
-            "booking_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["booking_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1910,12 +1812,8 @@
           "name": "guest_sessions_booking_fk",
           "tableFrom": "guest_sessions",
           "tableTo": "bookings",
-          "columnsFrom": [
-            "booking_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["booking_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2015,12 +1913,8 @@
           "name": "maintenance_blocks_property_fk",
           "tableFrom": "maintenance_blocks",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2028,14 +1922,8 @@
           "name": "maintenance_blocks_property_room_fk",
           "tableFrom": "maintenance_blocks",
           "tableTo": "rooms",
-          "columnsFrom": [
-            "property_id",
-            "room_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "room_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2045,11 +1933,7 @@
         "maintenance_blocks_property_room_id_uq": {
           "name": "maintenance_blocks_property_room_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "room_id",
-            "id"
-          ]
+          "columns": ["property_id", "room_id", "id"]
         }
       },
       "policies": {},
@@ -2246,12 +2130,8 @@
           "name": "operational_reviews_property_fk",
           "tableFrom": "operational_reviews",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2259,14 +2139,8 @@
           "name": "operational_reviews_property_booking_fk",
           "tableFrom": "operational_reviews",
           "tableTo": "bookings",
-          "columnsFrom": [
-            "property_id",
-            "booking_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "booking_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2274,16 +2148,8 @@
           "name": "operational_reviews_payment_fk",
           "tableFrom": "operational_reviews",
           "tableTo": "payments",
-          "columnsFrom": [
-            "property_id",
-            "booking_id",
-            "payment_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "booking_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "booking_id", "payment_id"],
+          "columnsTo": ["property_id", "booking_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2291,12 +2157,8 @@
           "name": "operational_reviews_resolver_fk",
           "tableFrom": "operational_reviews",
           "tableTo": "users",
-          "columnsFrom": [
-            "resolver_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["resolver_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2306,10 +2168,7 @@
         "operational_reviews_property_id_uq": {
           "name": "operational_reviews_property_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "id"
-          ]
+          "columns": ["property_id", "id"]
         }
       },
       "policies": {},
@@ -2450,12 +2309,8 @@
           "name": "outbox_events_property_fk",
           "tableFrom": "outbox_events",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2745,12 +2600,8 @@
           "name": "payment_attempts_property_fk",
           "tableFrom": "payment_attempts",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2758,14 +2609,8 @@
           "name": "payment_attempts_property_payment_fk",
           "tableFrom": "payment_attempts",
           "tableTo": "payments",
-          "columnsFrom": [
-            "property_id",
-            "payment_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "payment_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2775,10 +2620,7 @@
         "payment_attempts_property_id_id_uq": {
           "name": "payment_attempts_property_id_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "id"
-          ]
+          "columns": ["property_id", "id"]
         }
       },
       "policies": {},
@@ -2998,12 +2840,8 @@
           "name": "payment_provider_events_property_fk",
           "tableFrom": "payment_provider_events",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -3011,14 +2849,8 @@
           "name": "payment_provider_events_property_attempt_fk",
           "tableFrom": "payment_provider_events",
           "tableTo": "payment_attempts",
-          "columnsFrom": [
-            "property_id",
-            "payment_attempt_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "payment_attempt_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -3136,12 +2968,8 @@
           "name": "payment_provider_settings_property_fk",
           "tableFrom": "payment_provider_settings",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -3151,10 +2979,7 @@
         "payment_provider_settings_property_provider_uq": {
           "name": "payment_provider_settings_property_provider_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "provider"
-          ]
+          "columns": ["property_id", "provider"]
         }
       },
       "policies": {},
@@ -3317,12 +3142,8 @@
           "name": "payments_property_fk",
           "tableFrom": "payments",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -3330,14 +3151,8 @@
           "name": "payments_property_booking_fk",
           "tableFrom": "payments",
           "tableTo": "bookings",
-          "columnsFrom": [
-            "property_id",
-            "booking_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "booking_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -3347,11 +3162,7 @@
         "payments_property_booking_id_id_uq": {
           "name": "payments_property_booking_id_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "booking_id",
-            "id"
-          ]
+          "columns": ["property_id", "booking_id", "id"]
         }
       },
       "policies": {},
@@ -3462,12 +3273,8 @@
           "name": "price_tiers_property_fk",
           "tableFrom": "price_tiers",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -3477,10 +3284,7 @@
         "price_tiers_property_id_id_uq": {
           "name": "price_tiers_property_id_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "id"
-          ]
+          "columns": ["property_id", "id"]
         }
       },
       "policies": {},
@@ -3714,12 +3518,8 @@
           "name": "quotes_property_fk",
           "tableFrom": "quotes",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -3727,14 +3527,8 @@
           "name": "quotes_property_room_type_fk",
           "tableFrom": "quotes",
           "tableTo": "room_types",
-          "columnsFrom": [
-            "property_id",
-            "room_type_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "room_type_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -3742,14 +3536,8 @@
           "name": "quotes_property_coupon_fk",
           "tableFrom": "quotes",
           "tableTo": "coupons",
-          "columnsFrom": [
-            "property_id",
-            "coupon_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "coupon_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -3878,12 +3666,8 @@
           "name": "rate_plan_prices_property_fk",
           "tableFrom": "rate_plan_prices",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -3891,14 +3675,8 @@
           "name": "rate_plan_prices_property_rate_plan_fk",
           "tableFrom": "rate_plan_prices",
           "tableTo": "rate_plans",
-          "columnsFrom": [
-            "property_id",
-            "rate_plan_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "rate_plan_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -3906,14 +3684,8 @@
           "name": "rate_plan_prices_property_price_tier_fk",
           "tableFrom": "rate_plan_prices",
           "tableTo": "price_tiers",
-          "columnsFrom": [
-            "property_id",
-            "price_tier_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "price_tier_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -4063,12 +3835,8 @@
           "name": "rate_plans_property_fk",
           "tableFrom": "rate_plans",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -4078,10 +3846,7 @@
         "rate_plans_property_id_id_uq": {
           "name": "rate_plans_property_id_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "id"
-          ]
+          "columns": ["property_id", "id"]
         }
       },
       "policies": {},
@@ -4250,12 +4015,8 @@
           "name": "room_inventory_blocks_property_fk",
           "tableFrom": "room_inventory_blocks",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -4263,14 +4024,8 @@
           "name": "room_inventory_blocks_property_room_fk",
           "tableFrom": "room_inventory_blocks",
           "tableTo": "rooms",
-          "columnsFrom": [
-            "property_id",
-            "room_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "room_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -4278,16 +4033,8 @@
           "name": "room_inventory_blocks_booking_fk",
           "tableFrom": "room_inventory_blocks",
           "tableTo": "bookings",
-          "columnsFrom": [
-            "property_id",
-            "room_id",
-            "booking_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "room_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "room_id", "booking_id"],
+          "columnsTo": ["property_id", "room_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -4295,16 +4042,8 @@
           "name": "room_inventory_blocks_maintenance_fk",
           "tableFrom": "room_inventory_blocks",
           "tableTo": "maintenance_blocks",
-          "columnsFrom": [
-            "property_id",
-            "room_id",
-            "maintenance_block_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "room_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "room_id", "maintenance_block_id"],
+          "columnsTo": ["property_id", "room_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -4364,12 +4103,8 @@
           "name": "room_type_amenities_property_fk",
           "tableFrom": "room_type_amenities",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -4377,14 +4112,8 @@
           "name": "room_type_amenities_room_type_fk",
           "tableFrom": "room_type_amenities",
           "tableTo": "room_types",
-          "columnsFrom": [
-            "property_id",
-            "room_type_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "room_type_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -4392,14 +4121,8 @@
           "name": "room_type_amenities_amenity_fk",
           "tableFrom": "room_type_amenities",
           "tableTo": "amenities",
-          "columnsFrom": [
-            "property_id",
-            "amenity_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "amenity_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -4407,11 +4130,7 @@
       "compositePrimaryKeys": {
         "room_type_amenities_pk": {
           "name": "room_type_amenities_pk",
-          "columns": [
-            "property_id",
-            "room_type_id",
-            "amenity_id"
-          ]
+          "columns": ["property_id", "room_type_id", "amenity_id"]
         }
       },
       "uniqueConstraints": {},
@@ -4530,12 +4249,8 @@
           "name": "room_types_property_fk",
           "tableFrom": "room_types",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -4543,14 +4258,8 @@
           "name": "room_types_property_price_tier_fk",
           "tableFrom": "room_types",
           "tableTo": "price_tiers",
-          "columnsFrom": [
-            "property_id",
-            "price_tier_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "price_tier_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -4560,10 +4269,7 @@
         "room_types_property_id_id_uq": {
           "name": "room_types_property_id_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "id"
-          ]
+          "columns": ["property_id", "id"]
         }
       },
       "policies": {},
@@ -4659,12 +4365,8 @@
           "name": "rooms_property_fk",
           "tableFrom": "rooms",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -4672,14 +4374,8 @@
           "name": "rooms_property_room_type_fk",
           "tableFrom": "rooms",
           "tableTo": "room_types",
-          "columnsFrom": [
-            "property_id",
-            "room_type_id"
-          ],
-          "columnsTo": [
-            "property_id",
-            "id"
-          ],
+          "columnsFrom": ["property_id", "room_type_id"],
+          "columnsTo": ["property_id", "id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -4689,19 +4385,12 @@
         "rooms_property_id_uq": {
           "name": "rooms_property_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "id"
-          ]
+          "columns": ["property_id", "id"]
         },
         "rooms_property_room_type_id_uq": {
           "name": "rooms_property_room_type_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "property_id",
-            "room_type_id",
-            "id"
-          ]
+          "columns": ["property_id", "room_type_id", "id"]
         }
       },
       "policies": {},
@@ -4849,12 +4538,8 @@
           "name": "sessions_user_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -5040,12 +4725,7 @@
     "public.audit_actor_type": {
       "name": "audit_actor_type",
       "schema": "public",
-      "values": [
-        "GUEST",
-        "CUSTOMER",
-        "ADMIN",
-        "SYSTEM"
-      ]
+      "values": ["GUEST", "CUSTOMER", "ADMIN", "SYSTEM"]
     },
     "public.booking_status": {
       "name": "booking_status",
@@ -5063,177 +4743,102 @@
     "public.catalog_status": {
       "name": "catalog_status",
       "schema": "public",
-      "values": [
-        "ACTIVE",
-        "INACTIVE"
-      ]
+      "values": ["ACTIVE", "INACTIVE"]
     },
     "public.coupon_application_status": {
       "name": "coupon_application_status",
       "schema": "public",
-      "values": [
-        "ASSOCIATED",
-        "RESERVED",
-        "REDEEMED",
-        "RELEASED"
-      ]
+      "values": ["ASSOCIATED", "RESERVED", "REDEEMED", "RELEASED"]
     },
     "public.coupon_discount_type": {
       "name": "coupon_discount_type",
       "schema": "public",
-      "values": [
-        "FIXED",
-        "PERCENTAGE"
-      ]
+      "values": ["FIXED", "PERCENTAGE"]
     },
     "public.coupon_status": {
       "name": "coupon_status",
       "schema": "public",
-      "values": [
-        "ACTIVE",
-        "DISABLED"
-      ]
+      "values": ["ACTIVE", "DISABLED"]
     },
     "public.inventory_block_status": {
       "name": "inventory_block_status",
       "schema": "public",
-      "values": [
-        "ACTIVE",
-        "RELEASED"
-      ]
+      "values": ["ACTIVE", "RELEASED"]
     },
     "public.inventory_block_type": {
       "name": "inventory_block_type",
       "schema": "public",
-      "values": [
-        "BOOKING",
-        "MAINTENANCE"
-      ]
+      "values": ["BOOKING", "MAINTENANCE"]
     },
     "public.maintenance_block_status": {
       "name": "maintenance_block_status",
       "schema": "public",
-      "values": [
-        "ACTIVE",
-        "CANCELLED"
-      ]
+      "values": ["ACTIVE", "CANCELLED"]
     },
     "public.operational_review_category": {
       "name": "operational_review_category",
       "schema": "public",
-      "values": [
-        "PAID_CANCELLATION"
-      ]
+      "values": ["PAID_CANCELLATION"]
     },
     "public.operational_review_status": {
       "name": "operational_review_status",
       "schema": "public",
-      "values": [
-        "OPEN",
-        "RESOLVED"
-      ]
+      "values": ["OPEN", "RESOLVED"]
     },
     "public.outbox_status": {
       "name": "outbox_status",
       "schema": "public",
-      "values": [
-        "PENDING",
-        "PUBLISHED",
-        "FAILED"
-      ]
+      "values": ["PENDING", "PUBLISHED", "FAILED"]
     },
     "public.payment_attempt_status": {
       "name": "payment_attempt_status",
       "schema": "public",
-      "values": [
-        "PENDING",
-        "SUCCEEDED",
-        "FAILED",
-        "CANCELLED",
-        "EXPIRED",
-        "REVIEW_REQUIRED"
-      ]
+      "values": ["PENDING", "SUCCEEDED", "FAILED", "CANCELLED", "EXPIRED", "REVIEW_REQUIRED"]
     },
     "public.payment_confirmation_source": {
       "name": "payment_confirmation_source",
       "schema": "public",
-      "values": [
-        "PROVIDER_EVENT",
-        "NO_CHARGE"
-      ]
+      "values": ["PROVIDER_EVENT", "NO_CHARGE"]
     },
     "public.payment_event_processing_status": {
       "name": "payment_event_processing_status",
       "schema": "public",
-      "values": [
-        "PROCESSED",
-        "DUPLICATE",
-        "REJECTED",
-        "REVIEW_REQUIRED"
-      ]
+      "values": ["PROCESSED", "DUPLICATE", "REJECTED", "REVIEW_REQUIRED"]
     },
     "public.payment_normalized_outcome": {
       "name": "payment_normalized_outcome",
       "schema": "public",
-      "values": [
-        "SUCCEEDED",
-        "FAILED",
-        "CANCELLED",
-        "EXPIRED"
-      ]
+      "values": ["SUCCEEDED", "FAILED", "CANCELLED", "EXPIRED"]
     },
     "public.payment_provider": {
       "name": "payment_provider",
       "schema": "public",
-      "values": [
-        "MOMO",
-        "VNPAY"
-      ]
+      "values": ["MOMO", "VNPAY"]
     },
     "public.payment_status": {
       "name": "payment_status",
       "schema": "public",
-      "values": [
-        "PENDING",
-        "SUCCEEDED",
-        "REVIEW_REQUIRED",
-        "CANCELLED",
-        "EXPIRED"
-      ]
+      "values": ["PENDING", "SUCCEEDED", "REVIEW_REQUIRED", "CANCELLED", "EXPIRED"]
     },
     "public.rate_plan_status": {
       "name": "rate_plan_status",
       "schema": "public",
-      "values": [
-        "DRAFT",
-        "ACTIVE",
-        "INACTIVE"
-      ]
+      "values": ["DRAFT", "ACTIVE", "INACTIVE"]
     },
     "public.room_status": {
       "name": "room_status",
       "schema": "public",
-      "values": [
-        "ACTIVE",
-        "INACTIVE",
-        "MAINTENANCE"
-      ]
+      "values": ["ACTIVE", "INACTIVE", "MAINTENANCE"]
     },
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "ADMIN",
-        "CUSTOMER"
-      ]
+      "values": ["ADMIN", "CUSTOMER"]
     },
     "public.user_status": {
       "name": "user_status",
       "schema": "public",
-      "values": [
-        "ACTIVE",
-        "DISABLED"
-      ]
+      "values": ["ACTIVE", "DISABLED"]
     }
   },
   "schemas": {},

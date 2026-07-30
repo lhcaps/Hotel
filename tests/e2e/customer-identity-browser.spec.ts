@@ -28,7 +28,9 @@ const API_BASE_URL = 'http://127.0.0.1:3101/api/v1';
 const WEB_BASE_URL = 'http://127.0.0.1:3100';
 
 if (OIDC_BASE_URL === undefined) {
-  throw new Error('PLAYWRIGHT_TEST_OIDC_BASE_URL is not set; global setup did not start the OIDC server');
+  throw new Error(
+    'PLAYWRIGHT_TEST_OIDC_BASE_URL is not set; global setup did not start the OIDC server',
+  );
 }
 
 interface SignInOptions {
@@ -42,7 +44,9 @@ async function queueOidcUser(page: Page, options: SignInOptions): Promise<void> 
     data: { sub: options.sub, email: options.email, name: options.name },
   });
   if (!response.ok()) {
-    throw new Error(`OIDC test server refused setNextUser: ${response.status()} ${await response.text()}`);
+    throw new Error(
+      `OIDC test server refused setNextUser: ${response.status()} ${await response.text()}`,
+    );
   }
 }
 
@@ -55,7 +59,9 @@ async function performSignIn(page: Page): Promise<void> {
 async function signOut(page: Page): Promise<void> {
   const response = await page.request.post('http://127.0.0.1:3101/api/auth/sign-out');
   if (!response.ok()) {
-    throw new Error(`sign-out failed: ${response.status()} ${await response.text().catch(() => '')}`);
+    throw new Error(
+      `sign-out failed: ${response.status()} ${await response.text().catch(() => '')}`,
+    );
   }
 }
 
@@ -73,13 +79,23 @@ test.describe('Phase 7F authenticated browser identity vertical', () => {
   });
 
   test('first sign-in creates a usable CUSTOMER session', async ({ page }) => {
-    await queueOidcUser(page, { sub: 'google-subject-first', email: 'first@example.test', name: 'First Customer' });
+    await queueOidcUser(page, {
+      sub: 'google-subject-first',
+      email: 'first@example.test',
+      name: 'First Customer',
+    });
     await performSignIn(page);
     expect(await probeSession(page)).toBe(200);
   });
 
-  test('callback returns only to an allowlisted application URL with no token in URL', async ({ page }) => {
-    await queueOidcUser(page, { sub: 'google-subject-no-token', email: 'no-token@example.test', name: 'No Token' });
+  test('callback returns only to an allowlisted application URL with no token in URL', async ({
+    page,
+  }) => {
+    await queueOidcUser(page, {
+      sub: 'google-subject-no-token',
+      email: 'no-token@example.test',
+      name: 'No Token',
+    });
     await performSignIn(page);
     const finalUrl = new URL(page.url());
     expect(finalUrl.origin).toBe(WEB_BASE_URL);
@@ -97,7 +113,11 @@ test.describe('Phase 7F authenticated browser identity vertical', () => {
   });
 
   test('authenticated /account/profile loads and PATCH persists', async ({ page, request }) => {
-    await queueOidcUser(page, { sub: 'google-subject-profile', email: 'profile@example.test', name: 'Profile User' });
+    await queueOidcUser(page, {
+      sub: 'google-subject-profile',
+      email: 'profile@example.test',
+      name: 'Profile User',
+    });
     await performSignIn(page);
     await page.goto(`${WEB_BASE_URL}/account/profile`);
     await expect(page.getByRole('heading', { name: 'Hồ sơ khách hàng' })).toBeVisible();
@@ -112,7 +132,11 @@ test.describe('Phase 7F authenticated browser identity vertical', () => {
   });
 
   test('owned booking list is accessible after sign-in', async ({ page }) => {
-    await queueOidcUser(page, { sub: 'google-subject-bookings', email: 'bookings@example.test', name: 'Bookings User' });
+    await queueOidcUser(page, {
+      sub: 'google-subject-bookings',
+      email: 'bookings@example.test',
+      name: 'Bookings User',
+    });
     await performSignIn(page);
     await page.goto(`${WEB_BASE_URL}/account/bookings`);
     await expect(page.getByRole('heading', { name: 'Đặt phòng của tôi' })).toBeVisible();
@@ -120,15 +144,26 @@ test.describe('Phase 7F authenticated browser identity vertical', () => {
   });
 
   test('logout invalidates application access to /account/*', async ({ page }) => {
-    await queueOidcUser(page, { sub: 'google-subject-logout', email: 'logout@example.test', name: 'Logout User' });
+    await queueOidcUser(page, {
+      sub: 'google-subject-logout',
+      email: 'logout@example.test',
+      name: 'Logout User',
+    });
     await performSignIn(page);
     expect(await probeSession(page)).toBe(200);
     await signOut(page);
     expect(await probeSession(page)).toBe(401);
   });
 
-  test('existing ADMIN email cannot be taken over by the CUSTOMER sign-in flow', async ({ page, request }) => {
-    await queueOidcUser(page, { sub: 'google-subject-takeover', email: 'admin.playwright@example.test', name: 'Takeover Attempt' });
+  test('existing ADMIN email cannot be taken over by the CUSTOMER sign-in flow', async ({
+    page,
+    request,
+  }) => {
+    await queueOidcUser(page, {
+      sub: 'google-subject-takeover',
+      email: 'admin.playwright@example.test',
+      name: 'Takeover Attempt',
+    });
     await page.goto(`${WEB_BASE_URL}/login`);
     await page.getByTestId('test-identity-button').click();
     await page.waitForTimeout(3_000);
@@ -148,7 +183,11 @@ test.describe('Phase 7F authenticated browser identity vertical', () => {
   });
 
   test('DISABLED CUSTOMER receives no usable CUSTOMER route access', async ({ page }) => {
-    await queueOidcUser(page, { sub: 'google-subject-disabled', email: 'disabled@example.test', name: 'Disabled User' });
+    await queueOidcUser(page, {
+      sub: 'google-subject-disabled',
+      email: 'disabled@example.test',
+      name: 'Disabled User',
+    });
     await performSignIn(page);
     // Revoke the session by signing out.
     await signOut(page);
@@ -191,7 +230,11 @@ test.describe('Phase 7F authenticated browser identity vertical', () => {
     page.on('pageerror', (err) => {
       pageErrors.push(err.message);
     });
-    await queueOidcUser(page, { sub: 'google-subject-clean', email: 'clean@example.test', name: 'Clean User' });
+    await queueOidcUser(page, {
+      sub: 'google-subject-clean',
+      email: 'clean@example.test',
+      name: 'Clean User',
+    });
     await performSignIn(page);
     await page.goto(`${WEB_BASE_URL}/account/profile`);
     await expect(page.getByRole('heading', { name: 'Hồ sơ khách hàng' })).toBeVisible();
@@ -199,7 +242,9 @@ test.describe('Phase 7F authenticated browser identity vertical', () => {
       line.includes('Download the React DevTools') ||
       line.includes('[Fast Refresh]') ||
       line.includes('webpack') ||
-      /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/.test(line);
+      /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/.test(
+        line,
+      );
     const meaningfulConsoleErrors = consoleErrors.filter((line) => !ignorable(line));
     expect(meaningfulConsoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);

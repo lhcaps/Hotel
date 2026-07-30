@@ -362,7 +362,12 @@ describe('CatalogService', () => {
     );
     const result = await removeRoomTypeAmenityService.removeRoomTypeAmenity(actor, 'r1', 'a1');
     expect(result).toEqual({ roomTypeId: 'r1', amenityId: 'a1', existed: true });
-    expect(repository.removeRoomTypeAmenity).toHaveBeenCalledWith(expect.anything(), property.id, 'r1', 'a1');
+    expect(repository.removeRoomTypeAmenity).toHaveBeenCalledWith(
+      expect.anything(),
+      property.id,
+      'r1',
+      'a1',
+    );
   });
 
   it('rejects room retyping when the target room has active or future booked blocks', async () => {
@@ -377,19 +382,20 @@ describe('CatalogService', () => {
       listRoomTypes: vi.fn(),
       archiveRoomType: vi.fn(),
       updateRoomType: vi.fn(),
-      findRoomType: vi.fn().mockResolvedValue({ id: '550e8400-e29b-41d4-a716-446655440099', propertyId: property.id } as never),
+      findRoomType: vi.fn().mockResolvedValue({
+        id: '550e8400-e29b-41d4-a716-446655440099',
+        propertyId: property.id,
+      } as never),
       findRoomTypeAmenityMembership: vi.fn(),
       removeRoomTypeAmenity: vi.fn(),
       findAmenity: vi.fn(),
       updateAmenity: vi.fn(),
-      findRoom: vi
-        .fn()
-        .mockResolvedValue({
-          id: '550e8400-e29b-41d4-a716-446655440001',
-          propertyId: property.id,
-          roomTypeId: '550e8400-e29b-41d4-a716-446655440050',
-          roomNumber: '101',
-        } as never),
+      findRoom: vi.fn().mockResolvedValue({
+        id: '550e8400-e29b-41d4-a716-446655440001',
+        propertyId: property.id,
+        roomTypeId: '550e8400-e29b-41d4-a716-446655440050',
+        roomNumber: '101',
+      } as never),
       findRoomByNumber: vi.fn(),
       roomHasFutureOrActiveBlocks: vi.fn().mockResolvedValue(true),
       updateRoom: vi.fn(),

@@ -100,12 +100,12 @@ async function setAttemptReadyForReconciliation(
   attemptId: string,
   options: { nextReconciliationAt?: Date | null; expiresAt?: Date | null } = {},
 ): Promise<void> {
-  const next = options.nextReconciliationAt === undefined
-    ? new Date(Date.now() - 60_000)
-    : options.nextReconciliationAt;
-  const expires = options.expiresAt === undefined
-    ? new Date(Date.now() + 60 * 60_000)
-    : options.expiresAt;
+  const next =
+    options.nextReconciliationAt === undefined
+      ? new Date(Date.now() - 60_000)
+      : options.nextReconciliationAt;
+  const expires =
+    options.expiresAt === undefined ? new Date(Date.now() + 60 * 60_000) : options.expiresAt;
   await pool.query(
     `UPDATE payment_attempts
         SET next_reconciliation_at = $2,
@@ -177,7 +177,11 @@ describe('Gate B canonical reconciliation service', () => {
       await migrateDatabase(prepared.databaseUrl);
     });
     const contact = normalizeContact(
-      { fullName: 'Reconcile Success', email: 'reconcile-success@example.test', phone: '+84901000002' },
+      {
+        fullName: 'Reconcile Success',
+        email: 'reconcile-success@example.test',
+        phone: '+84901000002',
+      },
       Buffer.alloc(32, 31),
     );
     const seeded = await seedBookingHoldFixture(database.pool, {
@@ -389,10 +393,7 @@ describe('Gate B canonical reconciliation service', () => {
     const attempts = await database.pool.query<{
       status: string;
       last_error_code: string | null;
-    }>(
-      `SELECT status, last_error_code FROM payment_attempts WHERE id = $1`,
-      [attempt.id],
-    );
+    }>(`SELECT status, last_error_code FROM payment_attempts WHERE id = $1`, [attempt.id]);
     expect(attempts.rows[0]?.status).toBe('EXPIRED');
   });
 
@@ -469,7 +470,11 @@ describe('Gate B canonical reconciliation service', () => {
       await migrateDatabase(prepared.databaseUrl);
     });
     const contact = normalizeContact(
-      { fullName: 'Reconcile Exhausted', email: 'reconcile-exhausted@example.test', phone: '+84901000006' },
+      {
+        fullName: 'Reconcile Exhausted',
+        email: 'reconcile-exhausted@example.test',
+        phone: '+84901000006',
+      },
       Buffer.alloc(32, 35),
     );
     const seeded = await seedBookingHoldFixture(database.pool, {
@@ -592,7 +597,11 @@ describe('Gate B canonical reconciliation service', () => {
       await migrateDatabase(prepared.databaseUrl);
     });
     const contact = normalizeContact(
-      { fullName: 'Reconcile Recover', email: 'reconcile-recover@example.test', phone: '+84901000008' },
+      {
+        fullName: 'Reconcile Recover',
+        email: 'reconcile-recover@example.test',
+        phone: '+84901000008',
+      },
       Buffer.alloc(32, 37),
     );
     const seeded = await seedBookingHoldFixture(database.pool, {
@@ -631,10 +640,7 @@ describe('Gate B canonical reconciliation service', () => {
     const attempts = await database.pool.query<{
       lease_owner: string | null;
       lease_expires_at: Date | null;
-    }>(
-      `SELECT lease_owner, lease_expires_at FROM payment_attempts WHERE id = $1`,
-      [attempt.id],
-    );
+    }>(`SELECT lease_owner, lease_expires_at FROM payment_attempts WHERE id = $1`, [attempt.id]);
     expect(attempts.rows[0]?.lease_owner).toBeNull();
     expect(attempts.rows[0]?.lease_expires_at).toBeNull();
   });

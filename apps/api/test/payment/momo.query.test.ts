@@ -155,7 +155,10 @@ describe('MoMo queryStatus adapter (Gate B)', () => {
     ['bad-signature'],
     ['missing-transId'],
   ] as const)('rejects a %s query response without contacting core', async (caseId) => {
-    const adapter = new MomoAdapter(config, vi.fn(async () => buildQueryResponse(caseId)));
+    const adapter = new MomoAdapter(
+      config,
+      vi.fn(async () => buildQueryResponse(caseId)),
+    );
     await expect(adapter.queryTransactionStatus(baseRequest)).rejects.toBeInstanceOf(
       MomoQueryAdapterError,
     );
@@ -245,21 +248,23 @@ describe('MoMo queryStatus adapter (Gate B)', () => {
 });
 
 function buildQueryResponse(
-  variant: 'success' | 'wrong-merchant' | 'wrong-order' | 'wrong-amount' | 'bad-signature' | 'missing-transId' | 'pending-9000' | 'cancelled-1006',
+  variant:
+    | 'success'
+    | 'wrong-merchant'
+    | 'wrong-order'
+    | 'wrong-amount'
+    | 'bad-signature'
+    | 'missing-transId'
+    | 'pending-9000'
+    | 'cancelled-1006',
 ): Response {
-  const orderId =
-    variant === 'wrong-order' ? 'OTHER-ORDER' : baseRequest.providerOrderId;
-  const partnerCode =
-    variant === 'wrong-merchant' ? 'WRONG_PARTNER' : config.partnerCode;
+  const orderId = variant === 'wrong-order' ? 'OTHER-ORDER' : baseRequest.providerOrderId;
+  const partnerCode = variant === 'wrong-merchant' ? 'WRONG_PARTNER' : config.partnerCode;
   const amount = variant === 'wrong-amount' ? 999 : 1000;
-  const resultCode =
-    variant === 'pending-9000' ? 9000 : variant === 'cancelled-1006' ? 1006 : 0;
+  const resultCode = variant === 'pending-9000' ? 9000 : variant === 'cancelled-1006' ? 1006 : 0;
   const transId = variant === 'missing-transId' ? undefined : '4088878653';
   const canonical = `accessKey=${config.accessKey}&orderId=${orderId}&partnerCode=${partnerCode}&requestId=server-request-id`;
-  const signature =
-    variant === 'bad-signature'
-      ? 'a'.repeat(64)
-      : sign(canonical);
+  const signature = variant === 'bad-signature' ? 'a'.repeat(64) : sign(canonical);
   return new Response(
     JSON.stringify({
       partnerCode,

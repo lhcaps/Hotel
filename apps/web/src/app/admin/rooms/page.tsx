@@ -164,20 +164,24 @@ export default function Rooms() {
                       ) : null}
                     </FieldGroup>
                   </td>
-                  <td>{types.find((type) => type.id === room.roomTypeId)?.name ?? room.roomTypeId}</td>
+                  <td>
+                    {types.find((type) => type.id === room.roomTypeId)?.name ?? room.roomTypeId}
+                  </td>
                   <td>{room.status}</td>
                   <td>
                     <Button
                       aria-label={translate(locale, 'room.archive', { number: room.roomNumber })}
                       disabled={pending || room.status === 'INACTIVE'}
                       onClick={() =>
-                        adminApi.archiveRoom(room.id).then((updated) =>
-                          setRooms((current) =>
-                            current === undefined
-                              ? current
-                              : current.map((item) => (item.id === updated.id ? updated : item)),
-                          ),
-                        )
+                        adminApi
+                          .archiveRoom(room.id)
+                          .then((updated) =>
+                            setRooms((current) =>
+                              current === undefined
+                                ? current
+                                : current.map((item) => (item.id === updated.id ? updated : item)),
+                            ),
+                          )
                       }
                       size="sm"
                       type="button"

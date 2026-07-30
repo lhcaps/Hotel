@@ -39,9 +39,7 @@ function _vnPaySafeChar(code: number): boolean {
   );
 }
 
-export function auditBuildVnpayCanonicalQuery(
-  fields: Readonly<Record<string, string>>,
-): string {
+export function auditBuildVnpayCanonicalQuery(fields: Readonly<Record<string, string>>): string {
   // VNPAY's canonical form sorts vnp_* keys (excluding vnp_SecureHash and
   // vnp_SecureHashType), excludes empty values, and URL-encodes each k/v
   // before joining with '&'. The official spec is ambiguous about the
@@ -78,10 +76,7 @@ export function auditBuildVnpayCanonicalQuery(
   return keys.map((k) => `${encode(k)}=${encode(fields[k] as string)}`).join('&');
 }
 
-export function auditSignVnpayCanonicalQuery(
-  hashSecret: string,
-  canonical: string,
-): string {
+export function auditSignVnpayCanonicalQuery(hashSecret: string, canonical: string): string {
   return createHmac('sha512', hashSecret).update(canonical, 'utf8').digest('hex');
 }
 

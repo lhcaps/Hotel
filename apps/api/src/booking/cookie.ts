@@ -71,9 +71,7 @@ export function serializeGuestSessionExpiry(
   return serializeGuestSessionCookie(Buffer.alloc(0), attributes);
 }
 
-export function buildClearCookieHeader(
-  attributes: GuestSessionCookieAttributes,
-): string {
+export function buildClearCookieHeader(attributes: GuestSessionCookieAttributes): string {
   const secureFlag = attributes.nodeEnv === 'production';
   const parts = [
     `${GUEST_SESSION_COOKIE_NAME}=`,

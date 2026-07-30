@@ -18,6 +18,7 @@
 ### Task 1: Establish independent baseline and Phase 8H review
 
 **Files:**
+
 - Create: `docs/audit/phase-8i/phase-8h-independent-review.md`
 - Read: `docs/audit/phase-8h/**`, `apps/api/src/**`, `apps/web/src/**`, `packages/contracts/**`, `packages/database/**`, `tests/e2e/**`
 
@@ -28,6 +29,7 @@
 ### Task 2: Reconcile runtime routes and provider prerequisites
 
 **Files:**
+
 - Create: `docs/audit/phase-8i/endpoint-reconciliation.md`
 - Create: `docs/audit/phase-8i/external-acceptance-report.md`
 - Update: `docs/runbooks/stable-sandbox-callback.md`, `docs/runbooks/google-oauth-local.md`, `docs/runbooks/vnpay-sandbox.md`, `docs/runbooks/production-smtp.md`
@@ -40,6 +42,7 @@
 ### Task 3: Measure all critical accessibility and deterministic UAT paths
 
 **Files:**
+
 - Modify/Create: `apps/web/test/phase8i-critical-surfaces.a11y.test.tsx`
 - Modify/Create: `tests/e2e/phase-8i-client-uat.spec.ts`
 - Create: `docs/audit/phase-8i/accessibility-measurement.md`
@@ -54,6 +57,7 @@
 ### Task 4: Prove report and confirmation truth with deterministic fixtures
 
 **Files:**
+
 - Modify/Create: `packages/booking/test/operational-report*.test.ts`
 - Modify/Create: `tests/e2e/phase-8i-confirmation.spec.ts`
 - Create: `docs/audit/phase-8i/report-metric-contract.md`
@@ -66,6 +70,7 @@
 ### Task 5: Capture sanitized visual evidence and handoff
 
 **Files:**
+
 - Create: `docs/audit/phase-8i/visual-uat-ledger.md`
 - Create: `docs/handoffs/phase-8i-client-acceptance.md`
 - Create: `docs/handoffs/phase-8i-verdicts.md`
@@ -77,6 +82,7 @@
 ### Task 6: Final deterministic regression and clean-tree closure
 
 **Files:**
+
 - Verify only: all modified files and repository root
 
 - [ ] Run provider/features/OAuth/i18n/endpoint/OpenAPI/lint/type/unit/build/db/audit gates independently.

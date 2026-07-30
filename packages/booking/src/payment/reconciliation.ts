@@ -31,13 +31,7 @@ import { applyVerifiedPaymentEvent } from './payment-service.js';
 
 export const DEFAULT_RECONCILIATION_MAX_ATTEMPTS = 8;
 
-export const DEFAULT_RECONCILIATION_DELAY_MINUTES: readonly number[] = [
-  1,
-  5,
-  15,
-  60,
-  240,
-];
+export const DEFAULT_RECONCILIATION_DELAY_MINUTES: readonly number[] = [1, 5, 15, 60, 240];
 
 export const MIN_RECONCILIATION_MAX_ATTEMPTS = 1;
 export const MAX_RECONCILIATION_MAX_ATTEMPTS = 32;
@@ -64,19 +58,10 @@ export const DEFAULT_RECONCILIATION_POLICY: ReconciliationPolicy = {
 };
 
 export type ReconciliationQueryErrorCategory =
-  | 'transient'
-  | 'permanent'
-  | 'not_found'
-  | 'unsafe_to_classify';
+  'transient' | 'permanent' | 'not_found' | 'unsafe_to_classify';
 
 export type ReconciliationQueryOutcome =
-  | 'PENDING'
-  | 'SUCCEEDED'
-  | 'FAILED'
-  | 'CANCELLED'
-  | 'EXPIRED'
-  | 'NOT_FOUND'
-  | 'STALE_FAILURE';
+  'PENDING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'EXPIRED' | 'NOT_FOUND' | 'STALE_FAILURE';
 
 export interface ReconciliationQueryError {
   readonly category: ReconciliationQueryErrorCategory;
@@ -85,10 +70,8 @@ export interface ReconciliationQueryError {
 }
 
 export interface ReconciliationQueryResult {
-  readonly outcome: Exclude<
-    ReconciliationQueryOutcome,
-    'PENDING' | 'NOT_FOUND' | 'STALE_FAILURE'
-  > | 'PENDING';
+  readonly outcome:
+    Exclude<ReconciliationQueryOutcome, 'PENDING' | 'NOT_FOUND' | 'STALE_FAILURE'> | 'PENDING';
   readonly providerTransactionId: string | null;
   readonly amountVnd: bigint | null;
   readonly occurredAt: Date | null;
@@ -237,10 +220,7 @@ export function validateReconciliationPolicy(policy: ReconciliationPolicy): void
     if (!Number.isInteger(minutes)) {
       throw new RangeError('policy.delayMinutes entries must be integers');
     }
-    if (
-      minutes < MIN_RECONCILIATION_DELAY_MINUTES ||
-      minutes > MAX_RECONCILIATION_DELAY_MINUTES
-    ) {
+    if (minutes < MIN_RECONCILIATION_DELAY_MINUTES || minutes > MAX_RECONCILIATION_DELAY_MINUTES) {
       throw new RangeError(
         `policy.delayMinutes entries must be between ${MIN_RECONCILIATION_DELAY_MINUTES} and ${MAX_RECONCILIATION_DELAY_MINUTES}`,
       );
@@ -272,9 +252,7 @@ export function computeReconciliationNextReconciliationAt(
   return new Date(now.getTime() + minutes * 60_000);
 }
 
-export function classifyReconciliationQueryError(
-  error: unknown,
-): ReconciliationQueryError {
+export function classifyReconciliationQueryError(error: unknown): ReconciliationQueryError {
   if (typeof error === 'object' && error !== null) {
     const candidate = error as Record<string, unknown>;
     const categoryCandidate = candidate.category;
@@ -354,10 +332,7 @@ export function deriveAttemptExpiryAuthority(
       candidates.push(providerExpiry);
     }
   }
-  if (
-    providerKnownExpiryAt !== null &&
-    providerKnownExpiryAt.getTime() > now.getTime()
-  ) {
+  if (providerKnownExpiryAt !== null && providerKnownExpiryAt.getTime() > now.getTime()) {
     candidates.push(providerKnownExpiryAt);
   }
   if (candidates.length === 0) return null;

@@ -23,7 +23,7 @@ class SeededRandom {
   }
   next(): number {
     // Mulberry32
-    let t = (this.state += 0x6D2B79F5) | 0;
+    let t = (this.state += 0x6d2b79f5) | 0;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -128,7 +128,7 @@ function buildRandomCatalog(rng: SeededRandom): PricingCatalog {
 
 function utcOf(localHour: number, localMinute: number, dayOfMonth: number): string {
   const localMinutesOfDay = localHour * 60 + localMinute;
-  const utcMinutesOfDay = ((localMinutesOfDay - 7 * 60) % (24 * 60) + 24 * 60) % (24 * 60);
+  const utcMinutesOfDay = (((localMinutesOfDay - 7 * 60) % (24 * 60)) + 24 * 60) % (24 * 60);
   const utcHour = Math.floor(utcMinutesOfDay / 60);
   const utcMinute = utcMinutesOfDay % 60;
   const aligned = utcMinute - (utcMinute % 15);
@@ -154,7 +154,7 @@ function generateCases(): readonly Case[] {
   let i = 0;
   while (cases.length < TARGET_CASES) {
     const day = rng.integer(1, 28);
-    const localMinute = rng.integer(0, 23 * 60) - (rng.integer(0, 3) * 15);
+    const localMinute = rng.integer(0, 23 * 60) - rng.integer(0, 3) * 15;
     const alignedLocal = Math.max(0, Math.min(23 * 60, localMinute - (localMinute % 15)));
     const rawDuration = rng.integer(60, 24 * 60);
     const alignedDuration = rawDuration - (rawDuration % 15);
@@ -176,92 +176,101 @@ function generateCases(): readonly Case[] {
 }
 
 describe('Phase 8B property-based pricing audit', () => {
-  it('produces zero mismatches against the oracle over ≥10,000 seeded cases', { timeout: 600_000 }, () => {
-    const cases = generateCases();
-    expect(cases.length).toBeGreaterThanOrEqual(10_000);
-    const rng = new SeededRandom(PUBLISHED_SEED + 1);
-    let generated = cases.length;
-    let executed = 0;
-    let rejected = 0;
-    let oracleRejected = 0;
-    let empty = 0;
-    let compared = 0;
-    let mismatches = 0;
-    const samples: unknown[] = [];
-    for (const c of cases) {
-      const catalog = buildRandomCatalog(rng);
-      const startUtc = utcOf(
-        Math.floor(c.checkInLocalMinute / 60),
-        c.checkInLocalMinute % 60,
-        c.day,
-      );
-      const startMs = new Date(startUtc).getTime();
-      const endUtc = new Date(startMs + c.durationMinutes * 60_000).toISOString();
-      const input = {
-        checkIn: startUtc,
-        checkOut: endUtc,
-        priceTierCode: c.priceTierCode,
-        timezone: 'Asia/Ho_Chi_Minh',
-      };
-      let production;
-      try {
-        production = calculatePricingWithStrategy(
-          input,
-          catalog,
-          'CHEAPEST_ELIGIBLE_THEN_PRIORITY',
+  it(
+    'produces zero mismatches against the oracle over ≥10,000 seeded cases',
+    { timeout: 600_000 },
+    () => {
+      const cases = generateCases();
+      expect(cases.length).toBeGreaterThanOrEqual(10_000);
+      const rng = new SeededRandom(PUBLISHED_SEED + 1);
+      let generated = cases.length;
+      let executed = 0;
+      let rejected = 0;
+      let oracleRejected = 0;
+      let empty = 0;
+      let compared = 0;
+      let mismatches = 0;
+      const samples: unknown[] = [];
+      for (const c of cases) {
+        const catalog = buildRandomCatalog(rng);
+        const startUtc = utcOf(
+          Math.floor(c.checkInLocalMinute / 60),
+          c.checkInLocalMinute % 60,
+          c.day,
         );
-      } catch (error) {
-        if (samples.length < 5) {
-          samples.push({
-            kind: 'rejected',
-            case: c,
-            message: error instanceof Error ? error.message : String(error),
-          });
+        const startMs = new Date(startUtc).getTime();
+        const endUtc = new Date(startMs + c.durationMinutes * 60_000).toISOString();
+        const input = {
+          checkIn: startUtc,
+          checkOut: endUtc,
+          priceTierCode: c.priceTierCode,
+          timezone: 'Asia/Ho_Chi_Minh',
+        };
+        let production;
+        try {
+          production = calculatePricingWithStrategy(
+            input,
+            catalog,
+            'CHEAPEST_ELIGIBLE_THEN_PRIORITY',
+          );
+        } catch (error) {
+          if (samples.length < 5) {
+            samples.push({
+              kind: 'rejected',
+              case: c,
+              message: error instanceof Error ? error.message : String(error),
+            });
+          }
+          rejected += 1;
+          continue;
         }
-        rejected += 1;
-        continue;
+        executed += 1;
+        let oracle;
+        try {
+          oracle = auditEnumerate(input, catalog);
+        } catch {
+          // Oracle rejected configuration but production succeeded. Count
+          // as mismatch only when totals diverge.
+          oracleRejected += 1;
+          continue;
+        }
+        if (oracle.candidates.length === 0) {
+          empty += 1;
+          continue;
+        }
+        compared += 1;
+        const oracleCheapest = oracle.candidates
+          .slice()
+          .sort((a, b) => a.totalAmountVnd - b.totalAmountVnd)[0];
+        if (
+          oracleCheapest !== undefined &&
+          production.totalAmountVnd !== oracleCheapest.totalAmountVnd
+        ) {
+          mismatches += 1;
+          samples.push({ kind: 'mismatch', c, production, oracleCheapest });
+        }
       }
-      executed += 1;
-      let oracle;
-      try {
-        oracle = auditEnumerate(input, catalog);
-      } catch {
-        // Oracle rejected configuration but production succeeded. Count
-        // as mismatch only when totals diverge.
-        oracleRejected += 1;
-        continue;
+      if (mismatches > 0) {
+        // eslint-disable-next-line no-console
+        console.error('First samples:', samples);
       }
-      if (oracle.candidates.length === 0) {
-        empty += 1;
-        continue;
-      }
-      compared += 1;
-      const oracleCheapest = oracle.candidates
-        .slice()
-        .sort((a, b) => a.totalAmountVnd - b.totalAmountVnd)[0];
-      if (oracleCheapest !== undefined && production.totalAmountVnd !== oracleCheapest.totalAmountVnd) {
-        mismatches += 1;
-        samples.push({ kind: 'mismatch', c, production, oracleCheapest });
-      }
-    }
-    if (mismatches > 0) {
+      expect(mismatches).toBe(0);
+      expect(generated).toBeGreaterThanOrEqual(10_000);
+      expect(executed + rejected).toBe(generated);
+      expect(oracleRejected + empty + compared).toBe(executed);
       // eslint-disable-next-line no-console
-      console.error('First samples:', samples);
-    }
-    expect(mismatches).toBe(0);
-    expect(generated).toBeGreaterThanOrEqual(10_000);
-    expect(executed + rejected).toBe(generated);
-    expect(oracleRejected + empty + compared).toBe(executed);
-    // eslint-disable-next-line no-console
-    console.log(JSON.stringify({
-      seed: PUBLISHED_SEED,
-      generated,
-      executed,
-      rejected,
-      oracleRejected,
-      empty,
-      compared,
-      mismatches,
-    }));
-  });
+      console.log(
+        JSON.stringify({
+          seed: PUBLISHED_SEED,
+          generated,
+          executed,
+          rejected,
+          oracleRejected,
+          empty,
+          compared,
+          mismatches,
+        }),
+      );
+    },
+  );
 });

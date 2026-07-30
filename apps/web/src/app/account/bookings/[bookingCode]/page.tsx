@@ -1,6 +1,12 @@
 import { cookies, headers } from 'next/headers';
 
-import { formatDateTime, formatVnd, resolveLocale, translate, translatePaymentStatus } from '../../../../lib/i18n/messages';
+import {
+  formatDateTime,
+  formatVnd,
+  resolveLocale,
+  translate,
+  translatePaymentStatus,
+} from '../../../../lib/i18n/messages';
 
 interface BookingDetail {
   readonly bookingId: string;
@@ -33,10 +39,13 @@ export default async function CustomerBookingDetailPage({ params }: PageProps) {
   }
   const headersList = await headers();
   const cookieHeader = headersList.get('cookie') ?? '';
-  const response = await fetch(`${new URL(apiBase).origin}/api/v1/customer/bookings/${bookingCode}`, {
-    headers: { cookie: cookieHeader },
-    cache: 'no-store',
-  });
+  const response = await fetch(
+    `${new URL(apiBase).origin}/api/v1/customer/bookings/${bookingCode}`,
+    {
+      headers: { cookie: cookieHeader },
+      cache: 'no-store',
+    },
+  );
   if (response.status === 401) {
     return (
       <main>

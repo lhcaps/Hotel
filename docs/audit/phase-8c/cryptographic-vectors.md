@@ -193,13 +193,13 @@ Test assertions:
 
 ## 5. Vector catalogue status
 
-| Vector family | Provider | Source | Live sandbox? |
-| --- | --- | --- | --- |
-| Initiation | MoMo | Documented sample, accessed 2026-07-28 | EXTERNAL_BLOCKED |
-| Response | MoMo | Documented sample, accessed 2026-07-28 | EXTERNAL_BLOCKED |
-| IPN | MoMo | Documented sample, accessed 2026-07-28 | EXTERNAL_BLOCKED |
-| Status query | MoMo | Documented sample, accessed 2026-07-28 | EXTERNAL_BLOCKED |
-| Create / IPN / query | VNPAY | Documented sample, accessed 2026-07-28 | EXTERNAL_BLOCKED |
+| Vector family        | Provider | Source                                 | Live sandbox?    |
+| -------------------- | -------- | -------------------------------------- | ---------------- |
+| Initiation           | MoMo     | Documented sample, accessed 2026-07-28 | EXTERNAL_BLOCKED |
+| Response             | MoMo     | Documented sample, accessed 2026-07-28 | EXTERNAL_BLOCKED |
+| IPN                  | MoMo     | Documented sample, accessed 2026-07-28 | EXTERNAL_BLOCKED |
+| Status query         | MoMo     | Documented sample, accessed 2026-07-28 | EXTERNAL_BLOCKED |
+| Create / IPN / query | VNPAY    | Documented sample, accessed 2026-07-28 | EXTERNAL_BLOCKED |
 
 The deterministic test vectors above are sandbox-independent; they
 let us assert that the production canonical-string builders and

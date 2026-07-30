@@ -104,39 +104,37 @@ function repository(): RatePlanRepositoryPort {
     getCurrentProperty: vi.fn().mockResolvedValue(property),
     listRatePlans: vi.fn().mockResolvedValue(all),
     lockActiveRuleSet: vi.fn().mockResolvedValue(all),
-    createRatePlan: vi
-      .fn()
-      .mockImplementation(
-        async (
-          _tx: unknown,
-          _propertyId: string,
-          command: {
-            readonly code: string;
-            readonly name: string;
-            readonly includedDurationMinutes: number;
-            readonly priority: number;
-            readonly isBasePlan: boolean;
-            readonly minCheckInMinuteInclusive: number | null;
-            readonly maxCheckInMinuteExclusive: number | null;
-            readonly minDurationMinutesInclusive: number | null;
-            readonly maxDurationMinutesInclusive: number | null;
-          },
-        ) => ({
-          id: '550e8400-e29b-41d4-a716-446655440099',
-          propertyId: property.id,
-          code: command.code,
-          name: command.name,
-          status: 'DRAFT' as const,
-          includedDurationMinutes: command.includedDurationMinutes,
-          priority: command.priority,
-          isBasePlan: command.isBasePlan,
-          minCheckInMinuteInclusive: command.minCheckInMinuteInclusive,
-          maxCheckInMinuteExclusive: command.maxCheckInMinuteExclusive,
-          minDurationMinutesInclusive: command.minDurationMinutesInclusive,
-          maxDurationMinutesInclusive: command.maxDurationMinutesInclusive,
-          prices: [],
-        }),
-      ),
+    createRatePlan: vi.fn().mockImplementation(
+      async (
+        _tx: unknown,
+        _propertyId: string,
+        command: {
+          readonly code: string;
+          readonly name: string;
+          readonly includedDurationMinutes: number;
+          readonly priority: number;
+          readonly isBasePlan: boolean;
+          readonly minCheckInMinuteInclusive: number | null;
+          readonly maxCheckInMinuteExclusive: number | null;
+          readonly minDurationMinutesInclusive: number | null;
+          readonly maxDurationMinutesInclusive: number | null;
+        },
+      ) => ({
+        id: '550e8400-e29b-41d4-a716-446655440099',
+        propertyId: property.id,
+        code: command.code,
+        name: command.name,
+        status: 'DRAFT' as const,
+        includedDurationMinutes: command.includedDurationMinutes,
+        priority: command.priority,
+        isBasePlan: command.isBasePlan,
+        minCheckInMinuteInclusive: command.minCheckInMinuteInclusive,
+        maxCheckInMinuteExclusive: command.maxCheckInMinuteExclusive,
+        minDurationMinutesInclusive: command.minDurationMinutesInclusive,
+        maxDurationMinutesInclusive: command.maxDurationMinutesInclusive,
+        prices: [],
+      }),
+    ),
     updatePrice: vi.fn().mockResolvedValue(undefined),
     updateSelectionRule: vi
       .fn()

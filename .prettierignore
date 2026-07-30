@@ -11,3 +11,10 @@ docs/architecture/
 docs/security/
 apps/web/next-env.d.ts
 apps/web/storybook-static/
+# Generated artifacts:
+#   Drizzle migration metadata is owned by drizzle-kit; do not hand-format.
+#   Audit run artifacts produced by deterministic generators.
+packages/database/drizzle/meta/snapshot-*.json
+docs/audit/**/artifacts/
+docs/audit/api-source-map-*.md
+output/

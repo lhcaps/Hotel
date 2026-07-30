@@ -163,9 +163,7 @@ test('captures final demo admin room type editor screenshot', async ({ page }) =
   await capture(page, 'admin-room-type-edit-1440');
 });
 
-test('captures responsive overflow measurements for all required viewports', async ({
-  page,
-}) => {
+test('captures responsive overflow measurements for all required viewports', async ({ page }) => {
   const sizes = [
     { width: 360, height: 800 },
     { width: 390, height: 844 },

@@ -172,9 +172,7 @@ export async function runPropertyTests(seed: number, count: number): Promise<Run
       oracleException = error instanceof Error ? error.message : String(error);
     }
     const diff =
-      productionTotal !== null && oracleMinimum !== null
-        ? productionTotal - oracleMinimum
-        : null;
+      productionTotal !== null && oracleMinimum !== null ? productionTotal - oracleMinimum : null;
     records.push({
       seed,
       attempt: i,
@@ -205,7 +203,10 @@ describe('Phase 8A audit-only property-based pricing assertions', () => {
     // Document the analysis numerically inside the artifact instead of
     // asserting on the mismatch-rate.
     const mismatched = resolved.filter(
-      (r) => r.productionTotal !== null && r.oracleMinimum !== null && r.productionTotal !== r.oracleMinimum,
+      (r) =>
+        r.productionTotal !== null &&
+        r.oracleMinimum !== null &&
+        r.productionTotal !== r.oracleMinimum,
     );
     expect(records.length).toBe(COUNT);
     // Snapshot to artifact json file for later analysis.

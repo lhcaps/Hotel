@@ -7,7 +7,9 @@ async function issueQuoteAt(
   checkIn: string,
   durationHours = 3,
 ) {
-  const checkOut = new Date(new Date(checkIn).getTime() + durationHours * 60 * 60 * 1000).toISOString();
+  const checkOut = new Date(
+    new Date(checkIn).getTime() + durationHours * 60 * 60 * 1000,
+  ).toISOString();
   const response = await page.request.post('http://127.0.0.1:3101/api/v1/quotes', {
     data: {
       roomTypeId: '10000000-0000-4000-8000-000000000201',

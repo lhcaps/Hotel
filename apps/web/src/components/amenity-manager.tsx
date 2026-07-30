@@ -121,7 +121,9 @@ export function AmenityManager() {
         </FieldGroup>
       </form>
       {message === undefined ? null : <p role="alert">{message}</p>}
-      {page === undefined ? <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p> : null}
+      {page === undefined ? (
+        <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
+      ) : null}
       {page === undefined || page.items.length === 0 ? null : (
         <table>
           <thead>

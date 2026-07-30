@@ -54,7 +54,10 @@ function controllerPath(source: string, file: string): { path: string; neutral: 
   )?.[1];
   const path = stringController ?? objectController;
   if (!path) throw new Error(`Unable to read @Controller path in ${file}.`);
-  return { path, neutral: /VERSION_NEUTRAL/.test(source.slice(0, source.indexOf(path) + path.length)) };
+  return {
+    path,
+    neutral: /VERSION_NEUTRAL/.test(source.slice(0, source.indexOf(path) + path.length)),
+  };
 }
 
 async function runtimeEndpoints(): Promise<Endpoint[]> {
@@ -107,7 +110,10 @@ function authFor(endpoint: Endpoint): string {
   return 'public or route-specific guard';
 }
 
-async function writeInventory(endpoints: readonly Endpoint[], documentedKeys: ReadonlySet<string>): Promise<void> {
+async function writeInventory(
+  endpoints: readonly Endpoint[],
+  documentedKeys: ReadonlySet<string>,
+): Promise<void> {
   const header = [
     'method',
     'runtime_path',
@@ -135,7 +141,9 @@ async function writeInventory(endpoints: readonly Endpoint[], documentedKeys: Re
         documented ? endpoint.path : '',
         endpoint.source,
         authFor(endpoint),
-        endpoint.path.startsWith('/api/v1/admin/') ? 'controller guard; see source' : 'route-specific; see source',
+        endpoint.path.startsWith('/api/v1/admin/')
+          ? 'controller guard; see source'
+          : 'route-specific; see source',
         'shared contract or controller validation; see source',
         'shared contract or controller response; see source',
         endpoint.method === 'get' ? 'read-only' : 'mutation',
@@ -153,13 +161,17 @@ async function writeInventory(endpoints: readonly Endpoint[], documentedKeys: Re
 const [runtime, documented] = await Promise.all([runtimeEndpoints(), documentedEndpoints()]);
 const runtimeKeys = new Set(runtime.map(endpointKey));
 const undocumented = runtime.filter(
-  (endpoint) => !documented.has(endpointKey(endpoint)) && !EXPLICIT_RUNTIME_ALLOWLIST.has(endpointKey(endpoint)),
+  (endpoint) =>
+    !documented.has(endpointKey(endpoint)) &&
+    !EXPLICIT_RUNTIME_ALLOWLIST.has(endpointKey(endpoint)),
 );
 const staleDocumentation = [...documented].filter((key) => !runtimeKeys.has(key));
 
 if (undocumented.length > 0 || staleDocumentation.length > 0) {
   const details = [
-    ...undocumented.map((endpoint) => `runtime undocumented: ${endpointKey(endpoint)} (${endpoint.source})`),
+    ...undocumented.map(
+      (endpoint) => `runtime undocumented: ${endpointKey(endpoint)} (${endpoint.source})`,
+    ),
     ...staleDocumentation.map((endpoint) => `OpenAPI without runtime route: ${endpoint}`),
   ];
   throw new Error(`Endpoint reconciliation failed:\n${details.join('\n')}`);

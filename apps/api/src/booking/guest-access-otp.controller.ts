@@ -9,7 +9,10 @@ import {
   serializeGuestSessionCookie,
   type GuestSessionCookieAttributes,
 } from './cookie.js';
-import { GuestAccessOtpRequestService, OtpRateLimitedError } from './services/guest-access-otp-request.service.js';
+import {
+  GuestAccessOtpRequestService,
+  OtpRateLimitedError,
+} from './services/guest-access-otp-request.service.js';
 import {
   GuestAccessOtpVerifyService,
   OtpInvalidOrExpiredError,
@@ -32,7 +35,10 @@ function readSessionCookie(request: RequestLike): Buffer | null {
   return parseGuestSessionCookie(raw);
 }
 
-function extractIp(request: RequestLike, _trustedCidrs: readonly { readonly cidr: string }[]): string {
+function extractIp(
+  request: RequestLike,
+  _trustedCidrs: readonly { readonly cidr: string }[],
+): string {
   const socketAddress = request.socket?.remoteAddress ?? null;
   // Without trusted proxies we fall back to socket address (no spoofable
   // surface). TRUSTED_PROXY_CIDRS handling is enforced at the Fastify

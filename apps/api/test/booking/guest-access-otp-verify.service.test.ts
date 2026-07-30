@@ -73,11 +73,7 @@ describe('GuestAccessOtpVerifyService', () => {
       serverTime: new Date(),
     });
     await expect(
-      service.verify(
-        { challengeRef: 'xx', otp: '12345' },
-        '203.0.113.1',
-        new Date(),
-      ),
+      service.verify({ challengeRef: 'xx', otp: '12345' }, '203.0.113.1', new Date()),
     ).rejects.toBeTruthy();
   });
 

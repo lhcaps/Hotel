@@ -59,13 +59,12 @@ export class CouponRepository {
    * Throws domain errors if the coupon cannot be applied to the given
    * probe so the API layer can return a Problem Details response.
    */
-  public async evaluateForQuote(
-    probe: CouponQuoteProbe,
-  ): Promise<ProvisionalCouponEvaluation> {
+  public async evaluateForQuote(probe: CouponQuoteProbe): Promise<ProvisionalCouponEvaluation> {
     const normalized = normalizeCouponCode(probe.couponCode);
     const nowResult = await this.database.execute(sql`SELECT CURRENT_TIMESTAMP AS now`);
     const nowValue = (nowResult.rows[0] as { now?: unknown } | undefined)?.now;
-    const now = nowValue instanceof Date ? new Date(nowValue.getTime()) : new Date(String(nowValue));
+    const now =
+      nowValue instanceof Date ? new Date(nowValue.getTime()) : new Date(String(nowValue));
     if (!Number.isFinite(now.getTime())) {
       throw new Error('Database did not return its current timestamp.');
     }

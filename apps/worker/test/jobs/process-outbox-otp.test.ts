@@ -87,10 +87,7 @@ describe('processOutbox — booking.otp.requested', () => {
     });
     const transport = createRecordingTransport();
 
-    const summary = await processOutbox(
-      { ...PROCESS_OPTIONS, pool, transport },
-      silentLogger(),
-    );
+    const summary = await processOutbox({ ...PROCESS_OPTIONS, pool, transport }, silentLogger());
 
     expect(summary.published).toBe(1);
     expect(summary.skipped).toBe(0);
@@ -207,10 +204,7 @@ describe('processOutbox — booking.otp.requested', () => {
     });
     const transport = createRecordingTransport();
 
-    const summary = await processOutbox(
-      { ...PROCESS_OPTIONS, pool, transport },
-      silentLogger(),
-    );
+    const summary = await processOutbox({ ...PROCESS_OPTIONS, pool, transport }, silentLogger());
 
     expect(summary.skipped).toBe(1);
     expect(summary.published).toBe(0);
@@ -238,10 +232,7 @@ describe('processOutbox — booking.otp.requested', () => {
     });
     const transport = createRecordingTransport();
 
-    const summary = await processOutbox(
-      { ...PROCESS_OPTIONS, pool, transport },
-      silentLogger(),
-    );
+    const summary = await processOutbox({ ...PROCESS_OPTIONS, pool, transport }, silentLogger());
 
     expect(summary.skipped).toBe(1);
     expect(transport.messages).toHaveLength(0);
@@ -271,10 +262,7 @@ describe('processOutbox — booking.otp.requested', () => {
     });
     const transport = createRecordingTransport();
 
-    const summary = await processOutbox(
-      { ...PROCESS_OPTIONS, pool, transport },
-      silentLogger(),
-    );
+    const summary = await processOutbox({ ...PROCESS_OPTIONS, pool, transport }, silentLogger());
 
     expect(summary.skipped).toBe(1);
     expect(transport.messages).toHaveLength(0);
@@ -299,10 +287,7 @@ describe('processOutbox — booking.otp.requested', () => {
     });
     const transport = createRecordingTransport();
 
-    const summary = await processOutbox(
-      { ...PROCESS_OPTIONS, pool, transport },
-      silentLogger(),
-    );
+    const summary = await processOutbox({ ...PROCESS_OPTIONS, pool, transport }, silentLogger());
 
     expect(summary.skipped).toBe(1);
     expect(transport.messages).toHaveLength(0);
@@ -328,10 +313,7 @@ describe('processOutbox — booking.otp.requested', () => {
     });
     const transport = createRecordingTransport();
 
-    const summary = await processOutbox(
-      { ...PROCESS_OPTIONS, pool, transport },
-      silentLogger(),
-    );
+    const summary = await processOutbox({ ...PROCESS_OPTIONS, pool, transport }, silentLogger());
 
     expect(summary.skipped).toBe(1);
     expect(transport.messages).toHaveLength(0);

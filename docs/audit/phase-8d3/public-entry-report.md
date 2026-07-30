@@ -22,22 +22,22 @@ The Phase 1 root status placeholder was replaced with the real customer availabi
 
 ## Validation evidence
 
-| Command | HEAD | Exit | Passed / failed / skipped | Duration |
-| --- | --- | ---: | --- | --- |
-| `pnpm --filter @room/web test:unit -- test/public-homepage.test.tsx test/public-pricing.a11y.test.tsx test/i18n.test.ts` | pre-commit Phase 8D.3 | 0 | 11 passed / 0 failed / 0 skipped | 3.45s |
-| `pnpm check:i18n-critical` | pre-commit Phase 8D.3 | 0 | 73 source files; direct critical Vietnamese copy 0 | 3.32s |
-| `pnpm check:endpoints` | pre-commit Phase 8D.3 | 0 | 74 runtime, 69 documented, 4 allowlisted | 3.33s |
-| `pnpm check:openapi` | pre-commit Phase 8D.3 | 0 | contracts passed; coupon schema 11/11 | 6.31s |
-| `pnpm lint` | pre-commit Phase 8D.3 | 0 | 9 tasks passed | 12.22s |
-| `pnpm typecheck` | pre-commit Phase 8D.3 | 0 | 9 tasks passed | 3.70s |
-| `pnpm test:unit` | pre-commit Phase 8D.3 | 0 | 15 tasks passed; API 50 files / 300 tests | 8.89s |
-| `pnpm build` | pre-commit Phase 8D.3 | 0 | 9 tasks passed | 10.53s |
-| `pnpm db:check` | pre-commit Phase 8D.3 | 0 | passed | 3.48s |
-| `pnpm db:status` | pre-commit Phase 8D.3 | 0 | schema phase-8d-client-acceptance-v1 | 3.87s |
-| `pnpm exec playwright test tests/e2e/phase-8d3-public-entry.spec.ts --workers=1 --retries=0 --reporter=line` | pre-commit Phase 8D.3 | 1 | 0 started; 0 skipped | 4.87s; blocked before browser startup because `PLAYWRIGHT_BETTER_AUTH_SECRET` is absent |
-| `pnpm demo:preflight` | pre-commit Phase 8D.3 | 0 | all checks passed; port 3001 untouched | 3.29s |
-| `pnpm demo:lifecycle-test` | pre-commit Phase 8D.3 | 1 | 12/15 passed | 106.86s; port 3001 was unowned before/after, API live smoke failed |
-| `pnpm demo:smoke` | pre-commit Phase 8D.3 | 1 | failed | 15.32s; run overlapped the lifecycle command and collided on 3090/3100 |
+| Command                                                                                                                  | HEAD                  | Exit | Passed / failed / skipped                          | Duration                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------ | --------------------- | ---: | -------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `pnpm --filter @room/web test:unit -- test/public-homepage.test.tsx test/public-pricing.a11y.test.tsx test/i18n.test.ts` | pre-commit Phase 8D.3 |    0 | 11 passed / 0 failed / 0 skipped                   | 3.45s                                                                                   |
+| `pnpm check:i18n-critical`                                                                                               | pre-commit Phase 8D.3 |    0 | 73 source files; direct critical Vietnamese copy 0 | 3.32s                                                                                   |
+| `pnpm check:endpoints`                                                                                                   | pre-commit Phase 8D.3 |    0 | 74 runtime, 69 documented, 4 allowlisted           | 3.33s                                                                                   |
+| `pnpm check:openapi`                                                                                                     | pre-commit Phase 8D.3 |    0 | contracts passed; coupon schema 11/11              | 6.31s                                                                                   |
+| `pnpm lint`                                                                                                              | pre-commit Phase 8D.3 |    0 | 9 tasks passed                                     | 12.22s                                                                                  |
+| `pnpm typecheck`                                                                                                         | pre-commit Phase 8D.3 |    0 | 9 tasks passed                                     | 3.70s                                                                                   |
+| `pnpm test:unit`                                                                                                         | pre-commit Phase 8D.3 |    0 | 15 tasks passed; API 50 files / 300 tests          | 8.89s                                                                                   |
+| `pnpm build`                                                                                                             | pre-commit Phase 8D.3 |    0 | 9 tasks passed                                     | 10.53s                                                                                  |
+| `pnpm db:check`                                                                                                          | pre-commit Phase 8D.3 |    0 | passed                                             | 3.48s                                                                                   |
+| `pnpm db:status`                                                                                                         | pre-commit Phase 8D.3 |    0 | schema phase-8d-client-acceptance-v1               | 3.87s                                                                                   |
+| `pnpm exec playwright test tests/e2e/phase-8d3-public-entry.spec.ts --workers=1 --retries=0 --reporter=line`             | pre-commit Phase 8D.3 |    1 | 0 started; 0 skipped                               | 4.87s; blocked before browser startup because `PLAYWRIGHT_BETTER_AUTH_SECRET` is absent |
+| `pnpm demo:preflight`                                                                                                    | pre-commit Phase 8D.3 |    0 | all checks passed; port 3001 untouched             | 3.29s                                                                                   |
+| `pnpm demo:lifecycle-test`                                                                                               | pre-commit Phase 8D.3 |    1 | 12/15 passed                                       | 106.86s; port 3001 was unowned before/after, API live smoke failed                      |
+| `pnpm demo:smoke`                                                                                                        | pre-commit Phase 8D.3 |    1 | failed                                             | 15.32s; run overlapped the lifecycle command and collided on 3090/3100                  |
 
 ## Verdict
 

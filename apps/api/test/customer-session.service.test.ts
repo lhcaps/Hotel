@@ -10,9 +10,9 @@ describe('CustomerSessionService — security boundary', () => {
     const service = new CustomerSessionService({
       getActor: vi.fn().mockResolvedValue(null),
     });
-    await expect(
-      service.requireCustomer({ headers: {}, id: 'req-1' }),
-    ).rejects.toBeInstanceOf(CustomerSessionRequiredError);
+    await expect(service.requireCustomer({ headers: {}, id: 'req-1' })).rejects.toBeInstanceOf(
+      CustomerSessionRequiredError,
+    );
   });
 
   it('rejects when an ADMIN session is presented on a CUSTOMER route', async () => {
@@ -28,9 +28,9 @@ describe('CustomerSessionService — security boundary', () => {
         requestId: 'req-2',
       }),
     });
-    await expect(
-      service.requireCustomer({ headers: {}, id: 'req-2' }),
-    ).rejects.toMatchObject({ name: 'CustomerSessionRequiredError' });
+    await expect(service.requireCustomer({ headers: {}, id: 'req-2' })).rejects.toMatchObject({
+      name: 'CustomerSessionRequiredError',
+    });
   });
 
   it('returns null for an anonymous or non-CUSTOMER session probe', async () => {
@@ -108,8 +108,8 @@ describe('CustomerSessionService — security boundary', () => {
         requestId: 'req-5',
       }),
     });
-    await expect(
-      service.requireCustomer({ headers: {}, id: 'req-5' }),
-    ).rejects.toBeInstanceOf(CustomerSessionRequiredError);
+    await expect(service.requireCustomer({ headers: {}, id: 'req-5' })).rejects.toBeInstanceOf(
+      CustomerSessionRequiredError,
+    );
   });
 });

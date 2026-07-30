@@ -34,7 +34,7 @@ papered over as `EXTERNAL_BLOCKERS=NONE`:
 
 1. **API refused to boot.** The orchestrator started the simulator on
    `127.0.0.1:3090`, then crashed the API with `Invalid environment
-   variables: MOMO_API_BASE_URL`. The `.env` file shipped with stale
+variables: MOMO_API_BASE_URL`. The `.env` file shipped with stale
    `https://...trycloudflare.com/...` URLs from a previous localtunnel
    setup, and `scripts/demo/start.mjs` only used `??=` fallbacks —
    the stale `.env` values won every time. Production HTTPS sandbox
@@ -77,7 +77,7 @@ simulator-backed MoMo/VNPay`:
 - `packages/database/scripts/demo-seed.ts`: idempotently upsert one
   enabled `payment_provider_settings` row per provider (`MOMO`,
   `VNPAY`) pointing at the demo simulator with `ON CONFLICT (property_id,
-  provider) DO UPDATE`.
+provider) DO UPDATE`.
 - `scripts/demo/start.mjs`: when the simulator is on, FORCE override
   the MOMO/VNPay return/IPN URLs to the loopback API host so stale
   `.env` values cannot leak in. The URLs are computed from
@@ -202,15 +202,15 @@ recorded it as a pre-existing test fragility.
 
 ## 4. Static gates (all PASS)
 
-| Gate | Result |
-|---|---|
-| `pnpm lint` (9 workspaces) | 9/9 PASS |
-| `pnpm typecheck` (9 workspaces) | 9/9 PASS |
-| `pnpm --filter @room/config test:unit` | 80/80 PASS (3 new) |
-| `pnpm build` (9 workspaces) | 9/9 PASS |
-| `pnpm demo:preflight` | PASS (`{"ready":true,…}`) |
-| `pnpm demo:rehearse --headless --grep='mobile viewport renders the same vertical flow'` | PASS (exit 0) |
-| `pnpm audit` | 3 pre-existing transitive advisories (`ajv` moderate ×2, `esbuild` low ×1). Unrelated to this change. |
+| Gate                                                                                    | Result                                                                                                |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `pnpm lint` (9 workspaces)                                                              | 9/9 PASS                                                                                              |
+| `pnpm typecheck` (9 workspaces)                                                         | 9/9 PASS                                                                                              |
+| `pnpm --filter @room/config test:unit`                                                  | 80/80 PASS (3 new)                                                                                    |
+| `pnpm build` (9 workspaces)                                                             | 9/9 PASS                                                                                              |
+| `pnpm demo:preflight`                                                                   | PASS (`{"ready":true,…}`)                                                                             |
+| `pnpm demo:rehearse --headless --grep='mobile viewport renders the same vertical flow'` | PASS (exit 0)                                                                                         |
+| `pnpm audit`                                                                            | 3 pre-existing transitive advisories (`ajv` moderate ×2, `esbuild` low ×1). Unrelated to this change. |
 
 ## 5. Final verdict
 

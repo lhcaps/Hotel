@@ -65,9 +65,7 @@ describe('decideOtpSkip', () => {
   });
 
   it('skips when email digest does not match the contact digest', () => {
-    expect(
-      decideOtpSkip(activeRow({ email_digest: OTHER_DIGEST }), NOW),
-    ).toEqual({
+    expect(decideOtpSkip(activeRow({ email_digest: OTHER_DIGEST }), NOW)).toEqual({
       skip: true,
       reason: 'EMAIL_DIGEST_MISMATCH',
     });

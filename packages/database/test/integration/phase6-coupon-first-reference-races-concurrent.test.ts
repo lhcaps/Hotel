@@ -31,10 +31,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabasePool } from '../../src/client.js';
 import type { DatabasePool } from '../../src/client.js';
 import { migrateDatabase } from '../../src/migrations.js';
-import {
-  createPreparedGuardedTestDatabase,
-  type GuardedTestDatabase,
-} from '../../src/testing.js';
+import { createPreparedGuardedTestDatabase, type GuardedTestDatabase } from '../../src/testing.js';
 
 const RACE_TEST_TIMEOUT_MS = 60_000;
 const LOCK_OBSERVATION_DEADLINE_MS = 5_000;
@@ -46,10 +43,7 @@ interface CallerPool {
   close(): Promise<void>;
 }
 
-function createIndependentCallerPool(
-  databaseUrl: string,
-  applicationName: string,
-): CallerPool {
+function createIndependentCallerPool(databaseUrl: string, applicationName: string): CallerPool {
   const pool = createDatabasePool(databaseUrl, { max: 2, applicationName });
   return {
     pool,
@@ -78,14 +72,8 @@ async function createHarness(): Promise<DisposableHarness> {
     max: 2,
     applicationName: 'race-concurrent-admin',
   });
-  const callerOne = createIndependentCallerPool(
-    database.databaseUrl,
-    'race-concurrent-caller-one',
-  );
-  const callerTwo = createIndependentCallerPool(
-    database.databaseUrl,
-    'race-concurrent-caller-two',
-  );
+  const callerOne = createIndependentCallerPool(database.databaseUrl, 'race-concurrent-caller-one');
+  const callerTwo = createIndependentCallerPool(database.databaseUrl, 'race-concurrent-caller-two');
   return {
     database,
     adminPool,
@@ -276,9 +264,7 @@ describe('phase 6C application reference closure — concurrent race evidence', 
       const clientA = await harness.callerOne.pool.connect();
       const aStarted = clientA.query('BEGIN');
       await aStarted;
-      await clientA.query('SELECT id FROM coupons WHERE id = $1 FOR UPDATE', [
-        fixture.couponId,
-      ]);
+      await clientA.query('SELECT id FROM coupons WHERE id = $1 FOR UPDATE', [fixture.couponId]);
 
       const applicationInsertP = harness.callerTwo.pool.query(
         `INSERT INTO booking_coupon_applications
@@ -306,10 +292,9 @@ describe('phase 6C application reference closure — concurrent race evidence', 
       // Client A commits a new minimum_order_amount. The application
       // trigger must accept the insert because the new minimum is 0
       // (no change to the snapshot minimum).
-      await clientA.query(
-        `UPDATE coupons SET minimum_order_amount_vnd = 0 WHERE id = $1`,
-        [fixture.couponId],
-      );
+      await clientA.query(`UPDATE coupons SET minimum_order_amount_vnd = 0 WHERE id = $1`, [
+        fixture.couponId,
+      ]);
       await clientA.query('COMMIT');
       clientA.release();
 
@@ -327,9 +312,7 @@ describe('phase 6C application reference closure — concurrent race evidence', 
       // Client A holds the coupon row lock.
       const clientA = await harness.callerOne.pool.connect();
       await clientA.query('BEGIN');
-      await clientA.query('SELECT id FROM coupons WHERE id = $1 FOR UPDATE', [
-        fixture.couponId,
-      ]);
+      await clientA.query('SELECT id FROM coupons WHERE id = $1 FOR UPDATE', [fixture.couponId]);
 
       // Client B starts the application insert; it must block on the
       // trigger's SELECT FROM coupons FOR UPDATE.
@@ -399,12 +382,7 @@ describe('phase 6C application reference closure — concurrent race evidence', 
                    'FIXED', 10000, NULL, NULL,
                    0, 359000, 10000, 349000,
                    'CONC01', CURRENT_TIMESTAMP)`,
-          [
-            fixture.propertyId,
-            fixture.bookingId,
-            fixture.couponId,
-            Buffer.alloc(32, 0xd3),
-          ],
+          [fixture.propertyId, fixture.bookingId, fixture.couponId, Buffer.alloc(32, 0xd3)],
         );
         applicationInsertP3.catch(() => {
           // Suppress unhandled rejection; we re-await below.
@@ -480,12 +458,7 @@ describe('phase 6C application reference closure — concurrent race evidence', 
                      'FIXED', 10000, NULL, NULL,
                      0, 359000, 10000, 349000,
                      'CONC01', CURRENT_TIMESTAMP)`,
-            [
-              fixture.propertyId,
-              fixture.bookingId,
-              fixture.couponId,
-              Buffer.alloc(32, 0xcf),
-            ],
+            [fixture.propertyId, fixture.bookingId, fixture.couponId, Buffer.alloc(32, 0xcf)],
           );
 
           await observeWaitOnCouponRow(

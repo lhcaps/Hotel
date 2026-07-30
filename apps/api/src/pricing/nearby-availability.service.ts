@@ -17,11 +17,7 @@
  *    e. room-type id ascending (stable final tie-breaker).
  */
 
-import {
-  calculatePricing,
-  type PricingCatalog,
-  type PricingInput,
-} from './pricing-engine.js';
+import { calculatePricing, type PricingCatalog, type PricingInput } from './pricing-engine.js';
 import {
   nearbyAvailabilityRequestSchema,
   nearbyAvailabilityResponseSchema,
@@ -37,9 +33,7 @@ import type {
 
 export const NEARBY_STEP_MINUTES = 15;
 
-const OFFSET_SEQUENCE_BEFORE_EXPANSION = [
-  -15, 15, -30, 30, -45, 45, -60, 60,
-];
+const OFFSET_SEQUENCE_BEFORE_EXPANSION = [-15, 15, -30, 30, -45, 45, -60, 60];
 
 export function buildNearbyShifts(expandMinutes: number): number[] {
   const upper = Math.min(120, Math.max(0, expandMinutes));
@@ -53,13 +47,12 @@ export function buildNearbyShifts(expandMinutes: number): number[] {
     unique.add(cursor);
     cursor += NEARBY_STEP_MINUTES;
   }
-  return [...unique]
-    .sort((a, b) => {
-      const absA = Math.abs(a);
-      const absB = Math.abs(b);
-      if (absA !== absB) return absA - absB;
-      return a - b;
-    });
+  return [...unique].sort((a, b) => {
+    const absA = Math.abs(a);
+    const absB = Math.abs(b);
+    if (absA !== absB) return absA - absB;
+    return a - b;
+  });
 }
 
 function shiftInstant(value: string, minutes: number): string {
@@ -115,11 +108,7 @@ function evaluateRoomType(
   };
 }
 
-function meetsCapacity(
-  type: NearbyRoomTypeRow,
-  adults: number,
-  children: number,
-): boolean {
+function meetsCapacity(type: NearbyRoomTypeRow, adults: number, children: number): boolean {
   return (
     type.maxAdults >= adults &&
     type.maxChildren >= children &&
@@ -133,17 +122,20 @@ interface OfferDescriptor {
 }
 
 function buildCatalog(snapshot: NearbyInventorySnapshot): PricingCatalog {
-  const out: Record<string, {
-    status: 'ACTIVE' | 'INACTIVE';
-    isBasePlan: boolean;
-    includedDurationMinutes: number;
-    priority: number;
-    minCheckInMinuteInclusive: number | null;
-    maxCheckInMinuteExclusive: number | null;
-    minDurationMinutesInclusive: number | null;
-    maxDurationMinutesInclusive: number | null;
-    prices: Record<string, number>;
-  }> = {};
+  const out: Record<
+    string,
+    {
+      status: 'ACTIVE' | 'INACTIVE';
+      isBasePlan: boolean;
+      includedDurationMinutes: number;
+      priority: number;
+      minCheckInMinuteInclusive: number | null;
+      maxCheckInMinuteExclusive: number | null;
+      minDurationMinutesInclusive: number | null;
+      maxDurationMinutesInclusive: number | null;
+      prices: Record<string, number>;
+    }
+  > = {};
   for (const [code, plan] of snapshot.plansByCode) {
     const prices: Record<string, number> = {};
     for (const [key, amount] of snapshot.priceByPlanAndTier.entries()) {
@@ -263,8 +255,7 @@ function orderCandidates(
       if (
         bestOffer === undefined ||
         descriptor.amountVnd < bestOffer.amountVnd ||
-        (descriptor.amountVnd === bestOffer.amountVnd &&
-          descriptor.planCode < bestOffer.planCode)
+        (descriptor.amountVnd === bestOffer.amountVnd && descriptor.planCode < bestOffer.planCode)
       ) {
         bestOffer = descriptor;
       }
@@ -273,10 +264,7 @@ function orderCandidates(
       candidate,
       bestOfferAmount: bestOffer?.amountVnd ?? Number.MAX_SAFE_INTEGER,
       bestOfferPlan: bestOffer?.planCode ?? '',
-      minRoomTypeId:
-        candidate.roomTypes
-          .map((roomType) => roomType.roomTypeId)
-          .sort()[0] ?? '',
+      minRoomTypeId: candidate.roomTypes.map((roomType) => roomType.roomTypeId).sort()[0] ?? '',
     };
   });
   decorated.sort((a, b) => {

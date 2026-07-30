@@ -35,33 +35,33 @@ Phase 7G closes the ADMIN booking-operations vertical:
 
 ## Implementation map
 
-| Surface | File(s) |
-| --- | --- |
-| DB migration | `packages/database/drizzle/0015_phase7g_admin_booking_operations.sql` |
-| Schema | `packages/database/src/schema.ts` (new enums, new `operational_reviews` table, new booking columns + check constraints) |
-| Contracts | `packages/contracts/src/admin-booking-operations.ts` |
-| Permissions | `packages/auth/src/permissions.ts` (added `booking.lifecycle.*`, `booking.review.*`) |
-| Repository | `apps/api/src/booking/repositories/admin-booking.repository.ts` |
-| Service | `apps/api/src/booking/services/admin-booking-lifecycle.service.ts` |
-| Property context | `apps/api/src/catalog/property-context.service.ts` |
-| Errors | `apps/api/src/booking/admin-booking.errors.ts` |
-| Controller | `apps/api/src/booking/admin-booking-operations.controller.ts` |
-| Module wiring | `apps/api/src/booking/booking.module.ts` |
-| Problem-details | `apps/api/src/errors/problem-details.filter.ts` |
-| Web client | `apps/web/src/lib/admin-api.ts` |
-| Web list | `apps/web/src/app/admin/bookings/page.tsx` |
-| Web detail | `apps/web/src/app/admin/bookings/[bookingCode]/page.tsx` |
-| Web review list | `apps/web/src/app/admin/operational-reviews/page.tsx` |
-| Web review detail | `apps/web/src/app/admin/operational-reviews/[reviewId]/page.tsx` |
-| Layout nav | `apps/web/src/app/admin/layout.tsx` |
-| Playwright | `tests/e2e/phase-7g-admin-booking-operations.spec.ts` |
-| Demo smoke | `scripts/demo/smoke.mjs` (+20 records), `scripts/demo/lifecycle-test.mjs` (expects 20/20) |
-| ADR | `docs/architecture/adr/ADR-0009-admin-booking-lifecycle.md` |
-| API contract | `docs/engineering/admin-api-contract.md` |
-| RBAC | `docs/security/AUTH_RBAC_POLICY.md` (Phase 7G section appended) |
-| Runbook | `docs/runbooks/phase-7g-admin-operations-demo.md` |
-| Validation report | `docs/audit/phase-7g-validation-report.md` |
-| Verdicts | `docs/handoffs/phase-7g-verdicts.md` |
+| Surface           | File(s)                                                                                                                 |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| DB migration      | `packages/database/drizzle/0015_phase7g_admin_booking_operations.sql`                                                   |
+| Schema            | `packages/database/src/schema.ts` (new enums, new `operational_reviews` table, new booking columns + check constraints) |
+| Contracts         | `packages/contracts/src/admin-booking-operations.ts`                                                                    |
+| Permissions       | `packages/auth/src/permissions.ts` (added `booking.lifecycle.*`, `booking.review.*`)                                    |
+| Repository        | `apps/api/src/booking/repositories/admin-booking.repository.ts`                                                         |
+| Service           | `apps/api/src/booking/services/admin-booking-lifecycle.service.ts`                                                      |
+| Property context  | `apps/api/src/catalog/property-context.service.ts`                                                                      |
+| Errors            | `apps/api/src/booking/admin-booking.errors.ts`                                                                          |
+| Controller        | `apps/api/src/booking/admin-booking-operations.controller.ts`                                                           |
+| Module wiring     | `apps/api/src/booking/booking.module.ts`                                                                                |
+| Problem-details   | `apps/api/src/errors/problem-details.filter.ts`                                                                         |
+| Web client        | `apps/web/src/lib/admin-api.ts`                                                                                         |
+| Web list          | `apps/web/src/app/admin/bookings/page.tsx`                                                                              |
+| Web detail        | `apps/web/src/app/admin/bookings/[bookingCode]/page.tsx`                                                                |
+| Web review list   | `apps/web/src/app/admin/operational-reviews/page.tsx`                                                                   |
+| Web review detail | `apps/web/src/app/admin/operational-reviews/[reviewId]/page.tsx`                                                        |
+| Layout nav        | `apps/web/src/app/admin/layout.tsx`                                                                                     |
+| Playwright        | `tests/e2e/phase-7g-admin-booking-operations.spec.ts`                                                                   |
+| Demo smoke        | `scripts/demo/smoke.mjs` (+20 records), `scripts/demo/lifecycle-test.mjs` (expects 20/20)                               |
+| ADR               | `docs/architecture/adr/ADR-0009-admin-booking-lifecycle.md`                                                             |
+| API contract      | `docs/engineering/admin-api-contract.md`                                                                                |
+| RBAC              | `docs/security/AUTH_RBAC_POLICY.md` (Phase 7G section appended)                                                         |
+| Runbook           | `docs/runbooks/phase-7g-admin-operations-demo.md`                                                                       |
+| Validation report | `docs/audit/phase-7g-validation-report.md`                                                                              |
+| Verdicts          | `docs/handoffs/phase-7g-verdicts.md`                                                                                    |
 
 ## Transactional shape
 

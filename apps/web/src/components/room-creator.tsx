@@ -20,7 +20,9 @@ export function RoomCreator() {
       })
       .catch((cause: unknown) =>
         setMessage(
-          cause instanceof AdminApiError ? translate(locale, 'room.typesLoadError') : translate(locale, 'room.typesLoadError'),
+          cause instanceof AdminApiError
+            ? translate(locale, 'room.typesLoadError')
+            : translate(locale, 'room.typesLoadError'),
         ),
       );
   }, [locale]);
@@ -33,7 +35,11 @@ export function RoomCreator() {
       setMessage(translate(locale, 'room.created', { number: room.roomNumber }));
       setRoomNumber('');
     } catch (cause) {
-      setMessage(cause instanceof AdminApiError ? translate(locale, 'room.createError') : translate(locale, 'room.createError'));
+      setMessage(
+        cause instanceof AdminApiError
+          ? translate(locale, 'room.createError')
+          : translate(locale, 'room.createError'),
+      );
     } finally {
       setPending(false);
     }

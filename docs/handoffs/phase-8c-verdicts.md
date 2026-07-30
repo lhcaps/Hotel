@@ -66,45 +66,45 @@ PRODUCTION_READINESS=NO_PENDING_PHASE_8D_LIVE_ACCEPTANCE
 
 ## Scorecard
 
-| Evidence gate | Result |
-| --- | --- |
-| ADR-0011 accepted | PASS |
-| Phase 8C design spec | PASS |
-| Phase 8C plan | PASS |
-| Phase 8C handoff | PASS |
-| Phase 8C validation report | PASS (definitive sections) |
-| Phase 8C provider spec traceability (delta) | PASS |
-| Phase 8C cryptographic vectors | PASS |
-| Phase 8C cross-provider race matrix | PASS |
-| Phase 8C runbook | PASS |
-| Phase 8C verdicts | this document |
-| Phase 8B.1 final verdict (corrected) | PASS |
-| Phase 8B.1 validation report (corrected) | PASS |
-| Phase 8B.1 verdicts (corrected) | PASS |
-| `payment-state-machine.md` (updated) | PASS |
-| `business-invariants.md` (updated) | PASS |
-| `user-journeys.md` (updated) | PASS |
-| `payment-architecture.md` (new) | PASS |
-| `admin-api-contract.md` (updated) | PASS |
-| `AUTH_RBAC_POLICY.md` (updated) | PASS |
-| `threat-model.md` (updated) | PASS |
-| `.env.example` (updated, no secrets) | PASS |
-| `gate-b1-cryptographic-conformance.test.ts` | pending — awaiting command evidence |
-| `phase8c-payment-reconciliation.test.ts` | pending — awaiting command evidence |
+| Evidence gate                                                           | Result                              |
+| ----------------------------------------------------------------------- | ----------------------------------- |
+| ADR-0011 accepted                                                       | PASS                                |
+| Phase 8C design spec                                                    | PASS                                |
+| Phase 8C plan                                                           | PASS                                |
+| Phase 8C handoff                                                        | PASS                                |
+| Phase 8C validation report                                              | PASS (definitive sections)          |
+| Phase 8C provider spec traceability (delta)                             | PASS                                |
+| Phase 8C cryptographic vectors                                          | PASS                                |
+| Phase 8C cross-provider race matrix                                     | PASS                                |
+| Phase 8C runbook                                                        | PASS                                |
+| Phase 8C verdicts                                                       | this document                       |
+| Phase 8B.1 final verdict (corrected)                                    | PASS                                |
+| Phase 8B.1 validation report (corrected)                                | PASS                                |
+| Phase 8B.1 verdicts (corrected)                                         | PASS                                |
+| `payment-state-machine.md` (updated)                                    | PASS                                |
+| `business-invariants.md` (updated)                                      | PASS                                |
+| `user-journeys.md` (updated)                                            | PASS                                |
+| `payment-architecture.md` (new)                                         | PASS                                |
+| `admin-api-contract.md` (updated)                                       | PASS                                |
+| `AUTH_RBAC_POLICY.md` (updated)                                         | PASS                                |
+| `threat-model.md` (updated)                                             | PASS                                |
+| `.env.example` (updated, no secrets)                                    | PASS                                |
+| `gate-b1-cryptographic-conformance.test.ts`                             | pending — awaiting command evidence |
+| `phase8c-payment-reconciliation.test.ts`                                | pending — awaiting command evidence |
 | `audit-phase8a/audit-payment-settlement.test.ts` race-matrix extensions | pending — awaiting command evidence |
-| `pnpm lint` (full tree) | pending — awaiting command evidence |
-| `pnpm typecheck` (full tree) | pending — awaiting command evidence |
-| `pnpm test:unit` (full tree) | pending — awaiting command evidence |
-| `pnpm build` (full tree) | pending — awaiting command evidence |
-| `pnpm check:openapi` | pending — awaiting command evidence |
-| `pnpm db:check` | pending — awaiting command evidence |
-| `pnpm audit --prod --audit-level=high` | pending — awaiting command evidence |
-| `node scripts/demo/lifecycle.test.mjs` | pending — awaiting command evidence |
+| `pnpm lint` (full tree)                                                 | pending — awaiting command evidence |
+| `pnpm typecheck` (full tree)                                            | pending — awaiting command evidence |
+| `pnpm test:unit` (full tree)                                            | pending — awaiting command evidence |
+| `pnpm build` (full tree)                                                | pending — awaiting command evidence |
+| `pnpm check:openapi`                                                    | pending — awaiting command evidence |
+| `pnpm db:check`                                                         | pending — awaiting command evidence |
+| `pnpm audit --prod --audit-level=high`                                  | pending — awaiting command evidence |
+| `node scripts/demo/lifecycle.test.mjs`                                  | pending — awaiting command evidence |
 
 ## Supersession chain
 
 - ADR-0011 supersedes nothing in writing (it is a new ADR); it
-  *augments* ADR-0006 (single settlement authority) with a
+  _augments_ ADR-0006 (single settlement authority) with a
   reconciliation layer that does not introduce a new mutation path.
 - Phase 8C supersedes nothing in writing; it closes the deferred
   Phase 8A scope (`PS-09`, `PS-13`, `PS-14`, `PS-19`, and

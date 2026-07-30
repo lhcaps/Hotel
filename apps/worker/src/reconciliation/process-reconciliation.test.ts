@@ -11,17 +11,20 @@ vi.mock('@room/booking', () => ({
     { id: 'b', leaseId: 'lease-b' },
     { id: 'c', leaseId: 'lease-c' },
   ]),
-  reconcilePaymentAttempt: vi.fn(async ({ attemptId }: { attemptId: string }) => ({
-    outcome: attemptId === 'a' ? 'PROCESSED' : 'LEASE_LOST',
-    attemptId,
-    errorCode: null,
-    nextReconciliationAt: null,
-  } satisfies {
-    outcome: 'PROCESSED' | 'LEASE_LOST';
-    attemptId: string;
-    errorCode: null;
-    nextReconciliationAt: null;
-  })),
+  reconcilePaymentAttempt: vi.fn(
+    async ({ attemptId }: { attemptId: string }) =>
+      ({
+        outcome: attemptId === 'a' ? 'PROCESSED' : 'LEASE_LOST',
+        attemptId,
+        errorCode: null,
+        nextReconciliationAt: null,
+      }) satisfies {
+        outcome: 'PROCESSED' | 'LEASE_LOST';
+        attemptId: string;
+        errorCode: null;
+        nextReconciliationAt: null;
+      },
+  ),
 }));
 
 describe('processReconciliation', () => {

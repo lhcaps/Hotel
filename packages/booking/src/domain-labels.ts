@@ -15,5 +15,4 @@ export const DIGEST_DOMAIN_LABELS = {
   otp: 'room-management/otp/v1',
 } as const;
 
-export type DigestDomainLabel =
-  (typeof DIGEST_DOMAIN_LABELS)[keyof typeof DIGEST_DOMAIN_LABELS];
+export type DigestDomainLabel = (typeof DIGEST_DOMAIN_LABELS)[keyof typeof DIGEST_DOMAIN_LABELS];

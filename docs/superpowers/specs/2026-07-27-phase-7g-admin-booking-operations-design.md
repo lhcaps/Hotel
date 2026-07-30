@@ -9,35 +9,35 @@ review model for paid cancellations.
 
 ## Reused architecture (no duplication)
 
-| Concern               | Existing module                                  | Reused as-is? |
-|-----------------------|---------------------------------------------------|----------------|
-| Booking state machine | `docs/domain/booking-state-machine.md` STM-001..008 | yes — extended with STM-009..013 |
-| Catalog property      | `apps/api/src/catalog/catalog.service.ts`         | yes (read-only) |
-| Inventory blocks      | `packages/booking/src/repository/booking-repository.ts` + `room_inventory_blocks` | yes |
-| Audit repository      | `apps/api/src/catalog/audit.repository.ts`        | yes (`AuditRepositoryPort`) |
-| Outbox                | `outbox_events`                                  | yes (no new event types required) |
-| Actor context         | `apps/api/src/auth/actor-context.ts`              | yes |
-| ADMIN permission guard| `apps/api/src/auth/admin-permission.guard.ts`    | yes (new `booking.lifecycle.manage`, `booking.review.manage`, `booking.review.read`) |
-| Booking repository    | `packages/booking/src/repository/booking-repository.ts` | yes (extend `BookingRow` + lock helper) |
-| Database client       | `packages/database/src/client.ts`                | yes |
-| Problem-details filter| `apps/api/src/errors/problem-details.filter.ts`  | extend with two new error classes |
-| Contracts package     | `packages/contracts/src/admin.ts`                | extend (no new tables on existing models) |
-| Customer profiles     | `customer_profiles` (Phase 7F)                   | yes |
-| Booking ownership     | `bookings.customer_user_id` (Phase 7F)           | yes — list filter continues to use it |
-| AUTH/RBAC policy      | `docs/security/AUTH_RBAC_POLICY.md`              | extend with two new permissions |
-| Admin Web shell       | `apps/web/src/app/admin/layout.tsx` + sidebar    | yes |
+| Concern                | Existing module                                                                   | Reused as-is?                                                                        |
+| ---------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Booking state machine  | `docs/domain/booking-state-machine.md` STM-001..008                               | yes — extended with STM-009..013                                                     |
+| Catalog property       | `apps/api/src/catalog/catalog.service.ts`                                         | yes (read-only)                                                                      |
+| Inventory blocks       | `packages/booking/src/repository/booking-repository.ts` + `room_inventory_blocks` | yes                                                                                  |
+| Audit repository       | `apps/api/src/catalog/audit.repository.ts`                                        | yes (`AuditRepositoryPort`)                                                          |
+| Outbox                 | `outbox_events`                                                                   | yes (no new event types required)                                                    |
+| Actor context          | `apps/api/src/auth/actor-context.ts`                                              | yes                                                                                  |
+| ADMIN permission guard | `apps/api/src/auth/admin-permission.guard.ts`                                     | yes (new `booking.lifecycle.manage`, `booking.review.manage`, `booking.review.read`) |
+| Booking repository     | `packages/booking/src/repository/booking-repository.ts`                           | yes (extend `BookingRow` + lock helper)                                              |
+| Database client        | `packages/database/src/client.ts`                                                 | yes                                                                                  |
+| Problem-details filter | `apps/api/src/errors/problem-details.filter.ts`                                   | extend with two new error classes                                                    |
+| Contracts package      | `packages/contracts/src/admin.ts`                                                 | extend (no new tables on existing models)                                            |
+| Customer profiles      | `customer_profiles` (Phase 7F)                                                    | yes                                                                                  |
+| Booking ownership      | `bookings.customer_user_id` (Phase 7F)                                            | yes — list filter continues to use it                                                |
+| AUTH/RBAC policy       | `docs/security/AUTH_RBAC_POLICY.md`                                               | extend with two new permissions                                                      |
+| Admin Web shell        | `apps/web/src/app/admin/layout.tsx` + sidebar                                     | yes                                                                                  |
 
 ## Booking transition matrix (locked)
 
 Allowed:
 
-| ID     | From      | Event                          | To          |
-|--------|-----------|--------------------------------|-------------|
-| STM-004| HOLD      | `ADMIN_CANCEL`                 | CANCELLED   |
-| STM-005| CONFIRMED | `ADMIN_CANCEL_BEFORE_CHECKIN`  | CANCELLED   |
-| STM-006| CONFIRMED | `ADMIN_CHECK_IN`               | CHECKED_IN  |
-| STM-007| CONFIRMED | `ADMIN_MARK_NO_SHOW`           | NO_SHOW     |
-| STM-008| CHECKED_IN| `ADMIN_CHECK_OUT`              | CHECKED_OUT |
+| ID      | From       | Event                         | To          |
+| ------- | ---------- | ----------------------------- | ----------- |
+| STM-004 | HOLD       | `ADMIN_CANCEL`                | CANCELLED   |
+| STM-005 | CONFIRMED  | `ADMIN_CANCEL_BEFORE_CHECKIN` | CANCELLED   |
+| STM-006 | CONFIRMED  | `ADMIN_CHECK_IN`              | CHECKED_IN  |
+| STM-007 | CONFIRMED  | `ADMIN_MARK_NO_SHOW`          | NO_SHOW     |
+| STM-008 | CHECKED_IN | `ADMIN_CHECK_OUT`             | CHECKED_OUT |
 
 Rejected (must throw `BOOKING_TRANSITION_NOT_ALLOWED`, 409):
 
@@ -137,21 +137,21 @@ We add the minimum required model.
 
 ### `operational_reviews` (new table — migration `0015_phase7g_admin_booking_operations`)
 
-| Column          | Type              | Notes                                         |
-|-----------------|-------------------|-----------------------------------------------|
-| `id`            | uuid pk           | `defaultRandom()`                             |
-| `property_id`   | uuid fk           | references `properties.id` ON DELETE restrict |
-| `booking_id`    | uuid fk           | references `bookings.id` ON DELETE restrict   |
-| `payment_id`    | uuid fk nullable  | references `payments.id` ON DELETE restrict   |
-| `category`      | enum              | `PAID_CANCELLATION` (locked for Phase 7G)     |
-| `status`        | enum              | `OPEN`, `RESOLVED`                            |
-| `opened_at`     | timestamptz       | `not null default now()`                      |
-| `opened_reason` | text              | `not null`, trim non-empty, ≤1000             |
-| `resolved_at`   | timestamptz null  |                                               |
-| `resolver_id`   | uuid null         | references `users.id` (ADMIN)                 |
-| `resolved_note` | text null         | trim non-empty, ≤2000                         |
-| `created_at`    | timestamptz       | default now()                                 |
-| `updated_at`    | timestamptz       | default now()                                 |
+| Column          | Type             | Notes                                         |
+| --------------- | ---------------- | --------------------------------------------- |
+| `id`            | uuid pk          | `defaultRandom()`                             |
+| `property_id`   | uuid fk          | references `properties.id` ON DELETE restrict |
+| `booking_id`    | uuid fk          | references `bookings.id` ON DELETE restrict   |
+| `payment_id`    | uuid fk nullable | references `payments.id` ON DELETE restrict   |
+| `category`      | enum             | `PAID_CANCELLATION` (locked for Phase 7G)     |
+| `status`        | enum             | `OPEN`, `RESOLVED`                            |
+| `opened_at`     | timestamptz      | `not null default now()`                      |
+| `opened_reason` | text             | `not null`, trim non-empty, ≤1000             |
+| `resolved_at`   | timestamptz null |                                               |
+| `resolver_id`   | uuid null        | references `users.id` (ADMIN)                 |
+| `resolved_note` | text null        | trim non-empty, ≤2000                         |
+| `created_at`    | timestamptz      | default now()                                 |
+| `updated_at`    | timestamptz      | default now()                                 |
 
 Constraints:
 
@@ -179,25 +179,25 @@ The operational review must **never** mutate the `payments` table or the
 
 ## Inventory and coupon effects (locked)
 
-| Transition            | Inventory                          | Coupon application                  |
-|-----------------------|------------------------------------|--------------------------------------|
-| HOLD → CANCELLED      | release BOOKING block              | `RESERVED → RELEASED` (if any)      |
-| CONFIRMED → CANCELLED | release BOOKING block              | `REDEEMED` stays REDEEMED           |
-| CONFIRMED → CHECKED_IN| block stays ACTIVE                 | unchanged                           |
-| CONFIRMED → NO_SHOW   | release BOOKING block              | `REDEEMED` stays REDEEMED           |
-| CHECKED_IN → CHECKED_OUT | release BOOKING block            | unchanged                           |
+| Transition               | Inventory             | Coupon application             |
+| ------------------------ | --------------------- | ------------------------------ |
+| HOLD → CANCELLED         | release BOOKING block | `RESERVED → RELEASED` (if any) |
+| CONFIRMED → CANCELLED    | release BOOKING block | `REDEEMED` stays REDEEMED      |
+| CONFIRMED → CHECKED_IN   | block stays ACTIVE    | unchanged                      |
+| CONFIRMED → NO_SHOW      | release BOOKING block | `REDEEMED` stays REDEEMED      |
+| CHECKED_IN → CHECKED_OUT | release BOOKING block | unchanged                      |
 
 ## Audit & outbox behavior (locked)
 
 Each successful mutation appends one scrubbed `audit_events` row:
 
-| Transition            | `eventType`            | Payload keys                                        |
-|-----------------------|------------------------|-----------------------------------------------------|
-| HOLD → CANCELLED      | `BOOKING_CANCELLED`    | `bookingCode, from: 'HOLD', reason, paid: false`    |
-| CONFIRMED → CANCELLED | `BOOKING_CANCELLED`    | `bookingCode, from: 'CONFIRMED', paid, reason`      |
-| CONFIRMED → CHECKED_IN| `BOOKING_CHECKED_IN`   | `bookingCode`                                       |
-| CONFIRMED → NO_SHOW   | `BOOKING_NO_SHOW`      | `bookingCode, reason, lateBySeconds`                |
-| CHECKED_IN → CHECKED_OUT | `BOOKING_CHECKED_OUT`| `bookingCode`                                       |
+| Transition               | `eventType`           | Payload keys                                     |
+| ------------------------ | --------------------- | ------------------------------------------------ |
+| HOLD → CANCELLED         | `BOOKING_CANCELLED`   | `bookingCode, from: 'HOLD', reason, paid: false` |
+| CONFIRMED → CANCELLED    | `BOOKING_CANCELLED`   | `bookingCode, from: 'CONFIRMED', paid, reason`   |
+| CONFIRMED → CHECKED_IN   | `BOOKING_CHECKED_IN`  | `bookingCode`                                    |
+| CONFIRMED → NO_SHOW      | `BOOKING_NO_SHOW`     | `bookingCode, reason, lateBySeconds`             |
+| CHECKED_IN → CHECKED_OUT | `BOOKING_CHECKED_OUT` | `bookingCode`                                    |
 
 The paid-cancel path also appends one `OPERATIONAL_REVIEW_OPENED` event
 with `category: 'PAID_CANCELLATION'` (no payment secret or raw payload).
@@ -228,17 +228,17 @@ POST   /api/v1/admin/operational-reviews/:reviewId/resolve
 
 ### Permissions
 
-| Route                                       | Permission                       |
-|---------------------------------------------|----------------------------------|
-| `GET /admin/bookings`                       | `booking.lifecycle.read`         |
-| `GET /admin/bookings/:bookingCode`          | `booking.lifecycle.read`         |
-| `POST /admin/bookings/:code/cancel`         | `booking.lifecycle.manage`       |
-| `POST /admin/bookings/:code/check-in`       | `booking.lifecycle.manage`       |
-| `POST /admin/bookings/:code/check-out`      | `booking.lifecycle.manage`       |
-| `POST /admin/bookings/:code/no-show`        | `booking.lifecycle.manage`       |
-| `GET /admin/operational-reviews`            | `booking.review.read`            |
-| `GET /admin/operational-reviews/:id`        | `booking.review.read`            |
-| `POST /admin/operational-reviews/:id/resolve` | `booking.review.manage`        |
+| Route                                         | Permission                 |
+| --------------------------------------------- | -------------------------- |
+| `GET /admin/bookings`                         | `booking.lifecycle.read`   |
+| `GET /admin/bookings/:bookingCode`            | `booking.lifecycle.read`   |
+| `POST /admin/bookings/:code/cancel`           | `booking.lifecycle.manage` |
+| `POST /admin/bookings/:code/check-in`         | `booking.lifecycle.manage` |
+| `POST /admin/bookings/:code/check-out`        | `booking.lifecycle.manage` |
+| `POST /admin/bookings/:code/no-show`          | `booking.lifecycle.manage` |
+| `GET /admin/operational-reviews`              | `booking.review.read`      |
+| `GET /admin/operational-reviews/:id`          | `booking.review.read`      |
+| `POST /admin/operational-reviews/:id/resolve` | `booking.review.manage`    |
 
 `booking.lifecycle.read` and `booking.lifecycle.manage` are added to the
 `ADMIN` permission set; `booking.review.read` and `booking.review.manage`
@@ -290,15 +290,15 @@ Booking detail adds:
 
 Available actions (server-authoritative):
 
-| Current status | Available actions                            |
-|----------------|----------------------------------------------|
-| HOLD           | `cancel`                                     |
-| CONFIRMED      | `cancel`, `check-in`, `no-show`              |
-| CHECKED_IN     | `check-out`                                  |
-| CANCELLED      | `[]`                                         |
-| NO_SHOW        | `[]`                                         |
-| CHECKED_OUT    | `[]`                                         |
-| EXPIRED        | `[]`                                         |
+| Current status | Available actions               |
+| -------------- | ------------------------------- |
+| HOLD           | `cancel`                        |
+| CONFIRMED      | `cancel`, `check-in`, `no-show` |
+| CHECKED_IN     | `check-out`                     |
+| CANCELLED      | `[]`                            |
+| NO_SHOW        | `[]`                            |
+| CHECKED_OUT    | `[]`                            |
+| EXPIRED        | `[]`                            |
 
 The browser must never submit a target status. The browser only POSTs the
 operation name and the reason (where required).
@@ -326,14 +326,14 @@ If `now < checkIn`, the response is 409 `NO_SHOW_BEFORE_CHECK_IN`.
 
 ### Error codes
 
-| Code                                  | HTTP | Public `type`                       |
-|---------------------------------------|------|--------------------------------------|
-| `BOOKING_NOT_FOUND`                   | 404  | `booking-not-found`                  |
-| `BOOKING_TRANSITION_NOT_ALLOWED`      | 409  | `booking-transition-not-allowed`     |
-| `NO_SHOW_BEFORE_CHECK_IN`             | 409  | `booking-no-show-before-check-in`    |
-| `OPERATIONAL_REVIEW_NOT_FOUND`        | 404  | `operational-review-not-found`       |
-| `OPERATIONAL_REVIEW_ALREADY_RESOLVED` | 409  | `operational-review-already-resolved`|
-| `REVIEW_REASON_REQUIRED`              | 400  | `validation-error`                   |
+| Code                                  | HTTP | Public `type`                         |
+| ------------------------------------- | ---- | ------------------------------------- |
+| `BOOKING_NOT_FOUND`                   | 404  | `booking-not-found`                   |
+| `BOOKING_TRANSITION_NOT_ALLOWED`      | 409  | `booking-transition-not-allowed`      |
+| `NO_SHOW_BEFORE_CHECK_IN`             | 409  | `booking-no-show-before-check-in`     |
+| `OPERATIONAL_REVIEW_NOT_FOUND`        | 404  | `operational-review-not-found`        |
+| `OPERATIONAL_REVIEW_ALREADY_RESOLVED` | 409  | `operational-review-already-resolved` |
+| `REVIEW_REASON_REQUIRED`              | 400  | `validation-error`                    |
 
 ## Database impact
 
@@ -361,7 +361,7 @@ new migration number and the new version.
 ## Authorization matrix (locked)
 
 | Actor                    | Read admin/bookings | Mutate booking lifecycle | Read reviews | Resolve review |
-|--------------------------|---------------------|--------------------------|--------------|----------------|
+| ------------------------ | ------------------- | ------------------------ | ------------ | -------------- |
 | Unauthenticated          | 401                 | 401                      | 401          | 401            |
 | CUSTOMER (any status)    | 403                 | 403                      | 403          | 403            |
 | Guest session            | 401                 | 401                      | 401          | 401            |

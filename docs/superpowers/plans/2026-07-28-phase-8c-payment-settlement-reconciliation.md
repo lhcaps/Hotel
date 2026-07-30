@@ -56,7 +56,7 @@ Status: EXECUTED (documentation phase)
      for initiation, IPN, response, and status-query canonical
      strings on both providers.
    - **Verify**: gate passes (count `pending — awaiting command
-     evidence` until the next `pnpm` run).
+evidence` until the next `pnpm` run).
 
 5. **Phase 8C.E — Gate B.2: Cross-provider race matrix.**
    - Author `packages/database/test/integration/phase8c-payment-reconciliation.test.ts`
@@ -96,7 +96,7 @@ Status: EXECUTED (documentation phase)
 8. **Phase 8C.H — Gate B.5: Phase 8C evidence closure.**
    - Write `docs/audit/phase-8c-validation-report.md` capturing
      Gate B.0..B.4 evidence plus honest `pending — awaiting
-     command evidence` rows for the Phase 8B.1 regression re-run
+command evidence` rows for the Phase 8B.1 regression re-run
      that is out of scope for this documentation phase.
    - Write `docs/handoffs/phase-8c-payment-settlement-reconciliation.md`,
      `docs/handoffs/phase-8c-verdicts.md`,
@@ -115,7 +115,7 @@ Status: EXECUTED (documentation phase)
   appropriate.
 - Gate B.1 cryptographic-conformance test plus the two oracles are
   in place. The exact case count is `pending — awaiting command
-  evidence`.
+evidence`.
 - Gate B.2 cross-provider race matrix doc enumerates 10 scenarios
   with expected outcomes and verbatim fixture paths. Exact
   pass/fail is `pending — awaiting command evidence`.
@@ -149,11 +149,11 @@ Status: EXECUTED (documentation phase)
 
 ## Risks
 
-| Risk | Mitigation |
-| --- | --- |
-| Phase 8B.1 regression re-run blocked by external sandbox | The validation phase defers live sandbox acceptance; the deterministic cryptographic-conformance oracle is sufficient for the cryptographic gate. |
-| Reconciliation tick over-runs the provider | Lease + bounded batch + bounded query timeout; configurable via `WORKER_RECONCILIATION_*`; values outside bounds throw `RangeError`. |
-| Cross-provider race produces two confirmations | Settlement lock order (booking → payment → attempt → inventory → coupon) plus `payments_property_booking_uq` unique constraint; second provider path returns `REVIEW_REQUIRED`. |
+| Risk                                                               | Mitigation                                                                                                                                                                                                        |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 8B.1 regression re-run blocked by external sandbox           | The validation phase defers live sandbox acceptance; the deterministic cryptographic-conformance oracle is sufficient for the cryptographic gate.                                                                 |
+| Reconciliation tick over-runs the provider                         | Lease + bounded batch + bounded query timeout; configurable via `WORKER_RECONCILIATION_*`; values outside bounds throw `RangeError`.                                                                              |
+| Cross-provider race produces two confirmations                     | Settlement lock order (booking → payment → attempt → inventory → coupon) plus `payments_property_booking_uq` unique constraint; second provider path returns `REVIEW_REQUIRED`.                                   |
 | Reconciliation tick confuses a successful IPN with a stuck PENDING | The status query is gated by `payment_attempts.status = 'PENDING'`; a later IPN transitions the attempt to `SUCCEEDED`/`FAILED`/`CANCELLED`/`EXPIRED`/`REVIEW_REQUIRED` and the query path is no longer eligible. |
 
 ## External blockers

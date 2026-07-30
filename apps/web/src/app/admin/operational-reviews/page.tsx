@@ -16,7 +16,7 @@ const PAGE_SIZE = 20;
 const STATUS_OPTIONS = ['', 'OPEN', 'RESOLVED'] as const;
 
 interface Filters {
-  readonly status: typeof STATUS_OPTIONS[number];
+  readonly status: (typeof STATUS_OPTIONS)[number];
   readonly bookingCode: string;
 }
 
@@ -151,7 +151,9 @@ export default function OperationalReviewsPage() {
                 <td>{item.status}</td>
                 <td>{formatDateTime(locale, item.openedAt)}</td>
                 <td>
-                  <Link href={`/admin/operational-reviews/${item.reviewId}`}>{translate(locale, 'admin.open')}</Link>
+                  <Link href={`/admin/operational-reviews/${item.reviewId}`}>
+                    {translate(locale, 'admin.open')}
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -159,13 +161,19 @@ export default function OperationalReviewsPage() {
         </table>
       ) : null}
       <div className="admin-pagination">
-        <button disabled={page <= 1} onClick={() => refresh(page - 1, appliedFilters)} type="button">
+        <button
+          disabled={page <= 1}
+          onClick={() => refresh(page - 1, appliedFilters)}
+          type="button"
+        >
           {translate(locale, 'admin.previousPage')}
         </button>
-        <span>
-          {translate(locale, 'admin.pageOf', { page, totalPages })}
-        </span>
-        <button disabled={page >= totalPages} onClick={() => refresh(page + 1, appliedFilters)} type="button">
+        <span>{translate(locale, 'admin.pageOf', { page, totalPages })}</span>
+        <button
+          disabled={page >= totalPages}
+          onClick={() => refresh(page + 1, appliedFilters)}
+          type="button"
+        >
           {translate(locale, 'admin.nextPage')}
         </button>
       </div>

@@ -105,9 +105,10 @@ describe('Phase 8B1 migration readiness through migration 0016', () => {
 
   beforeAll(async () => {
     database = await createTrimmedMigratedTestDatabase(
-      process.env.TEST_DATABASE_URL ?? (() => {
-        throw new Error('TEST_DATABASE_URL is required for database integration tests');
-      })(),
+      process.env.TEST_DATABASE_URL ??
+        (() => {
+          throw new Error('TEST_DATABASE_URL is required for database integration tests');
+        })(),
       16,
     );
   });

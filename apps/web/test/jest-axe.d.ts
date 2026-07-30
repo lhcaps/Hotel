@@ -3,7 +3,12 @@ declare module 'jest-axe' {
     container: Element | Document,
     options?: Record<string, unknown>,
   ) => Promise<{
-    violations: ReadonlyArray<{ id: string; impact?: string | null; description: string; nodes: ReadonlyArray<unknown> }>;
+    violations: ReadonlyArray<{
+      id: string;
+      impact?: string | null;
+      description: string;
+      nodes: ReadonlyArray<unknown>;
+    }>;
     incomplete: ReadonlyArray<unknown>;
     passes: ReadonlyArray<unknown>;
     inapplicable: ReadonlyArray<unknown>;

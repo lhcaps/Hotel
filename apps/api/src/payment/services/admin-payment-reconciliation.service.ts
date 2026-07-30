@@ -245,7 +245,11 @@ export class AdminPaymentReconciliationService {
     });
   }
 
-  public async getDetail(paymentId: string, propertyId: string, now: Date): Promise<AdminPaymentDetail> {
+  public async getDetail(
+    paymentId: string,
+    propertyId: string,
+    now: Date,
+  ): Promise<AdminPaymentDetail> {
     const detail = await this.repository.findDetailByPaymentId(paymentId, propertyId);
     if (detail === null) {
       throw new AdminPaymentNotFoundError();
@@ -315,10 +319,7 @@ export class AdminPaymentReconciliationService {
     return response;
   }
 
-  private assertFresh(
-    command: AdminPaymentReconcileRequest,
-    detail: AdminPaymentDetailRow,
-  ): void {
+  private assertFresh(command: AdminPaymentReconcileRequest, detail: AdminPaymentDetailRow): void {
     if (
       command.expectedAttemptId !== undefined &&
       detail.latestAttempt !== null &&

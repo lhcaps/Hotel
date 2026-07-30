@@ -57,10 +57,16 @@ export function AccountLanguageSettings({ locale }: Readonly<{ locale: Locale }>
         </label>
       </fieldset>
       <button disabled={!changed || pending} onClick={saveLocale} type="button">
-        {pending ? translate(locale, 'account.savingLanguage') : translate(locale, 'account.saveLanguage')}
+        {pending
+          ? translate(locale, 'account.savingLanguage')
+          : translate(locale, 'account.saveLanguage')}
       </button>
-      {status === 'saved' ? <p role="status">{translate(locale, 'account.languageSaved')}</p> : null}
-      {status === 'error' ? <p role="alert">{translate(locale, 'account.languageSaveError')}</p> : null}
+      {status === 'saved' ? (
+        <p role="status">{translate(locale, 'account.languageSaved')}</p>
+      ) : null}
+      {status === 'error' ? (
+        <p role="alert">{translate(locale, 'account.languageSaveError')}</p>
+      ) : null}
     </section>
   );
 }

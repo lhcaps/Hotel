@@ -14,9 +14,7 @@ interface RequestLike {
 
 @Controller('public/guest-access')
 export class GuestAccessLogoutController {
-  public constructor(
-    @Inject(GuestLogoutService) private readonly service: GuestLogoutService,
-  ) {}
+  public constructor(@Inject(GuestLogoutService) private readonly service: GuestLogoutService) {}
 
   @Post('logout')
   @Version('1')

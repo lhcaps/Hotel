@@ -36,7 +36,11 @@ describe('OtpRequestPanel', () => {
       </LocaleProvider>,
     );
     await user.click(screen.getByRole('button', { name: 'Send verification code' }));
-    expect(await screen.findByText('Enter a valid booking code using uppercase letters, digits, and hyphens.')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Enter a valid booking code using uppercase letters, digits, and hyphens.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Booking code')).toBeInTheDocument();
   });
 
@@ -172,9 +176,7 @@ describe('OtpVerifyPanel', () => {
       challengeRef: 'A'.repeat(32),
       otp: '123456',
     });
-    expect(
-      await screen.findByText(/Mã xác nhận không đúng hoặc đã hết hạn/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Mã xác nhận không đúng hoặc đã hết hạn/)).toBeInTheDocument();
     expect(onVerified).not.toHaveBeenCalled();
   });
 

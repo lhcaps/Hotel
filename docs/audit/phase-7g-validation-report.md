@@ -8,29 +8,29 @@ verdicts. Every gate lists exact commands, exit codes, and counts.
 
 ## Static gates
 
-| Gate | Command | Exit | Result | Notes |
-| --- | --- | --- | --- | --- |
-| Lint | `pnpm lint` | 0 | PASS | ESLint + workspace lint scripts, 0 errors |
-| Typecheck | `pnpm typecheck` | 0 | PASS | tsc --noEmit across all workspaces, 0 errors |
-| Build | `pnpm build` | 0 | PASS | turbo build, all packages compiled |
-| OpenAPI | `pnpm check:openapi` | 0 | PASS | generated artifact committed, drift-free |
-| DB schema | `pnpm db:check` | 0 | PASS | migration identity preserved for 0001-0015 |
-| DB status | `pnpm db:status` | 0 | PASS | schema version = `phase-7g-admin-booking-operations-v1` |
+| Gate      | Command              | Exit | Result | Notes                                                   |
+| --------- | -------------------- | ---- | ------ | ------------------------------------------------------- |
+| Lint      | `pnpm lint`          | 0    | PASS   | ESLint + workspace lint scripts, 0 errors               |
+| Typecheck | `pnpm typecheck`     | 0    | PASS   | tsc --noEmit across all workspaces, 0 errors            |
+| Build     | `pnpm build`         | 0    | PASS   | turbo build, all packages compiled                      |
+| OpenAPI   | `pnpm check:openapi` | 0    | PASS   | generated artifact committed, drift-free                |
+| DB schema | `pnpm db:check`      | 0    | PASS   | migration identity preserved for 0001-0015              |
+| DB status | `pnpm db:status`     | 0    | PASS   | schema version = `phase-7g-admin-booking-operations-v1` |
 
 ## Unit tests
 
-| Command | Exit | Passed | Failed | Skipped |
-| --- | --- | --- | --- | --- |
-| `pnpm test:unit` | 0 | reported below | 0 | reported below |
+| Command          | Exit | Passed         | Failed | Skipped        |
+| ---------------- | ---- | -------------- | ------ | -------------- |
+| `pnpm test:unit` | 0    | reported below | 0      | reported below |
 
 Unit tests cover the contracts, the selector helpers, the
 `AdminPermissionGuard`, and the problem-details mapping.
 
 ## Integration tests
 
-| Command | Exit | Passed | Failed | Skipped | Notes |
-| --- | --- | --- | --- | --- | --- |
-| `pnpm --filter @room/api test -- admin-booking-lifecycle.integration` | 0 | 22 | 0 | 0 | Real PostgreSQL, covers all 22 TDD cases |
+| Command                                                               | Exit | Passed | Failed | Skipped | Notes                                    |
+| --------------------------------------------------------------------- | ---- | ------ | ------ | ------- | ---------------------------------------- |
+| `pnpm --filter @room/api test -- admin-booking-lifecycle.integration` | 0    | 22     | 0      | 0       | Real PostgreSQL, covers all 22 TDD cases |
 
 ### TDD matrix coverage
 
@@ -75,25 +75,25 @@ Unit tests cover the contracts, the selector helpers, the
 
 ## Playwright
 
-| Suite | Exit | Passed | Failed | Skipped | Notes |
-| --- | --- | --- | --- | --- | --- |
-| Focused Phase 7G admin booking operations | 0 | reported below | 0 | 0 | full lifecycle + CUSTOMER denial |
-| Focused Phase 7F identity browser suite | 0 | 11 | 0 | 0 | regression |
-| Full wrapper | 0 | reported below | 0 | reported below | one documented pre-existing skip |
+| Suite                                     | Exit | Passed         | Failed | Skipped        | Notes                            |
+| ----------------------------------------- | ---- | -------------- | ------ | -------------- | -------------------------------- |
+| Focused Phase 7G admin booking operations | 0    | reported below | 0      | 0              | full lifecycle + CUSTOMER denial |
+| Focused Phase 7F identity browser suite   | 0    | 11             | 0      | 0              | regression                       |
+| Full wrapper                              | 0    | reported below | 0      | reported below | one documented pre-existing skip |
 
 ## Demo
 
-| Suite | Exit | Notes |
-| --- | --- | --- |
-| `pnpm demo:preflight` | 0 | preflight passes |
-| `pnpm demo:lifecycle` | 0 | smoke + lifecycle scripts |
-| `pnpm demo:smoke` | 0 | 20 records, all PASS |
+| Suite                 | Exit | Notes                     |
+| --------------------- | ---- | ------------------------- |
+| `pnpm demo:preflight` | 0    | preflight passes          |
+| `pnpm demo:lifecycle` | 0    | smoke + lifecycle scripts |
+| `pnpm demo:smoke`     | 0    | 20 records, all PASS      |
 
 ## Dependency audit
 
-| Command | Exit | Notes |
-| --- | --- | --- |
-| `pnpm audit --prod` | 0 | no high/critical advisories introduced |
+| Command             | Exit | Notes                                  |
+| ------------------- | ---- | -------------------------------------- |
+| `pnpm audit --prod` | 0    | no high/critical advisories introduced |
 
 ## Reuse evidence
 

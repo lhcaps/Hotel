@@ -63,14 +63,14 @@ Root cause: `FIVE_HOUR_COMBO` had an unbounded day window, and `NIGHT_COMBO` req
 
 ## Customer Plan Matrix
 
-| Plan | Status | Tier prices | Window | Duration | Priority | Hourly | Overnight | Public behavior |
-|---|---|---|---|---|---:|---|---|---|
-| `THREE_HOUR_COMBO` | ACTIVE | complete | unrestricted | 60–240 min | 60 | eligible | no | best offer / selector / quote / recommendation |
-| `FIVE_HOUR_COMBO` | ACTIVE | complete | 00:00–18:00 | 255–960 min | 70 | eligible | no after 18:00 | best offer / selector / quote / recommendation |
-| `LUNCH_COMBO` | ACTIVE | complete | 11:00–15:00 | 60–960 min | 80 | eligible in window | no | selector / quote / recommendation |
-| `NIGHT_COMBO` | ACTIVE | complete | 18:00–24:00 | 300–960 min | 90 | eligible in window | eligible | best offer / selector / quote / recommendation |
-| `DAY_COMBO` | ACTIVE | complete | unrestricted | 975–1440 min | 100 | eligible | eligible when duration matches | selector / quote / recommendation |
-| `EXTRA_HOUR` | ACTIVE | complete | unrestricted | component only | 10 | calculated server-side | calculated server-side | quote breakdown only |
+| Plan               | Status | Tier prices | Window       | Duration       | Priority | Hourly                 | Overnight                      | Public behavior                                |
+| ------------------ | ------ | ----------- | ------------ | -------------- | -------: | ---------------------- | ------------------------------ | ---------------------------------------------- |
+| `THREE_HOUR_COMBO` | ACTIVE | complete    | unrestricted | 60–240 min     |       60 | eligible               | no                             | best offer / selector / quote / recommendation |
+| `FIVE_HOUR_COMBO`  | ACTIVE | complete    | 00:00–18:00  | 255–960 min    |       70 | eligible               | no after 18:00                 | best offer / selector / quote / recommendation |
+| `LUNCH_COMBO`      | ACTIVE | complete    | 11:00–15:00  | 60–960 min     |       80 | eligible in window     | no                             | selector / quote / recommendation              |
+| `NIGHT_COMBO`      | ACTIVE | complete    | 18:00–24:00  | 300–960 min    |       90 | eligible in window     | eligible                       | best offer / selector / quote / recommendation |
+| `DAY_COMBO`        | ACTIVE | complete    | unrestricted | 975–1440 min   |      100 | eligible               | eligible when duration matches | selector / quote / recommendation              |
+| `EXTRA_HOUR`       | ACTIVE | complete    | unrestricted | component only |       10 | calculated server-side | calculated server-side         | quote breakdown only                           |
 
 `LANDING_BEST_OFFER=PASS`
 `ROOM_DETAIL_ALL_ELIGIBLE_PLANS=PASS`

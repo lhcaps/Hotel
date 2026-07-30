@@ -32,15 +32,10 @@ export class MomoAdapterError extends Error {
  * must rely on these discriminated failures instead.
  */
 export type MomoQueryNetworkCode =
-  | 'PROVIDER_TIMEOUT'
-  | 'PROVIDER_ABORTED'
-  | 'PROVIDER_UNREACHABLE'
-  | 'PROVIDER_INVALID_RESPONSE';
+  'PROVIDER_TIMEOUT' | 'PROVIDER_ABORTED' | 'PROVIDER_UNREACHABLE' | 'PROVIDER_INVALID_RESPONSE';
 
 export type MomoQueryConfigCode =
-  | 'PROVIDER_CONFIG_MISSING'
-  | 'PROVIDER_CONFIG_INVALID'
-  | 'PROVIDER_TIMEOUT_FLOOR';
+  'PROVIDER_CONFIG_MISSING' | 'PROVIDER_CONFIG_INVALID' | 'PROVIDER_TIMEOUT_FLOOR';
 
 export type MomoQueryAdapterCode =
   | 'PROVIDER_PAYLOAD_INVALID'

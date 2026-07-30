@@ -66,9 +66,7 @@ export async function recommendationStayTimes(
   };
 
   const couponRepository = deps.couponRepository;
-  const couponPreviewer:
-    | ((input: CouponPreviewInput) => Promise<number>)
-    | undefined =
+  const couponPreviewer: ((input: CouponPreviewInput) => Promise<number>) | undefined =
     couponRepository !== undefined
       ? async (input) => {
           try {

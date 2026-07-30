@@ -55,21 +55,19 @@ describe('parseCustomerProfilePatch', () => {
   });
 
   it('rejects overly-long name', () => {
-    expect(() =>
-      parseCustomerProfilePatch({ name: 'x'.repeat(121) }),
-    ).toThrow(/Name must be 120 characters or fewer/);
+    expect(() => parseCustomerProfilePatch({ name: 'x'.repeat(121) })).toThrow(
+      /Name must be 120 characters or fewer/,
+    );
   });
 
   it('rejects invalid phone format', () => {
-    expect(() =>
-      parseCustomerProfilePatch({ name: 'X', phone: '0901234567' }),
-    ).toThrow(/E\.164/);
+    expect(() => parseCustomerProfilePatch({ name: 'X', phone: '0901234567' })).toThrow(/E\.164/);
   });
 
   it('rejects invalid country code', () => {
-    expect(() =>
-      parseCustomerProfilePatch({ name: 'X', countryCode: 'vietnam' }),
-    ).toThrow(/2-letter ISO/);
+    expect(() => parseCustomerProfilePatch({ name: 'X', countryCode: 'vietnam' })).toThrow(
+      /2-letter ISO/,
+    );
   });
 
   it('truncates oversize text fields to the documented maximums', () => {

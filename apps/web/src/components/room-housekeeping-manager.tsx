@@ -13,7 +13,10 @@ export function RoomHousekeepingManager() {
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    void adminApi.listRooms().then((page) => setRooms(page.items)).catch(() => setError('Unable to load room operations.'));
+    void adminApi
+      .listRooms()
+      .then((page) => setRooms(page.items))
+      .catch(() => setError('Unable to load room operations.'));
   }, []);
 
   async function change(room: Room, housekeepingStatus: Room['housekeepingStatus']) {
@@ -31,15 +34,27 @@ export function RoomHousekeepingManager() {
       <h2 id="room-operations-heading">Room operations</h2>
       <p>Housekeeping state is internal and visible only to administrators.</p>
       {error ? <p role="alert">{error}</p> : null}
-      {rooms === undefined ? <p aria-live="polite">Loading room operations…</p> : (
+      {rooms === undefined ? (
+        <p aria-live="polite">Loading room operations…</p>
+      ) : (
         <ul className="room-housekeeping-list">
           {rooms.map((room) => (
             <li key={room.id}>
               <span>{room.roomNumber}</span>
               <label>
                 <span className="sr-only">Housekeeping for {room.roomNumber}</span>
-                <select aria-label={`Housekeeping for ${room.roomNumber}`} onChange={(event) => void change(room, event.target.value as Room['housekeepingStatus'])} value={room.housekeepingStatus}>
-                  {states.map((state) => <option key={state} value={state}>{state}</option>)}
+                <select
+                  aria-label={`Housekeeping for ${room.roomNumber}`}
+                  onChange={(event) =>
+                    void change(room, event.target.value as Room['housekeepingStatus'])
+                  }
+                  value={room.housekeepingStatus}
+                >
+                  {states.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
                 </select>
               </label>
             </li>

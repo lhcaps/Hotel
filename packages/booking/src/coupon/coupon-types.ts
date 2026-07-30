@@ -7,11 +7,7 @@
 
 export type CouponDiscountType = 'FIXED' | 'PERCENTAGE';
 
-export type CouponApplicationStatus =
-  | 'ASSOCIATED'
-  | 'RESERVED'
-  | 'REDEEMED'
-  | 'RELEASED';
+export type CouponApplicationStatus = 'ASSOCIATED' | 'RESERVED' | 'REDEEMED' | 'RELEASED';
 
 export interface FixedDiscountShape {
   readonly kind: 'FIXED';

@@ -62,11 +62,7 @@ describe('Phase 8B.1 ADMIN generic rate-plan creation — EARLY_BIRD_FLEX', () =
       migrateDatabase(prepared.databaseUrl),
     );
     const client: DatabaseClient = createDatabaseClient(database.pool);
-    service = new RatePlanService(
-      client,
-      new RatePlanRepository(client),
-      new AuditRepository(),
-    );
+    service = new RatePlanService(client, new RatePlanRepository(client), new AuditRepository());
     await database.pool.query(
       `INSERT INTO properties (id, code, name, timezone)
        VALUES ($1, 'EB_PROPERTY', 'EarlyBird Property', 'Asia/Ho_Chi_Minh')`,
@@ -147,10 +143,7 @@ describe('Phase 8B.1 ADMIN generic rate-plan creation — EARLY_BIRD_FLEX', () =
     const audit = await database.pool.query<{
       event_type: string;
       payload: Record<string, unknown>;
-    }>(
-      `SELECT event_type, payload FROM audit_events WHERE aggregate_id = $1`,
-      [created.id],
-    );
+    }>(`SELECT event_type, payload FROM audit_events WHERE aggregate_id = $1`, [created.id]);
     const types = audit.rows.map((row) => row.event_type);
     expect(types).toContain('RATE_PLAN_CREATED');
   });
@@ -184,9 +177,7 @@ describe('Phase 8B.1 ADMIN generic rate-plan creation — EARLY_BIRD_FLEX', () =
   });
 
   it('rejects activation until a price is configured for every active tier', async () => {
-    await expect(
-      service.activate(adminActor, ids.earlyBird, { activate: true }),
-    ).rejects.toThrow();
+    await expect(service.activate(adminActor, ids.earlyBird, { activate: true })).rejects.toThrow();
   });
 
   it('sets the EARLY_BIRD_FLEX price at 200000 VND', async () => {

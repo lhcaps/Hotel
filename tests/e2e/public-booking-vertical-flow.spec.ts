@@ -146,7 +146,9 @@ test.describe('public booking vertical flow', () => {
     page.on('console', (message) => {
       if (
         message.type() === 'error' &&
-        !/Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/.test(message.text())
+        !/Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/.test(
+          message.text(),
+        )
       ) {
         consoleErrors.push(message.text());
       }

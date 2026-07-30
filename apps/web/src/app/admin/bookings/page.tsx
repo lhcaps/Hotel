@@ -5,7 +5,12 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
 import { AdminApiError, adminApi, type AdminBookingSummary } from '../../../lib/admin-api';
 import { useLocale } from '../../../components/locale-provider';
-import { formatDateTime, formatVnd, translate, translatePaymentStatus } from '../../../lib/i18n/messages';
+import {
+  formatDateTime,
+  formatVnd,
+  translate,
+  translatePaymentStatus,
+} from '../../../lib/i18n/messages';
 
 const STATUS_OPTIONS = [
   '',
@@ -55,9 +60,9 @@ export default function AdminBookingsPage() {
       setItems(undefined);
       setError(undefined);
       const params: {
-      page: number;
-      pageSize: number;
-      q?: string;
+        page: number;
+        pageSize: number;
+        q?: string;
         status?: string;
         paymentStatus?: string;
         reviewPresence?: string;
@@ -132,7 +137,9 @@ export default function AdminBookingsPage() {
           >
             {STATUS_OPTIONS.map((value) => (
               <option key={value} value={value}>
-                {value === '' ? translate(locale, 'admin.all') : translatePaymentStatus(locale, value)}
+                {value === ''
+                  ? translate(locale, 'admin.all')
+                  : translatePaymentStatus(locale, value)}
               </option>
             ))}
           </select>
@@ -145,7 +152,9 @@ export default function AdminBookingsPage() {
           >
             {PAYMENT_OPTIONS.map((value) => (
               <option key={value} value={value}>
-                {value === '' ? translate(locale, 'admin.all') : translatePaymentStatus(locale, value)}
+                {value === ''
+                  ? translate(locale, 'admin.all')
+                  : translatePaymentStatus(locale, value)}
               </option>
             ))}
           </select>
@@ -235,7 +244,9 @@ export default function AdminBookingsPage() {
                       : '—'}
                 </td>
                 <td>
-                  <Link href={`/admin/bookings/${item.bookingCode}`}>{translate(locale, 'admin.open')}</Link>
+                  <Link href={`/admin/bookings/${item.bookingCode}`}>
+                    {translate(locale, 'admin.open')}
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -243,16 +254,10 @@ export default function AdminBookingsPage() {
         </table>
       ) : null}
       <div className="admin-pagination">
-        <button
-          disabled={page <= 1}
-          onClick={() => refresh(page - 1, filters)}
-          type="button"
-        >
+        <button disabled={page <= 1} onClick={() => refresh(page - 1, filters)} type="button">
           {translate(locale, 'admin.previousPage')}
         </button>
-        <span>
-          {translate(locale, 'admin.pageOf', { page, totalPages })}
-        </span>
+        <span>{translate(locale, 'admin.pageOf', { page, totalPages })}</span>
         <button
           disabled={page >= totalPages}
           onClick={() => refresh(page + 1, filters)}

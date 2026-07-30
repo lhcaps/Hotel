@@ -1,26 +1,12 @@
 import type { DatabasePool } from '@room/database';
 
-import type {
-  AdminBookingListQuery,
-  AdminOperationalReviewListQuery,
-} from '@room/contracts';
+import type { AdminBookingListQuery, AdminOperationalReviewListQuery } from '@room/contracts';
 
 export type AdminBookingStatus =
-  | 'HOLD'
-  | 'CONFIRMED'
-  | 'EXPIRED'
-  | 'CANCELLED'
-  | 'NO_SHOW'
-  | 'CHECKED_IN'
-  | 'CHECKED_OUT';
+  'HOLD' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED' | 'NO_SHOW' | 'CHECKED_IN' | 'CHECKED_OUT';
 
 export type AdminPaymentStatusSummary =
-  | 'NONE'
-  | 'PENDING'
-  | 'SUCCEEDED'
-  | 'REVIEW_REQUIRED'
-  | 'CANCELLED'
-  | 'EXPIRED';
+  'NONE' | 'PENDING' | 'SUCCEEDED' | 'REVIEW_REQUIRED' | 'CANCELLED' | 'EXPIRED';
 
 export type AdminReviewPresence = 'OPEN' | 'RESOLVED' | 'NONE';
 
@@ -331,7 +317,9 @@ function toAdminBookingDetailRow(row: AdminBookingDetailDbRow): AdminBookingDeta
     maxOccupancy: row.max_occupancy,
     coupon: readDetailCoupon(row),
     paymentAmountVnd:
-      row.payment_amount_vnd === null ? null : asBigInt(row.payment_amount_vnd, 'payment_amount_vnd'),
+      row.payment_amount_vnd === null
+        ? null
+        : asBigInt(row.payment_amount_vnd, 'payment_amount_vnd'),
     paymentConfirmationSource: row.payment_confirmation_source,
     paymentSucceededAt: asOptionalDate(row.payment_succeeded_at, 'payment_succeeded_at'),
     reviewId: row.review_id,
@@ -389,10 +377,7 @@ interface ListFilters {
   params: unknown[];
 }
 
-function buildListFilters(
-  propertyId: string,
-  query: AdminBookingListQuery,
-): ListFilters {
+function buildListFilters(propertyId: string, query: AdminBookingListQuery): ListFilters {
   const conditions: string[] = ['b.property_id = $1'];
   const params: unknown[] = [propertyId];
   let index = 2;
@@ -521,9 +506,7 @@ export class AdminBookingRepository {
     };
   }
 
-  public async findDetailByBookingCode(
-    bookingCode: string,
-  ): Promise<AdminBookingDetailRow | null> {
+  public async findDetailByBookingCode(bookingCode: string): Promise<AdminBookingDetailRow | null> {
     const result = await this.pool.query<AdminBookingDetailDbRow>(
       `SELECT b.id                       AS booking_id,
               b.booking_code             AS booking_code,
@@ -599,9 +582,7 @@ export class AdminBookingRepository {
     return toAdminBookingDetailRow(row);
   }
 
-  public async listTimelineByBookingId(
-    bookingId: string,
-  ): Promise<AdminBookingTimelineRow[]> {
+  public async listTimelineByBookingId(bookingId: string): Promise<AdminBookingTimelineRow[]> {
     const result = await this.pool.query<{
       id: string;
       event_type: string;
@@ -633,7 +614,7 @@ export class AdminBookingRepository {
     const status = query.status ?? 'OPEN';
     const limit = query.pageSize;
     const offset = (query.page - 1) * query.pageSize;
-    const conditions: string[] = ['rv.property_id = $1', "rv.status = $2"];
+    const conditions: string[] = ['rv.property_id = $1', 'rv.status = $2'];
     const params: unknown[] = [propertyId, status];
     let index = 3;
     if (query.bookingCode !== undefined) {

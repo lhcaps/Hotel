@@ -26,10 +26,7 @@ export class AdminPaymentReconciliationStaleError extends AdminPaymentReconcilia
 
 export class AdminPaymentReconciliationUnavailableError extends AdminPaymentReconciliationError {
   public constructor(reason: string) {
-    super(
-      'ADMIN_PAYMENT_RECONCILIATION_UNAVAILABLE',
-      `Reconciliation is not available: ${reason}`,
-    );
+    super('ADMIN_PAYMENT_RECONCILIATION_UNAVAILABLE', `Reconciliation is not available: ${reason}`);
     this.name = 'AdminPaymentReconciliationUnavailableError';
   }
 }

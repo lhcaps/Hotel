@@ -85,13 +85,15 @@ describe('ProblemDetailsFilter', () => {
   });
 
   it('normalizes booking hold and guest access errors', () => {
-    expect(invoke(new BookingHoldError('QUOTE_NOT_FOUND', 'quote not found')).send).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 404, code: 'QUOTE_NOT_FOUND' }),
-    );
+    expect(
+      invoke(new BookingHoldError('QUOTE_NOT_FOUND', 'quote not found')).send,
+    ).toHaveBeenCalledWith(expect.objectContaining({ status: 404, code: 'QUOTE_NOT_FOUND' }));
     expect(invoke(new BookingHoldError('QUOTE_ALREADY_USED', 'used')).send).toHaveBeenCalledWith(
       expect.objectContaining({ status: 409, code: 'QUOTE_ALREADY_USED' }),
     );
-    expect(invoke(new BookingHoldError('STALE_HOLD_CLEANUP_RETRY', 'retry')).send).toHaveBeenCalledWith(
+    expect(
+      invoke(new BookingHoldError('STALE_HOLD_CLEANUP_RETRY', 'retry')).send,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({ status: 503, code: 'STALE_HOLD_CLEANUP_RETRY' }),
     );
     expect(invoke(new OtpRateLimitedError(60)).send).toHaveBeenCalledWith(

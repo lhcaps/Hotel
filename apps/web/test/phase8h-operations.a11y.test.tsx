@@ -20,31 +20,51 @@ describe('Phase 8H operational accessibility', () => {
   it('measures no axe critical or serious violations on the room operations board', async () => {
     getRoomOperations.mockResolvedValue({
       generatedAt: '2026-07-30T00:00:00.000Z',
-      items: [{
-        roomId: '10000000-0000-4000-8000-000000000101', roomNumber: '101', roomStatus: 'ACTIVE',
-        housekeepingStatus: 'CLEAN', maintenanceState: 'NONE', bookings: [],
-      }],
+      items: [
+        {
+          roomId: '10000000-0000-4000-8000-000000000101',
+          roomNumber: '101',
+          roomStatus: 'ACTIVE',
+          housekeepingStatus: 'CLEAN',
+          maintenanceState: 'NONE',
+          bookings: [],
+        },
+      ],
     });
     const { container } = render(<RoomOperationsBoard />);
 
     await screen.findByText('Room 101');
     const result = await axe(container);
-    expect(result.violations.filter((item) => item.impact === 'critical' || item.impact === 'serious')).toHaveLength(0);
+    expect(
+      result.violations.filter((item) => item.impact === 'critical' || item.impact === 'serious'),
+    ).toHaveLength(0);
   });
 
   it('measures no axe critical or serious violations on the report table fallback', async () => {
     getOperationalReport.mockResolvedValue({
-      grossRevenueVnd: 900_000, settledRevenueVnd: 600_000, outstandingRevenueVnd: null,
-      bookingCount: 3, confirmedCount: 2, cancellationCount: 1, customerCount: 2, returningCustomerCount: 1,
+      grossRevenueVnd: 900_000,
+      settledRevenueVnd: 600_000,
+      outstandingRevenueVnd: null,
+      bookingCount: 3,
+      confirmedCount: 2,
+      cancellationCount: 1,
+      customerCount: 2,
+      returningCustomerCount: 1,
       daily: [{ date: '2026-07-29', revenueVnd: 900_000, bookingCount: 3 }],
       ratePlans: [{ label: 'LUNCH_COMBO', revenueVnd: 900_000, bookingCount: 3 }],
       roomTypes: [{ label: 'Deluxe', revenueVnd: 900_000, bookingCount: 3 }],
       generatedAt: '2026-07-30T00:00:00.000Z',
     });
-    const { container } = render(<LocaleProvider locale="en"><OperationalReportDashboard /></LocaleProvider>);
+    const { container } = render(
+      <LocaleProvider locale="en">
+        <OperationalReportDashboard />
+      </LocaleProvider>,
+    );
 
     await screen.findByRole('heading', { name: 'Daily revenue' });
     const result = await axe(container);
-    expect(result.violations.filter((item) => item.impact === 'critical' || item.impact === 'serious')).toHaveLength(0);
+    expect(
+      result.violations.filter((item) => item.impact === 'critical' || item.impact === 'serious'),
+    ).toHaveLength(0);
   });
 });

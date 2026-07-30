@@ -2,9 +2,7 @@ import { Buffer } from 'node:buffer';
 import { describe, expect, it, vi } from 'vitest';
 
 import { BookingHoldStatusService } from '../../src/booking/services/booking-hold-status.service.js';
-import type {
-  GuestAccessSecrets,
-} from '../../src/booking/repositories/guest-access.repository.js';
+import type { GuestAccessSecrets } from '../../src/booking/repositories/guest-access.repository.js';
 import type { DatabaseClient } from '@room/database';
 
 const SECRETS: GuestAccessSecrets = {
@@ -16,10 +14,7 @@ const SECRETS: GuestAccessSecrets = {
 
 function serviceWith(rows: Array<Record<string, unknown>>) {
   const execute = vi.fn(async () => ({ rows }));
-  const service = new BookingHoldStatusService(
-    { execute } as unknown as DatabaseClient,
-    SECRETS,
-  );
+  const service = new BookingHoldStatusService({ execute } as unknown as DatabaseClient, SECRETS);
   return { service, execute };
 }
 
@@ -108,10 +103,7 @@ describe('BookingHoldStatusService', () => {
 
   it('executes the status query exactly once per call', async () => {
     const { service, execute } = serviceWith([]);
-    await service.status(
-      { bookingCode: 'RM-AB12-CD34-EF56', email: 'Guest@Example.COM' },
-      NOW,
-    );
+    await service.status({ bookingCode: 'RM-AB12-CD34-EF56', email: 'Guest@Example.COM' }, NOW);
     expect(execute).toHaveBeenCalledTimes(1);
   });
 });

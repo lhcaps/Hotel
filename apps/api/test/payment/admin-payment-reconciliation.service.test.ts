@@ -115,12 +115,8 @@ function buildRepository(rows: {
   listAttempts: ReturnType<typeof vi.fn>;
   listTimelineByBookingId: ReturnType<typeof vi.fn>;
 } {
-  const listPayments = vi.fn().mockResolvedValue(
-    rows.list ?? { items: [], totalItems: 0 },
-  );
-  const findDetailByPaymentId = vi
-    .fn()
-    .mockResolvedValue(rows.detail ?? null);
+  const listPayments = vi.fn().mockResolvedValue(rows.list ?? { items: [], totalItems: 0 });
+  const findDetailByPaymentId = vi.fn().mockResolvedValue(rows.detail ?? null);
   const listAttempts = vi.fn().mockResolvedValue(rows.attempts ?? []);
   const listTimelineByBookingId = vi.fn().mockResolvedValue([]);
   const repository = {
@@ -150,17 +146,16 @@ function buildService(rows: {
   listAttempts: ReturnType<typeof vi.fn>;
   listTimelineByBookingId: ReturnType<typeof vi.fn>;
 } {
-  const {
-    repository,
-    listPayments,
-    findDetailByPaymentId,
-    listAttempts,
-    listTimelineByBookingId,
-  } = buildRepository(rows);
+  const { repository, listPayments, findDetailByPaymentId, listAttempts, listTimelineByBookingId } =
+    buildRepository(rows);
   const provider: ReconciliationProvider = {
     triggerProviderQuery: vi.fn(
       rows.reconciliation ??
-        (async () => ({ kind: 'TRIGGERED' as const, triggeredAt: new Date(), providerQueryId: null })),
+        (async () => ({
+          kind: 'TRIGGERED' as const,
+          triggeredAt: new Date(),
+          providerQueryId: null,
+        })),
     ),
   };
   return {
@@ -179,7 +174,11 @@ describe('AdminPaymentReconciliationService.listPayments', () => {
     const row = buildListRow();
     const { service } = buildService({ list: { items: [row], totalItems: 1 } });
 
-    const result = await service.listPayments(propertyId, { page: 1, pageSize: 20, reviewRequired: undefined });
+    const result = await service.listPayments(propertyId, {
+      page: 1,
+      pageSize: 20,
+      reviewRequired: undefined,
+    });
 
     expect(result.items).toHaveLength(1);
     expect(result.page).toBe(1);
@@ -204,7 +203,11 @@ describe('AdminPaymentReconciliationService.listPayments', () => {
     const row = buildListRow({ status: 'REVIEW_REQUIRED' });
     const { service } = buildService({ list: { items: [row], totalItems: 1 } });
 
-    const result = await service.listPayments(propertyId, { page: 1, pageSize: 20, reviewRequired: undefined });
+    const result = await service.listPayments(propertyId, {
+      page: 1,
+      pageSize: 20,
+      reviewRequired: undefined,
+    });
 
     expect(result.items[0]?.reviewRequired).toBe(true);
   });
@@ -216,7 +219,11 @@ describe('AdminPaymentReconciliationService.listPayments', () => {
     });
     const { service } = buildService({ list: { items: [row], totalItems: 1 } });
 
-    const result = await service.listPayments(propertyId, { page: 1, pageSize: 20, reviewRequired: undefined });
+    const result = await service.listPayments(propertyId, {
+      page: 1,
+      pageSize: 20,
+      reviewRequired: undefined,
+    });
 
     expect(result.items[0]?.reviewRequired).toBe(true);
   });
@@ -404,7 +411,10 @@ describe('AdminPaymentReconciliationService.reconcile', () => {
   it('returns the provider reason as lastErrorCode on an UNAVAILABLE outcome', async () => {
     const { service } = buildService({
       detail: buildDetailRow(),
-      reconciliation: async () => ({ kind: 'UNAVAILABLE', reason: 'reconciliation worker not yet wired' }),
+      reconciliation: async () => ({
+        kind: 'UNAVAILABLE',
+        reason: 'reconciliation worker not yet wired',
+      }),
     });
 
     const result = await service.reconcile(

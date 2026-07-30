@@ -23,15 +23,10 @@ export class VnpayAdapterError extends Error {
  * provider-error family.
  */
 export type VnpayQueryNetworkCode =
-  | 'PROVIDER_TIMEOUT'
-  | 'PROVIDER_ABORTED'
-  | 'PROVIDER_UNREACHABLE'
-  | 'PROVIDER_INVALID_RESPONSE';
+  'PROVIDER_TIMEOUT' | 'PROVIDER_ABORTED' | 'PROVIDER_UNREACHABLE' | 'PROVIDER_INVALID_RESPONSE';
 
 export type VnpayQueryConfigCode =
-  | 'PROVIDER_CONFIG_MISSING'
-  | 'PROVIDER_CONFIG_INVALID'
-  | 'PROVIDER_TIMEOUT_FLOOR';
+  'PROVIDER_CONFIG_MISSING' | 'PROVIDER_CONFIG_INVALID' | 'PROVIDER_TIMEOUT_FLOOR';
 
 export type VnpayQueryAdapterCode =
   | 'PROVIDER_PAYLOAD_INVALID'

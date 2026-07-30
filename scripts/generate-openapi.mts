@@ -113,9 +113,21 @@ const document = {
       get: {
         operationId: 'listAdminPayments',
         parameters: [
-          { name: 'status', in: 'query', schema: { $ref: '#/components/schemas/AdminPaymentListStatus' } },
-          { name: 'provider', in: 'query', schema: { $ref: '#/components/schemas/AdminPaymentProviderFilter' } },
-          { name: 'bookingCode', in: 'query', schema: { type: 'string', minLength: 1, maxLength: 64 } },
+          {
+            name: 'status',
+            in: 'query',
+            schema: { $ref: '#/components/schemas/AdminPaymentListStatus' },
+          },
+          {
+            name: 'provider',
+            in: 'query',
+            schema: { $ref: '#/components/schemas/AdminPaymentProviderFilter' },
+          },
+          {
+            name: 'bookingCode',
+            in: 'query',
+            schema: { type: 'string', minLength: 1, maxLength: 64 },
+          },
           { name: 'reviewRequired', in: 'query', schema: { type: 'boolean' } },
           { name: 'createdFrom', in: 'query', schema: { type: 'string', format: 'date-time' } },
           { name: 'createdTo', in: 'query', schema: { type: 'string', format: 'date-time' } },
@@ -150,7 +162,12 @@ const document = {
       get: {
         operationId: 'getAdminPaymentDetail',
         parameters: [
-          { name: 'paymentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          {
+            name: 'paymentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
         ],
         responses: {
           '200': {
@@ -170,7 +187,12 @@ const document = {
       post: {
         operationId: 'reconcileAdminPayment',
         parameters: [
-          { name: 'paymentId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          {
+            name: 'paymentId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
         ],
         requestBody: {
           required: false,
@@ -203,17 +225,54 @@ const document = {
         operationId: 'getAdminOperationalReport',
         summary: 'Read server-aggregated operational metrics for the current property.',
         parameters: [
-          { name: 'from', in: 'query', required: true, schema: { type: 'string', format: 'date-time' } },
-          { name: 'to', in: 'query', required: true, schema: { type: 'string', format: 'date-time' } },
-          { name: 'bookingStatuses', in: 'query', schema: { type: 'array', items: { $ref: '#/components/schemas/AdminReportBookingStatus' } } },
-          { name: 'paymentStatuses', in: 'query', schema: { type: 'array', items: { $ref: '#/components/schemas/AdminReportPaymentStatus' } } },
-          { name: 'ratePlanCodes', in: 'query', schema: { type: 'array', items: { type: 'string', maxLength: 64 } } },
-          { name: 'roomTierCodes', in: 'query', schema: { type: 'array', items: { type: 'string', maxLength: 64 } } },
+          {
+            name: 'from',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', format: 'date-time' },
+          },
+          {
+            name: 'to',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', format: 'date-time' },
+          },
+          {
+            name: 'bookingStatuses',
+            in: 'query',
+            schema: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/AdminReportBookingStatus' },
+            },
+          },
+          {
+            name: 'paymentStatuses',
+            in: 'query',
+            schema: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/AdminReportPaymentStatus' },
+            },
+          },
+          {
+            name: 'ratePlanCodes',
+            in: 'query',
+            schema: { type: 'array', items: { type: 'string', maxLength: 64 } },
+          },
+          {
+            name: 'roomTierCodes',
+            in: 'query',
+            schema: { type: 'array', items: { type: 'string', maxLength: 64 } },
+          },
         ],
         responses: {
           '200': {
-            description: 'Property-scoped metrics aggregated on the server; outstanding revenue is null until partial payments are modeled.',
-            content: { 'application/json': { schema: { $ref: '#/components/schemas/AdminOperationalReport' } } },
+            description:
+              'Property-scoped metrics aggregated on the server; outstanding revenue is null until partial payments are modeled.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AdminOperationalReport' },
+              },
+            },
           },
           '401': { $ref: '#/components/responses/AuthenticationRequired' },
           '403': { $ref: '#/components/responses/PermissionDenied' },
@@ -224,13 +283,31 @@ const document = {
     '/api/v1/admin/room-operations': {
       get: {
         operationId: 'listAdminRoomOperations',
-        summary: 'Read physical-room occupancy, housekeeping and maintenance state from the server.',
+        summary:
+          'Read physical-room occupancy, housekeeping and maintenance state from the server.',
         parameters: [
-          { name: 'from', in: 'query', required: true, schema: { type: 'string', format: 'date-time' } },
-          { name: 'to', in: 'query', required: true, schema: { type: 'string', format: 'date-time' } },
+          {
+            name: 'from',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', format: 'date-time' },
+          },
+          {
+            name: 'to',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', format: 'date-time' },
+          },
         ],
         responses: {
-          '200': { description: 'Property-scoped operational room rows.', content: { 'application/json': { schema: { $ref: '#/components/schemas/AdminRoomOperationsResponse' } } } },
+          '200': {
+            description: 'Property-scoped operational room rows.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AdminRoomOperationsResponse' },
+              },
+            },
+          },
           '401': { $ref: '#/components/responses/AuthenticationRequired' },
           '403': { $ref: '#/components/responses/PermissionDenied' },
           '422': { $ref: '#/components/responses/ValidationError' },
@@ -436,7 +513,12 @@ const document = {
         operationId: 'removeRoomTypeAmenity',
         parameters: [
           { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
-          { name: 'amenityId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          {
+            name: 'amenityId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
         ],
         responses: {
           '200': {
@@ -659,7 +741,9 @@ const document = {
         requestBody: {
           required: true,
           content: {
-            'application/json': { schema: { $ref: '#/components/schemas/RoomHousekeepingCommand' } },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/RoomHousekeepingCommand' },
+            },
           },
         },
         responses: {
@@ -944,7 +1028,12 @@ const document = {
       post: {
         operationId: 'queueAdminBookingCouponDelivery',
         parameters: [
-          { name: 'bookingCode', in: 'path', required: true, schema: { type: 'string', pattern: '^[A-Z0-9-]{4,32}$' } },
+          {
+            name: 'bookingCode',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', pattern: '^[A-Z0-9-]{4,32}$' },
+          },
           {
             name: 'Idempotency-Key',
             in: 'header',
@@ -955,14 +1044,19 @@ const document = {
         requestBody: {
           required: true,
           content: {
-            'application/json': { schema: { $ref: '#/components/schemas/AdminBookingCouponDelivery' } },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AdminBookingCouponDelivery' },
+            },
           },
         },
         responses: {
           '201': {
-            description: 'An idempotent transactional-outbox request; no coupon lifecycle state changes.',
+            description:
+              'An idempotent transactional-outbox request; no coupon lifecycle state changes.',
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/CouponDeliveryQueueResult' } },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/CouponDeliveryQueueResult' },
+              },
             },
           },
           '400': { $ref: '#/components/responses/ValidationError' },
@@ -1030,7 +1124,15 @@ const document = {
       AdminRoomOperationsQuery: jsonSchema(adminRoomOperationsQuerySchema),
       AdminRoomOperationsResponse: jsonSchema(adminRoomOperationsResponseSchema),
       AdminReportBookingStatus: jsonSchema(
-        z.enum(['HOLD', 'CONFIRMED', 'EXPIRED', 'CANCELLED', 'NO_SHOW', 'CHECKED_IN', 'CHECKED_OUT']),
+        z.enum([
+          'HOLD',
+          'CONFIRMED',
+          'EXPIRED',
+          'CANCELLED',
+          'NO_SHOW',
+          'CHECKED_IN',
+          'CHECKED_OUT',
+        ]),
       ),
       AdminReportPaymentStatus: jsonSchema(
         z.enum(['NONE', 'PENDING', 'SUCCEEDED', 'REVIEW_REQUIRED', 'CANCELLED', 'EXPIRED']),
@@ -1074,7 +1176,8 @@ const document = {
         },
       },
       CouponDeliveryConflict: {
-        description: 'Coupon availability changed or the idempotency key was reused with a different request.',
+        description:
+          'Coupon availability changed or the idempotency key was reused with a different request.',
         content: {
           'application/problem+json': { schema: { $ref: '#/components/schemas/ProblemDetails' } },
         },

@@ -103,9 +103,7 @@ describe('VNPAY QueryDr adapter (Gate B)', () => {
     const expectedCanonical = buildVnpayCanonicalQuery(
       Object.fromEntries(bodyWithoutHash.entries()),
     );
-    expect(params.get('vnp_SecureHash')).toBe(
-      signVnpayCanonicalQuery(secret, expectedCanonical),
-    );
+    expect(params.get('vnp_SecureHash')).toBe(signVnpayCanonicalQuery(secret, expectedCanonical));
 
     expect(result.event).toMatchObject({
       provider: 'VNPAY',
@@ -165,17 +163,18 @@ describe('VNPAY QueryDr adapter (Gate B)', () => {
   ])('rejects a %s response', async (caseId, value) => {
     const adapter = new VnpayAdapter(
       config,
-      vi.fn(async () =>
-        new Response(
-          buildSuccessResponse(
-            caseId === 'wrong-merchant'
-              ? { vnp_TmnCode: value }
-              : caseId === 'wrong-order'
-                ? { vnp_TxnRef: value }
-                : { vnp_Amount: value },
+      vi.fn(
+        async () =>
+          new Response(
+            buildSuccessResponse(
+              caseId === 'wrong-merchant'
+                ? { vnp_TmnCode: value }
+                : caseId === 'wrong-order'
+                  ? { vnp_TxnRef: value }
+                  : { vnp_Amount: value },
+            ),
+            { status: 200 },
           ),
-          { status: 200 },
-        ),
       ),
     );
     await expect(adapter.queryTransactionStatus(baseRequest)).rejects.toBeInstanceOf(
@@ -186,7 +185,9 @@ describe('VNPAY QueryDr adapter (Gate B)', () => {
   it('returns a NOT_FOUND variant when vnp_ResponseCode is 01/02/04', async () => {
     const adapter = new VnpayAdapter(
       config,
-      vi.fn(async () => new Response(buildSuccessResponse({ vnp_ResponseCode: '02' }), { status: 200 })),
+      vi.fn(
+        async () => new Response(buildSuccessResponse({ vnp_ResponseCode: '02' }), { status: 200 }),
+      ),
     );
     await expect(adapter.queryTransactionStatus(baseRequest)).resolves.toEqual({
       kind: 'NOT_FOUND',
@@ -198,7 +199,10 @@ describe('VNPAY QueryDr adapter (Gate B)', () => {
   it('returns a NOT_FOUND variant when responseCode=00 but transactionStatus != 00', async () => {
     const adapter = new VnpayAdapter(
       config,
-      vi.fn(async () => new Response(buildSuccessResponse({ vnp_TransactionStatus: '02' }), { status: 200 })),
+      vi.fn(
+        async () =>
+          new Response(buildSuccessResponse({ vnp_TransactionStatus: '02' }), { status: 200 }),
+      ),
     );
     await expect(adapter.queryTransactionStatus(baseRequest)).resolves.toEqual({
       kind: 'NOT_FOUND',
@@ -210,7 +214,9 @@ describe('VNPAY QueryDr adapter (Gate B)', () => {
   it('returns a PENDING variant for an unknown responseCode that is not 00/01/02/04', async () => {
     const adapter = new VnpayAdapter(
       config,
-      vi.fn(async () => new Response(buildSuccessResponse({ vnp_ResponseCode: '99' }), { status: 200 })),
+      vi.fn(
+        async () => new Response(buildSuccessResponse({ vnp_ResponseCode: '99' }), { status: 200 }),
+      ),
     );
     await expect(adapter.queryTransactionStatus(baseRequest)).resolves.toEqual({
       kind: 'PENDING',

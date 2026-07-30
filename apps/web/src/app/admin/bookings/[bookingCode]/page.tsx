@@ -7,7 +7,12 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { AdminApiError, adminApi, type AdminBookingDetail } from '../../../../lib/admin-api';
 import { CouponDeliveryAction } from '../../../../components/coupon-delivery-action';
 import { useLocale } from '../../../../components/locale-provider';
-import { formatDateTime, formatVnd, translate, translatePaymentStatus } from '../../../../lib/i18n/messages';
+import {
+  formatDateTime,
+  formatVnd,
+  translate,
+  translatePaymentStatus,
+} from '../../../../lib/i18n/messages';
 
 export default function AdminBookingDetailPage() {
   const locale = useLocale();
@@ -25,7 +30,9 @@ export default function AdminBookingDetailPage() {
       .then(setDetail)
       .catch((cause: unknown) => {
         setError(
-          cause instanceof AdminApiError ? translate(locale, 'admin.bookingDetailLoadError') : translate(locale, 'admin.bookingDetailLoadError'),
+          cause instanceof AdminApiError
+            ? translate(locale, 'admin.bookingDetailLoadError')
+            : translate(locale, 'admin.bookingDetailLoadError'),
         );
       });
   }, [bookingCode, locale]);
@@ -53,7 +60,9 @@ export default function AdminBookingDetailPage() {
         setReason('');
       } catch (cause: unknown) {
         setError(
-          cause instanceof AdminApiError ? translate(locale, 'admin.actionError') : translate(locale, 'admin.actionError'),
+          cause instanceof AdminApiError
+            ? translate(locale, 'admin.actionError')
+            : translate(locale, 'admin.actionError'),
         );
       } finally {
         setPendingAction(undefined);
@@ -86,8 +95,9 @@ export default function AdminBookingDetailPage() {
     <section className="admin-page">
       <h1>{translate(locale, 'account.bookingHeading', { code: detail.bookingCode })}</h1>
       <p>
-        {translate(locale, 'admin.status')}: <strong>{translatePaymentStatus(locale, detail.status)}</strong> · {translate(locale, 'admin.guest')}:{' '}
-        <strong>{detail.contact.fullName}</strong>
+        {translate(locale, 'admin.status')}:{' '}
+        <strong>{translatePaymentStatus(locale, detail.status)}</strong> ·{' '}
+        {translate(locale, 'admin.guest')}: <strong>{detail.contact.fullName}</strong>
       </p>
       {error === undefined ? null : (
         <p role="alert" style={{ color: 'var(--color-danger)' }}>
@@ -201,7 +211,9 @@ export default function AdminBookingDetailPage() {
                   />
                 </label>
                 <button disabled={pendingAction !== undefined} type="submit">
-                  {pendingAction === 'cancel' ? translate(locale, 'admin.cancelling') : translate(locale, 'admin.cancelBooking')}
+                  {pendingAction === 'cancel'
+                    ? translate(locale, 'admin.cancelling')
+                    : translate(locale, 'admin.cancelBooking')}
                 </button>
               </form>
             ) : null}
@@ -223,7 +235,9 @@ export default function AdminBookingDetailPage() {
                   />
                 </label>
                 <button disabled={pendingAction !== undefined} type="submit">
-                  {pendingAction === 'no-show' ? translate(locale, 'admin.markingNoShow') : translate(locale, 'admin.markNoShow')}
+                  {pendingAction === 'no-show'
+                    ? translate(locale, 'admin.markingNoShow')
+                    : translate(locale, 'admin.markNoShow')}
                 </button>
               </form>
             ) : null}
@@ -234,7 +248,9 @@ export default function AdminBookingDetailPage() {
                 )}
               >
                 <button disabled={pendingAction !== undefined} type="submit">
-                  {pendingAction === 'check-in' ? translate(locale, 'admin.checkingIn') : 'Check-in'}
+                  {pendingAction === 'check-in'
+                    ? translate(locale, 'admin.checkingIn')
+                    : 'Check-in'}
                 </button>
               </form>
             ) : null}
@@ -245,7 +261,9 @@ export default function AdminBookingDetailPage() {
                 )}
               >
                 <button disabled={pendingAction !== undefined} type="submit">
-                  {pendingAction === 'check-out' ? translate(locale, 'admin.checkingOut') : 'Check-out'}
+                  {pendingAction === 'check-out'
+                    ? translate(locale, 'admin.checkingOut')
+                    : 'Check-out'}
                 </button>
               </form>
             ) : null}

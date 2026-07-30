@@ -75,7 +75,9 @@ export function CustomerProfileClient({ initialProfile, apiBase }: CustomerProfi
           <p>{translate(locale, 'profile.emailHelp')}</p>
         </header>
         <section className="profile-identity" aria-label={translate(locale, 'profile.heading')}>
-          <span className="profile-identity__avatar" aria-hidden="true">{profile.name.slice(0, 2).toUpperCase()}</span>
+          <span className="profile-identity__avatar" aria-hidden="true">
+            {profile.name.slice(0, 2).toUpperCase()}
+          </span>
           <div>
             <strong>{profile.name}</strong>
             <p>{profile.email}</p>
@@ -84,51 +86,58 @@ export function CustomerProfileClient({ initialProfile, apiBase }: CustomerProfi
         <form action={save} className="profile-form">
           <section className="profile-form__section">
             <label>
-          {translate(locale, 'profile.fullName')}
-          <input name="name" defaultValue={profile.name} required maxLength={120} />
-        </label>
+              {translate(locale, 'profile.fullName')}
+              <input name="name" defaultValue={profile.name} required maxLength={120} />
+            </label>
             <label>
               {translate(locale, 'profile.phone')}
               <input name="phone" defaultValue={profile.phone ?? ''} />
             </label>
           </section>
           <fieldset className="profile-form__section">
-
-          <legend>{translate(locale, 'profile.address')}</legend>
-          <label>
-            {translate(locale, 'profile.addressLine1')}
-            <input name="addressLine1" defaultValue={profile.addressLine1 ?? ''} maxLength={200} />
-          </label>
-          <label>
-            {translate(locale, 'profile.addressLine2')}
-            <input name="addressLine2" defaultValue={profile.addressLine2 ?? ''} maxLength={200} />
-          </label>
-          <label>
-            {translate(locale, 'profile.ward')}
-            <input name="ward" defaultValue={profile.ward ?? ''} maxLength={200} />
-          </label>
-          <label>
-            {translate(locale, 'profile.district')}
-            <input name="district" defaultValue={profile.district ?? ''} maxLength={200} />
-          </label>
-          <label>
-            {translate(locale, 'profile.province')}
-            <input name="province" defaultValue={profile.province ?? ''} maxLength={200} />
-          </label>
-          <label>
-            {translate(locale, 'profile.postalCode')}
-            <input name="postalCode" defaultValue={profile.postalCode ?? ''} maxLength={32} />
-          </label>
-          <label>
-            {translate(locale, 'profile.country')}
-            <input
-              name="countryCode"
-              defaultValue={profile.countryCode}
-              maxLength={2}
-              pattern="[A-Z]{2}"
-              required
-            />
-          </label>
+            <legend>{translate(locale, 'profile.address')}</legend>
+            <label>
+              {translate(locale, 'profile.addressLine1')}
+              <input
+                name="addressLine1"
+                defaultValue={profile.addressLine1 ?? ''}
+                maxLength={200}
+              />
+            </label>
+            <label>
+              {translate(locale, 'profile.addressLine2')}
+              <input
+                name="addressLine2"
+                defaultValue={profile.addressLine2 ?? ''}
+                maxLength={200}
+              />
+            </label>
+            <label>
+              {translate(locale, 'profile.ward')}
+              <input name="ward" defaultValue={profile.ward ?? ''} maxLength={200} />
+            </label>
+            <label>
+              {translate(locale, 'profile.district')}
+              <input name="district" defaultValue={profile.district ?? ''} maxLength={200} />
+            </label>
+            <label>
+              {translate(locale, 'profile.province')}
+              <input name="province" defaultValue={profile.province ?? ''} maxLength={200} />
+            </label>
+            <label>
+              {translate(locale, 'profile.postalCode')}
+              <input name="postalCode" defaultValue={profile.postalCode ?? ''} maxLength={32} />
+            </label>
+            <label>
+              {translate(locale, 'profile.country')}
+              <input
+                name="countryCode"
+                defaultValue={profile.countryCode}
+                maxLength={2}
+                pattern="[A-Z]{2}"
+                required
+              />
+            </label>
           </fieldset>
           {error === undefined ? null : <p role="alert">{error}</p>}
           {info === undefined ? null : <p role="status">{info}</p>}

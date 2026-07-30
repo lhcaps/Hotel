@@ -49,35 +49,35 @@ Execution Time: 0.073 ms
 
 The audit did not run a full load test in Phase 8A. The vitest unit suite runs the **pricing oracle** exhaustively (8 928 scenarios) and completes in ~2.3 s on a single Node thread, which provides a useful micro-benchmark:
 
-| Operation | Time (single thread) |
-|---|---|
-| `calculatePricing` over 8 928 scenarios | ~1.2 s |
-| `auditEnumerate` over 8 928 scenarios | ~1.0 s |
+| Operation                                 | Time (single thread)                |
+| ----------------------------------------- | ----------------------------------- |
+| `calculatePricing` over 8 928 scenarios   | ~1.2 s                              |
+| `auditEnumerate` over 8 928 scenarios     | ~1.0 s                              |
 | `applyVerifiedPaymentEvent` (single call) | ~3–10 ms in the concurrency fixture |
 
 These are **NOT** production targets; they are observation points on disposable infrastructure.
 
 ## 4. Resource Utilisation
 
-| Resource | Observation this audit |
-|---|---|
-| DB pool | Default `pg` pool; not stress-tested in this audit |
-| Worker throughput | Not measured |
-| Outbox lag | Not measured |
-| Memory | Not measured |
-| CPU | Not measured |
+| Resource          | Observation this audit                             |
+| ----------------- | -------------------------------------------------- |
+| DB pool           | Default `pg` pool; not stress-tested in this audit |
+| Worker throughput | Not measured                                       |
+| Outbox lag        | Not measured                                       |
+| Memory            | Not measured                                       |
+| CPU               | Not measured                                       |
 
 ## 5. Audit Findings
 
-| ID | Finding | Severity |
-|---|---|---|
-| PERFORMANCE-001 | No load test in regression baseline; no soak test. | P2 |
-| CAPACITY-001 | No approved SLOs; no approved capacity targets. | BUSINESS_OR_OPERATIONS_DECISION_REQUIRED |
-| CAPACITY-002 | No documented upper-bound on simultaneous HOLDs per property. | P2 |
+| ID              | Finding                                                       | Severity                                 |
+| --------------- | ------------------------------------------------------------- | ---------------------------------------- |
+| PERFORMANCE-001 | No load test in regression baseline; no soak test.            | P2                                       |
+| CAPACITY-001    | No approved SLOs; no approved capacity targets.               | BUSINESS_OR_OPERATIONS_DECISION_REQUIRED |
+| CAPACITY-002    | No documented upper-bound on simultaneous HOLDs per property. | P2                                       |
 
 ## 6. Headline Verdict
 
-| Verdict | Status |
-|---|---|
-| PERFORMANCE_BASELINE | VERIFIED_WITH_LIMITATION |
-| CAPACITY_TARGETS | BUSINESS_OR_OPERATIONS_DECISION_REQUIRED |
+| Verdict              | Status                                   |
+| -------------------- | ---------------------------------------- |
+| PERFORMANCE_BASELINE | VERIFIED_WITH_LIMITATION                 |
+| CAPACITY_TARGETS     | BUSINESS_OR_OPERATIONS_DECISION_REQUIRED |

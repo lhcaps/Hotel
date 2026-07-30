@@ -39,9 +39,7 @@ export const RULE_VERSION_PHASE_4 = 'phase-4-pricing-availability-v1' as const;
 export const RULE_VERSION_PHASE_8B = 'phase-8b-cheapest-eligible-pricing-v1' as const;
 
 export type PricingRuleVersion =
-  | typeof RULE_VERSION_PHASE_4
-  | typeof RULE_VERSION_PHASE_7B
-  | typeof RULE_VERSION_PHASE_8B;
+  typeof RULE_VERSION_PHASE_4 | typeof RULE_VERSION_PHASE_7B | typeof RULE_VERSION_PHASE_8B;
 
 export interface PricingInput {
   readonly checkIn: string;
@@ -342,12 +340,8 @@ export function calculatePricing(input: PricingInput, catalog: PricingCatalog): 
     extraUnits === 0
       ? 0
       : (validateSelectionRuleForCatalog(catalog, EXTRA_HOUR_CODE),
-        activePrice(
-          catalog,
-          EXTRA_HOUR_CODE,
-          input.priceTierCode,
-          PricingExtraPriceMissingError,
-        ) * extraUnits);
+        activePrice(catalog, EXTRA_HOUR_CODE, input.priceTierCode, PricingExtraPriceMissingError) *
+          extraUnits);
   const lineItems = [
     { code: winner.code as RatePlanCode, amountVnd: baseAmountVnd, units: 1 },
     ...(extraUnits === 0

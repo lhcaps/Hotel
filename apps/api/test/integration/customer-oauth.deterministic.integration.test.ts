@@ -22,15 +22,7 @@
  * Better Auth 1.6.23 and cannot be redirected to a local server without
  * monkey-patching.
  */
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import {
   accounts as accountsTable,
@@ -261,179 +253,195 @@ async function runSignInFlow(): Promise<SignInResult> {
 }
 
 describe('deterministic OAuth — first Google sign-in (CASE 1)', () => {
-  it('creates one CUSTOMER user, one Google account row, and one session', { timeout: 60_000 }, async () => {
-    requiredOidc().setNextUser({
-      sub: 'google-subject-A',
-      email: 'customer-A@example.test',
-      email_verified: true,
-      name: 'Customer A',
-    });
-    const result = await runSignInFlow();
-    expect(result.responseStatuses).toEqual([200, 302, 302]);
-    // The callback may either land on the configured WEB_ORIGIN or on
-    // the auth server itself depending on Better Auth's default
-    // callback URL resolution. Both indicate a successful sign-in
-    // provided the session cookie is set.
-    expect(result.finalCookies.length).toBeGreaterThan(0);
+  it(
+    'creates one CUSTOMER user, one Google account row, and one session',
+    { timeout: 60_000 },
+    async () => {
+      requiredOidc().setNextUser({
+        sub: 'google-subject-A',
+        email: 'customer-A@example.test',
+        email_verified: true,
+        name: 'Customer A',
+      });
+      const result = await runSignInFlow();
+      expect(result.responseStatuses).toEqual([200, 302, 302]);
+      // The callback may either land on the configured WEB_ORIGIN or on
+      // the auth server itself depending on Better Auth's default
+      // callback URL resolution. Both indicate a successful sign-in
+      // provided the session cookie is set.
+      expect(result.finalCookies.length).toBeGreaterThan(0);
 
-    // Wait briefly for any async writes to settle.
-    await new Promise((resolve) => setTimeout(resolve, 200));
+      // Wait briefly for any async writes to settle.
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-    // One user row exists. Better Auth normalizes the verified email
-    // to lowercase before persisting, so we query against the
-    // normalized form.
-    const userRows = await databaseClient
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, 'customer-a@example.test'));
-    if (userRows.length === 0) {
-      const allUsers = await databaseClient.select().from(usersTable);
-      throw new Error(
-        `No user with email customer-a@example.test. Final redirect: ${result.finalRedirect}. All users: ${JSON.stringify(allUsers, (_key: string, value: unknown): unknown => typeof value === 'bigint' ? value.toString() : value)}`,
-      );
-    }
-    expect(userRows).toHaveLength(1);
-    const user = userRows[0];
-    expect(user).toBeDefined();
-    expect(user?.role).toBe('CUSTOMER');
-    expect(user?.status).toBe('ACTIVE');
-    expect(user?.emailVerified).toBe(true);
+      // One user row exists. Better Auth normalizes the verified email
+      // to lowercase before persisting, so we query against the
+      // normalized form.
+      const userRows = await databaseClient
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.email, 'customer-a@example.test'));
+      if (userRows.length === 0) {
+        const allUsers = await databaseClient.select().from(usersTable);
+        throw new Error(
+          `No user with email customer-a@example.test. Final redirect: ${result.finalRedirect}. All users: ${JSON.stringify(allUsers, (_key: string, value: unknown): unknown => (typeof value === 'bigint' ? value.toString() : value))}`,
+        );
+      }
+      expect(userRows).toHaveLength(1);
+      const user = userRows[0];
+      expect(user).toBeDefined();
+      expect(user?.role).toBe('CUSTOMER');
+      expect(user?.status).toBe('ACTIVE');
+      expect(user?.emailVerified).toBe(true);
 
-    // One account row for the test provider.
-    const accountRows = await databaseClient
-      .select()
-      .from(accountsTable)
-      .where(eq(accountsTable.providerId, TEST_PROVIDER_ID));
-    expect(accountRows).toHaveLength(1);
-    const account = accountRows[0];
-    expect(account?.userId).toBe(user?.id);
-    expect(account?.accountId).toBe('google-subject-A');
+      // One account row for the test provider.
+      const accountRows = await databaseClient
+        .select()
+        .from(accountsTable)
+        .where(eq(accountsTable.providerId, TEST_PROVIDER_ID));
+      expect(accountRows).toHaveLength(1);
+      const account = accountRows[0];
+      expect(account?.userId).toBe(user?.id);
+      expect(account?.accountId).toBe('google-subject-A');
 
-    // At least one session row exists.
-    const sessionRows = await databaseClient
-      .select()
-      .from(sessionsTable)
-      .where(eq(sessionsTable.userId, user?.id ?? ''));
-    expect(sessionRows.length).toBeGreaterThan(0);
-  });
+      // At least one session row exists.
+      const sessionRows = await databaseClient
+        .select()
+        .from(sessionsTable)
+        .where(eq(sessionsTable.userId, user?.id ?? ''));
+      expect(sessionRows.length).toBeGreaterThan(0);
+    },
+  );
 });
 
 describe('deterministic OAuth — repeat Google sign-in (CASE 2)', () => {
-  it('reuses the existing CUSTOMER row; no duplicate user or account', { timeout: 60_000 }, async () => {
-    requiredOidc().setNextUser({
-      sub: 'google-subject-A',
-      email: 'customer-a@example.test',
-      email_verified: true,
-      name: 'Customer A',
-    });
-    await runSignInFlow();
+  it(
+    'reuses the existing CUSTOMER row; no duplicate user or account',
+    { timeout: 60_000 },
+    async () => {
+      requiredOidc().setNextUser({
+        sub: 'google-subject-A',
+        email: 'customer-a@example.test',
+        email_verified: true,
+        name: 'Customer A',
+      });
+      await runSignInFlow();
 
-    requiredOidc().setNextUser({
-      sub: 'google-subject-A',
-      email: 'customer-a@example.test',
-      email_verified: true,
-      name: 'Customer A',
-    });
-    await runSignInFlow();
+      requiredOidc().setNextUser({
+        sub: 'google-subject-A',
+        email: 'customer-a@example.test',
+        email_verified: true,
+        name: 'Customer A',
+      });
+      await runSignInFlow();
 
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const userRows = await databaseClient
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, 'customer-a@example.test'));
-    expect(userRows).toHaveLength(1);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const userRows = await databaseClient
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.email, 'customer-a@example.test'));
+      expect(userRows).toHaveLength(1);
 
-    const accountRows = await databaseClient
-      .select()
-      .from(accountsTable)
-      .where(eq(accountsTable.providerId, TEST_PROVIDER_ID));
-    expect(accountRows).toHaveLength(1);
-  });
+      const accountRows = await databaseClient
+        .select()
+        .from(accountsTable)
+        .where(eq(accountsTable.providerId, TEST_PROVIDER_ID));
+      expect(accountRows).toHaveLength(1);
+    },
+  );
 });
 
 describe('deterministic OAuth — different Google subject, same email (CASE 3)', () => {
-  it('does not silently link; the second subject with the same email does not produce a new user', { timeout: 60_000 }, async () => {
-    // First login with subject A and email X.
-    requiredOidc().setNextUser({
-      sub: 'google-subject-A',
-      email: 'shared-email@example.test',
-      email_verified: true,
-      name: 'Subject A',
-    });
-    const first = await runSignInFlow();
-    expect(first.responseStatuses).toEqual([200, 302, 302]);
-    await new Promise((resolve) => setTimeout(resolve, 200));
+  it(
+    'does not silently link; the second subject with the same email does not produce a new user',
+    { timeout: 60_000 },
+    async () => {
+      // First login with subject A and email X.
+      requiredOidc().setNextUser({
+        sub: 'google-subject-A',
+        email: 'shared-email@example.test',
+        email_verified: true,
+        name: 'Subject A',
+      });
+      const first = await runSignInFlow();
+      expect(first.responseStatuses).toEqual([200, 302, 302]);
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-    // Capture the first user id.
-    const firstUsers = await databaseClient
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, 'shared-email@example.test'));
-    expect(firstUsers).toHaveLength(1);
+      // Capture the first user id.
+      const firstUsers = await databaseClient
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.email, 'shared-email@example.test'));
+      expect(firstUsers).toHaveLength(1);
 
-    // Second login with a different subject B and the same email.
-    // Better Auth 1.6.23 with `accountLinking.enabled = false` and
-    // `disableImplicitLinking = true` will not silently link the
-    // second subject. The exact failure surface depends on the
-    // Better Auth version: with our schema (case-insensitive
-    // unique email index) the second insert violates the
-    // constraint and Better Auth surfaces an error. Either way, the
-    // contract is "no second user is created".
-    requiredOidc().setNextUser({
-      sub: 'google-subject-B',
-      email: 'shared-email@example.test',
-      email_verified: true,
-      name: 'Subject B',
-    });
-    try {
-      await runSignInFlow();
-    } catch {
-      // A network / abort error from Better Auth is also an
-      // acceptable failure mode — the application did not return a
-      // successful redirect to the WEB_ORIGIN landing.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 200));
+      // Second login with a different subject B and the same email.
+      // Better Auth 1.6.23 with `accountLinking.enabled = false` and
+      // `disableImplicitLinking = true` will not silently link the
+      // second subject. The exact failure surface depends on the
+      // Better Auth version: with our schema (case-insensitive
+      // unique email index) the second insert violates the
+      // constraint and Better Auth surfaces an error. Either way, the
+      // contract is "no second user is created".
+      requiredOidc().setNextUser({
+        sub: 'google-subject-B',
+        email: 'shared-email@example.test',
+        email_verified: true,
+        name: 'Subject B',
+      });
+      try {
+        await runSignInFlow();
+      } catch {
+        // A network / abort error from Better Auth is also an
+        // acceptable failure mode — the application did not return a
+        // successful redirect to the WEB_ORIGIN landing.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-    // The first sign-in's user row must remain; no duplicate user
-    // row may exist for the same email.
-    const userRows = await databaseClient
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, 'shared-email@example.test'));
-    expect(userRows).toHaveLength(1);
-  });
+      // The first sign-in's user row must remain; no duplicate user
+      // row may exist for the same email.
+      const userRows = await databaseClient
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.email, 'shared-email@example.test'));
+      expect(userRows).toHaveLength(1);
+    },
+  );
 });
 
 describe('deterministic OAuth — replayed authorization code (CASE 5)', () => {
-  it('rejects a second exchange of the same code with invalid_grant', { timeout: 60_000 }, async () => {
-    // Disable replay protection on the test server so the first
-    // exchange succeeds. Then directly POST the token endpoint a
-    // second time and assert the local server returns invalid_grant
-    // (we use block-replay protection for the rest of the suite).
-    requiredOidc().setReplayProtectionMode('block-replay');
-    requiredOidc().setNextUser({
-      sub: 'google-subject-Replay',
-      email: 'replay@example.test',
-      email_verified: true,
-      name: 'Replay User',
-    });
-    await runSignInFlow();
+  it(
+    'rejects a second exchange of the same code with invalid_grant',
+    { timeout: 60_000 },
+    async () => {
+      // Disable replay protection on the test server so the first
+      // exchange succeeds. Then directly POST the token endpoint a
+      // second time and assert the local server returns invalid_grant
+      // (we use block-replay protection for the rest of the suite).
+      requiredOidc().setReplayProtectionMode('block-replay');
+      requiredOidc().setNextUser({
+        sub: 'google-subject-Replay',
+        email: 'replay@example.test',
+        email_verified: true,
+        name: 'Replay User',
+      });
+      await runSignInFlow();
 
-    // Direct token exchange with an already-redeemed code should fail.
-    const response = await fetch(requiredOidc().tokenUrl, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: 'consumed-code',
-        client_id: TEST_CLIENT_ID,
-        client_secret: TEST_CLIENT_SECRET,
-      }),
-    });
-    expect(response.status).toBe(400);
-    const body = (await response.json()) as { error?: string };
-    expect(body.error).toBe('invalid_grant');
-  });
+      // Direct token exchange with an already-redeemed code should fail.
+      const response = await fetch(requiredOidc().tokenUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: 'consumed-code',
+          client_id: TEST_CLIENT_ID,
+          client_secret: TEST_CLIENT_SECRET,
+        }),
+      });
+      expect(response.status).toBe(400);
+      const body = (await response.json()) as { error?: string };
+      expect(body.error).toBe('invalid_grant');
+    },
+  );
 });
 
 describe('deterministic OAuth — invalid authorization code (CASE 6)', () => {
@@ -455,92 +463,108 @@ describe('deterministic OAuth — invalid authorization code (CASE 6)', () => {
 });
 
 describe('deterministic OAuth — provider forces a transient error (CASE 6, server-side failure)', () => {
-  it('Better Auth surfaces a controlled error when the token endpoint returns an error', { timeout: 60_000 }, async () => {
-    // The forced error is set on the OIDC server. The very first
-    // /oauth2/authorize request will return the error, so the
-    // sign-in flow is aborted before a code is issued.
-    requiredOidc().setForceError('local OIDC test failure');
-    requiredOidc().setNextUser({
-      sub: 'google-subject-Forced',
-      email: 'forced@example.test',
-      email_verified: true,
-      name: 'Forced User',
-    });
-    try {
-      const result = await runSignInFlow();
-      expect(result.finalRedirect).not.toMatch(new RegExp(`^${TEST_WEB_ORIGIN.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}/?$`));
-    } catch {
-      // A failure to even start the flow (because the authorize
-      // endpoint returns an error) is also a fail-closed outcome.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const userRows = await databaseClient.select().from(usersTable);
-    expect(userRows).toHaveLength(0);
-  });
+  it(
+    'Better Auth surfaces a controlled error when the token endpoint returns an error',
+    { timeout: 60_000 },
+    async () => {
+      // The forced error is set on the OIDC server. The very first
+      // /oauth2/authorize request will return the error, so the
+      // sign-in flow is aborted before a code is issued.
+      requiredOidc().setForceError('local OIDC test failure');
+      requiredOidc().setNextUser({
+        sub: 'google-subject-Forced',
+        email: 'forced@example.test',
+        email_verified: true,
+        name: 'Forced User',
+      });
+      try {
+        const result = await runSignInFlow();
+        expect(result.finalRedirect).not.toMatch(
+          new RegExp(`^${TEST_WEB_ORIGIN.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}/?$`),
+        );
+      } catch {
+        // A failure to even start the flow (because the authorize
+        // endpoint returns an error) is also a fail-closed outcome.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const userRows = await databaseClient.select().from(usersTable);
+      expect(userRows).toHaveLength(0);
+    },
+  );
 });
 
 describe('deterministic OAuth — missing email (CASE 7)', () => {
-  it('fails closed when the userinfo response carries no email claim', { timeout: 60_000 }, async () => {
-    // Set the no-email payload. The userinfo endpoint will return
-    // a profile without an email claim, and Better Auth's generic
-    // OAuth provider will refuse to create the user.
-    requiredOidc().setNextUser({
-      sub: 'google-subject-NoEmail',
-      email: 'placeholder@example.test',
-      email_verified: true,
-      name: 'No Email',
-    });
-    requiredOidc().setNextUserWithoutEmail();
-    try {
-      const result = await runSignInFlow();
-      expect(result.finalRedirect).not.toMatch(new RegExp(`^${TEST_WEB_ORIGIN.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}/?$`));
-    } catch {
-      // A network / abort error is also acceptable.
-    }
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const userRows = await databaseClient.select().from(usersTable);
-    expect(userRows).toHaveLength(0);
-  });
+  it(
+    'fails closed when the userinfo response carries no email claim',
+    { timeout: 60_000 },
+    async () => {
+      // Set the no-email payload. The userinfo endpoint will return
+      // a profile without an email claim, and Better Auth's generic
+      // OAuth provider will refuse to create the user.
+      requiredOidc().setNextUser({
+        sub: 'google-subject-NoEmail',
+        email: 'placeholder@example.test',
+        email_verified: true,
+        name: 'No Email',
+      });
+      requiredOidc().setNextUserWithoutEmail();
+      try {
+        const result = await runSignInFlow();
+        expect(result.finalRedirect).not.toMatch(
+          new RegExp(`^${TEST_WEB_ORIGIN.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}/?$`),
+        );
+      } catch {
+        // A network / abort error is also acceptable.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const userRows = await databaseClient.select().from(usersTable);
+      expect(userRows).toHaveLength(0);
+    },
+  );
 });
 
 describe('deterministic OAuth — disabled CUSTOMER (CASE 12)', () => {
-  it('sign-in succeeds for ACTIVE CUSTOMER and fails for DISABLED CUSTOMER', { timeout: 90_000 }, async () => {
-    // 1. Sign in to create a CUSTOMER user.
-    requiredOidc().setNextUser({
-      sub: 'google-subject-Disable',
-      email: 'disable@example.test',
-      email_verified: true,
-      name: 'Disable User',
-    });
-    const first = await runSignInFlow();
-    expect(first.responseStatuses).toEqual([200, 302, 302]);
-    await new Promise((resolve) => setTimeout(resolve, 200));
+  it(
+    'sign-in succeeds for ACTIVE CUSTOMER and fails for DISABLED CUSTOMER',
+    { timeout: 90_000 },
+    async () => {
+      // 1. Sign in to create a CUSTOMER user.
+      requiredOidc().setNextUser({
+        sub: 'google-subject-Disable',
+        email: 'disable@example.test',
+        email_verified: true,
+        name: 'Disable User',
+      });
+      const first = await runSignInFlow();
+      expect(first.responseStatuses).toEqual([200, 302, 302]);
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-    // 2. Disable the user row.
-    await databaseClient
-      .update(usersTable)
-      .set({ status: 'DISABLED' })
-      .where(eq(usersTable.email, 'disable@example.test'));
+      // 2. Disable the user row.
+      await databaseClient
+        .update(usersTable)
+        .set({ status: 'DISABLED' })
+        .where(eq(usersTable.email, 'disable@example.test'));
 
-    // 3. Repeat the sign-in. The application-level session reader
-    //    refuses DISABLED users. Better Auth's sign-in itself can
-    //    still mint a row, but our session reader must reject it.
-    requiredOidc().setNextUser({
-      sub: 'google-subject-Disable',
-      email: 'disable@example.test',
-      email_verified: true,
-      name: 'Disable User',
-    });
-    await runSignInFlow();
-    await new Promise((resolve) => setTimeout(resolve, 200));
+      // 3. Repeat the sign-in. The application-level session reader
+      //    refuses DISABLED users. Better Auth's sign-in itself can
+      //    still mint a row, but our session reader must reject it.
+      requiredOidc().setNextUser({
+        sub: 'google-subject-Disable',
+        email: 'disable@example.test',
+        email_verified: true,
+        name: 'Disable User',
+      });
+      await runSignInFlow();
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-    const userRows = await databaseClient
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, 'disable@example.test'));
-    expect(userRows).toHaveLength(1);
-    expect(userRows[0]?.status).toBe('DISABLED');
-  });
+      const userRows = await databaseClient
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.email, 'disable@example.test'));
+      expect(userRows).toHaveLength(1);
+      expect(userRows[0]?.status).toBe('DISABLED');
+    },
+  );
 });
 
 void TEST_AUTH_BASE_URL;

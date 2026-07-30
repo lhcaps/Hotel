@@ -26,15 +26,8 @@ const actor: ActorContext = {
 };
 
 interface ControllerServiceShape {
-  listPayments(
-    propertyId: string,
-    query: unknown,
-  ): Promise<AdminPaymentListResponse>;
-  getDetail(
-    paymentId: string,
-    propertyId: string,
-    now: Date,
-  ): Promise<AdminPaymentDetail>;
+  listPayments(propertyId: string, query: unknown): Promise<AdminPaymentListResponse>;
+  getDetail(paymentId: string, propertyId: string, now: Date): Promise<AdminPaymentDetail>;
   reconcile(
     actor: ActorContext,
     paymentId: string,
@@ -46,9 +39,12 @@ interface ControllerServiceShape {
 
 function buildPropertyContext(): PropertyContextService {
   return {
-    getCurrent: vi
-      .fn()
-      .mockResolvedValue({ id: propertyId, code: 'MAIN', name: 'Main', timezone: 'Asia/Ho_Chi_Minh' }),
+    getCurrent: vi.fn().mockResolvedValue({
+      id: propertyId,
+      code: 'MAIN',
+      name: 'Main',
+      timezone: 'Asia/Ho_Chi_Minh',
+    }),
   } as unknown as PropertyContextService;
 }
 
@@ -74,10 +70,10 @@ describe('AdminPaymentReconciliationController', () => {
     const listPayments = vi.fn().mockResolvedValue(listResponse);
     const { controller, service } = buildController({ listPayments });
 
-    const response = await controller.listPayments(
-      { page: 1, pageSize: 20 },
-      { actor, id: 'request-id' } as never,
-    );
+    const response = await controller.listPayments({ page: 1, pageSize: 20 }, {
+      actor,
+      id: 'request-id',
+    } as never);
 
     expect(service.listPayments).toHaveBeenCalledWith(
       propertyId,
@@ -91,16 +87,12 @@ describe('AdminPaymentReconciliationController', () => {
     const getDetail = vi.fn().mockResolvedValue(detail);
     const { controller, service } = buildController({ getDetail });
 
-    const response = await controller.getPaymentDetail(
-      paymentId,
-      { actor, id: 'request-id' } as never,
-    );
+    const response = await controller.getPaymentDetail(paymentId, {
+      actor,
+      id: 'request-id',
+    } as never);
 
-    expect(service.getDetail).toHaveBeenCalledWith(
-      paymentId,
-      propertyId,
-      expect.any(Date),
-    );
+    expect(service.getDetail).toHaveBeenCalledWith(paymentId, propertyId, expect.any(Date));
     expect(response).toBe(detail);
   });
 
@@ -150,11 +142,10 @@ describe('AdminPaymentReconciliationController', () => {
     const { controller, service } = buildController({ reconcile });
 
     const body = { expectedAttemptId: '550e8400-e29b-41d4-a716-446655440050' };
-    const result = await controller.reconcilePayment(
-      paymentId,
-      body,
-      { actor, id: 'request-id' } as never,
-    );
+    const result = await controller.reconcilePayment(paymentId, body, {
+      actor,
+      id: 'request-id',
+    } as never);
 
     expect(service.reconcile).toHaveBeenCalledWith(
       actor,

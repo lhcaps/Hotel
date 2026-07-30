@@ -42,7 +42,8 @@ import { createServer } from 'node:http';
 const PORT = Number.parseInt(process.env.PAYMENT_SIMULATOR_PORT ?? '3090', 10);
 const HOST = process.env.PAYMENT_SIMULATOR_HOST ?? '127.0.0.1';
 const MOMO_PARTNER_CODE = process.env.PAYMENT_SIMULATOR_MOMO_PARTNER_CODE ?? 'PLAYWRIGHT_MOMO';
-const MOMO_ACCESS_KEY = process.env.PAYMENT_SIMULATOR_MOMO_ACCESS_KEY ?? 'playwright-momo-access-key';
+const MOMO_ACCESS_KEY =
+  process.env.PAYMENT_SIMULATOR_MOMO_ACCESS_KEY ?? 'playwright-momo-access-key';
 const MOMO_SECRET_KEY =
   process.env.PAYMENT_SIMULATOR_MOMO_SECRET_KEY ??
   'playwright-momo-secret-key-at-least-thirty-two-characters';
@@ -53,8 +54,7 @@ const VNPAY_HASH_SECRET =
 const MOMO_IPN_URL =
   process.env.PAYMENT_SIMULATOR_MOMO_IPN_URL ?? 'http://127.0.0.1:3101/api/v1/webhooks/momo';
 const VNPAY_IPN_URL =
-  process.env.PAYMENT_SIMULATOR_VNPAY_IPN_URL ??
-  'http://127.0.0.1:3101/api/v1/webhooks/vnpay';
+  process.env.PAYMENT_SIMULATOR_VNPAY_IPN_URL ?? 'http://127.0.0.1:3101/api/v1/webhooks/vnpay';
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
 const DISABLED_IN_PRODUCTION = NODE_ENV === 'production';
 
@@ -254,7 +254,8 @@ function buildMomoIpn({ orderId, amount, resultCode, transId, tamperSignature })
     transId,
   };
   const canonical = momoIpnCanonical(fields);
-  const signature = tamperSignature === true ? 'f'.repeat(64) : signMomo(MOMO_SECRET_KEY, canonical);
+  const signature =
+    tamperSignature === true ? 'f'.repeat(64) : signMomo(MOMO_SECRET_KEY, canonical);
   return {
     orderType: fields.orderType,
     amount: fields.amount,
@@ -399,10 +400,19 @@ async function renderVnpayPayPage(response, url) {
 async function handleControl(request, response, provider, url) {
   const body = await readJsonBody(request);
   const state = providerState[provider];
-  if (body.mode === 'verify' || body.mode === 'cancel' || body.mode === 'tamper' || body.mode === 'fail-create') {
+  if (
+    body.mode === 'verify' ||
+    body.mode === 'cancel' ||
+    body.mode === 'tamper' ||
+    body.mode === 'fail-create'
+  ) {
     state.mode = body.mode;
   }
-  if (typeof body.redirectDelayMs === 'number' && Number.isFinite(body.redirectDelayMs) && body.redirectDelayMs >= 0) {
+  if (
+    typeof body.redirectDelayMs === 'number' &&
+    Number.isFinite(body.redirectDelayMs) &&
+    body.redirectDelayMs >= 0
+  ) {
     state.redirectDelayMs = Math.min(60_000, Math.floor(body.redirectDelayMs));
   }
   if (typeof body.duplicateIpns === 'boolean') {

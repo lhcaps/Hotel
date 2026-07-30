@@ -25,12 +25,7 @@ export const paymentStatusSummarySchema = z.enum([
 
 export const reviewPresenceSchema = z.enum(['OPEN', 'RESOLVED', 'NONE']);
 
-export const adminBookingActionSchema = z.enum([
-  'cancel',
-  'check-in',
-  'check-out',
-  'no-show',
-]);
+export const adminBookingActionSchema = z.enum(['cancel', 'check-in', 'check-out', 'no-show']);
 
 export const adminBookingListQuerySchema = z
   .object({
@@ -243,10 +238,7 @@ export const adminOperationalReviewDetailSchema = adminOperationalReviewSummaryS
         checkIn: instantSchema,
         checkOut: instantSchema,
         roomType: z.object({ code: z.string(), name: z.string() }).strict(),
-        room: z
-          .object({ id: uuidSchema, roomNumber: z.string() })
-          .strict()
-          .nullable(),
+        room: z.object({ id: uuidSchema, roomNumber: z.string() }).strict().nullable(),
         finalAmountVnd: z.number().int().min(0),
       })
       .strict(),

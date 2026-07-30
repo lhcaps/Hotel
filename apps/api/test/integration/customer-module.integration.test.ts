@@ -2,11 +2,7 @@ import { Buffer } from 'node:buffer';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 
-import {
-  computeDigest,
-  DIGEST_DOMAIN_LABELS,
-  deriveOtpForChallenge,
-} from '@room/booking';
+import { computeDigest, DIGEST_DOMAIN_LABELS, deriveOtpForChallenge } from '@room/booking';
 import {
   createDatabaseClient,
   migrateDatabase,
@@ -154,10 +150,7 @@ async function obtainGuestSession(
   );
   expect(verifyResult.bookingCode).toBe(bookingCode);
 
-  const tokenDigest = digestSessionToken(
-    SECRETS.sessionSecret,
-    verifyResult.sessionToken,
-  );
+  const tokenDigest = digestSessionToken(SECRETS.sessionSecret, verifyResult.sessionToken);
   const sessions = await pool.query<{ booking_id: string }>(
     `SELECT booking_id FROM guest_sessions WHERE token_digest = $1 LIMIT 1`,
     [tokenDigest],
@@ -275,14 +268,7 @@ describe('customer module — profile, ownership, claim, payment status', () => 
     );
     expect(audit.rows).toHaveLength(1);
     expect(audit.rows[0]?.payload.changedFields).toEqual(
-      expect.arrayContaining([
-        'name',
-        'phone',
-        'addressLine1',
-        'ward',
-        'district',
-        'province',
-      ]),
+      expect.arrayContaining(['name', 'phone', 'addressLine1', 'ward', 'district', 'province']),
     );
   });
 
@@ -314,10 +300,10 @@ describe('customer module — profile, ownership, claim, payment status', () => 
         parts: [Buffer.from('guest-other@example.com', 'utf8')],
       }),
     });
-    await pool.query(
-      `UPDATE bookings SET customer_user_id = $1 WHERE booking_code = $2`,
-      [customerA.id, claimed.bookingCode],
-    );
+    await pool.query(`UPDATE bookings SET customer_user_id = $1 WHERE booking_code = $2`, [
+      customerA.id,
+      claimed.bookingCode,
+    ]);
 
     const listA = await bookingService.listForCustomer(customerA.id, { limit: 10 });
     expect(listA.items).toHaveLength(1);
@@ -342,17 +328,14 @@ describe('customer module — profile, ownership, claim, payment status', () => 
       },
       emailDigest,
     });
-    await pool.query(
-      `UPDATE bookings SET customer_user_id = $1 WHERE booking_code = $2`,
-      [customer.id, seeded.bookingCode],
-    );
+    await pool.query(`UPDATE bookings SET customer_user_id = $1 WHERE booking_code = $2`, [
+      customer.id,
+      seeded.bookingCode,
+    ]);
 
     // Before a payment row is created, the API exposes the literal
     // "NONE" sentinel so CUSTOMERs cannot infer a hidden attempt.
-    const before = await bookingService.detailForCustomer(
-      customer.id,
-      seeded.bookingCode,
-    );
+    const before = await bookingService.detailForCustomer(customer.id, seeded.bookingCode);
     expect(before.paymentStatus).toBe('NONE');
 
     const paymentResult = await pool.query<{ id: string }>(
@@ -366,10 +349,7 @@ describe('customer module — profile, ownership, claim, payment status', () => 
     );
     expect(paymentResult.rows).toHaveLength(1);
 
-    const after = await bookingService.detailForCustomer(
-      customer.id,
-      seeded.bookingCode,
-    );
+    const after = await bookingService.detailForCustomer(customer.id, seeded.bookingCode);
     expect(after.paymentStatus).toBe('SUCCEEDED');
     expect(after.grossAmountVnd).toBe('359000');
     expect(after.finalAmountVnd).toBe('359000');
@@ -389,12 +369,7 @@ describe('customer module — profile, ownership, claim, payment status', () => 
       contact: { fullName: 'Claim Test', email, phoneE164: '+84909000400' },
       emailDigest,
     });
-    const guestSession = await obtainGuestSession(
-      pool,
-      client,
-      seeded.bookingCode,
-      email,
-    );
+    const guestSession = await obtainGuestSession(pool, client, seeded.bookingCode, email);
 
     // Alice claims first using her guest session — success.
     const aliceClaim = await claimService.claim({
@@ -480,12 +455,7 @@ describe('customer module — profile, ownership, claim, payment status', () => 
       contact: { fullName: 'Disabled', email, phoneE164: '+84909000500' },
       emailDigest,
     });
-    const guestSession = await obtainGuestSession(
-      pool,
-      client,
-      seeded.bookingCode,
-      email,
-    );
+    const guestSession = await obtainGuestSession(pool, client, seeded.bookingCode, email);
     await expect(
       claimService.claim({
         bookingCode: seeded.bookingCode,
@@ -512,10 +482,10 @@ describe('customer module — profile, ownership, claim, payment status', () => 
       },
       emailDigest,
     });
-    await pool.query(
-      `UPDATE bookings SET customer_user_id = $1 WHERE booking_code = $2`,
-      [alice.id, seeded.bookingCode],
-    );
+    await pool.query(`UPDATE bookings SET customer_user_id = $1 WHERE booking_code = $2`, [
+      alice.id,
+      seeded.bookingCode,
+    ]);
 
     await expect(
       bookingService.detailForCustomer(bob.id, seeded.bookingCode),

@@ -25,9 +25,9 @@ For a random `(checkIn, duration)` in the 96×93 valid grid, the system:
 
 **Yes.** The audit oracle proves this empirically. Example (T1 tier, locked catalog):
 
-| Scenario | Production chose | Production total (VND) | Oracle's cheapest | Oracle total (VND) | Difference (VND) |
-|---|---|---|---|---|---|
-| Check-in 18:00, duration 6 h | NIGHT_COMBO (pri 90, base 600 min, included 600 min, extras 0) | 689 000 | FIVE_HOUR_COMBO (pri 70, base 300 min, included 300 min, extras 3 × 100 000 = 300 000) | 450 000 + 300 000 = 750 000 | Wait, that's not cheaper. **Real** mismatches occur in scenarios where the priority ordering diverges from the price ordering. |
+| Scenario                                                       | Production chose                                               | Production total (VND) | Oracle's cheapest                                                                      | Oracle total (VND)          | Difference (VND)                                                                                                               |
+| -------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Check-in 18:00, duration 6 h                                   | NIGHT_COMBO (pri 90, base 600 min, included 600 min, extras 0) | 689 000                | FIVE_HOUR_COMBO (pri 70, base 300 min, included 300 min, extras 3 × 100 000 = 300 000) | 450 000 + 300 000 = 750 000 | Wait, that's not cheaper. **Real** mismatches occur in scenarios where the priority ordering diverges from the price ordering. |
 | (See `pricing-counterexamples.json` for 50 concrete examples.) |
 
 The counterexamples in `pricing-counterexamples.json` are the audit's reproducible evidence.
@@ -74,15 +74,15 @@ The counterexamples in `pricing-counterexamples.json` are the audit's reproducib
 
 If the product chooses to implement flexible recommendation, the audit suggests the following dimensions be **separately** considered rather than combined into a single weighted score:
 
-| Dimension | Source |
-|---|---|
+| Dimension                                           | Source                                                                              |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Total payable amount (after eligible plan + extras) | Oracle: enumerate all eligible `(plan, extra)` candidates for the original interval |
-| Exact preservation of requested interval (boolean) | Same: plan must cover the exact `[checkIn, checkOut)` |
-| Minutes shifted (positive integer) | Derived from proposed check-in/check-out vs requested |
-| Unused included minutes | `plan.includedDurationMinutes − extraUnits × 60` for the proposed plan |
-| Number of extra-hour units | `Math.ceil((dur − plan.includedDurationMinutes) / 60)` for the proposed plan |
-| Room availability at proposed window | Out of pricing scope; re-check availability at the proposed interval |
-| Cancellation/refund implications | Out of pricing scope; derived from booking/quote lifecycle |
+| Exact preservation of requested interval (boolean)  | Same: plan must cover the exact `[checkIn, checkOut)`                               |
+| Minutes shifted (positive integer)                  | Derived from proposed check-in/check-out vs requested                               |
+| Unused included minutes                             | `plan.includedDurationMinutes − extraUnits × 60` for the proposed plan              |
+| Number of extra-hour units                          | `Math.ceil((dur − plan.includedDurationMinutes) / 60)` for the proposed plan        |
+| Room availability at proposed window                | Out of pricing scope; re-check availability at the proposed interval                |
+| Cancellation/refund implications                    | Out of pricing scope; derived from booking/quote lifecycle                          |
 
 **Do not combine these into one convenience score without explicit product approval.** This is a deliberate separation-of-concerns recommendation.
 
@@ -103,10 +103,10 @@ This separation is critical because:
 
 ## 5. Verdict Summary
 
-| Verdict | Status |
-|---|---|
-| EXACT_TIME_CHEAPEST_PLAN | FAIL |
-| FLEXIBLE_TIME_RECOMMENDATION | BUSINESS_RULE_UNSOURCED |
+| Verdict                            | Status                  |
+| ---------------------------------- | ----------------------- |
+| EXACT_TIME_CHEAPEST_PLAN           | FAIL                    |
+| FLEXIBLE_TIME_RECOMMENDATION       | BUSINESS_RULE_UNSOURCED |
 | COMBO_RECOMMENDATION_PRODUCT_RULES | BUSINESS_RULE_UNSOURCED |
 
 ## 6. API Boundary for a Future Recommender (suggestion only)

@@ -172,7 +172,9 @@ export function AvailabilitySearchResults({
     <NearbySection
       locale={locale}
       {...(nearbyError !== undefined ? { nearbyError } : {})}
-      {...(controlledNearbyResponse !== undefined ? { nearbyResponse: controlledNearbyResponse } : {})}
+      {...(controlledNearbyResponse !== undefined
+        ? { nearbyResponse: controlledNearbyResponse }
+        : {})}
       nearbyStatus={controlledNearbyStatus ?? 'idle'}
       {...(onRetryNearby !== undefined ? { onRetryNearby } : {})}
       state={state}
@@ -241,7 +243,9 @@ function ResultCard({
             aria-label={translate(locale, 'catalog.amenities')}
             className="availability-results__amenities"
           >
-            {amenities.slice(0, 3).map((amenity) => <li key={amenity}>{amenity}</li>)}
+            {amenities.slice(0, 3).map((amenity) => (
+              <li key={amenity}>{amenity}</li>
+            ))}
           </ul>
         ) : null}
         {offer ? (

@@ -2,11 +2,7 @@ import { cookies } from 'next/headers';
 
 import { resolveLocale, translate } from '../../lib/i18n/messages';
 
-export default async function AccountLayout({
-  children,
-}: {
-  readonly children: React.ReactNode;
-}) {
+export default async function AccountLayout({ children }: { readonly children: React.ReactNode }) {
   const locale = resolveLocale((await cookies()).get('room_locale')?.value);
   return (
     <div className="account-shell">

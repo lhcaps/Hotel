@@ -794,22 +794,21 @@ async function main() {
   // path. Disable with DEMO_PAYMENT_SIMULATOR=off to keep the legacy
   // demo behavior.
   if (process.env.DEMO_PAYMENT_SIMULATOR !== 'off') {
-    const simulatorPath = resolve(process.cwd(), 'tests/e2e/_fixtures/payment-provider-simulator.mjs');
-    const simulatorChild = spawn(
-      process.execPath,
-      [simulatorPath],
-      {
-        env: {
-          ...apiEnv,
-          NODE_ENV: 'development',
-          PAYMENT_SIMULATOR_HOST: DEMO_PAYMENT_SIMULATOR_HOST,
-          PAYMENT_SIMULATOR_PORT: String(DEMO_PAYMENT_SIMULATOR_PORT),
-        },
-        stdio: ['ignore', 'inherit', 'inherit'],
-        windowsHide: true,
-        detached: false,
-      },
+    const simulatorPath = resolve(
+      process.cwd(),
+      'tests/e2e/_fixtures/payment-provider-simulator.mjs',
     );
+    const simulatorChild = spawn(process.execPath, [simulatorPath], {
+      env: {
+        ...apiEnv,
+        NODE_ENV: 'development',
+        PAYMENT_SIMULATOR_HOST: DEMO_PAYMENT_SIMULATOR_HOST,
+        PAYMENT_SIMULATOR_PORT: String(DEMO_PAYMENT_SIMULATOR_PORT),
+      },
+      stdio: ['ignore', 'inherit', 'inherit'],
+      windowsHide: true,
+      detached: false,
+    });
     children.set('simulator', simulatorChild);
     if (typeof simulatorChild.pid === 'number') ownedPids.add(simulatorChild.pid);
     simulatorChild.once('exit', (code, signal) => {
@@ -840,10 +839,8 @@ async function main() {
       `http://127.0.0.1:${String(DEMO_API_PORT)}/api/v1/webhooks/${provider}`;
     apiEnv.MOMO_ENABLED = 'true';
     apiEnv.MOMO_ENVIRONMENT = apiEnv.MOMO_ENVIRONMENT ?? 'sandbox';
-    apiEnv.MOMO_PARTNER_CODE =
-      apiEnv.PAYMENT_SIMULATOR_MOMO_PARTNER_CODE ?? 'DEMO_MOMO';
-    apiEnv.MOMO_ACCESS_KEY =
-      apiEnv.PAYMENT_SIMULATOR_MOMO_ACCESS_KEY ?? 'demo-momo-access-key';
+    apiEnv.MOMO_PARTNER_CODE = apiEnv.PAYMENT_SIMULATOR_MOMO_PARTNER_CODE ?? 'DEMO_MOMO';
+    apiEnv.MOMO_ACCESS_KEY = apiEnv.PAYMENT_SIMULATOR_MOMO_ACCESS_KEY ?? 'demo-momo-access-key';
     apiEnv.MOMO_SECRET_KEY = apiEnv.PAYMENT_SIMULATOR_MOMO_SECRET_KEY;
     apiEnv.MOMO_API_BASE_URL = apiEnv.PAYMENT_SIMULATOR_BASE_URL;
     apiEnv.MOMO_RETURN_URL = localReturnUrl('momo');

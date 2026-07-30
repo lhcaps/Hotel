@@ -34,8 +34,14 @@ describe('public booking entry', () => {
     const user = userEvent.setup();
     render(<AvailabilitySearchForm onSearch={vi.fn()} variant="home" />);
     await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
-    expect(screen.getByRole('button', { name: 'Theo giờ' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Qua đêm' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Theo giờ' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Qua đêm' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     expect(screen.queryByLabelText('Nhận phòng')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2027-04-10' } });
     fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '11:00' } });
@@ -55,7 +61,9 @@ describe('public booking entry', () => {
 
     expect(screen.getByRole('button', { name: 'Qua đêm' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByLabelText('Ngày')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Nhận phòng'), { target: { value: '2027-04-10T18:00' } });
+    fireEvent.change(screen.getByLabelText('Nhận phòng'), {
+      target: { value: '2027-04-10T18:00' },
+    });
     fireEvent.change(screen.getByLabelText('Trả phòng'), { target: { value: '2027-04-11T08:00' } });
     await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
 
@@ -89,7 +97,9 @@ describe('public booking entry', () => {
         <PublicLanding />
       </LocaleProvider>,
     );
-    fireEvent.change(screen.getByLabelText('Nhận phòng'), { target: { value: '2027-04-10T11:00' } });
+    fireEvent.change(screen.getByLabelText('Nhận phòng'), {
+      target: { value: '2027-04-10T11:00' },
+    });
     fireEvent.change(screen.getByLabelText('Trả phòng'), { target: { value: '2027-04-10T14:00' } });
     await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
     expect(push).not.toHaveBeenCalled();

@@ -144,8 +144,12 @@ describe('AdminPaymentDetailPage', () => {
 
     render(<AdminPaymentDetailPage params={{ paymentId: DETAIL.paymentId }} />);
     await screen.findByText('BK-ABCDEF');
-    expect(screen.queryByRole('button', { name: /Mark succeeded|Đánh dấu thành công/i })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Truy vấn trạng thái nhà cung cấp' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Mark succeeded|Đánh dấu thành công/i }),
+    ).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Truy vấn trạng thái nhà cung cấp' }),
+    ).toBeInTheDocument();
   });
 
   it('queries provider status with confirmation and refreshes the detail on success', async () => {
@@ -201,9 +205,7 @@ describe('AdminPaymentDetailPage', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
     await waitFor(() =>
-      expect(
-        document.body.textContent?.includes('Trạng thái thanh toán đã thay đổi'),
-      ).toBe(true),
+      expect(document.body.textContent?.includes('Trạng thái thanh toán đã thay đổi')).toBe(true),
     );
   });
 

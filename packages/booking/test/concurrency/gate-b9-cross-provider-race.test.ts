@@ -242,7 +242,10 @@ describe('Gate B9 cross-provider PostgreSQL concurrency matrix', () => {
     expect(states.rows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ status: 'SUCCEEDED', review_code: null }),
-        expect.objectContaining({ status: 'REVIEW_REQUIRED', review_code: 'PAYMENT_BOOKING_STATE' }),
+        expect.objectContaining({
+          status: 'REVIEW_REQUIRED',
+          review_code: 'PAYMENT_BOOKING_STATE',
+        }),
       ]),
     );
   });
@@ -364,7 +367,7 @@ describe('Gate B9 cross-provider PostgreSQL concurrency matrix', () => {
     expect(await settlementCounts(fixture, scenario.bookingId)).toMatchObject({
       coupon_status: 'REDEEMED',
       provider_events: 1,
-       audit_events: 4,
+      audit_events: 4,
       outbox_events: 2,
     });
   });
@@ -426,7 +429,7 @@ describe('Gate B9 cross-provider PostgreSQL concurrency matrix', () => {
     });
     expect(await settlementCounts(fixture, scenario.bookingId)).toMatchObject({
       provider_events: 2,
-       audit_events: 2,
+      audit_events: 2,
       outbox_events: 2,
     });
   });

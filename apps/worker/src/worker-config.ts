@@ -17,9 +17,7 @@ const workerConfigSchema = z
     WORKER_ERROR_BACKOFF_MS: positiveBoundedInteger(50, 3_600_000).default(1_000),
     WORKER_MAX_ERROR_BACKOFF_MS: positiveBoundedInteger(50, 3_600_000).default(60_000),
     WORKER_RECONCILIATION_BATCH_SIZE: positiveBoundedInteger(1, 100).default(25),
-    WORKER_RECONCILIATION_LEASE_TTL_MS: positiveBoundedInteger(1_000, 15 * 60_000).default(
-      120_000,
-    ),
+    WORKER_RECONCILIATION_LEASE_TTL_MS: positiveBoundedInteger(1_000, 15 * 60_000).default(120_000),
     WORKER_RECONCILIATION_INTERVAL_MS: positiveBoundedInteger(1_000, 3_600_000).default(30_000),
     WORKER_RECONCILIATION_CONCURRENCY: positiveBoundedInteger(1, 25).default(5),
     WORKER_RECONCILIATION_MAX_ATTEMPTS: positiveBoundedInteger(1, 32).default(8),

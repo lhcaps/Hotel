@@ -224,8 +224,8 @@ tests/e2e/{admin-auth,admin-coupon,admin-edit-flows,admin-rate-plan,
 > (`docs/handoffs/phase-8i-verdicts.md`). Not introduced by Phase 0. This
 > is a **concrete evidence failure** for `format:check` and is recorded
 > under `STATIC_GATES`. Not blocking Phase 0's gate (`baseline is
-> reproducible AND every failure has concrete evidence AND no source or
-> migration was modified`) — the failure is captured with the exact
+reproducible AND every failure has concrete evidence AND no source or
+migration was modified`) — the failure is captured with the exact
 > count and command.
 
 ---
@@ -375,12 +375,12 @@ that the date rolled past midnight. The form then constructs
 `checkOut = dateTime(submittedHourlyDate, '01:00')`, i.e. an interval
 that ends **earlier than it starts** on the same date:
 
-| Input | Expected `checkOut` (Asia/Ho_Chi_Minh, +07:00) | Current `checkOut` |
-| --- | --- | --- |
-| `2026-07-31 20:00 + 180` | `2026-07-31T23:00:00+07:00` | `2026-07-31T23:00:00+07:00` ✅ |
-| `2026-07-31 23:00 + 180` | `2026-08-01T02:00:00+07:00` | `2026-07-31T01:00:00+07:00` ❌ |
-| `2026-12-31 23:45 + 60`  | `2027-01-01T00:45:00+07:00` | `2026-12-31T00:45:00+07:00` ❌ |
-| `2026-07-31 23:53 → round to next quarter` | `2026-08-01T00:00:00+07:00` | `2026-08-01T00:00:00+07:00` ✅ (because `roundUpToNextQuarterHour` rolls `% 24` hours but the date defaults are empty) |
+| Input                                      | Expected `checkOut` (Asia/Ho_Chi_Minh, +07:00) | Current `checkOut`                                                                                                     |
+| ------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `2026-07-31 20:00 + 180`                   | `2026-07-31T23:00:00+07:00`                    | `2026-07-31T23:00:00+07:00` ✅                                                                                         |
+| `2026-07-31 23:00 + 180`                   | `2026-08-01T02:00:00+07:00`                    | `2026-07-31T01:00:00+07:00` ❌                                                                                         |
+| `2026-12-31 23:45 + 60`                    | `2027-01-01T00:45:00+07:00`                    | `2026-12-31T00:45:00+07:00` ❌                                                                                         |
+| `2026-07-31 23:53 → round to next quarter` | `2026-08-01T00:00:00+07:00`                    | `2026-08-01T00:00:00+07:00` ✅ (because `roundUpToNextQuarterHour` rolls `% 24` hours but the date defaults are empty) |
 
 The form's invariant at line 168 catches the impossible interval and
 shows `search.invalidInterval` — i.e. the user sees a generic error

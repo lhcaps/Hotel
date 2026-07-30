@@ -4,7 +4,10 @@ const challengeRefSchema = z
   .string()
   .trim()
   .length(32)
-  .regex(/^[1-9A-HJKMNP-Z]{32}$/, 'challengeRef must be 32 uppercase letters/digits excluding 0,I,L,O')
+  .regex(
+    /^[1-9A-HJKMNP-Z]{32}$/,
+    'challengeRef must be 32 uppercase letters/digits excluding 0,I,L,O',
+  )
   .transform((value) => value.toUpperCase());
 
 const otpSchema = z.string().regex(/^[0-9]{6}$/, 'otp must be exactly six digits');

@@ -1,10 +1,4 @@
-import {
-  bookings,
-  type DatabaseClient,
-  eq,
-  payments,
-  sql,
-} from '@room/database';
+import { bookings, type DatabaseClient, eq, payments, sql } from '@room/database';
 
 export interface CustomerBookingSummary {
   readonly bookingId: string;
@@ -77,8 +71,7 @@ export class CustomerBookingService {
     }));
     const hasMore = rows.length > options.limit;
     const last = items[items.length - 1];
-    const nextCursor =
-      hasMore && last !== undefined ? `${last.createdAt}|${last.bookingId}` : null;
+    const nextCursor = hasMore && last !== undefined ? `${last.createdAt}|${last.bookingId}` : null;
     return { items, nextCursor };
   }
 

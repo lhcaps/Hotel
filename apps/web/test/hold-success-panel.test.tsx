@@ -19,7 +19,9 @@ const HOLD: BookingHoldResponse = {
   idempotent: false,
 };
 
-function makeStatusResponse(overrides: Partial<BookingHoldStatusResponse> = {}): BookingHoldStatusResponse {
+function makeStatusResponse(
+  overrides: Partial<BookingHoldStatusResponse> = {},
+): BookingHoldStatusResponse {
   return {
     status: 'EXPIRED',
     holdExpiresAt: '2027-01-10T03:15:00.000Z',

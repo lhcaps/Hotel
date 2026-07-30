@@ -66,7 +66,12 @@ function roundUpToNextQuarterHour(time: string) {
 
 function addMinutes(time: string, minutes: number) {
   const [hour, minute] = time.split(':').map(Number);
-  if (hour === undefined || minute === undefined || !Number.isFinite(hour) || !Number.isFinite(minute))
+  if (
+    hour === undefined ||
+    minute === undefined ||
+    !Number.isFinite(hour) ||
+    !Number.isFinite(minute)
+  )
     return '';
   const total = hour * 60 + minute + minutes;
   return `${String(Math.floor((total % 1440) / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
@@ -221,7 +226,9 @@ export function AvailabilitySearchForm({
         {bookingMode === 'hourly' ? (
           <FieldGroup className="availability-search__fields">
             <Field>
-              <FieldLabel htmlFor="hourly-date">{translate(locale, 'search.hourlyDate')}</FieldLabel>
+              <FieldLabel htmlFor="hourly-date">
+                {translate(locale, 'search.hourlyDate')}
+              </FieldLabel>
               <Input
                 id="hourly-date"
                 name="hourlyDate"
@@ -256,13 +263,22 @@ export function AvailabilitySearchForm({
                 }}
                 value={[hourlyDuration]}
               >
-                <ToggleGroupItem aria-label={translate(locale, 'search.quickThreeHours')} value="180">
+                <ToggleGroupItem
+                  aria-label={translate(locale, 'search.quickThreeHours')}
+                  value="180"
+                >
                   {translate(locale, 'search.quickThreeHours')}
                 </ToggleGroupItem>
-                <ToggleGroupItem aria-label={translate(locale, 'search.quickFiveHours')} value="300">
+                <ToggleGroupItem
+                  aria-label={translate(locale, 'search.quickFiveHours')}
+                  value="300"
+                >
                   {translate(locale, 'search.quickFiveHours')}
                 </ToggleGroupItem>
-                <ToggleGroupItem aria-label={translate(locale, 'search.customDuration')} value="custom">
+                <ToggleGroupItem
+                  aria-label={translate(locale, 'search.customDuration')}
+                  value="custom"
+                >
                   {translate(locale, 'search.customDuration')}
                 </ToggleGroupItem>
               </ToggleGroup>

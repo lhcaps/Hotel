@@ -24,9 +24,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const API_BASE = process.env.DEMO_API_BASE ?? 'http://127.0.0.1:3101/api/v1';
-const SIMULATOR_BASE =
-  process.env.PAYMENT_SIMULATOR_BASE_URL ?? 'http://127.0.0.1:3090';
-const MANIFEST_PATH = process.env.DEMO_STATE_FILE ?? join(tmpdir(), 'room-management-demo-state.json');
+const SIMULATOR_BASE = process.env.PAYMENT_SIMULATOR_BASE_URL ?? 'http://127.0.0.1:3090';
+const MANIFEST_PATH =
+  process.env.DEMO_STATE_FILE ?? join(tmpdir(), 'room-management-demo-state.json');
 
 function resolveAdminPasswordFromManifest() {
   if (!existsSync(MANIFEST_PATH)) return undefined;
@@ -242,7 +242,10 @@ async function waitForStatusSettled(bookingCode, cookie, apiBase) {
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
     const status = await readStatus(bookingCode, cookie, apiBase);
-    if (status.body.paymentStatus === 'SUCCEEDED' || status.body.paymentStatus === 'REVIEW_REQUIRED') {
+    if (
+      status.body.paymentStatus === 'SUCCEEDED' ||
+      status.body.paymentStatus === 'REVIEW_REQUIRED'
+    ) {
       return status.body;
     }
     await new Promise((r) => setTimeout(r, 500));
@@ -263,7 +266,12 @@ async function runProviderFlow(provider, apiBase) {
   await setSimulatorMode(provider, 'verify', { reset: true });
 
   const booking = await createHoldWithCookie(apiBase);
-  const initiate = await initiatePayment(provider, booking.bookingCode, booking.guestSessionCookie, apiBase);
+  const initiate = await initiatePayment(
+    provider,
+    booking.bookingCode,
+    booking.guestSessionCookie,
+    apiBase,
+  );
   record(
     `demo.payment.${provider}.initiate`,
     initiate.provider === provider.toUpperCase() && typeof initiate.redirectUrl === 'string',
@@ -278,7 +286,11 @@ async function runProviderFlow(provider, apiBase) {
     `pay-page status=${trigger.status}`,
   );
 
-  const settled = await waitForStatusSettled(booking.bookingCode, booking.guestSessionCookie, apiBase);
+  const settled = await waitForStatusSettled(
+    booking.bookingCode,
+    booking.guestSessionCookie,
+    apiBase,
+  );
   record(
     `demo.payment.${provider}.settled`,
     settled.paymentStatus === 'SUCCEEDED' && settled.reviewRequired === false,
@@ -289,10 +301,18 @@ async function runProviderFlow(provider, apiBase) {
   await setSimulatorMode(provider, 'verify', { duplicateIpns: true });
   const booking2 = await createHoldWithCookie(apiBase);
   await initiatePayment(provider, booking2.bookingCode, booking2.guestSessionCookie, apiBase);
-  await fetch((await initiatePayment(provider, booking2.bookingCode, booking2.guestSessionCookie, apiBase)).redirectUrl, {
-    redirect: 'manual',
-  });
-  const settled2 = await waitForStatusSettled(booking2.bookingCode, booking2.guestSessionCookie, apiBase);
+  await fetch(
+    (await initiatePayment(provider, booking2.bookingCode, booking2.guestSessionCookie, apiBase))
+      .redirectUrl,
+    {
+      redirect: 'manual',
+    },
+  );
+  const settled2 = await waitForStatusSettled(
+    booking2.bookingCode,
+    booking2.guestSessionCookie,
+    apiBase,
+  );
   record(
     `demo.payment.${provider}.duplicate-idempotent`,
     settled2.paymentStatus === 'SUCCEEDED',
@@ -302,10 +322,19 @@ async function runProviderFlow(provider, apiBase) {
   // Tampered IPN must not settle.
   await setSimulatorMode(provider, 'tamper', { reset: true });
   const booking3 = await createHoldWithCookie(apiBase);
-  const tampered = await initiatePayment(provider, booking3.bookingCode, booking3.guestSessionCookie, apiBase);
+  const tampered = await initiatePayment(
+    provider,
+    booking3.bookingCode,
+    booking3.guestSessionCookie,
+    apiBase,
+  );
   await fetch(tampered.redirectUrl, { redirect: 'manual' });
   await new Promise((r) => setTimeout(r, 1_500));
-  const tamperedStatus = await readStatus(booking3.bookingCode, booking3.guestSessionCookie, apiBase);
+  const tamperedStatus = await readStatus(
+    booking3.bookingCode,
+    booking3.guestSessionCookie,
+    apiBase,
+  );
   record(
     `demo.payment.${provider}.tampered-rejected`,
     tamperedStatus.body.paymentStatus !== 'SUCCEEDED',
@@ -314,10 +343,12 @@ async function runProviderFlow(provider, apiBase) {
 
   // ADMIN list + detail.
   const adminCookies = await adminLogin(apiBase);
-  const listed = await adminListPayments({ bookingCode: booking.bookingCode }, adminCookies, apiBase);
-  const item = (listed.items ?? []).find(
-    (row) => row.booking?.bookingCode === booking.bookingCode,
+  const listed = await adminListPayments(
+    { bookingCode: booking.bookingCode },
+    adminCookies,
+    apiBase,
   );
+  const item = (listed.items ?? []).find((row) => row.booking?.bookingCode === booking.bookingCode);
   record(
     `demo.payment.${provider}.admin.list`,
     item !== undefined && item.status === 'SUCCEEDED',
@@ -386,9 +417,10 @@ async function main() {
     record('demo.payment.vnpay.exception', false, errorMessage(error));
   }
 
-  const finalCounts = /** @type {{ counts?: { momoIpnAttempts?: number; vnpayIpnAttempts?: number } }} */ (
-    await readSimulatorCounts().catch(() => ({ counts: {} }))
-  );
+  const finalCounts =
+    /** @type {{ counts?: { momoIpnAttempts?: number; vnpayIpnAttempts?: number } }} */ (
+      await readSimulatorCounts().catch(() => ({ counts: {} }))
+    );
   process.stdout.write(
     `\nDemo payment summary: ${results.length - results.filter((r) => !r.ok).length}/${
       results.length

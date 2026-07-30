@@ -8,14 +8,26 @@ export const adminRoomOperationsQuerySchema = z
   .superRefine((value, context) => {
     const duration = new Date(value.to).getTime() - new Date(value.from).getTime();
     if (duration < 0 || duration > 7 * 24 * 60 * 60 * 1000) {
-      context.addIssue({ code: 'custom', path: ['to'], message: 'Select a range up to seven days.' });
+      context.addIssue({
+        code: 'custom',
+        path: ['to'],
+        message: 'Select a range up to seven days.',
+      });
     }
   });
 
 export const adminRoomOperationBookingSchema = z
   .object({
     bookingCode: z.string().min(1).max(64),
-    status: z.enum(['HOLD', 'CONFIRMED', 'EXPIRED', 'CANCELLED', 'NO_SHOW', 'CHECKED_IN', 'CHECKED_OUT']),
+    status: z.enum([
+      'HOLD',
+      'CONFIRMED',
+      'EXPIRED',
+      'CANCELLED',
+      'NO_SHOW',
+      'CHECKED_IN',
+      'CHECKED_OUT',
+    ]),
     checkIn: instantSchema,
     checkOut: instantSchema,
   })

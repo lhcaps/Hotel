@@ -210,10 +210,7 @@ export async function createPaymentAttempt(
       .limit(1);
     const providerCheckoutExpiryMinutes = settingsRows[0]?.checkoutExpiryMinutes ?? null;
     const expiryCandidates: Date[] = [lockedBooking.holdExpiresAt];
-    if (
-      providerCheckoutExpiryMinutes !== null &&
-      providerCheckoutExpiryMinutes > 0
-    ) {
+    if (providerCheckoutExpiryMinutes !== null && providerCheckoutExpiryMinutes > 0) {
       expiryCandidates.push(
         new Date(databaseNow.getTime() + providerCheckoutExpiryMinutes * 60_000),
       );
@@ -221,9 +218,7 @@ export async function createPaymentAttempt(
     if (providerKnownExpiryAt !== null && providerKnownExpiryAt.getTime() > databaseNow.getTime()) {
       expiryCandidates.push(providerKnownExpiryAt);
     }
-    const attemptExpiresAt = new Date(
-      Math.min(...expiryCandidates.map((date) => date.getTime())),
-    );
+    const attemptExpiresAt = new Date(Math.min(...expiryCandidates.map((date) => date.getTime())));
     const inserted = await tx
       .insert(paymentAttempts)
       .values({

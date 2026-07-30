@@ -73,14 +73,7 @@ export const adminPaymentAttemptRefSchema = z
   .object({
     paymentAttemptId: uuidSchema,
     provider: adminPaymentProviderFilterSchema,
-    status: z.enum([
-      'PENDING',
-      'SUCCEEDED',
-      'FAILED',
-      'REVIEW_REQUIRED',
-      'EXPIRED',
-      'CANCELLED',
-    ]),
+    status: z.enum(['PENDING', 'SUCCEEDED', 'FAILED', 'REVIEW_REQUIRED', 'EXPIRED', 'CANCELLED']),
     initiatedAt: instantSchema,
     completedAt: instantSchema.nullable(),
     amountVnd: z.number().int().nonnegative(),
@@ -239,9 +232,5 @@ export type AdminPaymentProviderRef = z.infer<typeof adminPaymentProviderRefSche
 export type AdminPaymentReference = z.infer<typeof adminPaymentReferenceSchema>;
 export type AdminPaymentEvent = z.infer<typeof adminPaymentEventSchema>;
 export type AdminPaymentAuditEntry = z.infer<typeof adminPaymentAuditEntrySchema>;
-export type AdminPaymentReconciliationState = z.infer<
-  typeof adminPaymentReconciliationStateSchema
->;
-export type AdminPaymentOperationalReview = z.infer<
-  typeof adminPaymentOperationalReviewSchema
->;
+export type AdminPaymentReconciliationState = z.infer<typeof adminPaymentReconciliationStateSchema>;
+export type AdminPaymentOperationalReview = z.infer<typeof adminPaymentOperationalReviewSchema>;

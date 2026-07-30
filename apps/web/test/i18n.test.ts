@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { defaultLocale, formatDateTime, formatVnd, isLocale, resolveLocale, translate } from '../src/lib/i18n/messages';
+import {
+  defaultLocale,
+  formatDateTime,
+  formatVnd,
+  isLocale,
+  resolveLocale,
+  translate,
+} from '../src/lib/i18n/messages';
 
 describe('local UI messages', () => {
   it('supports only Vietnamese and English with Vietnamese as the default', () => {

@@ -122,10 +122,7 @@ export function auditIsEligible(
   durationMinutesValue: number,
 ): boolean {
   if (!entry.isBasePlan || entry.status !== 'ACTIVE') return false;
-  if (
-    entry.minDurationMinutesInclusive === null ||
-    entry.maxDurationMinutesInclusive === null
-  ) {
+  if (entry.minDurationMinutesInclusive === null || entry.maxDurationMinutesInclusive === null) {
     return false;
   }
   if (
@@ -145,11 +142,7 @@ export function auditIsEligible(
   return true;
 }
 
-function positivePriceFor(
-  catalog: PricingCatalog,
-  planCode: RatePlanCode,
-  tier: string,
-): number {
+function positivePriceFor(catalog: PricingCatalog, planCode: RatePlanCode, tier: string): number {
   const entry = catalog[planCode];
   if (entry === undefined) return Number.NaN;
   const amount = entry.prices[tier];
@@ -172,10 +165,7 @@ function positivePriceFor(
  * top-ups to cover the requested duration. The minimum total in VND across all
  * candidates is the oracle's recommendation. Ties are retained.
  */
-export function auditEnumerate(
-  input: PricingInput,
-  catalog: PricingCatalog,
-): AuditEnumeration {
+export function auditEnumerate(input: PricingInput, catalog: PricingCatalog): AuditEnumeration {
   const checkIn = new Date(input.checkIn);
   const checkOut = new Date(input.checkOut);
   if (
@@ -198,18 +188,24 @@ export function auditEnumerate(
 
   const extraPrice = positivePriceFor(catalog, 'EXTRA_HOUR', input.priceTierCode);
   const eligiblePlans = basePlanOrder
-    .map((planCode): {
-      readonly planCode: BasePlanCode;
-      readonly entry: CatalogEntry;
-    } | null => {
-      const entry = catalog[planCode];
-      if (entry === undefined) return null;
-      if (!auditIsEligible(entry, localCheckInMinute, requestedDuration)) return null;
-      const baseAmount = positivePriceFor(catalog, planCode, input.priceTierCode);
-      if (!Number.isFinite(baseAmount)) return null;
-      return { planCode, entry };
-    })
-    .filter((x): x is { readonly planCode: BasePlanCode; readonly entry: CatalogEntry } => x !== null);
+    .map(
+      (
+        planCode,
+      ): {
+        readonly planCode: BasePlanCode;
+        readonly entry: CatalogEntry;
+      } | null => {
+        const entry = catalog[planCode];
+        if (entry === undefined) return null;
+        if (!auditIsEligible(entry, localCheckInMinute, requestedDuration)) return null;
+        const baseAmount = positivePriceFor(catalog, planCode, input.priceTierCode);
+        if (!Number.isFinite(baseAmount)) return null;
+        return { planCode, entry };
+      },
+    )
+    .filter(
+      (x): x is { readonly planCode: BasePlanCode; readonly entry: CatalogEntry } => x !== null,
+    );
 
   const eligibility: AuditEnumeration['eligibility'] = eligiblePlans.map(({ planCode, entry }) => ({
     planCode,
@@ -217,33 +213,28 @@ export function auditEnumerate(
     includedDurationMinutes: entry.includedDurationMinutes,
   }));
 
-  const candidates: AuditCandidate[] = eligiblePlans.map(
-    ({ planCode, entry }): AuditCandidate => {
-      const baseAmount = positivePriceFor(catalog, planCode, input.priceTierCode);
-      const baseMinutes = entry.includedDurationMinutes;
-      const extraUnits = Math.max(
-        0,
-        Math.ceil((requestedDuration - baseMinutes) / 60),
-      );
-      let extraAmountVnd = 0;
-      if (extraUnits > 0) {
-        if (!Number.isFinite(extraPrice)) {
-          throw new AuditIntervalError('extra price not finite for valid plan');
-        }
-        extraAmountVnd = extraPrice * extraUnits;
+  const candidates: AuditCandidate[] = eligiblePlans.map(({ planCode, entry }): AuditCandidate => {
+    const baseAmount = positivePriceFor(catalog, planCode, input.priceTierCode);
+    const baseMinutes = entry.includedDurationMinutes;
+    const extraUnits = Math.max(0, Math.ceil((requestedDuration - baseMinutes) / 60));
+    let extraAmountVnd = 0;
+    if (extraUnits > 0) {
+      if (!Number.isFinite(extraPrice)) {
+        throw new AuditIntervalError('extra price not finite for valid plan');
       }
-      const total = baseAmount + extraAmountVnd;
-      return {
-        planCode,
-        baseMinutes,
-        baseAmountVnd: baseAmount,
-        extraUnits,
-        extraAmountVnd,
-        totalAmountVnd: total,
-        partialFingerprint: `${planCode}|${baseMinutes}|${baseAmount}|${extraUnits}|${extraAmountVnd}`,
-      };
-    },
-  );
+      extraAmountVnd = extraPrice * extraUnits;
+    }
+    const total = baseAmount + extraAmountVnd;
+    return {
+      planCode,
+      baseMinutes,
+      baseAmountVnd: baseAmount,
+      extraUnits,
+      extraAmountVnd,
+      totalAmountVnd: total,
+      partialFingerprint: `${planCode}|${baseMinutes}|${baseAmount}|${extraUnits}|${extraAmountVnd}`,
+    };
+  });
 
   // Independent "production-style" selection: pick highest priority, fail on tie.
   // This simulates the production matcher behaviour WITHOUT importing it.
@@ -275,9 +266,7 @@ export function auditEnumerate(
     if (candidate.totalAmountVnd < minimumTotalVnd) minimumTotalVnd = candidate.totalAmountVnd;
   }
 
-  const tiedCheapestCandidates = candidates.filter(
-    (c) => c.totalAmountVnd === minimumTotalVnd,
-  );
+  const tiedCheapestCandidates = candidates.filter((c) => c.totalAmountVnd === minimumTotalVnd);
 
   return {
     input,
@@ -290,8 +279,7 @@ export function auditEnumerate(
     productionSelectedTotalVnd: productionSelectedTotal,
     productionSelectedPlan,
     productionIsCheapest:
-      Number.isFinite(productionSelectedTotal) &&
-      productionSelectedTotal === minimumTotalVnd,
+      Number.isFinite(productionSelectedTotal) && productionSelectedTotal === minimumTotalVnd,
     productionAmongTiedCheapest: tiedCheapestCandidates.some(
       (c) => c.planCode === productionSelectedPlan,
     ),
@@ -304,9 +292,7 @@ export function auditEnumerate(
  * ties by priority then by canonical plan order. This is what a "cheapest
  * exactly covers the request" selector SHOULD return.
  */
-export function auditCheapestPlan(
-  enumeration: AuditEnumeration,
-): BasePlanCode | undefined {
+export function auditCheapestPlan(enumeration: AuditEnumeration): BasePlanCode | undefined {
   if (enumeration.tiedCheapestCandidates.length === 0) return undefined;
   const byPriority = new Map<BasePlanCode, number>();
   for (const eligible of enumeration.eligibility) {

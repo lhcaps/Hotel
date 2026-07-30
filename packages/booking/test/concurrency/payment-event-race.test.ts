@@ -35,20 +35,11 @@ describe('payment provider-event concurrency', () => {
     const secondCaller = fixture.callers.at(1);
     const quoteId = scenario.quoteIds.at(0);
 
-    if (
-      firstCaller === undefined ||
-      secondCaller === undefined ||
-      quoteId === undefined
-    ) {
-      throw new Error(
-        'Payment event race fixture requires two callers and one quote.',
-      );
+    if (firstCaller === undefined || secondCaller === undefined || quoteId === undefined) {
+      throw new Error('Payment event race fixture requires two callers and one quote.');
     }
 
-    const booking = await runCaller(
-      firstCaller,
-      bookingInput(quoteId, contact),
-    );
+    const booking = await runCaller(firstCaller, bookingInput(quoteId, contact));
     const attempt = await createPaymentAttempt({
       pool: firstCaller.pool,
       propertyId: scenario.propertyId,

@@ -107,8 +107,6 @@ describe('assertValidOtp', () => {
 
 describe('escapeHtml', () => {
   it('escapes all five reserved characters', () => {
-    expect(escapeHtml(`<a href="x">&'`)).toBe(
-      '&lt;a href=&quot;x&quot;&gt;&amp;&#39;',
-    );
+    expect(escapeHtml(`<a href="x">&'`)).toBe('&lt;a href=&quot;x&quot;&gt;&amp;&#39;');
   });
 });

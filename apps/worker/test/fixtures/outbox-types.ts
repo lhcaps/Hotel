@@ -1,10 +1,7 @@
 export interface OutboxEventSeed {
   readonly id: string;
   readonly aggregateId: string;
-  readonly eventType:
-    | 'booking.hold.created'
-    | 'booking.hold.expired'
-    | 'booking.otp.requested';
+  readonly eventType: 'booking.hold.created' | 'booking.hold.expired' | 'booking.otp.requested';
   readonly availableAt?: Date;
   readonly leaseId?: string | null;
   readonly claimedAt?: Date | null;

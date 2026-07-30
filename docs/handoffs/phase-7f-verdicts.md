@@ -1,14 +1,14 @@
 # Phase 7F verdicts
 
-| # | Verdict | Value | Source |
-|---|---------|-------|--------|
-| 1 | Phase completion | GREEN-BUILD (build/typecheck/test/lint/e2e/lifecycle all green) | 52 config, 17 db unit, 129 db integration, 16 auth, 168 api unit, 68 api integration, 8 deterministic OAuth, 82 web unit, 40+1 Playwright, 15/15 demo lifecycle |
-| 2 | Google contract conformance | CODE-COMPLETE, no live provider acceptance | `@room/config` env + `auth-factory.ts` + `apps/api/test/integration/customer-oauth.deterministic.integration.test.ts` |
-| 3 | Customer profile | CODE-COMPLETE + E2E-VERIFIED | `customer_profiles` table + `/customer/profile` + Playwright PATCH |
-| 4 | Booking ownership | CODE-COMPLETE + E2E-VERIFIED | `bookings.customer_user_id` + claim txn + Playwright ownership list |
-| 5 | Deterministic OAuth harness | CODE-COMPLETE + E2E-VERIFIED (browser) | `apps/api/test/oauth/oidc-test-server.ts` + `customer-oauth.deterministic.integration.test.ts` + `tests/e2e/customer-identity-browser.spec.ts` (12 cases) |
-| 6 | Live Google OAuth | NOT VERIFIED | honest blocker: no real client credentials |
-| 7 | Production readiness | NO | until real provider run + security review + deploy |
+| #   | Verdict                     | Value                                                           | Source                                                                                                                                                          |
+| --- | --------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Phase completion            | GREEN-BUILD (build/typecheck/test/lint/e2e/lifecycle all green) | 52 config, 17 db unit, 129 db integration, 16 auth, 168 api unit, 68 api integration, 8 deterministic OAuth, 82 web unit, 40+1 Playwright, 15/15 demo lifecycle |
+| 2   | Google contract conformance | CODE-COMPLETE, no live provider acceptance                      | `@room/config` env + `auth-factory.ts` + `apps/api/test/integration/customer-oauth.deterministic.integration.test.ts`                                           |
+| 3   | Customer profile            | CODE-COMPLETE + E2E-VERIFIED                                    | `customer_profiles` table + `/customer/profile` + Playwright PATCH                                                                                              |
+| 4   | Booking ownership           | CODE-COMPLETE + E2E-VERIFIED                                    | `bookings.customer_user_id` + claim txn + Playwright ownership list                                                                                             |
+| 5   | Deterministic OAuth harness | CODE-COMPLETE + E2E-VERIFIED (browser)                          | `apps/api/test/oauth/oidc-test-server.ts` + `customer-oauth.deterministic.integration.test.ts` + `tests/e2e/customer-identity-browser.spec.ts` (12 cases)       |
+| 6   | Live Google OAuth           | NOT VERIFIED                                                    | honest blocker: no real client credentials                                                                                                                      |
+| 7   | Production readiness        | NO                                                              | until real provider run + security review + deploy                                                                                                              |
 
 ## Honest blockers
 

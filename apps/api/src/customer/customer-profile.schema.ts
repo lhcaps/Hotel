@@ -29,7 +29,9 @@ function trimOrNull(value: unknown, max: number): string | null {
   return trimmed.slice(0, max);
 }
 
-function validatePhone(value: unknown): { ok: true; value: string | null } | { ok: false; reason: string } {
+function validatePhone(
+  value: unknown,
+): { ok: true; value: string | null } | { ok: false; reason: string } {
   if (value === null || value === undefined) return { ok: true, value: null };
   if (typeof value !== 'string') return { ok: false, reason: 'Phone must be a string' };
   const trimmed = value.trim();

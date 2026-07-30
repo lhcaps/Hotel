@@ -8,7 +8,8 @@ describe('publicApi.searchNearbyAvailability routing', () => {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const url =
+        typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
       calls.push({ url, init });
       return new Response(JSON.stringify({ candidates: [] }), {
         status: 200,

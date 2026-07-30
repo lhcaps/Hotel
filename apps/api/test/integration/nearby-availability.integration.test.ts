@@ -1,9 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import {
-  createDatabaseClient,
-  migrateDatabase,
-  type DatabaseClient,
-} from '@room/database';
+import { createDatabaseClient, migrateDatabase, type DatabaseClient } from '@room/database';
 import {
   createPreparedGuardedTestDatabase,
   type GuardedTestDatabase,
@@ -47,7 +43,10 @@ describe('nearby availability bounded search', () => {
   function nextMaintenanceId(): string {
     const value = maintenanceCounter;
     maintenanceCounter += 1;
-    return `${ids.maintenancePrefix}${value.toString(16).padStart(4, '0')}-9999-9999-9999-999999999999`.slice(0, 36);
+    return `${ids.maintenancePrefix}${value.toString(16).padStart(4, '0')}-9999-9999-9999-999999999999`.slice(
+      0,
+      36,
+    );
   }
 
   beforeAll(async () => {
@@ -156,11 +155,7 @@ describe('nearby availability bounded search', () => {
     await database.pool.query(`DELETE FROM maintenance_blocks`);
   }
 
-  async function addMaintenanceBlock(
-    roomId: string,
-    checkIn: Date,
-    checkOut: Date,
-  ) {
+  async function addMaintenanceBlock(roomId: string, checkIn: Date, checkOut: Date) {
     const maintenanceId = nextMaintenanceId();
     await database.pool.query(
       `INSERT INTO maintenance_blocks (id,property_id,room_id,starts_at,ends_at,reason) VALUES ($1,$2,$3,$4,$5,'Test')`,

@@ -49,10 +49,7 @@ function parseSqlTimestamp(value: Date | string, field: string): Date {
 
 const ACCESSIBLE_BOOKING_STATUSES = new Set(['HOLD', 'CONFIRMED']);
 
-export function decideOtpSkip(
-  row: OtpChallengeLookupRow,
-  currentTime: Date,
-): OtpSkipDecision {
+export function decideOtpSkip(row: OtpChallengeLookupRow, currentTime: Date): OtpSkipDecision {
   if (row.challenge_id === null) {
     return { skip: true, reason: 'CHALLENGE_GONE' };
   }
@@ -71,10 +68,17 @@ export function decideOtpSkip(
   if (row.attempts !== null && row.max_attempts !== null && row.attempts >= row.max_attempts) {
     return { skip: true, reason: 'CHALLENGE_ATTEMPTS_EXHAUSTED' };
   }
-  if (row.expires_at !== null && parseSqlTimestamp(row.expires_at, 'expires_at').getTime() <= currentTime.getTime()) {
+  if (
+    row.expires_at !== null &&
+    parseSqlTimestamp(row.expires_at, 'expires_at').getTime() <= currentTime.getTime()
+  ) {
     return { skip: true, reason: 'CHALLENGE_EXPIRED' };
   }
-  if (!row.email_digest || !row.contact_email_digest || !row.email_digest.equals(row.contact_email_digest)) {
+  if (
+    !row.email_digest ||
+    !row.contact_email_digest ||
+    !row.email_digest.equals(row.contact_email_digest)
+  ) {
     return { skip: true, reason: 'EMAIL_DIGEST_MISMATCH' };
   }
   if (!ACCESSIBLE_BOOKING_STATUSES.has(row.booking_status)) {

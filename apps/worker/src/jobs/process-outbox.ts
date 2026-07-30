@@ -265,11 +265,7 @@ export async function loadBookingConfirmationContext(
     [bookingId],
   );
   const row = result.rows[0];
-  if (
-    row === undefined ||
-    row.normalized_email === null ||
-    row.provider === null
-  ) {
+  if (row === undefined || row.normalized_email === null || row.provider === null) {
     return null;
   }
   if (row.booking_status !== 'CONFIRMED') {

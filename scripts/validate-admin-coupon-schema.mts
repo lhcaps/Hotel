@@ -94,12 +94,24 @@ function buildCases(): ReadonlyArray<CaseSpec> {
     },
     {
       label: 'missing fixedAmountVnd rejected',
-      payload: { code: fixed.code, discountType: fixed.discountType, validFrom: fixed.validFrom, validUntil: fixed.validUntil, roomTypes: fixed.roomTypes },
+      payload: {
+        code: fixed.code,
+        discountType: fixed.discountType,
+        validFrom: fixed.validFrom,
+        validUntil: fixed.validUntil,
+        roomTypes: fixed.roomTypes,
+      },
       expect: 'reject',
     },
     {
       label: 'missing percentageBasisPoints rejected',
-      payload: { code: percentage.code, discountType: percentage.discountType, validFrom: percentage.validFrom, validUntil: percentage.validUntil, roomTypes: percentage.roomTypes },
+      payload: {
+        code: percentage.code,
+        discountType: percentage.discountType,
+        validFrom: percentage.validFrom,
+        validUntil: percentage.validUntil,
+        roomTypes: percentage.roomTypes,
+      },
       expect: 'reject',
     },
     {
@@ -153,9 +165,7 @@ async function main(): Promise<void> {
     );
     process.exitCode = 1;
   } else {
-    process.stdout.write(
-      `AdminCouponCreate validation: all ${cases.length} cases passed.\n`,
-    );
+    process.stdout.write(`AdminCouponCreate validation: all ${cases.length} cases passed.\n`);
   }
 }
 

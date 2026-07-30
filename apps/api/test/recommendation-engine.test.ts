@@ -4,7 +4,11 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { searchRecommendations, type AvailabilityProbe, type ProvisionalCouponProbe } from '../src/pricing/recommendation.service.js';
+import {
+  searchRecommendations,
+  type AvailabilityProbe,
+  type ProvisionalCouponProbe,
+} from '../src/pricing/recommendation.service.js';
 import type { PricingCatalog } from '../src/pricing/pricing-engine.js';
 import type { PricingInput } from '../src/pricing/selection-rule-matcher.js';
 
@@ -166,7 +170,10 @@ describe('Phase 8B advisory recommendations', () => {
         ...clone(catalog.LUNCH_COMBO),
         prices: { TIER_1: 200_000, TIER_2: 210_000, TIER_3: 220_000 },
       },
-      EXTRA_HOUR: { ...clone(catalog.EXTRA_HOUR), prices: { TIER_1: 50_000, TIER_2: 0, TIER_3: 0 } },
+      EXTRA_HOUR: {
+        ...clone(catalog.EXTRA_HOUR),
+        prices: { TIER_1: 50_000, TIER_2: 0, TIER_3: 0 },
+      },
     };
     // 10:00 + 4h → only THREE eligible (LUNCH window starts 11:00):
     // THREE 300k + (240-180)/60*50k = 350k. Shift +60m → 11:00 + 4h:
@@ -246,11 +253,9 @@ describe('Phase 8B advisory recommendations', () => {
       customCatalog,
       { availability, coupon },
     );
-    const duration =
-      new Date(checkOut).getTime() - new Date(checkIn).getTime();
+    const duration = new Date(checkOut).getTime() - new Date(checkIn).getTime();
     for (const rec of result.recommendations) {
-      const recDuration =
-        new Date(rec.checkOut).getTime() - new Date(rec.checkIn).getTime();
+      const recDuration = new Date(rec.checkOut).getTime() - new Date(rec.checkIn).getTime();
       expect(recDuration).toBe(duration);
     }
   });

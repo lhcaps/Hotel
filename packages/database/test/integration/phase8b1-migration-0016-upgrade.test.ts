@@ -146,16 +146,11 @@ describe('Phase 8B1 migration 0016 — fresh 0000..0016 migration', () => {
       `SELECT code, name FROM rate_plans WHERE id = $1`,
       [LEGACY_PLAN_ID],
     );
-    expect(planRows.rows).toEqual([
-      { code: 'STANDARD', name: 'Legacy standard plan' },
-    ]);
+    expect(planRows.rows).toEqual([{ code: 'STANDARD', name: 'Legacy standard plan' }]);
 
     const quoteRows = await database.pool.query<{
       readonly pricing_snapshot: { readonly ratePlanCode: string };
-    }>(
-      `SELECT pricing_snapshot FROM quotes WHERE id = $1`,
-      [LEGACY_QUOTE_ID],
-    );
+    }>(`SELECT pricing_snapshot FROM quotes WHERE id = $1`, [LEGACY_QUOTE_ID]);
     expect(quoteRows.rows[0]?.pricing_snapshot).toMatchObject({ ratePlanCode: 'STANDARD' });
   });
 
@@ -246,10 +241,7 @@ describe('Phase 8B1 migration 0016 — 0015 → 0016 upgrade on a populated data
 
     const quoteRows = await database.pool.query<{
       readonly pricing_snapshot: { readonly ratePlanCode: string };
-    }>(
-      `SELECT pricing_snapshot FROM quotes WHERE id = $1`,
-      [LEGACY_QUOTE_ID],
-    );
+    }>(`SELECT pricing_snapshot FROM quotes WHERE id = $1`, [LEGACY_QUOTE_ID]);
     expect(quoteRows.rows[0]?.pricing_snapshot).toMatchObject({ ratePlanCode: 'STANDARD' });
   });
 
@@ -317,7 +309,10 @@ describe('Phase 8B1 migration 0016 — 0015 → 0016 upgrade on a populated data
     const fs = await import('node:fs');
     const path = await import('node:path');
     const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..', '..');
-    const sqlPath = path.resolve(repoRoot, 'packages/database/drizzle/0016_workable_captain_cross.sql');
+    const sqlPath = path.resolve(
+      repoRoot,
+      'packages/database/drizzle/0016_workable_captain_cross.sql',
+    );
     const hash = crypto.createHash('sha256');
     hash.update(fs.readFileSync(sqlPath));
     const expected = hash.digest('hex');

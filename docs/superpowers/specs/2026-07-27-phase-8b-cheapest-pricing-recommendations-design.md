@@ -90,7 +90,7 @@ Advisory only:
 - **Quote persistence**: unchanged. Persisted snapshots include the new
   `ruleVersion` and tie-break metadata.
 - **Historical compatibility**: `calculatePricingWithStrategy(...,
-  'PRIORITY_WINS_LEGACY')` still works for audit and back-fill scenarios.
+'PRIORITY_WINS_LEGACY')` still works for audit and back-fill scenarios.
 
 ## Public API
 
@@ -137,6 +137,7 @@ guarantees.
 ### Exact-time cases (`apps/api/test/pricing-cheapest.test.ts`)
 
 The 18 required cases are covered:
+
 1. 11:00 + 1h, THREE over LUNCH.
 2. 11:00 + 4h, every eligible plan compared.
 3. 11:00 + 4h15, LUNCH + extras vs FIVE.
@@ -176,6 +177,7 @@ The 18 required cases are covered:
 ### Recommendation cases (`apps/api/test/recommendation-engine.test.ts`)
 
 The 15 required cases are covered:
+
 1. Exact interval cheapest → no recommendations.
 2. Nearest cheaper interval found.
 3. Globally cheapest nearby interval found.

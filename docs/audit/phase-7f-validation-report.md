@@ -7,7 +7,7 @@
   `ROOM_TEST_OAUTH_*` switch in production and accepts it in
   development/test).
 - `pnpm --filter @room/auth test:unit` — 16 tests, all green (9 prior
-  + 7 security tests in `auth-factory-security.test.ts`).
+  - 7 security tests in `auth-factory-security.test.ts`).
 - `pnpm --filter @room/database test:unit` — 17 tests, all green.
 - `pnpm --filter @room/database db:test` — 129 integration tests, all
   green, after the schema version was bumped to
@@ -102,13 +102,13 @@
 - `apps/api/src/auth/customer-session.service.ts` — new role filter
   that reuses `AdminSessionService` semantics.
 - `apps/api/src/auth/auth.controller.ts` — new `@Controller({ path:
-  'auth', version: VERSION_NEUTRAL })` with `@Get('*')` / `@Post('*')`
+'auth', version: VERSION_NEUTRAL })` with `@Get('*')` / `@Post('*')`
   catch-alls delegating to `auth.handler`. Replaces the prior
   Fastify-bridge approach so `/api/auth/*` is routed by NestJS and
   participates in versioning and global filters.
 - `apps/api/src/errors/problem-details.filter.ts` — maps
   `CustomerSessionRequiredError → 401` and `CustomerDisabledError →
-  403` with explicit problem-detail bodies instead of falling
+403` with explicit problem-detail bodies instead of falling
   through to a generic 500.
 - `apps/api/src/main.ts` — restored the `onRequest` hook that sets
   `x-request-id` (and echoes `x-correlation-id`) on every response;

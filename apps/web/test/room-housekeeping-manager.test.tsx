@@ -6,9 +6,7 @@ import { RoomHousekeepingManager } from '../src/components/room-housekeeping-man
 vi.mock('../src/lib/admin-api', () => ({
   adminApi: {
     listRooms: vi.fn().mockResolvedValue({
-      items: [
-        { id: 'room-1', roomNumber: 'S-01', status: 'ACTIVE', housekeepingStatus: 'DIRTY' },
-      ],
+      items: [{ id: 'room-1', roomNumber: 'S-01', status: 'ACTIVE', housekeepingStatus: 'DIRTY' }],
     }),
     updateRoomHousekeeping: vi.fn(),
   },

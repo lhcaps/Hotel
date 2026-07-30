@@ -1,12 +1,7 @@
 export type PaymentProvider = 'MOMO' | 'VNPAY';
 export type PaymentStatus = 'PENDING' | 'SUCCEEDED' | 'REVIEW_REQUIRED' | 'CANCELLED' | 'EXPIRED';
 export type PaymentAttemptStatus =
-  | 'PENDING'
-  | 'SUCCEEDED'
-  | 'FAILED'
-  | 'CANCELLED'
-  | 'EXPIRED'
-  | 'REVIEW_REQUIRED';
+  'PENDING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'EXPIRED' | 'REVIEW_REQUIRED';
 export type PaymentNormalizedOutcome = 'SUCCEEDED' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
 
 export interface VerifiedPaymentProviderEvent {

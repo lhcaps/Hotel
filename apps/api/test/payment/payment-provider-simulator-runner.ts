@@ -51,26 +51,22 @@ function log(message: string, fields?: Record<string, unknown>): void {
 export async function startPaymentProviderSimulator(): Promise<PaymentProviderSimulator> {
   const host = process.env['PAYMENT_SIMULATOR_HOST'] ?? DEFAULT_HOST;
   const port = Number.parseInt(process.env['PAYMENT_SIMULATOR_PORT'] ?? String(DEFAULT_PORT), 10);
-  const child: ChildProcess = spawn(
-    process.execPath,
-    [SIMULATOR_ENTRY],
-    {
-      env: {
-        ...process.env,
-        NODE_ENV: process.env['NODE_ENV'] ?? 'test',
-        PAYMENT_SIMULATOR_HOST: host,
-        PAYMENT_SIMULATOR_PORT: String(port),
-        PAYMENT_SIMULATOR_MOMO_IPN_URL:
-          process.env['PAYMENT_SIMULATOR_MOMO_IPN_URL'] ??
-          'http://127.0.0.1:3101/api/v1/webhooks/momo',
-        PAYMENT_SIMULATOR_VNPAY_IPN_URL:
-          process.env['PAYMENT_SIMULATOR_VNPAY_IPN_URL'] ??
-          'http://127.0.0.1:3101/api/v1/webhooks/vnpay',
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
+  const child: ChildProcess = spawn(process.execPath, [SIMULATOR_ENTRY], {
+    env: {
+      ...process.env,
+      NODE_ENV: process.env['NODE_ENV'] ?? 'test',
+      PAYMENT_SIMULATOR_HOST: host,
+      PAYMENT_SIMULATOR_PORT: String(port),
+      PAYMENT_SIMULATOR_MOMO_IPN_URL:
+        process.env['PAYMENT_SIMULATOR_MOMO_IPN_URL'] ??
+        'http://127.0.0.1:3101/api/v1/webhooks/momo',
+      PAYMENT_SIMULATOR_VNPAY_IPN_URL:
+        process.env['PAYMENT_SIMULATOR_VNPAY_IPN_URL'] ??
+        'http://127.0.0.1:3101/api/v1/webhooks/vnpay',
     },
-  );
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
 
   const stderrChunks: string[] = [];
   child.stderr?.setEncoding('utf8');
@@ -79,7 +75,8 @@ export async function startPaymentProviderSimulator(): Promise<PaymentProviderSi
   child.stdout?.on('data', (chunk: string) => log('child', { chunk: chunk.trim() }));
 
   await new Promise<void>((resolve, reject) => {
-    const started = (chunk: string) => chunk.includes('[payment-simulator') && chunk.includes('started');
+    const started = (chunk: string) =>
+      chunk.includes('[payment-simulator') && chunk.includes('started');
     let resolved = false;
     const finish = (err?: Error) => {
       if (resolved) return;
@@ -92,7 +89,11 @@ export async function startPaymentProviderSimulator(): Promise<PaymentProviderSi
     };
     child.stdout?.on('data', onData);
     const timer = setTimeout(() => {
-      finish(new Error(`simulator did not start within ${STARTUP_TIMEOUT_MS}ms; stderr=${stderrChunks.join('')}`));
+      finish(
+        new Error(
+          `simulator did not start within ${STARTUP_TIMEOUT_MS}ms; stderr=${stderrChunks.join('')}`,
+        ),
+      );
     }, STARTUP_TIMEOUT_MS);
     child.once('exit', (code, signal) => {
       clearTimeout(timer);

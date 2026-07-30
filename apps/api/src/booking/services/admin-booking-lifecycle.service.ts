@@ -1,7 +1,4 @@
-import {
-  type DatabasePool,
-  type DatabasePoolClient,
-} from '@room/database';
+import { type DatabasePool, type DatabasePoolClient } from '@room/database';
 
 import {
   adminBookingCancelRequestSchema,
@@ -262,10 +259,7 @@ export class AdminBookingLifecycleService {
     private readonly repository: AdminBookingRepository,
   ) {}
 
-  public async listBookings(
-    propertyId: string,
-    query: unknown,
-  ): Promise<AdminBookingListResponse> {
+  public async listBookings(propertyId: string, query: unknown): Promise<AdminBookingListResponse> {
     const parsed = adminBookingListQuerySchema.parse(query);
     const result = await this.repository.listBookings(propertyId, parsed);
     return adminBookingListResponseSchema.parse({
@@ -276,10 +270,7 @@ export class AdminBookingLifecycleService {
     });
   }
 
-  public async getDetail(
-    bookingCode: string,
-    now: Date,
-  ): Promise<AdminBookingDetail> {
+  public async getDetail(bookingCode: string, now: Date): Promise<AdminBookingDetail> {
     const detail = await this.repository.findDetailByBookingCode(bookingCode);
     if (detail === null) {
       throw new BookingNotFoundError();
@@ -300,9 +291,7 @@ export class AdminBookingLifecycleService {
         throw new BookingTransitionError('Booking is already cancelled.');
       }
       if (row.status !== 'HOLD' && row.status !== 'CONFIRMED') {
-        throw new BookingTransitionError(
-          `Cannot cancel a booking in status ${row.status}.`,
-        );
+        throw new BookingTransitionError(`Cannot cancel a booking in status ${row.status}.`);
       }
       const from = row.status;
       const paid = await isPaymentSucceeded(client, row.id);
@@ -372,9 +361,7 @@ export class AdminBookingLifecycleService {
   ): Promise<AdminBookingDetail> {
     return this.runTransition(actor, bookingCode, now, async (client, row) => {
       if (row.status !== 'CONFIRMED') {
-        throw new BookingTransitionError(
-          `Cannot check in a booking in status ${row.status}.`,
-        );
+        throw new BookingTransitionError(`Cannot check in a booking in status ${row.status}.`);
       }
       await client.query(
         `UPDATE bookings
@@ -408,9 +395,7 @@ export class AdminBookingLifecycleService {
   ): Promise<AdminBookingDetail> {
     return this.runTransition(actor, bookingCode, now, async (client, row) => {
       if (row.status !== 'CHECKED_IN') {
-        throw new BookingTransitionError(
-          `Cannot check out a booking in status ${row.status}.`,
-        );
+        throw new BookingTransitionError(`Cannot check out a booking in status ${row.status}.`);
       }
       await client.query(
         `UPDATE bookings
@@ -746,12 +731,7 @@ async function enqueueBookingOutbox(
         payload, status
      )
      VALUES ($1, 'BOOKING', $2, $3, $4::jsonb, 'PENDING')`,
-    [
-      input.propertyId,
-      input.bookingId,
-      input.eventType,
-      JSON.stringify(input.payload),
-    ],
+    [input.propertyId, input.bookingId, input.eventType, JSON.stringify(input.payload)],
   );
 }
 

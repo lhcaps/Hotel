@@ -77,15 +77,17 @@ export class QuoteService {
     if (source === undefined || !source.available) {
       return availabilityOfferResponseSchema.parse({ items: [] });
     }
-    const plans = [...evaluatePricingCandidates(
-      {
-        checkIn: request.checkIn,
-        checkOut: request.checkOut,
-        priceTierCode: source.priceTierCode,
-        timezone: source.propertyTimezone,
-      },
-      source.catalog,
-    )]
+    const plans = [
+      ...evaluatePricingCandidates(
+        {
+          checkIn: request.checkIn,
+          checkOut: request.checkOut,
+          priceTierCode: source.priceTierCode,
+          timezone: source.propertyTimezone,
+        },
+        source.catalog,
+      ),
+    ]
       .sort((a, b) => a.grossAmountVnd - b.grossAmountVnd || b.priority - a.priority)
       .map((candidate) => {
         const plan = source.catalog[candidate.planCode];
@@ -156,11 +158,7 @@ export class QuoteService {
         });
       }
       return quoteSchema.parse(
-        await this.repository.issue(
-          request,
-          pricing,
-          provisionalEvaluation,
-        ),
+        await this.repository.issue(request, pricing, provisionalEvaluation),
       );
     } catch (error) {
       if (error instanceof PricingConfigurationError) throw new QuotePricingConfigurationError();

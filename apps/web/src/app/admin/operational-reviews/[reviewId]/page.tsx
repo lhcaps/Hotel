@@ -27,7 +27,9 @@ export default function OperationalReviewDetailPage() {
       .then(setReview)
       .catch((cause: unknown) => {
         setError(
-          cause instanceof AdminApiError ? translate(locale, 'admin.reviewDetailLoadError') : translate(locale, 'admin.reviewDetailLoadError'),
+          cause instanceof AdminApiError
+            ? translate(locale, 'admin.reviewDetailLoadError')
+            : translate(locale, 'admin.reviewDetailLoadError'),
         );
       });
   }, [locale, reviewId]);
@@ -52,7 +54,9 @@ export default function OperationalReviewDetailPage() {
       })
       .catch((cause: unknown) => {
         setError(
-          cause instanceof AdminApiError ? translate(locale, 'admin.reviewResolveError') : translate(locale, 'admin.reviewResolveError'),
+          cause instanceof AdminApiError
+            ? translate(locale, 'admin.reviewResolveError')
+            : translate(locale, 'admin.reviewResolveError'),
         );
       })
       .finally(() => {
@@ -63,7 +67,9 @@ export default function OperationalReviewDetailPage() {
   if (review === undefined && error === undefined) {
     return (
       <section className="admin-page">
-        <h1>{translate(locale, 'admin.review')} {reviewId.slice(0, 8)}</h1>
+        <h1>
+          {translate(locale, 'admin.review')} {reviewId.slice(0, 8)}
+        </h1>
         <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
       </section>
     );
@@ -72,7 +78,9 @@ export default function OperationalReviewDetailPage() {
   if (review === undefined) {
     return (
       <section className="admin-page">
-        <h1>{translate(locale, 'admin.review')} {reviewId.slice(0, 8)}</h1>
+        <h1>
+          {translate(locale, 'admin.review')} {reviewId.slice(0, 8)}
+        </h1>
         <p role="alert" style={{ color: 'var(--color-danger)' }}>
           {error}
         </p>
@@ -83,9 +91,12 @@ export default function OperationalReviewDetailPage() {
 
   return (
     <section className="admin-page">
-      <h1>{translate(locale, 'admin.review')} {review.reviewId.slice(0, 8)}</h1>
+      <h1>
+        {translate(locale, 'admin.review')} {review.reviewId.slice(0, 8)}
+      </h1>
       <p>
-        {translate(locale, 'admin.status')}: <strong>{review.status}</strong> · {translate(locale, 'admin.type')}: <strong>{review.category}</strong>
+        {translate(locale, 'admin.status')}: <strong>{review.status}</strong> ·{' '}
+        {translate(locale, 'admin.type')}: <strong>{review.category}</strong>
       </p>
       {error === undefined ? null : (
         <p role="alert" style={{ color: 'var(--color-danger)' }}>
@@ -103,7 +114,9 @@ export default function OperationalReviewDetailPage() {
       <section className="admin-card">
         <h2>{translate(locale, 'admin.openReason')}</h2>
         <p>{review.openedReason}</p>
-        <p>{translate(locale, 'admin.openedAt')}: {formatDateTime(locale, review.openedAt)}</p>
+        <p>
+          {translate(locale, 'admin.openedAt')}: {formatDateTime(locale, review.openedAt)}
+        </p>
       </section>
 
       <section className="admin-card">
@@ -121,7 +134,9 @@ export default function OperationalReviewDetailPage() {
               />
             </label>
             <button disabled={pending} type="submit">
-              {pending ? translate(locale, 'admin.processing') : translate(locale, 'admin.markResolved')}
+              {pending
+                ? translate(locale, 'admin.processing')
+                : translate(locale, 'admin.markResolved')}
             </button>
           </form>
         ) : (

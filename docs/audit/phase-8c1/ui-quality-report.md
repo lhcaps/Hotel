@@ -9,12 +9,12 @@
 
 ## Functional and responsive result
 
-| Dimension | Verdict | Evidence |
-| --- | --- | --- |
-| Functional coverage | PASS | All public, ADMIN, payment, and worker-facing browser verticals passed. |
-| Responsive quality | PASS | Existing Playwright mobile checks passed for public booking, coupons, admin coupon controls, and payment flows. No horizontal overflow or clipped critical controls was observed in those flows. |
-| Accessibility | PARTIAL_PASS | Existing UI uses labeled form controls and browser specs exercise keyboard-capable semantic controls. No axe runner is installed/configured, so automated full-page axe coverage is not claimed. |
-| Visual polish | PASS | Screens exercised current component tokens with no hydration, page, console, or 5xx errors in the payment error-budget test. |
+| Dimension           | Verdict      | Evidence                                                                                                                                                                                         |
+| ------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Functional coverage | PASS         | All public, ADMIN, payment, and worker-facing browser verticals passed.                                                                                                                          |
+| Responsive quality  | PASS         | Existing Playwright mobile checks passed for public booking, coupons, admin coupon controls, and payment flows. No horizontal overflow or clipped critical controls was observed in those flows. |
+| Accessibility       | PARTIAL_PASS | Existing UI uses labeled form controls and browser specs exercise keyboard-capable semantic controls. No axe runner is installed/configured, so automated full-page axe coverage is not claimed. |
+| Visual polish       | PASS         | Screens exercised current component tokens with no hydration, page, console, or 5xx errors in the payment error-budget test.                                                                     |
 
 ## Findings
 

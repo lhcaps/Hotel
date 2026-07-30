@@ -117,17 +117,17 @@ Test inventory after the Phase 7F work:
   — eight deterministic end-to-end OAuth cases exercising the full
   Better Auth HTTP flow against a real PostgreSQL database:
 
-    1. first sign-in → one CUSTOMER + one Google `accounts` row + one
-       session.
-    2. repeat sign-in reuses the same CUSTOMER row.
-    3. different Google subject with the same verified email does
-       not silently link.
-    4. replayed authorization code is rejected with `invalid_grant`.
-    5. exchange of an unknown code returns `invalid_grant`.
-    6. provider-forced error aborts the flow without persisting a
-       user.
-    7. missing email claim fails closed (no user row).
-    8. ACTIVE CUSTOMER signs in; DISABLED CUSTOMER is refused.
+  1. first sign-in → one CUSTOMER + one Google `accounts` row + one
+     session.
+  2. repeat sign-in reuses the same CUSTOMER row.
+  3. different Google subject with the same verified email does
+     not silently link.
+  4. replayed authorization code is rejected with `invalid_grant`.
+  5. exchange of an unknown code returns `invalid_grant`.
+  6. provider-forced error aborts the flow without persisting a
+     user.
+  7. missing email claim fails closed (no user row).
+  8. ACTIVE CUSTOMER signs in; DISABLED CUSTOMER is refused.
 
   The harness is gated by `NODE_ENV === 'test'`; production builds
   no longer add `genericOAuth`.
@@ -143,20 +143,20 @@ Test inventory after the Phase 7F work:
   cases exercising the full Better Auth HTTP roundtrip through
   Chromium against the deterministic OIDC test server:
 
-    1. DEBUG: capture redirect chain during sign-in
-    2. renders the deterministic test-identity control on `/login`
-    3. first sign-in creates a usable CUSTOMER session
-    4. callback returns only to an allowlisted application URL with
-       no token in URL
-    5. authenticated `/account/profile` loads and PATCH persists
-    6. owned booking list is accessible after sign-in
-    7. logout invalidates application access to `/account/*`
-    8. existing ADMIN email cannot be taken over by the CUSTOMER
-       sign-in flow
-    9. DISABLED CUSTOMER receives no usable CUSTOMER route access
-    10. invalid / reused authorization code fails safely
-    11. provider exchange failure creates no authenticated session
-    12. no console, page, or hydration errors during the full flow
+  1. DEBUG: capture redirect chain during sign-in
+  2. renders the deterministic test-identity control on `/login`
+  3. first sign-in creates a usable CUSTOMER session
+  4. callback returns only to an allowlisted application URL with
+     no token in URL
+  5. authenticated `/account/profile` loads and PATCH persists
+  6. owned booking list is accessible after sign-in
+  7. logout invalidates application access to `/account/*`
+  8. existing ADMIN email cannot be taken over by the CUSTOMER
+     sign-in flow
+  9. DISABLED CUSTOMER receives no usable CUSTOMER route access
+  10. invalid / reused authorization code fails safely
+  11. provider exchange failure creates no authenticated session
+  12. no console, page, or hydration errors during the full flow
 
   The OIDC test server exposes `/test/queue`, `/test/clear`,
   `/test/expire-code`, and `/test/status` so the Playwright specs

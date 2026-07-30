@@ -55,7 +55,10 @@ export function PaymentProviderSelector({ bookingCode }: Readonly<{ bookingCode:
       <p className="mt-1 text-sm text-slate-600">{translate(locale, 'payment.selectionHelp')}</p>
       <div className="payment-provider-options mt-3">
         {providers.map((provider) => (
-          <div className={`payment-provider-option${selected === provider.provider ? ' payment-provider-option--selected' : ''}`} key={provider.provider}>
+          <div
+            className={`payment-provider-option${selected === provider.provider ? ' payment-provider-option--selected' : ''}`}
+            key={provider.provider}
+          >
             <button
               aria-pressed={selected === provider.provider}
               className="payment-provider-option__button"
@@ -63,7 +66,9 @@ export function PaymentProviderSelector({ bookingCode }: Readonly<{ bookingCode:
               disabled={!provider.enabled || pending !== null}
               onClick={() => void initiate(provider.provider)}
             >
-              <span aria-hidden="true" className="payment-provider-option__name">{provider.displayName}</span>
+              <span aria-hidden="true" className="payment-provider-option__name">
+                {provider.displayName}
+              </span>
               <span className="payment-provider-option__action">
                 {pending === provider.provider
                   ? translate(locale, 'payment.redirecting')

@@ -37,10 +37,7 @@ export class PaymentCurrencyMismatchError extends Error {
  */
 
 export type PaymentProviderNetworkErrorCode =
-  | 'PROVIDER_TIMEOUT'
-  | 'PROVIDER_ABORTED'
-  | 'PROVIDER_UNREACHABLE'
-  | 'PROVIDER_INVALID_RESPONSE';
+  'PROVIDER_TIMEOUT' | 'PROVIDER_ABORTED' | 'PROVIDER_UNREACHABLE' | 'PROVIDER_INVALID_RESPONSE';
 
 export class PaymentProviderNetworkError extends Error {
   override readonly name: string = 'PaymentProviderNetworkError';
@@ -51,9 +48,7 @@ export class PaymentProviderNetworkError extends Error {
 }
 
 export type PaymentProviderConfigErrorCode =
-  | 'PROVIDER_CONFIG_MISSING'
-  | 'PROVIDER_CONFIG_INVALID'
-  | 'PROVIDER_TIMEOUT_FLOOR';
+  'PROVIDER_CONFIG_MISSING' | 'PROVIDER_CONFIG_INVALID' | 'PROVIDER_TIMEOUT_FLOOR';
 
 export class PaymentProviderConfigError extends Error {
   override readonly name: string = 'PaymentProviderConfigError';

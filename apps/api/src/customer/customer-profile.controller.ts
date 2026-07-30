@@ -48,10 +48,7 @@ export class CustomerProfileController {
   @Patch()
   @Version('1')
   @HttpCode(HttpStatus.OK)
-  public async patch(
-    @Req() request: RequestLike,
-    @Body() body: unknown,
-  ) {
+  public async patch(@Req() request: RequestLike, @Body() body: unknown) {
     const actor = await this.sessions.requireCustomer(request);
     let patch;
     try {

@@ -55,7 +55,7 @@ Per-scenario run output is **`pending — awaiting command evidence`**.
   `payments_property_booking_uq` unique constraint and the
   settlement lock order
   (`booking → payment → payment_attempt → inventory_block →
-  coupon_application`).
+coupon_application`).
 - **Fixture.** `audit-payment-settlement.test.ts` "MoMo vs VNPAY
   concurrent settlement on the same booking" (added by Phase 8C).
 
@@ -98,8 +98,8 @@ Per-scenario run output is **`pending — awaiting command evidence`**.
   category `COUPON_RELEASED`.
 - **Fixture.** `payment-settlement.test.ts` "redeems the
   already-reserved coupon in the same verified-success settlement"
-  + "retains a verified success for a released coupon as
-  COUPON_RELEASED review".
+  - "retains a verified success for a released coupon as
+    COUPON_RELEASED review".
 
 ## Scenario 7 — Success vs inventory release
 
@@ -157,18 +157,18 @@ Per-scenario run output is **`pending — awaiting command evidence`**.
 
 ## Race-matrix summary table
 
-| # | Scenario | Expected | Phase 8A status | Phase 8C status | Run output |
-| --- | --- | --- | --- | --- | --- |
-| 1 | Duplicate MoMo success | 1 `SUCCEEDED`, 1 `DUPLICATE` | VERIFIED | closed | pending — awaiting command evidence |
-| 2 | Duplicate VNPAY success | 1 `SUCCEEDED`, 1 `DUPLICATE` | NOT_VERIFIED | closed | pending — awaiting command evidence |
-| 3 | MoMo vs VNPAY race | 1 `SUCCEEDED`, 1 `REVIEW_REQUIRED` | NOT_VERIFIED | closed | pending — awaiting command evidence |
-| 4 | Success vs HOLD expiry | `REVIEW_REQUIRED` if expiry wins | VERIFIED | closed | pending — awaiting command evidence |
-| 5 | Success vs ADMIN cancel | `REVIEW_REQUIRED` if cancel wins | NOT_VERIFIED | closed | pending — awaiting command evidence |
-| 6 | Success vs coupon redeem | Coupon redeem at most once | VERIFIED | closed | pending — awaiting command evidence |
-| 7 | Success vs inventory release | `REVIEW_REQUIRED` if release wins | VERIFIED | closed | pending — awaiting command evidence |
-| 8 | Duplicate provider transaction ID | `TRANSACTION_CONFLICT` | VERIFIED | closed | pending — awaiting command evidence |
-| 9 | Duplicate provider event ID | `DUPLICATE` | VERIFIED | closed | pending — awaiting command evidence |
-| 10 | Reconciliation drives a verified event | 1 `SUCCEEDED` through canonical core | NOT_VERIFIED (no reconciliation job in Phase 8A) | closed | pending — awaiting command evidence |
+| #   | Scenario                               | Expected                             | Phase 8A status                                  | Phase 8C status | Run output                          |
+| --- | -------------------------------------- | ------------------------------------ | ------------------------------------------------ | --------------- | ----------------------------------- |
+| 1   | Duplicate MoMo success                 | 1 `SUCCEEDED`, 1 `DUPLICATE`         | VERIFIED                                         | closed          | pending — awaiting command evidence |
+| 2   | Duplicate VNPAY success                | 1 `SUCCEEDED`, 1 `DUPLICATE`         | NOT_VERIFIED                                     | closed          | pending — awaiting command evidence |
+| 3   | MoMo vs VNPAY race                     | 1 `SUCCEEDED`, 1 `REVIEW_REQUIRED`   | NOT_VERIFIED                                     | closed          | pending — awaiting command evidence |
+| 4   | Success vs HOLD expiry                 | `REVIEW_REQUIRED` if expiry wins     | VERIFIED                                         | closed          | pending — awaiting command evidence |
+| 5   | Success vs ADMIN cancel                | `REVIEW_REQUIRED` if cancel wins     | NOT_VERIFIED                                     | closed          | pending — awaiting command evidence |
+| 6   | Success vs coupon redeem               | Coupon redeem at most once           | VERIFIED                                         | closed          | pending — awaiting command evidence |
+| 7   | Success vs inventory release           | `REVIEW_REQUIRED` if release wins    | VERIFIED                                         | closed          | pending — awaiting command evidence |
+| 8   | Duplicate provider transaction ID      | `TRANSACTION_CONFLICT`               | VERIFIED                                         | closed          | pending — awaiting command evidence |
+| 9   | Duplicate provider event ID            | `DUPLICATE`                          | VERIFIED                                         | closed          | pending — awaiting command evidence |
+| 10  | Reconciliation drives a verified event | 1 `SUCCEEDED` through canonical core | NOT_VERIFIED (no reconciliation job in Phase 8A) | closed          | pending — awaiting command evidence |
 
 ## Closing
 

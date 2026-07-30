@@ -38,7 +38,9 @@ const TIER_PRICES = {
 
 const extraHour = 100_000;
 
-function buildCatalog(overrides: Record<string, Partial<PricingCatalog[string]>> = {}): PricingCatalog {
+function buildCatalog(
+  overrides: Record<string, Partial<PricingCatalog[string]>> = {},
+): PricingCatalog {
   const base: Record<string, PricingCatalog[string]> = {
     THREE_HOUR_COMBO: {
       status: 'ACTIVE',
@@ -71,7 +73,11 @@ function buildCatalog(overrides: Record<string, Partial<PricingCatalog[string]>>
       maxCheckInMinuteExclusive: 900,
       minDurationMinutesInclusive: 60,
       maxDurationMinutesInclusive: 960,
-      prices: { TIER_1: TIER_PRICES.TIER_1, TIER_2: TIER_PRICES.TIER_2, TIER_3: TIER_PRICES.TIER_3 },
+      prices: {
+        TIER_1: TIER_PRICES.TIER_1,
+        TIER_2: TIER_PRICES.TIER_2,
+        TIER_3: TIER_PRICES.TIER_3,
+      },
     },
     NIGHT_COMBO: {
       status: 'ACTIVE',
@@ -118,7 +124,7 @@ function utcOf(localHour: number, localMinute: number): string {
   // local date so the offset is exact and the resulting UTC minutes are
   // guaranteed to be aligned to the 15-minute grid by construction.
   const localMinutesOfDay = localHour * 60 + localMinute;
-  const utcMinutesOfDay = ((localMinutesOfDay - 7 * 60) % (24 * 60) + 24 * 60) % (24 * 60);
+  const utcMinutesOfDay = (((localMinutesOfDay - 7 * 60) % (24 * 60)) + 24 * 60) % (24 * 60);
   const utcHour = Math.floor(utcMinutesOfDay / 60);
   const utcMinute = utcMinutesOfDay % 60;
   if (utcMinute % 15 !== 0) {
@@ -155,7 +161,10 @@ function enumerateScenarios(): readonly Scenario[] {
   return out;
 }
 
-function classifyScenario(catalog: PricingCatalog, scenario: Scenario): {
+function classifyScenario(
+  catalog: PricingCatalog,
+  scenario: Scenario,
+): {
   productionResult: ReturnType<typeof calculatePricingWithStrategy> | undefined;
   productionError: string | undefined;
   oracle: ReturnType<typeof auditEnumerate> | undefined;
@@ -238,10 +247,7 @@ describe('Phase 8A audit-only exhaustive pricing verification', () => {
     let mismatches = 0;
     let productionExceptions = 0;
     for (const scenario of scenarios) {
-      const { productionResult, productionError, oracle } = classifyScenario(
-        catalog,
-        scenario,
-      );
+      const { productionResult, productionError, oracle } = classifyScenario(catalog, scenario);
       if (productionError !== undefined) {
         productionExceptions += 1;
         continue;

@@ -123,8 +123,7 @@ export class NearbyAvailabilityRepository {
           orderBy: (amenity, operators) => [operators.asc(amenity.name), operators.asc(amenity.id)],
         }),
         this.database.query.roomTypeAmenities.findMany({
-          where: (assignment, operators) =>
-            operators.eq(assignment.propertyId, property.id),
+          where: (assignment, operators) => operators.eq(assignment.propertyId, property.id),
         }),
         this.database.query.roomInventoryBlocks.findMany({
           where: (block, operators) =>
@@ -213,9 +212,7 @@ export class NearbyAvailabilityRepository {
    * Implementation relies on the database client being wrapped in a counter;
    * when not wrapped this returns NaN so the assertion fails closed.
    */
-  public async databaseCallCount(
-    probe: () => Promise<unknown>,
-  ): Promise<number> {
+  public async databaseCallCount(probe: () => Promise<unknown>): Promise<number> {
     const counter = this.database as unknown as { __queryCount?: number };
     if (typeof counter.__queryCount !== 'number') {
       await probe();

@@ -264,10 +264,7 @@ export function requiredValue<T>(values: readonly T[], index: number, label: str
   return value;
 }
 
-export function requiredRow<T extends QueryResultRow>(
-  result: QueryResult<T>,
-  label: string,
-): T {
+export function requiredRow<T extends QueryResultRow>(result: QueryResult<T>, label: string): T {
   const row = result.rows[0];
   if (row === undefined) throw new Error(`Expected ${label}`);
   return row;

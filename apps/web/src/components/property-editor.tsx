@@ -25,7 +25,11 @@ export function PropertyEditor() {
       })
       .catch((cause: unknown) => {
         if (!active) return;
-        setMessage(cause instanceof AdminApiError ? translate(locale, 'property.loadError') : translate(locale, 'property.loadError'));
+        setMessage(
+          cause instanceof AdminApiError
+            ? translate(locale, 'property.loadError')
+            : translate(locale, 'property.loadError'),
+        );
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -45,7 +49,11 @@ export function PropertyEditor() {
       setName(property.name);
       setMessage(translate(locale, 'property.saved'));
     } catch (cause) {
-      setMessage(cause instanceof AdminApiError ? translate(locale, 'property.saveError') : translate(locale, 'property.saveError'));
+      setMessage(
+        cause instanceof AdminApiError
+          ? translate(locale, 'property.saveError')
+          : translate(locale, 'property.saveError'),
+      );
     } finally {
       setPending(false);
     }

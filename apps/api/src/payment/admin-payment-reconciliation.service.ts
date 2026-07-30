@@ -42,12 +42,12 @@ export type AdminPaymentReconciliationOutcome =
  * best-effort, no-op trigger.
  */
 export interface AdminPaymentReconciliationService {
-  triggerProviderQuery(request: AdminPaymentReconciliationRequest): Promise<AdminPaymentReconciliationOutcome>;
+  triggerProviderQuery(
+    request: AdminPaymentReconciliationRequest,
+  ): Promise<AdminPaymentReconciliationOutcome>;
 }
 
-export const ADMIN_PAYMENT_RECONCILIATION_SERVICE = Symbol(
-  'ADMIN_PAYMENT_RECONCILIATION_SERVICE',
-);
+export const ADMIN_PAYMENT_RECONCILIATION_SERVICE = Symbol('ADMIN_PAYMENT_RECONCILIATION_SERVICE');
 
 export const NOOP_RECONCILIATION_OUTCOME_NOTE =
   'Reconciliation worker not yet wired; only a provider query was requested.';

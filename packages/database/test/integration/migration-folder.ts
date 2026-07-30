@@ -16,10 +16,7 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import type { PoolClient } from 'pg';
 
 import { withDatabasePool } from '../../src/client.js';
-import {
-  createGuardedTestDatabase,
-  type GuardedTestDatabase,
-} from '../../src/testing.js';
+import { createGuardedTestDatabase, type GuardedTestDatabase } from '../../src/testing.js';
 
 export const REPO_ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], {
   stdio: ['ignore', 'pipe', 'pipe'],
@@ -82,11 +79,7 @@ export function buildTrimmedDrizzleFolder(maxIndex: number): string {
     dialect: journal.dialect,
     entries: journal.entries.filter((entry) => entry.idx <= maxIndex),
   };
-  writeFileSync(
-    join(metaDir, '_journal.json'),
-    `${JSON.stringify(trimmed, null, 2)}\n`,
-    'utf8',
-  );
+  writeFileSync(join(metaDir, '_journal.json'), `${JSON.stringify(trimmed, null, 2)}\n`, 'utf8');
 
   return tmpRoot;
 }

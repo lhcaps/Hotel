@@ -148,9 +148,7 @@ describe('AdminPaymentsPage', () => {
     await waitFor(() => {
       const calls = fetchMock.mock.calls.map(([input]) => String(input));
       expect(
-        calls.some(
-          (url) => url === 'http://api.local/api/v1/admin/payments?page=1&pageSize=20',
-        ),
+        calls.some((url) => url === 'http://api.local/api/v1/admin/payments?page=1&pageSize=20'),
       ).toBe(true);
     });
   });

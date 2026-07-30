@@ -59,10 +59,7 @@ describe('Phase 8A audit-only payment settlement race matrix', () => {
       applyVerifiedPaymentEvent(event),
       applyVerifiedPaymentEvent({ ...event, pool: fixture.callers[1].pool }),
     ]);
-    expect(results.map((r) => r.processingStatus).sort()).toEqual([
-      'DUPLICATE',
-      'PROCESSED',
-    ]);
+    expect(results.map((r) => r.processingStatus).sort()).toEqual(['DUPLICATE', 'PROCESSED']);
     await expect(
       fixture.adminPool.query<{ count: number }>(
         `SELECT count(*)::int AS count

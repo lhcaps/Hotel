@@ -62,7 +62,11 @@ export type RequestOtpOutcome =
       readonly serverTime: Date;
     }
   | { readonly kind: 'DECOY_ISSUED'; readonly challengeRef: string; readonly serverTime: Date }
-  | { readonly kind: 'OTP_RATE_LIMITED'; readonly retryAfterSeconds: number; readonly serverTime: Date };
+  | {
+      readonly kind: 'OTP_RATE_LIMITED';
+      readonly retryAfterSeconds: number;
+      readonly serverTime: Date;
+    };
 
 export interface ConsumeOtpParams {
   readonly challengeRef: string;
@@ -150,9 +154,7 @@ export class GuestAccessRepository {
     };
   }
 
-  public async findActiveChallenge(
-    bookingId: string,
-  ): Promise<ActiveChallengeLookup | null> {
+  public async findActiveChallenge(bookingId: string): Promise<ActiveChallengeLookup | null> {
     const result = await this.database.execute<ActiveChallengeRow & Record<string, unknown>>(
       sql`SELECT id            AS challenge_id,
                  created_at    AS created_at
@@ -246,12 +248,7 @@ export class GuestAccessRepository {
           WHERE booking_id = $1
             AND email_digest = $2
             AND created_at > $3::timestamptz - ($4::bigint * INTERVAL '1 millisecond')`,
-        [
-          bookingRow.booking_id,
-          contactEmailDigest,
-          databaseNow,
-          this.config.requestWindowMs,
-        ],
+        [bookingRow.booking_id, contactEmailDigest, databaseNow, this.config.requestWindowMs],
       );
       const requestCount = Number(requestCountResult.rows[0]?.count ?? '0');
       if (requestCount >= this.config.requestLimit) {
@@ -427,11 +424,13 @@ export class GuestAccessRepository {
            JOIN bookings b ON b.id = goc.booking_id
           WHERE goc.challenge_ref_digest = $1
           FOR UPDATE`,
-        [computeDigest({
-          secretKey: this.secrets.challengeRefSecret,
-          domainLabel: DIGEST_DOMAIN_LABELS.challengeRef,
-          parts: [Buffer.from(normalizedRef, 'utf8')],
-        })],
+        [
+          computeDigest({
+            secretKey: this.secrets.challengeRefSecret,
+            domainLabel: DIGEST_DOMAIN_LABELS.challengeRef,
+            parts: [Buffer.from(normalizedRef, 'utf8')],
+          }),
+        ],
       );
       const challengeRow = lookupResult.rows[0];
 
@@ -444,10 +443,7 @@ export class GuestAccessRepository {
         await client.query('COMMIT');
         return failureOutcome;
       }
-      if (
-        challengeRow.consumed_at !== null ||
-        challengeRow.replaced_at !== null
-      ) {
+      if (challengeRow.consumed_at !== null || challengeRow.replaced_at !== null) {
         await client.query('COMMIT');
         return failureOutcome;
       }

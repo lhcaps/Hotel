@@ -276,7 +276,8 @@ describe('WorkerScheduler', () => {
     const backoffEvents = rec.events.filter((event) => event.type === 'job.backoff_scheduled');
     expect(backoffEvents).toHaveLength(4);
     const backoffMs = backoffEvents.map(
-      (event) => (event as Extract<WorkerSchedulerEvent, { type: 'job.backoff_scheduled' }>).backoffMs,
+      (event) =>
+        (event as Extract<WorkerSchedulerEvent, { type: 'job.backoff_scheduled' }>).backoffMs,
     );
     // 25, 50, 100, 200 — capped at maxBackoffMs.
     expect(backoffMs).toEqual([25, 50, 100, 200]);
@@ -306,7 +307,10 @@ describe('WorkerScheduler', () => {
     await promise;
     const backoffMs = rec.events
       .filter((event) => event.type === 'job.backoff_scheduled')
-      .map((event) => (event as Extract<WorkerSchedulerEvent, { type: 'job.backoff_scheduled' }>).backoffMs);
+      .map(
+        (event) =>
+          (event as Extract<WorkerSchedulerEvent, { type: 'job.backoff_scheduled' }>).backoffMs,
+      );
     expect(backoffMs.every((value) => value <= 100)).toBe(true);
   });
 

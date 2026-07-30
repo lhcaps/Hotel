@@ -96,7 +96,7 @@ const catalog: PricingCatalog = {
 
 function utcOf(localHour: number, localMinute: number): string {
   const localMinutesOfDay = localHour * 60 + localMinute;
-  const utcMinutesOfDay = ((localMinutesOfDay - 7 * 60) % (24 * 60) + 24 * 60) % (24 * 60);
+  const utcMinutesOfDay = (((localMinutesOfDay - 7 * 60) % (24 * 60)) + 24 * 60) % (24 * 60);
   const utcHour = Math.floor(utcMinutesOfDay / 60);
   const utcMinute = utcMinutesOfDay % 60;
   const date = new Date(Date.UTC(2026, 6, 22, utcHour, utcMinute));
@@ -249,7 +249,10 @@ describe('Phase 8B cheapest-eligible pricing', () => {
         includedDurationMinutes: 60,
         prices: { TIER_1: 100_000, TIER_2: 110_000, TIER_3: 120_000 },
       },
-      EXTRA_HOUR: { ...clone(catalog.EXTRA_HOUR), prices: { TIER_1: 100_000, TIER_2: 0, TIER_3: 0 } },
+      EXTRA_HOUR: {
+        ...clone(catalog.EXTRA_HOUR),
+        prices: { TIER_1: 100_000, TIER_2: 0, TIER_3: 0 },
+      },
     };
     const checkIn = utcOf(15, 0);
     const checkOut = shift(checkIn, 240);

@@ -23,7 +23,9 @@ export function PriceTierManager() {
       .then(setPage)
       .catch((cause: unknown) =>
         setMessage(
-          cause instanceof AdminApiError ? translate(locale, 'priceTier.loadError') : translate(locale, 'priceTier.loadError'),
+          cause instanceof AdminApiError
+            ? translate(locale, 'priceTier.loadError')
+            : translate(locale, 'priceTier.loadError'),
         ),
       );
   }, [locale]);
@@ -54,7 +56,11 @@ export function PriceTierManager() {
       setSortOrder('0');
       setEditingId(undefined);
     } catch (cause) {
-      setMessage(cause instanceof AdminApiError ? translate(locale, 'priceTier.saveError') : translate(locale, 'priceTier.saveError'));
+      setMessage(
+        cause instanceof AdminApiError
+          ? translate(locale, 'priceTier.saveError')
+          : translate(locale, 'priceTier.saveError'),
+      );
     } finally {
       setPending(false);
     }
@@ -73,7 +79,9 @@ export function PriceTierManager() {
       setMessage(translate(locale, 'priceTier.archived', { name: tier.name }));
     } catch (cause) {
       setMessage(
-        cause instanceof AdminApiError ? translate(locale, 'priceTier.archiveError') : translate(locale, 'priceTier.archiveError'),
+        cause instanceof AdminApiError
+          ? translate(locale, 'priceTier.archiveError')
+          : translate(locale, 'priceTier.archiveError'),
       );
     } finally {
       setPending(false);
@@ -115,11 +123,15 @@ export function PriceTierManager() {
           />
         </label>
         <button disabled={pending} type="submit">
-          {editingId === undefined ? translate(locale, 'priceTier.create') : translate(locale, 'priceTier.save')}
+          {editingId === undefined
+            ? translate(locale, 'priceTier.create')
+            : translate(locale, 'priceTier.save')}
         </button>
       </form>
       {message === undefined ? null : <p role="alert">{message}</p>}
-      {page === undefined ? <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p> : null}
+      {page === undefined ? (
+        <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
+      ) : null}
       {page !== undefined && page.items.length === 0 ? (
         <div className="table-empty">{translate(locale, 'priceTier.empty')}</div>
       ) : null}

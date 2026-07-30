@@ -206,7 +206,9 @@ export function QuoteView({
           <p className="quote-page__eyebrow">{translate(locale, 'quote.eyebrow')}</p>
           <ol aria-label={translate(locale, 'quote.completeHold')} className="booking-stepper">
             <li>{translate(locale, 'booking.step.roomAndRate')}</li>
-            <li className="booking-stepper__current">{translate(locale, 'booking.step.contact')}</li>
+            <li className="booking-stepper__current">
+              {translate(locale, 'booking.step.contact')}
+            </li>
             <li>{translate(locale, 'booking.step.confirm')}</li>
             <li>{translate(locale, 'booking.step.payment')}</li>
             <li>{translate(locale, 'booking.step.complete')}</li>

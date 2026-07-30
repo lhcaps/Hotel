@@ -32,10 +32,18 @@ export interface ProcessReconciliationSummary {
 export async function processReconciliation(
   options: ProcessReconciliationOptions,
 ): Promise<ProcessReconciliationSummary> {
-  if (!Number.isInteger(options.concurrency) || options.concurrency < 1 || options.concurrency > 25) {
+  if (
+    !Number.isInteger(options.concurrency) ||
+    options.concurrency < 1 ||
+    options.concurrency > 25
+  ) {
     throw new RangeError('concurrency must be an integer between 1 and 25');
   }
-  if (!Number.isInteger(options.maxAttempts) || options.maxAttempts < 1 || options.maxAttempts > 32) {
+  if (
+    !Number.isInteger(options.maxAttempts) ||
+    options.maxAttempts < 1 ||
+    options.maxAttempts > 32
+  ) {
     throw new RangeError('maxAttempts must be an integer between 1 and 32');
   }
 

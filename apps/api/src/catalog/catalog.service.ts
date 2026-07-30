@@ -469,12 +469,7 @@ export class CatalogService {
       const existing = await this.repository.findRoomType(transaction, property.id, id);
       if (existing === undefined) throw new CatalogNotFoundError();
       if (command.priceTierId !== undefined) {
-        const tier = await this.repository.listPriceTiers(
-          property.id,
-          1,
-          100,
-          transaction,
-        );
+        const tier = await this.repository.listPriceTiers(property.id, 1, 100, transaction);
         const samePropertyTier = tier.find((t) => t.id === command.priceTierId);
         if (samePropertyTier === undefined) {
           throw new CatalogNotFoundError(
@@ -496,12 +491,7 @@ export class CatalogService {
           'Capacity relationship is invalid for the updated room type.',
         );
       }
-      const updated = await this.repository.updateRoomType(
-        transaction,
-        property.id,
-        id,
-        command,
-      );
+      const updated = await this.repository.updateRoomType(transaction, property.id, id, command);
       if (updated === undefined) throw new CatalogNotFoundError();
       await this.audit.write(transaction, {
         propertyId: property.id,
@@ -518,11 +508,7 @@ export class CatalogService {
       return toRoomType(updated);
     });
   }
-  public async removeRoomTypeAmenity(
-    actor: ActorContext,
-    roomTypeId: string,
-    amenityId: string,
-  ) {
+  public async removeRoomTypeAmenity(actor: ActorContext, roomTypeId: string, amenityId: string) {
     return this.database.transaction(async (transaction) => {
       const property = await this.repository.getCurrentProperty(transaction);
       if (property === undefined) throw new CatalogNotFoundError();
@@ -694,7 +680,12 @@ export class CatalogService {
     return this.database.transaction(async (transaction) => {
       const property = await this.repository.getCurrentProperty(transaction);
       if (property === undefined) throw new CatalogNotFoundError();
-      const room = await this.repository.updateRoomHousekeeping(transaction, property.id, id, command);
+      const room = await this.repository.updateRoomHousekeeping(
+        transaction,
+        property.id,
+        id,
+        command,
+      );
       if (room === undefined) throw new CatalogNotFoundError();
       await this.audit.write(transaction, {
         propertyId: property.id,

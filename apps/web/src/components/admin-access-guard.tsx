@@ -35,10 +35,10 @@ export function AdminAccessGuard({ children }: Readonly<{ children: ReactNode }>
         // Detect a CUSTOMER session so we can surface a localised
         // "switch account" notice on the login page.
         try {
-          const sessionResponse = await fetch(
-            `${apiBase}/customer/profile/session`,
-            { credentials: 'include', signal: controller.signal },
-          );
+          const sessionResponse = await fetch(`${apiBase}/customer/profile/session`, {
+            credentials: 'include',
+            signal: controller.signal,
+          });
           const body: unknown = sessionResponse.ok
             ? await sessionResponse.json().catch(() => undefined)
             : undefined;

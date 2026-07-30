@@ -38,10 +38,7 @@ export class GuestAccessOtpRequestService {
     private readonly config: GuestAccessRateLimitConfig,
   ) {}
 
-  public async request(
-    input: unknown,
-    requestIp: string,
-  ): Promise<GuestAccessOtpRequestResponse> {
+  public async request(input: unknown, requestIp: string): Promise<GuestAccessOtpRequestResponse> {
     const request: GuestAccessOtpRequest = guestAccessOtpRequestSchema.parse(input);
 
     const requestIpDigest = computeDigest({
@@ -78,8 +75,7 @@ export class GuestAccessOtpRequestService {
         outcome.kind === 'CHALLENGE_ISSUED'
           ? outcome.expiresAt.toISOString()
           : new Date(outcome.serverTime.getTime() + this.config.otpTtlMs).toISOString(),
-      cooldownSeconds:
-        outcome.kind === 'CHALLENGE_ISSUED' ? outcome.cooldownSeconds : 0,
+      cooldownSeconds: outcome.kind === 'CHALLENGE_ISSUED' ? outcome.cooldownSeconds : 0,
       serverTime: outcome.serverTime.toISOString(),
     });
   }

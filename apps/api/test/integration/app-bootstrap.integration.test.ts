@@ -31,10 +31,14 @@ describe('application bootstrap', () => {
       MOMO_ENABLED: 'false',
       VNPAY_ENABLED: 'false',
     });
-    application = await NestFactory.create<NestFastifyApplication>(AppModule, createApiHttpAdapter(), {
-      abortOnError: false,
-      logger: false,
-    });
+    application = await NestFactory.create<NestFastifyApplication>(
+      AppModule,
+      createApiHttpAdapter(),
+      {
+        abortOnError: false,
+        logger: false,
+      },
+    );
     await application.init();
   });
 

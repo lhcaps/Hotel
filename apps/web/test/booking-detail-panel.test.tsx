@@ -99,7 +99,13 @@ describe('BookingDetailPanel', () => {
 
   it('offers an authorized printable confirmation without internal fields', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(BOOKING));
-    render(<BookingDetailPanel bookingCode="RM-AB23-CD45-EF67" email="guest@example.test" onLogout={vi.fn()} />);
+    render(
+      <BookingDetailPanel
+        bookingCode="RM-AB23-CD45-EF67"
+        email="guest@example.test"
+        onLogout={vi.fn()}
+      />,
+    );
     expect(await screen.findByRole('button', { name: 'Print confirmation' })).toBeInTheDocument();
   });
 

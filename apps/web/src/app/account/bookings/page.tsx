@@ -1,6 +1,12 @@
 import { cookies, headers } from 'next/headers';
 
-import { formatDateTime, formatVnd, resolveLocale, translate, translatePaymentStatus } from '../../../lib/i18n/messages';
+import {
+  formatDateTime,
+  formatVnd,
+  resolveLocale,
+  translate,
+  translatePaymentStatus,
+} from '../../../lib/i18n/messages';
 
 interface BookingSummary {
   readonly bookingId: string;
@@ -66,7 +72,10 @@ export default async function CustomerBookingsPage() {
                 <a href={`/account/bookings/${item.bookingCode}`}>
                   <span>
                     <strong>{item.bookingCode}</strong>
-                    <small>{formatDateTime(locale, item.checkIn)} &rarr; {formatDateTime(locale, item.checkOut)}</small>
+                    <small>
+                      {formatDateTime(locale, item.checkIn)} &rarr;{' '}
+                      {formatDateTime(locale, item.checkOut)}
+                    </small>
                   </span>
                   <span>
                     <em>{translatePaymentStatus(locale, item.status)}</em>

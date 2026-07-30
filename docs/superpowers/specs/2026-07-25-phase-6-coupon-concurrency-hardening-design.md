@@ -200,15 +200,15 @@ canonical lock order below is the only order permitted.
    structurally eligible candidate rooms).
 7. Targeted stale-HOLD cleanup:
    - `SELECT FROM bookings WHERE status = 'HOLD' AND hold_expires_at <=
-     CURRENT_TIMESTAMP AND room_type_id = ... FOR UPDATE OF bookings
-     SKIP LOCKED`;
+CURRENT_TIMESTAMP AND room_type_id = ... FOR UPDATE OF bookings
+SKIP LOCKED`;
    - transition stale bookings to `EXPIRED`;
    - release inventory blocks;
    - **release coupon applications** via
      `UPDATE booking_coupon_applications SET application_status =
-     'RELEASED', quota_reserved = false, released_at = CURRENT_TIMESTAMP
-     WHERE booking_id IN (...) AND application_status IN ('ASSOCIATED',
-     'RESERVED')`;
+'RELEASED', quota_reserved = false, released_at = CURRENT_TIMESTAMP
+WHERE booking_id IN (...) AND application_status IN ('ASSOCIATED',
+'RESERVED')`;
    - write `HOLD_EXPIRED` and `COUPON_RELEASED` audit events.
 8. Probe `findRemainingTargetedStaleHold`; if a relevant stale row is still
    locked, return `STALE_HOLD_CLEANUP_RETRY` and commit no other writes.
@@ -239,23 +239,23 @@ transaction is authorized to release.
 
 ### 5.2 Lock graph
 
-| Operation | Resource | Lock mode | Canonical order |
-|---|---|---|---|
-| Quote issuance | `coupons` | `FOR UPDATE` (only when coupon code present) | n/a (no booking lock) |
-| Booking HOLD | `quotes` | `FOR UPDATE` | 2 |
-| Booking HOLD | `bookings` | `SELECT` (existing) | 3 |
-| Booking HOLD | `rooms` | `FOR UPDATE SKIP LOCKED` | 6, 15 |
-| Booking HOLD | `bookings` (stale) | `FOR UPDATE OF bookings SKIP LOCKED` | 7 |
-| Booking HOLD | `booking_coupon_applications` | `UPDATE WHERE booking_id` | 7 |
-| Booking HOLD | `coupons` | `FOR UPDATE` | 9 |
-| Booking HOLD | `booking_coupon_applications` | `INSERT` (new) | 19 |
-| Expiration worker | `bookings` (stale) | `FOR UPDATE OF bookings SKIP LOCKED` | 1 |
-| Expiration worker | `booking_coupon_applications` | `UPDATE WHERE booking_id` | 2 |
-| ADMIN disable | `coupons` | `FOR UPDATE` | 1 |
-| ADMIN mutation | `coupons` | `FOR UPDATE` | 1 |
-| ADMIN mutation | `coupon_room_types` (parent) | `FOR UPDATE` (single or both) | 2 |
-| Coupon redemption | `booking_coupon_applications` | `FOR UPDATE` | 1 |
-| Coupon redemption | `coupons` | none (status read only) | n/a |
+| Operation         | Resource                      | Lock mode                                    | Canonical order       |
+| ----------------- | ----------------------------- | -------------------------------------------- | --------------------- |
+| Quote issuance    | `coupons`                     | `FOR UPDATE` (only when coupon code present) | n/a (no booking lock) |
+| Booking HOLD      | `quotes`                      | `FOR UPDATE`                                 | 2                     |
+| Booking HOLD      | `bookings`                    | `SELECT` (existing)                          | 3                     |
+| Booking HOLD      | `rooms`                       | `FOR UPDATE SKIP LOCKED`                     | 6, 15                 |
+| Booking HOLD      | `bookings` (stale)            | `FOR UPDATE OF bookings SKIP LOCKED`         | 7                     |
+| Booking HOLD      | `booking_coupon_applications` | `UPDATE WHERE booking_id`                    | 7                     |
+| Booking HOLD      | `coupons`                     | `FOR UPDATE`                                 | 9                     |
+| Booking HOLD      | `booking_coupon_applications` | `INSERT` (new)                               | 19                    |
+| Expiration worker | `bookings` (stale)            | `FOR UPDATE OF bookings SKIP LOCKED`         | 1                     |
+| Expiration worker | `booking_coupon_applications` | `UPDATE WHERE booking_id`                    | 2                     |
+| ADMIN disable     | `coupons`                     | `FOR UPDATE`                                 | 1                     |
+| ADMIN mutation    | `coupons`                     | `FOR UPDATE`                                 | 1                     |
+| ADMIN mutation    | `coupon_room_types` (parent)  | `FOR UPDATE` (single or both)                | 2                     |
+| Coupon redemption | `booking_coupon_applications` | `FOR UPDATE`                                 | 1                     |
+| Coupon redemption | `coupons`                     | none (status read only)                      | n/a                   |
 
 Competing paths acquire rows in the same canonical order: `quotes` →
 `coupons` → `bookings` → `booking_coupon_applications`. Any deviation
@@ -279,7 +279,7 @@ coupons:
 
 - `NULL` when no quote or application references exist.
 - For referenced coupons, set `first_referenced_at = MIN(quote.created_at,
-  application.created_at)` derived from the minimum committed timestamp
+application.created_at)` derived from the minimum committed timestamp
   available. When application timestamps are not yet authoritative
   (pre-0009), use `CURRENT_TIMESTAMP` and document the approximation in
   the migration header comments.

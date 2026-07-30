@@ -1,7 +1,10 @@
 import { Controller, Get, Inject, Param, Req, Version } from '@nestjs/common';
 
 import { BookingDetailService } from './services/booking-detail.service.js';
-import { GuestSessionRequiredError, GuestSessionService } from './services/guest-session.service.js';
+import {
+  GuestSessionRequiredError,
+  GuestSessionService,
+} from './services/guest-session.service.js';
 import { parseGuestSessionCookie } from './cookie.js';
 
 interface RequestLike {

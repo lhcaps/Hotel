@@ -75,17 +75,18 @@ export async function runWorkerContinuously(
       intervalMs: options.outboxIntervalMs,
       run: options.outboxJob.run,
     },
-    reconciliation: options.reconciliationJob === undefined
-      ? {
-          name: 'PAYMENT_RECONCILIATION',
-          intervalMs: options.reconciliationIntervalMs ?? 3_600_000,
-          run: async () => undefined,
-        }
-      : {
-          name: 'PAYMENT_RECONCILIATION',
-          intervalMs: options.reconciliationIntervalMs ?? 30_000,
-          run: options.reconciliationJob.run,
-        },
+    reconciliation:
+      options.reconciliationJob === undefined
+        ? {
+            name: 'PAYMENT_RECONCILIATION',
+            intervalMs: options.reconciliationIntervalMs ?? 3_600_000,
+            run: async () => undefined,
+          }
+        : {
+            name: 'PAYMENT_RECONCILIATION',
+            intervalMs: options.reconciliationIntervalMs ?? 30_000,
+            run: options.reconciliationJob.run,
+          },
     initialBackoffMs: options.initialBackoffMs,
     maxBackoffMs: options.maxBackoffMs,
   });

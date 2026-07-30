@@ -173,10 +173,7 @@ export class CatalogRepository implements CatalogRepositoryPort {
     const database = asCatalogDatabase(transaction, this.database);
     return database.query.roomTypes.findFirst({
       where: (roomType, operators) =>
-        operators.and(
-          operators.eq(roomType.id, id),
-          operators.eq(roomType.propertyId, propertyId),
-        ),
+        operators.and(operators.eq(roomType.id, id), operators.eq(roomType.propertyId, propertyId)),
     });
   }
   public async updateRoomType(
@@ -282,10 +279,7 @@ export class CatalogRepository implements CatalogRepositoryPort {
     const database = asCatalogDatabase(transaction, this.database);
     return database.query.amenities.findFirst({
       where: (amenity, operators) =>
-        operators.and(
-          operators.eq(amenity.id, id),
-          operators.eq(amenity.propertyId, propertyId),
-        ),
+        operators.and(operators.eq(amenity.id, id), operators.eq(amenity.propertyId, propertyId)),
     });
   }
   public async updateAmenity(

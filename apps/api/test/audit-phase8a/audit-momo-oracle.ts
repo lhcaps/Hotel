@@ -41,9 +41,7 @@ export interface AuditMomoIpnFields {
   readonly transId: number | string;
 }
 
-export function auditBuildMomoInitiationCanonical(
-  f: AuditMomoInitiationFields,
-): string {
+export function auditBuildMomoInitiationCanonical(f: AuditMomoInitiationFields): string {
   return [
     `accessKey=${f.accessKey}`,
     `amount=${f.amount}`,

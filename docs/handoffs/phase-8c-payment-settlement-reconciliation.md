@@ -79,17 +79,17 @@ Audience: project lead, ops, on-call.
 
 ## Live acceptance gates (honest)
 
-| Gate | Status | Reason |
-| --- | --- | --- |
-| `MOMO_SANDBOX_ACCEPTANCE` | EXTERNAL_BLOCKED | No MoMo sandbox credentials in workspace; per Phase 8A safety boundary, the audit does not contact MoMo. |
-| `VNPAY_SANDBOX_ACCEPTANCE` | EXTERNAL_BLOCKED | No VNPAY sandbox credentials in workspace. |
-| `MOMO_PRODUCTION_ACCEPTANCE` | EXTERNAL_BLOCKED | No merchant credentials, no registered public HTTPS callback URL, no provider-side configuration. |
-| `VNPAY_PRODUCTION_ACCEPTANCE` | EXTERNAL_BLOCKED | Same as MoMo. |
-| VNPAY amount scaling ×100 vs ×1 | EXTERNAL_BLOCKED | Cannot be settled without live sandbox. |
-| VNPAY space encoding `+` vs `%20` | EXTERNAL_BLOCKED | Cannot be settled without live sandbox. |
-| `GATE_B_1_CRYPTOGRAPHIC_CONFORMANCE` | pending — awaiting command evidence | Gate-B.1 vectors defined and documented; exact run count is `pending — awaiting command evidence`. |
-| `GATE_B_2_CROSS_PROVIDER_RACE_MATRIX` | pending — awaiting command evidence | 10 scenarios documented; exact run count is `pending — awaiting command evidence`. |
-| `GATE_B_3_RECONCILIATION_CYCLE_INTEGRATION` | pending — awaiting command evidence | Worker tick wired; exact runtime behaviour is `pending — awaiting command evidence`. |
+| Gate                                        | Status                              | Reason                                                                                                   |
+| ------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `MOMO_SANDBOX_ACCEPTANCE`                   | EXTERNAL_BLOCKED                    | No MoMo sandbox credentials in workspace; per Phase 8A safety boundary, the audit does not contact MoMo. |
+| `VNPAY_SANDBOX_ACCEPTANCE`                  | EXTERNAL_BLOCKED                    | No VNPAY sandbox credentials in workspace.                                                               |
+| `MOMO_PRODUCTION_ACCEPTANCE`                | EXTERNAL_BLOCKED                    | No merchant credentials, no registered public HTTPS callback URL, no provider-side configuration.        |
+| `VNPAY_PRODUCTION_ACCEPTANCE`               | EXTERNAL_BLOCKED                    | Same as MoMo.                                                                                            |
+| VNPAY amount scaling ×100 vs ×1             | EXTERNAL_BLOCKED                    | Cannot be settled without live sandbox.                                                                  |
+| VNPAY space encoding `+` vs `%20`           | EXTERNAL_BLOCKED                    | Cannot be settled without live sandbox.                                                                  |
+| `GATE_B_1_CRYPTOGRAPHIC_CONFORMANCE`        | pending — awaiting command evidence | Gate-B.1 vectors defined and documented; exact run count is `pending — awaiting command evidence`.       |
+| `GATE_B_2_CROSS_PROVIDER_RACE_MATRIX`       | pending — awaiting command evidence | 10 scenarios documented; exact run count is `pending — awaiting command evidence`.                       |
+| `GATE_B_3_RECONCILIATION_CYCLE_INTEGRATION` | pending — awaiting command evidence | Worker tick wired; exact runtime behaviour is `pending — awaiting command evidence`.                     |
 
 The Phase 8C documentation phase is **release-closure PASS only for
 documentation**: every doc is in place, internally consistent, and

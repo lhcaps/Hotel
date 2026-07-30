@@ -11,10 +11,7 @@
  * cheapest-eligible pricing selector for every candidate.
  */
 
-import {
-  evaluatePricingCandidates,
-  type PricingCandidate,
-} from './cheapest-eligible-pricing.js';
+import { evaluatePricingCandidates, type PricingCandidate } from './cheapest-eligible-pricing.js';
 import {
   InvalidPricingIntervalError,
   PricingConfigurationError,
@@ -96,11 +93,15 @@ function ensureValidDuration(checkIn: string, checkOut: string): number {
   }
   const durationMs = end.getTime() - start.getTime();
   if (durationMs <= 0 || durationMs % (15 * MINUTE) !== 0) {
-    throw new RecommendationInvalidIntervalError('Recommendation interval must use 15-minute increments.');
+    throw new RecommendationInvalidIntervalError(
+      'Recommendation interval must use 15-minute increments.',
+    );
   }
   const durationMinutes = durationMs / MINUTE;
   if (durationMinutes < 60 || durationMinutes > 1440) {
-    throw new RecommendationInvalidIntervalError('Recommendation duration must be between 1 and 24 hours.');
+    throw new RecommendationInvalidIntervalError(
+      'Recommendation duration must be between 1 and 24 hours.',
+    );
   }
   return durationMinutes;
 }
@@ -219,7 +220,9 @@ function pickParetoAlternative(
   excluded: readonly CandidateScore[],
   baseline: number,
 ): CandidateScore | undefined {
-  const excludedIds = new Set(excluded.map((score) => `${score.shiftMinutes}|${score.candidate.planCode}`));
+  const excludedIds = new Set(
+    excluded.map((score) => `${score.shiftMinutes}|${score.candidate.planCode}`),
+  );
   let best: CandidateScore | undefined;
   for (const score of scores) {
     if (score.finalAmountVnd >= baseline) continue;
@@ -246,7 +249,8 @@ function pickParetoAlternative(
 function stableOrdering(scores: readonly CandidateScore[]): readonly CandidateScore[] {
   return [...scores].sort((a, b) => {
     if (a.finalAmountVnd !== b.finalAmountVnd) return a.finalAmountVnd - b.finalAmountVnd;
-    if (a.shiftMinutes !== b.shiftMinutes) return Math.abs(a.shiftMinutes) - Math.abs(b.shiftMinutes);
+    if (a.shiftMinutes !== b.shiftMinutes)
+      return Math.abs(a.shiftMinutes) - Math.abs(b.shiftMinutes);
     if (a.checkIn !== b.checkIn) return a.checkIn < b.checkIn ? -1 : 1;
     return a.candidate.planCode < b.candidate.planCode ? -1 : 1;
   });
@@ -267,9 +271,7 @@ export async function searchRecommendations(
     catalog,
   );
   if (exactPricingCandidates.length === 0) {
-    throw new RecommendationUnavailableError(
-      'No eligible base plan for the requested interval.',
-    );
+    throw new RecommendationUnavailableError('No eligible base plan for the requested interval.');
   }
   const exactSelected = exactPricingCandidates.reduce((best, current) =>
     current.grossAmountVnd < best.grossAmountVnd ? current : best,
@@ -311,8 +313,8 @@ export async function searchRecommendations(
 
   const exactDiscount =
     options.coupon !== undefined && input.couponCode !== undefined
-      ? await options
-          .coupon.preview(
+      ? await options.coupon
+          .preview(
             {
               checkIn: input.checkIn,
               checkOut: input.checkOut,
@@ -326,8 +328,7 @@ export async function searchRecommendations(
 
   const exactFinal = Math.max(0, exactSelected.grossAmountVnd - exactDiscount);
   const baseline = exactFinal;
-  const maxRecommendations =
-    options.maxRecommendations ?? RECOMMENDATION_MAX_CANDIDATES;
+  const maxRecommendations = options.maxRecommendations ?? RECOMMENDATION_MAX_CANDIDATES;
 
   const closest = pickClosestCheaper(scored, baseline);
   const cheapest = pickCheapest(scored.filter((score) => score.finalAmountVnd < baseline));

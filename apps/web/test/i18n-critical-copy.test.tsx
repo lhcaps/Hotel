@@ -10,16 +10,14 @@ function renderWith(locale: 'vi' | 'en', node: React.ReactNode) {
 
 describe('critical customer i18n copy', () => {
   it('provides Vietnamese translation for included minutes', () => {
-    expect(
-      translate('vi', 'ratePlan.includeDuration', { minutes: 180 }),
-    ).toBe('Bao gồm 180 phút.');
+    expect(translate('vi', 'ratePlan.includeDuration', { minutes: 180 })).toBe('Bao gồm 180 phút.');
     expect(translate('vi', 'ratePlan.includedDurationCopy', { minutes: 180 })).toContain('phút');
   });
 
   it('provides English translation for included minutes', () => {
-    expect(
-      translate('en', 'ratePlan.includeDuration', { minutes: 180 }),
-    ).toBe('Includes 180 minutes.');
+    expect(translate('en', 'ratePlan.includeDuration', { minutes: 180 })).toBe(
+      'Includes 180 minutes.',
+    );
     expect(translate('en', 'ratePlan.includedDurationCopy', { minutes: 180 })).toContain('minutes');
   });
 
@@ -52,15 +50,9 @@ describe('critical customer i18n copy', () => {
         <span data-testid="extra-hours">
           {translate('vi', 'ratePlan.extraHourCopy', { count: 2 })}
         </span>
-        <span data-testid="print-confirmation">
-          {translate('vi', 'hold.printConfirmation')}
-        </span>
-        <span data-testid="payment-init-error">
-          {translate('vi', 'payment.initError')}
-        </span>
-        <span data-testid="payment-retry">
-          {translate('vi', 'recommendations.retry')}
-        </span>
+        <span data-testid="print-confirmation">{translate('vi', 'hold.printConfirmation')}</span>
+        <span data-testid="payment-init-error">{translate('vi', 'payment.initError')}</span>
+        <span data-testid="payment-retry">{translate('vi', 'recommendations.retry')}</span>
       </>,
     );
 
@@ -87,15 +79,9 @@ describe('critical customer i18n copy', () => {
         <span data-testid="extra-hours">
           {translate('en', 'ratePlan.extraHourCopy', { count: 2 })}
         </span>
-        <span data-testid="print-confirmation">
-          {translate('en', 'hold.printConfirmation')}
-        </span>
-        <span data-testid="payment-init-error">
-          {translate('en', 'payment.initError')}
-        </span>
-        <span data-testid="payment-retry">
-          {translate('en', 'recommendations.retry')}
-        </span>
+        <span data-testid="print-confirmation">{translate('en', 'hold.printConfirmation')}</span>
+        <span data-testid="payment-init-error">{translate('en', 'payment.initError')}</span>
+        <span data-testid="payment-retry">{translate('en', 'recommendations.retry')}</span>
       </>,
     );
 

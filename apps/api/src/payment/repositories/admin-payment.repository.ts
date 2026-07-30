@@ -3,19 +3,10 @@ import type { DatabasePool } from '@room/database';
 import type { AdminPaymentListQuery } from '@room/contracts';
 
 export type AdminPaymentListStatus =
-  | 'PENDING'
-  | 'SUCCEEDED'
-  | 'REVIEW_REQUIRED'
-  | 'CANCELLED'
-  | 'EXPIRED';
+  'PENDING' | 'SUCCEEDED' | 'REVIEW_REQUIRED' | 'CANCELLED' | 'EXPIRED';
 
 export type AdminPaymentAttemptStatus =
-  | 'PENDING'
-  | 'SUCCEEDED'
-  | 'FAILED'
-  | 'REVIEW_REQUIRED'
-  | 'EXPIRED'
-  | 'CANCELLED';
+  'PENDING' | 'SUCCEEDED' | 'FAILED' | 'REVIEW_REQUIRED' | 'EXPIRED' | 'CANCELLED';
 
 export type AdminPaymentConfirmationSource = 'PROVIDER_EVENT' | 'NO_CHARGE' | null;
 
@@ -25,13 +16,7 @@ export interface AdminPaymentBookingSnapshot {
   readonly bookingId: string;
   readonly bookingCode: string;
   readonly bookingStatus:
-    | 'HOLD'
-    | 'CONFIRMED'
-    | 'EXPIRED'
-    | 'CANCELLED'
-    | 'NO_SHOW'
-    | 'CHECKED_IN'
-    | 'CHECKED_OUT';
+    'HOLD' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED' | 'NO_SHOW' | 'CHECKED_IN' | 'CHECKED_OUT';
   readonly finalAmountVnd: bigint;
   readonly currency: 'VND';
   readonly fullName: string;
@@ -565,10 +550,7 @@ export class AdminPaymentRepository {
       providerOrderId: row.provider_order_id,
       providerTransactionId: row.provider_transaction_id,
       reconciliationAttemptCount: row.reconciliation_attempt_count,
-      nextReconciliationAt: asOptionalDate(
-        row.next_reconciliation_at,
-        'next_reconciliation_at',
-      ),
+      nextReconciliationAt: asOptionalDate(row.next_reconciliation_at, 'next_reconciliation_at'),
       lastReconciledAt: asOptionalDate(row.last_reconciled_at, 'last_reconciled_at'),
       lastErrorCode: row.last_error_code,
     }));

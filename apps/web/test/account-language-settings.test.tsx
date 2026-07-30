@@ -21,10 +21,13 @@ describe('account language settings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Áp dụng ngôn ngữ' }));
 
     await vi.waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith('/locale', expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ locale: 'en' }),
-      })),
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/locale',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ locale: 'en' }),
+        }),
+      ),
     );
     expect(reload).toHaveBeenCalledOnce();
   });

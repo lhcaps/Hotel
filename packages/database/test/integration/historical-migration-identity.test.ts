@@ -27,11 +27,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const DRIZZLE_DIR = resolve(import.meta.dirname, '..', '..', 'drizzle');
-const PROVENANCE_PATH = resolve(
-  DRIZZLE_DIR,
-  'meta',
-  'migration-provenance.json',
-);
+const PROVENANCE_PATH = resolve(DRIZZLE_DIR, 'meta', 'migration-provenance.json');
 
 interface ProvenanceEntry {
   readonly index: number;
@@ -124,14 +120,11 @@ describe('migration provenance (durable manifest)', () => {
       fileName: entry.fileName,
       sha256: entry.sha256,
     })),
-  )(
-    'migration $fileName (index $index) SHA-256 matches manifest',
-    ({ fileName, sha256 }) => {
-      const fullPath = resolve(DRIZZLE_DIR, fileName);
-      const content = readFileSync(fullPath, 'utf8');
-      expect(sha256(content)).toBe(sha256);
-    },
-  );
+  )('migration $fileName (index $index) SHA-256 matches manifest', ({ fileName, sha256 }) => {
+    const fullPath = resolve(DRIZZLE_DIR, fileName);
+    const content = readFileSync(fullPath, 'utf8');
+    expect(sha256(content)).toBe(sha256);
+  });
 
   it('each informational previousIntroductionReference is recorded as metadata only', () => {
     for (const entry of manifest.entries) {

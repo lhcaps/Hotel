@@ -24,13 +24,13 @@ Evidence was refreshed on the Phase 8D worktree. `PASS` below means deterministi
 
 ## Phase 8D.3 public entry closure
 
-| Requirement | Actual implementation | Status |
-| --- | --- | --- |
-| Public product entry | `/` renders the shared authoritative availability search instead of engineering health/status content. | PASS |
-| Public navigation | Header exposes booking, guest lookup and login for anonymous visitors; after the existing CUSTOMER session probe confirms authentication, profile, bookings and sign out replace anonymous account links. ADMIN remains in its own shell. | PASS |
-| Journey wiring | Root availability issues the existing quote and preserves the existing quote -> HOLD -> guest OTP -> payment selection/status flow. | PASS |
-| Locale and accessibility | `room_locale` drives server `lang`, public header and root content; focused unit axe checks report critical 0 / serious 0. | PASS |
-| Browser and demo execution | Focused Playwright cannot start without `PLAYWRIGHT_BETTER_AUTH_SECRET`; demo lifecycle fails because protected port 3001 has no owner before the run. | BLOCKED_BY_ENVIRONMENT |
+| Requirement                | Actual implementation                                                                                                                                                                                                                     | Status                 |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| Public product entry       | `/` renders the shared authoritative availability search instead of engineering health/status content.                                                                                                                                    | PASS                   |
+| Public navigation          | Header exposes booking, guest lookup and login for anonymous visitors; after the existing CUSTOMER session probe confirms authentication, profile, bookings and sign out replace anonymous account links. ADMIN remains in its own shell. | PASS                   |
+| Journey wiring             | Root availability issues the existing quote and preserves the existing quote -> HOLD -> guest OTP -> payment selection/status flow.                                                                                                       | PASS                   |
+| Locale and accessibility   | `room_locale` drives server `lang`, public header and root content; focused unit axe checks report critical 0 / serious 0.                                                                                                                | PASS                   |
+| Browser and demo execution | Focused Playwright cannot start without `PLAYWRIGHT_BETTER_AUTH_SECRET`; demo lifecycle fails because protected port 3001 has no owner before the run.                                                                                    | BLOCKED_BY_ENVIRONMENT |
 
 ## External boundary
 

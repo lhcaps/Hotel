@@ -41,7 +41,9 @@ describe('Phase 8C reconciliation policy defaults and pure helpers', () => {
   });
 
   it('rejects malformed policy objects', () => {
-    expect(() => validateReconciliationPolicy({ maxAttempts: 0, delayMinutes: [1] } as ReconciliationPolicy)).toThrow();
+    expect(() =>
+      validateReconciliationPolicy({ maxAttempts: 0, delayMinutes: [1] } as ReconciliationPolicy),
+    ).toThrow();
     expect(() =>
       validateReconciliationPolicy({ maxAttempts: 1, delayMinutes: [] } as ReconciliationPolicy),
     ).toThrow();
@@ -100,26 +102,17 @@ describe('Phase 8C reconciliation policy defaults and pure helpers', () => {
         now,
       ),
     ).toEqual(adapterExpiry);
-    expect(
-      deriveAttemptExpiryAuthority(holdExpiry, null, null, now),
-    ).toEqual(holdExpiry);
-    expect(
-      deriveAttemptExpiryAuthority(holdExpiry, 5, null, now),
-    ).toEqual(new Date(now.getTime() + 5 * 60_000));
-    expect(
-      deriveAttemptExpiryAuthority(null, null, adapterExpiry, now),
-    ).toEqual(adapterExpiry);
+    expect(deriveAttemptExpiryAuthority(holdExpiry, null, null, now)).toEqual(holdExpiry);
+    expect(deriveAttemptExpiryAuthority(holdExpiry, 5, null, now)).toEqual(
+      new Date(now.getTime() + 5 * 60_000),
+    );
+    expect(deriveAttemptExpiryAuthority(null, null, adapterExpiry, now)).toEqual(adapterExpiry);
   });
 
   it('ignores past-dated candidates so a stale provider adapter timestamp cannot extend the attempt', () => {
     const now = new Date('2026-07-28T10:00:00.000Z');
     expect(
-      deriveAttemptExpiryAuthority(
-        new Date('2026-07-28T09:00:00.000Z'),
-        null,
-        null,
-        now,
-      ),
+      deriveAttemptExpiryAuthority(new Date('2026-07-28T09:00:00.000Z'), null, null, now),
     ).toBeNull();
   });
 

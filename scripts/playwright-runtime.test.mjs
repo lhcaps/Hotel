@@ -32,8 +32,14 @@ try {
   const artifact = readFileSync(new URL('./run-playwright.mjs', import.meta.url), 'utf8');
   assert.equal(artifact.includes(first.PLAYWRIGHT_BETTER_AUTH_SECRET), false);
   assert.equal(artifact.includes(first.PLAYWRIGHT_ADMIN_PASSWORD), false);
-  assert.equal(process.env.PLAYWRIGHT_ADMIN_PASSWORD, originalEnvironment.PLAYWRIGHT_ADMIN_PASSWORD);
-  assert.equal(process.env.PLAYWRIGHT_BETTER_AUTH_SECRET, originalEnvironment.PLAYWRIGHT_BETTER_AUTH_SECRET);
+  assert.equal(
+    process.env.PLAYWRIGHT_ADMIN_PASSWORD,
+    originalEnvironment.PLAYWRIGHT_ADMIN_PASSWORD,
+  );
+  assert.equal(
+    process.env.PLAYWRIGHT_BETTER_AUTH_SECRET,
+    originalEnvironment.PLAYWRIGHT_BETTER_AUTH_SECRET,
+  );
   process.stdout.write('PASS playwright runtime generated credentials remain process-local\n');
 } finally {
   rmSync(temporaryDirectory, { recursive: true, force: true });

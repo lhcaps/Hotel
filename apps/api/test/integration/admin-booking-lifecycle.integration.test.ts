@@ -8,14 +8,7 @@
 
 import { randomBytes, randomUUID } from 'node:crypto';
 
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createDatabaseClient,
@@ -31,12 +24,8 @@ import {
 } from '@room/database/testing';
 
 import type { ActorContext } from '../../src/auth/actor-context.js';
-import {
-  AdminBookingLifecycleService,
-} from '../../src/booking/services/admin-booking-lifecycle.service.js';
-import {
-  AdminBookingRepository,
-} from '../../src/booking/repositories/admin-booking.repository.js';
+import { AdminBookingLifecycleService } from '../../src/booking/services/admin-booking-lifecycle.service.js';
+import { AdminBookingRepository } from '../../src/booking/repositories/admin-booking.repository.js';
 import {
   BookingTransitionError,
   NoShowBeforeCheckInError,
@@ -59,7 +48,12 @@ const actor: ActorContext = {
   email: 'admin@example.test',
   displayName: 'Administrator',
   role: 'ADMIN',
-  permissions: ['booking.lifecycle.read', 'booking.lifecycle.manage', 'booking.review.read', 'booking.review.manage'],
+  permissions: [
+    'booking.lifecycle.read',
+    'booking.lifecycle.manage',
+    'booking.review.read',
+    'booking.review.manage',
+  ],
   sessionId: '660e8400-e29b-41d4-a716-446655440002',
   sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
   requestId: 'phase-7g-integration',
@@ -223,14 +217,8 @@ async function insertHoldBooking(
   return { bookingId, bookingCode: code, paymentId };
 }
 
-async function confirmBooking(
-  database: GuardedTestDatabase,
-  bookingId: string,
-): Promise<void> {
-  await database.pool.query(
-    `UPDATE bookings SET status = 'CONFIRMED' WHERE id = $1`,
-    [bookingId],
-  );
+async function confirmBooking(database: GuardedTestDatabase, bookingId: string): Promise<void> {
+  await database.pool.query(`UPDATE bookings SET status = 'CONFIRMED' WHERE id = $1`, [bookingId]);
   await database.pool.query(
     `UPDATE booking_coupon_applications
         SET application_status = 'REDEEMED',
@@ -278,59 +266,53 @@ describe('Phase 7G admin booking lifecycle', () => {
       `ALTER TABLE booking_contacts DISABLE TRIGGER booking_contacts_reject_mutation`,
     );
     try {
+      await fixture.database.pool.query(`DELETE FROM outbox_events WHERE property_id = $1`, [
+        ids.property,
+      ]);
+      await fixture.database.pool.query(`DELETE FROM operational_reviews WHERE property_id = $1`, [
+        ids.property,
+      ]);
       await fixture.database.pool.query(
-        `DELETE FROM outbox_events WHERE property_id = $1`,
+        `DELETE FROM booking_coupon_applications WHERE property_id = $1`,
         [ids.property],
       );
-    await fixture.database.pool.query(
-      `DELETE FROM operational_reviews WHERE property_id = $1`,
-      [ids.property],
-    );
-    await fixture.database.pool.query(
-      `DELETE FROM booking_coupon_applications WHERE property_id = $1`,
-      [ids.property],
-    );
-    await fixture.database.pool.query(
-      `DELETE FROM payments WHERE property_id = $1`,
-      [ids.property],
-    );
-    await fixture.database.pool.query(
-      `DELETE FROM room_inventory_blocks WHERE property_id = $1`,
-      [ids.property],
-    );
-    await fixture.database.pool.query(
-      `ALTER TABLE booking_contacts DISABLE TRIGGER booking_contacts_reject_mutation`,
-    );
-    await fixture.database.pool.query(
-      `ALTER TABLE quotes DISABLE TRIGGER quotes_reject_mutation`,
-    );
-    try {
+      await fixture.database.pool.query(`DELETE FROM payments WHERE property_id = $1`, [
+        ids.property,
+      ]);
       await fixture.database.pool.query(
-        `DELETE FROM booking_contacts WHERE booking_id IN (
+        `DELETE FROM room_inventory_blocks WHERE property_id = $1`,
+        [ids.property],
+      );
+      await fixture.database.pool.query(
+        `ALTER TABLE booking_contacts DISABLE TRIGGER booking_contacts_reject_mutation`,
+      );
+      await fixture.database.pool.query(
+        `ALTER TABLE quotes DISABLE TRIGGER quotes_reject_mutation`,
+      );
+      try {
+        await fixture.database.pool.query(
+          `DELETE FROM booking_contacts WHERE booking_id IN (
            SELECT id FROM bookings WHERE property_id = $1
          )`,
-        [ids.property],
-      );
-      await fixture.database.pool.query(
-        `DELETE FROM bookings WHERE property_id = $1`,
-        [ids.property],
-      );
-      await fixture.database.pool.query(
-        `DELETE FROM quotes WHERE property_id = $1`,
-        [ids.property],
-      );
-      await fixture.database.pool.query(
-        `DELETE FROM coupons WHERE property_id = $1`,
-        [ids.property],
-      );
-    } finally {
-      await fixture.database.pool.query(
-        `ALTER TABLE booking_contacts ENABLE TRIGGER booking_contacts_reject_mutation`,
-      );
-      await fixture.database.pool.query(
-        `ALTER TABLE quotes ENABLE TRIGGER quotes_reject_mutation`,
-      );
-    }
+          [ids.property],
+        );
+        await fixture.database.pool.query(`DELETE FROM bookings WHERE property_id = $1`, [
+          ids.property,
+        ]);
+        await fixture.database.pool.query(`DELETE FROM quotes WHERE property_id = $1`, [
+          ids.property,
+        ]);
+        await fixture.database.pool.query(`DELETE FROM coupons WHERE property_id = $1`, [
+          ids.property,
+        ]);
+      } finally {
+        await fixture.database.pool.query(
+          `ALTER TABLE booking_contacts ENABLE TRIGGER booking_contacts_reject_mutation`,
+        );
+        await fixture.database.pool.query(
+          `ALTER TABLE quotes ENABLE TRIGGER quotes_reject_mutation`,
+        );
+      }
     } finally {
       await fixture.database.pool.query(
         `ALTER TABLE booking_contacts ENABLE TRIGGER booking_contacts_reject_mutation`,
@@ -345,7 +327,12 @@ describe('Phase 7G admin booking lifecycle', () => {
   describe('Cancel HOLD', () => {
     it('1. releases the BOOKING inventory block', async () => {
       const { bookingCode } = await insertHoldBooking(fixture.database, {});
-      const result = await fixture.service.cancel(actor, bookingCode, { reason: 'Guest asked' }, new Date());
+      const result = await fixture.service.cancel(
+        actor,
+        bookingCode,
+        { reason: 'Guest asked' },
+        new Date(),
+      );
       expect(result.status).toBe('CANCELLED');
       const blocks = await fixture.database.pool.query<{ status: string }>(
         `SELECT status FROM room_inventory_blocks WHERE booking_id IN (
@@ -491,7 +478,12 @@ describe('Phase 7G admin booking lifecycle', () => {
       });
       await confirmBooking(fixture.database, bookingId);
       await expect(
-        fixture.service.markNoShow(actor, bookingCode, { reason: 'guest absent' }, new Date('2027-03-09T23:00:00.000Z')),
+        fixture.service.markNoShow(
+          actor,
+          bookingCode,
+          { reason: 'guest absent' },
+          new Date('2027-03-09T23:00:00.000Z'),
+        ),
       ).rejects.toBeInstanceOf(NoShowBeforeCheckInError);
     });
 
@@ -575,10 +567,7 @@ describe('Phase 7G admin booking lifecycle', () => {
         }
       };
 
-      const [a, b] = await Promise.all([
-        runner(clientA, 'cancel'),
-        runner(clientB, 'check-in'),
-      ]);
+      const [a, b] = await Promise.all([runner(clientA, 'cancel'), runner(clientB, 'check-in')]);
       const winners = [a, b].filter((r) => r.outcome === 'ok').length;
       const losers = [a, b].filter((r) => r.outcome === 'err').length;
       expect(winners).toBe(1);
@@ -669,10 +658,10 @@ describe('Phase 7G admin booking lifecycle', () => {
       } finally {
         client.release();
       }
-      const state = await fixture.database.pool.query<{ status: string; cancellation_reason: string | null }>(
-        `SELECT status, cancellation_reason FROM bookings WHERE id = $1`,
-        [bookingId],
-      );
+      const state = await fixture.database.pool.query<{
+        status: string;
+        cancellation_reason: string | null;
+      }>(`SELECT status, cancellation_reason FROM bookings WHERE id = $1`, [bookingId]);
       expect(state.rows[0]?.status).toBe('HOLD');
       expect(state.rows[0]?.cancellation_reason).toBeNull();
     });
@@ -720,10 +709,7 @@ describe('Phase 7G admin booking lifecycle', () => {
       const reviewId = reviewResult.rows[0]?.id;
       if (reviewId === undefined) throw new Error('Expected an OPEN review');
 
-      const resolve = async (
-        client: DatabasePoolClient,
-        note: string,
-      ): Promise<'ok' | 'err'> => {
+      const resolve = async (client: DatabasePoolClient, note: string): Promise<'ok' | 'err'> => {
         try {
           await client.query('BEGIN');
           const lock = await client.query<{ status: string }>(

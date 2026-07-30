@@ -1,7 +1,10 @@
 import { Body, Controller, Inject, Post, Version } from '@nestjs/common';
 import type { DatabaseClient } from '@room/database';
 import { recommendationResponseSchema } from '@room/contracts';
-import { RecommendationRepository, parseRecommendationRequest } from './recommendation.repository.js';
+import {
+  RecommendationRepository,
+  parseRecommendationRequest,
+} from './recommendation.repository.js';
 import { QuoteRepository } from './quote.repository.js';
 import { CouponRepository } from './coupon.repository.js';
 import { recommendationStayTimes } from './recommendation.routes.js';

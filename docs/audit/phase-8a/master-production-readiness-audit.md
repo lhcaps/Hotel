@@ -23,21 +23,21 @@ This phase is an evidence-backed AUDIT. No product code, migration, schema, or a
 
 Honest evidence-derived verdict for an audit conducted without provider credentials, sandbox acceptance, or production infrastructure:
 
-| Final verdict | Value |
-|---|---|
-| PHASE_8A_AUDIT | COMPLETE |
-| PHASE_8A_RELEASE_CLOSURE | PASS |
-| CURRENT_POLICY_CONFORMANCE | PASS |
-| EXACT_TIME_CHEAPEST_OBJECTIVE | FAIL (product-policy deficiency addressed by Phase 8B) |
-| DETERMINISTIC_PAYMENT_ASSURANCE | VERIFIED_WITH_LIMITATION (HMAC-SHA256 / HMAC-SHA512 parity with audit oracles; one spec-compliance finding on VNPAY space encoding) |
-| LIVE_MOMO_ACCEPTANCE | EXTERNAL_BLOCKED |
-| LIVE_VNPAY_ACCEPTANCE | EXTERNAL_BLOCKED |
-| DEPLOYMENT_READINESS | NOT_VERIFIED |
-| OBSERVABILITY_READINESS | VERIFIED_WITH_LIMITATION |
-| SECURITY_READINESS | VERIFIED_WITH_LIMITATION (no destructive black-box exploitation) |
-| PERFORMANCE_BASELINE | VERIFIED_WITH_LIMITATION (disposable only) |
-`CAPACITY_TARGETS = BUSINESS_OR_OPERATIONS_DECISION_REQUIRED` (no approved SLOs found; explicit SLOs and load-test acceptance criteria remain an operations decision)
-| PRODUCTION_READINESS | NO |
+| Final verdict                                                                                                                                                         | Value                                                                                                                               |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| PHASE_8A_AUDIT                                                                                                                                                        | COMPLETE                                                                                                                            |
+| PHASE_8A_RELEASE_CLOSURE                                                                                                                                              | PASS                                                                                                                                |
+| CURRENT_POLICY_CONFORMANCE                                                                                                                                            | PASS                                                                                                                                |
+| EXACT_TIME_CHEAPEST_OBJECTIVE                                                                                                                                         | FAIL (product-policy deficiency addressed by Phase 8B)                                                                              |
+| DETERMINISTIC_PAYMENT_ASSURANCE                                                                                                                                       | VERIFIED_WITH_LIMITATION (HMAC-SHA256 / HMAC-SHA512 parity with audit oracles; one spec-compliance finding on VNPAY space encoding) |
+| LIVE_MOMO_ACCEPTANCE                                                                                                                                                  | EXTERNAL_BLOCKED                                                                                                                    |
+| LIVE_VNPAY_ACCEPTANCE                                                                                                                                                 | EXTERNAL_BLOCKED                                                                                                                    |
+| DEPLOYMENT_READINESS                                                                                                                                                  | NOT_VERIFIED                                                                                                                        |
+| OBSERVABILITY_READINESS                                                                                                                                               | VERIFIED_WITH_LIMITATION                                                                                                            |
+| SECURITY_READINESS                                                                                                                                                    | VERIFIED_WITH_LIMITATION (no destructive black-box exploitation)                                                                    |
+| PERFORMANCE_BASELINE                                                                                                                                                  | VERIFIED_WITH_LIMITATION (disposable only)                                                                                          |
+| `CAPACITY_TARGETS = BUSINESS_OR_OPERATIONS_DECISION_REQUIRED` (no approved SLOs found; explicit SLOs and load-test acceptance criteria remain an operations decision) |
+| PRODUCTION_READINESS                                                                                                                                                  | NO                                                                                                                                  |
 
 ## 3. Audit Artifacts
 
@@ -66,8 +66,6 @@ All under `docs/audit/phase-8a/`:
 
 Phase 8B is the approved forward change for new quotes only. Historical quote snapshots retain their original rule version and amounts.
 
-
-
 For every claim we attempted to satisfy the hierarchy (highest first):
 
 1. Fresh runtime/database/provider behaviour.
@@ -85,41 +83,41 @@ The MoMo / VNPAY signature correctness claim is grounded in (1) + (2) + (3) + (4
 
 ## 5. Required Final Verdicts (verbatim per Section 26)
 
-| Verdict key | Status |
-|---|---|
-| PRICING_EXHAUSTIVE_ORACLE_MATCH | FAIL (Phase 8A measured the previous priority-first selector; Phase 8B re-runs this under the approved cheapest policy) |
-| PRICING_RANDOM_PROPERTY_TESTS | FAIL (Phase 8A measured the previous priority-first selector; Phase 8B re-runs this under the approved cheapest policy) |
-| CURRENT_POLICY_CONFORMANCE | PASS |
-| EXACT_TIME_CHEAPEST_OBJECTIVE | FAIL (newly approved customer-cheapest objective; not a defect against the historical priority-first contract) |
-| FLEXIBLE_TIME_RECOMMENDATION | BUSINESS_RULE_UNSOURCED |
-| COMBO_RECOMMENDATION_PRODUCT_RULES | BUSINESS_RULE_UNSOURCED |
-| MOMO_OFFICIAL_SPEC_TRACEABILITY | VERIFIED |
-| MOMO_SANDBOX_ACCEPTANCE | EXTERNAL_BLOCKED |
-| VNPAY_OFFICIAL_SPEC_TRACEABILITY | VERIFIED |
-| VNPAY_SANDBOX_ACCEPTANCE | EXTERNAL_BLOCKED |
-| CROSS_PROVIDER_SETTLEMENT_SAFETY | VERIFIED_WITH_LIMITATION (no destructive races against the real test DB during this audit; settlement unit tests cover duplicate success, amount mismatch, transaction conflict, zero-amount HOLD; exhaustive race matrix requires Phase 8C) |
-| PAYMENT_BOOKING_STATE_SAFETY | VERIFIED_WITH_LIMITATION |
-| PAYMENT_COUPON_ATOMICITY | VERIFIED_WITH_LIMITATION |
-| DATABASE_INTEGRITY | VERIFIED_WITH_LIMITATION (operational_reviews.payment_id lacks database-level booking/property cross-check; documented as P1) |
-| MIGRATION_SAFETY | VERIFIED_WITH_LIMITATION (15 migrations in linear chain; no destructive upgrade path executed on the dev DB; historical-data upgrade simulation requires Phase 8C) |
-| BACKUP_RESTORE | VERIFIED_WITH_LIMITATION (drill completed in <1 s on disposable DB; restore verified via row counts; bookings, payments, coupons, outbox, sessions and application startup against the restored DB were not exercised) |
-| SECURITY_READINESS | VERIFIED_WITH_LIMITATION |
-| OBSERVABILITY_READINESS | VERIFIED_WITH_LIMITATION |
-| PERFORMANCE_BASELINE | VERIFIED_WITH_LIMITATION (EXPLAIN plans captured on disposable dataset; pricing micro-benchmark only — load test not executed; pricing micro-benchmark is NOT a capacity or load test) |
-| CAPACITY_TARGETS | BUSINESS_OR_OPERATIONS_DECISION_REQUIRED |
-| SCALABILITY_READINESS | VERIFIED_WITH_LIMITATION |
-| EXTENSIBILITY_READINESS | VERIFIED_WITH_LIMITATION |
-| DEPLOYMENT_READINESS | NOT_VERIFIED (no production Docker, no reverse proxy, no TLS termination, no observability pipeline, no SMTP, no merchant credentials, no DNS, no rollback procedure in repo) |
-| PRODUCTION_READINESS | NO |
+| Verdict key                        | Status                                                                                                                                                                                                                                       |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PRICING_EXHAUSTIVE_ORACLE_MATCH    | FAIL (Phase 8A measured the previous priority-first selector; Phase 8B re-runs this under the approved cheapest policy)                                                                                                                      |
+| PRICING_RANDOM_PROPERTY_TESTS      | FAIL (Phase 8A measured the previous priority-first selector; Phase 8B re-runs this under the approved cheapest policy)                                                                                                                      |
+| CURRENT_POLICY_CONFORMANCE         | PASS                                                                                                                                                                                                                                         |
+| EXACT_TIME_CHEAPEST_OBJECTIVE      | FAIL (newly approved customer-cheapest objective; not a defect against the historical priority-first contract)                                                                                                                               |
+| FLEXIBLE_TIME_RECOMMENDATION       | BUSINESS_RULE_UNSOURCED                                                                                                                                                                                                                      |
+| COMBO_RECOMMENDATION_PRODUCT_RULES | BUSINESS_RULE_UNSOURCED                                                                                                                                                                                                                      |
+| MOMO_OFFICIAL_SPEC_TRACEABILITY    | VERIFIED                                                                                                                                                                                                                                     |
+| MOMO_SANDBOX_ACCEPTANCE            | EXTERNAL_BLOCKED                                                                                                                                                                                                                             |
+| VNPAY_OFFICIAL_SPEC_TRACEABILITY   | VERIFIED                                                                                                                                                                                                                                     |
+| VNPAY_SANDBOX_ACCEPTANCE           | EXTERNAL_BLOCKED                                                                                                                                                                                                                             |
+| CROSS_PROVIDER_SETTLEMENT_SAFETY   | VERIFIED_WITH_LIMITATION (no destructive races against the real test DB during this audit; settlement unit tests cover duplicate success, amount mismatch, transaction conflict, zero-amount HOLD; exhaustive race matrix requires Phase 8C) |
+| PAYMENT_BOOKING_STATE_SAFETY       | VERIFIED_WITH_LIMITATION                                                                                                                                                                                                                     |
+| PAYMENT_COUPON_ATOMICITY           | VERIFIED_WITH_LIMITATION                                                                                                                                                                                                                     |
+| DATABASE_INTEGRITY                 | VERIFIED_WITH_LIMITATION (operational_reviews.payment_id lacks database-level booking/property cross-check; documented as P1)                                                                                                                |
+| MIGRATION_SAFETY                   | VERIFIED_WITH_LIMITATION (15 migrations in linear chain; no destructive upgrade path executed on the dev DB; historical-data upgrade simulation requires Phase 8C)                                                                           |
+| BACKUP_RESTORE                     | VERIFIED_WITH_LIMITATION (drill completed in <1 s on disposable DB; restore verified via row counts; bookings, payments, coupons, outbox, sessions and application startup against the restored DB were not exercised)                       |
+| SECURITY_READINESS                 | VERIFIED_WITH_LIMITATION                                                                                                                                                                                                                     |
+| OBSERVABILITY_READINESS            | VERIFIED_WITH_LIMITATION                                                                                                                                                                                                                     |
+| PERFORMANCE_BASELINE               | VERIFIED_WITH_LIMITATION (EXPLAIN plans captured on disposable dataset; pricing micro-benchmark only — load test not executed; pricing micro-benchmark is NOT a capacity or load test)                                                       |
+| CAPACITY_TARGETS                   | BUSINESS_OR_OPERATIONS_DECISION_REQUIRED                                                                                                                                                                                                     |
+| SCALABILITY_READINESS              | VERIFIED_WITH_LIMITATION                                                                                                                                                                                                                     |
+| EXTENSIBILITY_READINESS            | VERIFIED_WITH_LIMITATION                                                                                                                                                                                                                     |
+| DEPLOYMENT_READINESS               | NOT_VERIFIED (no production Docker, no reverse proxy, no TLS termination, no observability pipeline, no SMTP, no merchant credentials, no DNS, no rollback procedure in repo)                                                                |
+| PRODUCTION_READINESS               | NO                                                                                                                                                                                                                                           |
 
 ## 6. P0 / P1 / P2 / P3 Counts (from gap-register.csv)
 
 | Severity | Count |
-|---|---|
-| P0 | 4 |
-| P1 | 9 |
-| P2 | 6 |
-| P3 | 3 |
+| -------- | ----- |
+| P0       | 4     |
+| P1       | 9     |
+| P2       | 6     |
+| P3       | 3     |
 
 Total: **22 gaps.**
 

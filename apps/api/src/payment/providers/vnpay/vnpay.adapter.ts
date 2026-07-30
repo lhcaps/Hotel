@@ -183,9 +183,7 @@ export class VnpayAdapter implements PaymentProviderAdapter {
     const external = request.signal;
     const timeoutSignal = AbortSignal.timeout(this.config.requestTimeoutMs);
     const signal =
-      external === undefined
-        ? timeoutSignal
-        : AbortSignal.any([external, timeoutSignal]);
+      external === undefined ? timeoutSignal : AbortSignal.any([external, timeoutSignal]);
 
     let response: Response;
     try {
@@ -269,10 +267,7 @@ export class VnpayAdapter implements PaymentProviderAdapter {
           throw new VnpayQueryAdapterError('PROVIDER_TRANSACTION_MISMATCH');
         }
         const eventKey = `vnpay:${createHash('sha256')
-          .update(
-            `${responseFields.vnp_TxnRef}|${transactionNo}|${responseCode}`,
-            'utf8',
-          )
+          .update(`${responseFields.vnp_TxnRef}|${transactionNo}|${responseCode}`, 'utf8')
           .digest('hex')}`;
         const verified: VerifiedPaymentProviderEvent = {
           provider: 'VNPAY',

@@ -22,7 +22,11 @@ export function MaintenanceManager() {
         setBlocks(maintenancePage.items);
       })
       .catch((cause: unknown) =>
-        setMessage(cause instanceof AdminApiError ? translate(locale, 'maintenance.loadError') : translate(locale, 'maintenance.loadError')),
+        setMessage(
+          cause instanceof AdminApiError
+            ? translate(locale, 'maintenance.loadError')
+            : translate(locale, 'maintenance.loadError'),
+        ),
       );
   }, [locale]);
   async function create(event: FormEvent<HTMLFormElement>) {
@@ -40,7 +44,11 @@ export function MaintenanceManager() {
       setMessage(translate(locale, 'maintenance.created', { reason: block.reason }));
       setReason('');
     } catch (cause) {
-      setMessage(cause instanceof AdminApiError ? translate(locale, 'maintenance.createError') : translate(locale, 'maintenance.createError'));
+      setMessage(
+        cause instanceof AdminApiError
+          ? translate(locale, 'maintenance.createError')
+          : translate(locale, 'maintenance.createError'),
+      );
     } finally {
       setPending(false);
     }
@@ -56,7 +64,11 @@ export function MaintenanceManager() {
       );
       setMessage(translate(locale, 'maintenance.cancelled'));
     } catch (cause) {
-      setMessage(cause instanceof AdminApiError ? translate(locale, 'maintenance.cancelError') : translate(locale, 'maintenance.cancelError'));
+      setMessage(
+        cause instanceof AdminApiError
+          ? translate(locale, 'maintenance.cancelError')
+          : translate(locale, 'maintenance.cancelError'),
+      );
     } finally {
       setPending(false);
     }
@@ -114,7 +126,9 @@ export function MaintenanceManager() {
         </button>
       </form>
       {message === undefined ? null : <p role="alert">{message}</p>}
-      {blocks === undefined ? <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p> : null}
+      {blocks === undefined ? (
+        <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
+      ) : null}
       {blocks === undefined || blocks.length === 0 ? null : (
         <table>
           <thead>
@@ -135,7 +149,9 @@ export function MaintenanceManager() {
                 <td>{block.status}</td>
                 <td>
                   <button
-                    aria-label={translate(locale, 'maintenance.cancelLabel', { reason: block.reason })}
+                    aria-label={translate(locale, 'maintenance.cancelLabel', {
+                      reason: block.reason,
+                    })}
                     disabled={pending || block.status === 'CANCELLED'}
                     onClick={() => void cancel(block.id)}
                     type="button"

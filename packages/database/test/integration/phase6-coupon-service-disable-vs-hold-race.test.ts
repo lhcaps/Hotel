@@ -40,10 +40,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabasePool } from '../../src/client.js';
 import type { DatabasePool } from '../../src/client.js';
 import { migrateDatabase } from '../../src/migrations.js';
-import {
-  createPreparedGuardedTestDatabase,
-  type GuardedTestDatabase,
-} from '../../src/testing.js';
+import { createPreparedGuardedTestDatabase, type GuardedTestDatabase } from '../../src/testing.js';
 import type { BookingHoldResult } from '../../../booking/src/services/create-booking-hold.js';
 
 const RACE_TEST_TIMEOUT_MS = 60_000;
@@ -56,10 +53,7 @@ interface CallerPool {
   close(): Promise<void>;
 }
 
-function createIndependentCallerPool(
-  databaseUrl: string,
-  applicationName: string,
-): CallerPool {
+function createIndependentCallerPool(databaseUrl: string, applicationName: string): CallerPool {
   const pool = createDatabasePool(databaseUrl, { max: 2, applicationName });
   return {
     pool,
@@ -88,25 +82,15 @@ async function createHarness(): Promise<DisposableHarness> {
     max: 1,
     applicationName: 'race-service-observer',
   });
-  const adminPool = createIndependentCallerPool(
-    database.databaseUrl,
-    'race-service-admin',
-  );
-  const bookingPool = createIndependentCallerPool(
-    database.databaseUrl,
-    'race-service-booking',
-  );
+  const adminPool = createIndependentCallerPool(database.databaseUrl, 'race-service-admin');
+  const bookingPool = createIndependentCallerPool(database.databaseUrl, 'race-service-booking');
   return {
     database,
     observerPool,
     adminPool,
     bookingPool,
     async close() {
-      await Promise.all([
-        adminPool.close(),
-        bookingPool.close(),
-        observerPool.end(),
-      ]);
+      await Promise.all([adminPool.close(), bookingPool.close(), observerPool.end()]);
       await database.dispose();
     },
   };
@@ -129,10 +113,7 @@ interface SeedOptions {
  * coupon-aware quote bound to the seeded coupon. No booking is pre-inserted
  * — the booking HOLD path under test must create it atomically.
  */
-async function seedFixture(
-  pool: DatabasePool,
-  options: SeedOptions,
-): Promise<SeededFixture> {
+async function seedFixture(pool: DatabasePool, options: SeedOptions): Promise<SeededFixture> {
   const propertyId = randomUUID();
   const tierId = randomUUID();
   const roomTypeId = randomUUID();
@@ -322,12 +303,9 @@ describe('phase 6C application reference closure — service-level ADMIN disable
       const fixture = await seedFixture(harness.adminPool.pool, {
         totalUsageLimit: 1,
       });
-      const { createBookingHoldWithRetry } = await import(
-        '../../../booking/src/services/create-booking-hold.js'
-      );
-      const { normalizeContact } = await import(
-        '../../../booking/src/contact.js'
-      );
+      const { createBookingHoldWithRetry } =
+        await import('../../../booking/src/services/create-booking-hold.js');
+      const { normalizeContact } = await import('../../../booking/src/contact.js');
       const contact = normalizeContact(
         {
           fullName: 'Svc Outcome A',
@@ -400,12 +378,9 @@ describe('phase 6C application reference closure — service-level ADMIN disable
       const fixture = await seedFixture(harness.adminPool.pool, {
         totalUsageLimit: 1,
       });
-      const { createBookingHoldWithRetry } = await import(
-        '../../../booking/src/services/create-booking-hold.js'
-      );
-      const { normalizeContact } = await import(
-        '../../../booking/src/contact.js'
-      );
+      const { createBookingHoldWithRetry } =
+        await import('../../../booking/src/services/create-booking-hold.js');
+      const { normalizeContact } = await import('../../../booking/src/contact.js');
       const contact = normalizeContact(
         {
           fullName: 'Svc Outcome B',
@@ -493,12 +468,9 @@ describe('phase 6C application reference closure — service-level ADMIN disable
       const fixture = await seedFixture(harness.adminPool.pool, {
         totalUsageLimit: 1,
       });
-      const { createBookingHoldWithRetry } = await import(
-        '../../../booking/src/services/create-booking-hold.js'
-      );
-      const { normalizeContact } = await import(
-        '../../../booking/src/contact.js'
-      );
+      const { createBookingHoldWithRetry } =
+        await import('../../../booking/src/services/create-booking-hold.js');
+      const { normalizeContact } = await import('../../../booking/src/contact.js');
       const contact = normalizeContact(
         {
           fullName: 'Svc Wait',
@@ -518,10 +490,9 @@ describe('phase 6C application reference closure — service-level ADMIN disable
       const adminClient = await harness.adminPool.pool.connect();
       try {
         await adminClient.query('BEGIN');
-        await adminClient.query(
-          `SELECT id FROM coupons WHERE id = $1 FOR UPDATE`,
-          [fixture.couponId],
-        );
+        await adminClient.query(`SELECT id FROM coupons WHERE id = $1 FOR UPDATE`, [
+          fixture.couponId,
+        ]);
 
         const holdPromise: Promise<BookingHoldResult | unknown> = createBookingHoldWithRetry(
           harness.bookingPool.pool,

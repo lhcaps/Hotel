@@ -27,10 +27,7 @@ describe('Phase 8B.1 payment reconciliation permissions', () => {
     expect(ROLE_PERMISSIONS.CUSTOMER).not.toContain('payment.reconciliation.read');
     expect(ROLE_PERMISSIONS.CUSTOMER).not.toContain('payment.reconciliation.manage');
     expect(
-      hasPermissions('ADMIN', [
-        'payment.reconciliation.read',
-        'payment.reconciliation.manage',
-      ]),
+      hasPermissions('ADMIN', ['payment.reconciliation.read', 'payment.reconciliation.manage']),
     ).toBe(true);
     expect(hasPermissions('CUSTOMER', ['payment.reconciliation.read'])).toBe(false);
     expect(hasPermissions('CUSTOMER', ['payment.reconciliation.manage'])).toBe(false);

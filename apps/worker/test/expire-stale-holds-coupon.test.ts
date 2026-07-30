@@ -204,7 +204,9 @@ describe('expire stale holds releases coupon applications', () => {
       `SELECT application_status FROM booking_coupon_applications WHERE booking_id = $1`,
       [bookingId],
     );
-    expect(requireRow(application, 'idempotent second-run row').application_status).toBe('RELEASED');
+    expect(requireRow(application, 'idempotent second-run row').application_status).toBe(
+      'RELEASED',
+    );
 
     const audit = await fixture.pool.query<{ count: number }>(
       `SELECT count(*)::int AS count

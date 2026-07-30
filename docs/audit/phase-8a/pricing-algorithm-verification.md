@@ -31,14 +31,14 @@ The structural-distinctness property is asserted at test level by `audit-indepen
 
 **Result (locked catalog):**
 
-| Metric | Value |
-|---|---|
-| Total scenarios | 8 928 |
-| Production resolved | 8 928 |
-| Production exceptions | 0 |
-| Oracle resolved | 8 928 |
-| Oracle no-match | 0 |
-| Production matches oracle's minimum | **6 896 (77.24 %)** |
+| Metric                                       | Value               |
+| -------------------------------------------- | ------------------- |
+| Total scenarios                              | 8 928               |
+| Production resolved                          | 8 928               |
+| Production exceptions                        | 0                   |
+| Oracle resolved                              | 8 928               |
+| Oracle no-match                              | 0                   |
+| Production matches oracle's minimum          | **6 896 (77.24 %)** |
 | **Production differs from oracle's minimum** | **2 032 (22.76 %)** |
 
 **Conclusion:** the locked catalog fingerprint contains 2 032 scenarios where the production selector charges strictly more than the cheapest valid combination.
@@ -58,12 +58,12 @@ The structural-distinctness property is asserted at test level by `audit-indepen
 
 **Result:**
 
-| Metric | Value |
-|---|---|
-| Total cases | 2 000 |
-| Resolved by both production and oracle | 1 999 |
-| Production exceptions | 1 |
-| **Production differs from oracle's minimum** | **234 (11.7 %)** |
+| Metric                                               | Value                                                                                                   |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Total cases                                          | 2 000                                                                                                   |
+| Resolved by both production and oracle               | 1 999                                                                                                   |
+| Production exceptions                                | 1                                                                                                       |
+| **Production differs from oracle's minimum**         | **234 (11.7 %)**                                                                                        |
 | **Production strictly higher than oracle's minimum** | **234 (100 % of mismatches; i.e. when production differs, it is always more expensive, never cheaper)** |
 
 **Conclusion:** the random-property test independently confirms the exhaustive finding: production never picks a more expensive option when a cheaper one exists, but production **does** pick a more expensive option in ~12 % of randomly shaped configurations.
@@ -72,25 +72,25 @@ The structural-distinctness property is asserted at test level by `audit-indepen
 
 ## 4. Algorithm Invariants (Audit Findings)
 
-| Invariant | Result | Evidence |
-|---|---|---|
-| Deterministic output for identical input | **VERIFIED** | Pricing engine is pure; given identical catalog and input it returns identical `totalAmountVnd` and `selectedPlanCode`. Verified by re-running unit tests. |
-| No floating-point money | **VERIFIED** | All prices are stored as `bigint` in DB (`rate_plan_prices.price_vnd bigint NOT NULL`) and as `number` (with `Number.isSafeInteger` guard) in code. `extraUnits = Math.ceil(...)` operates on integer minutes. |
-| Total never negative | **VERIFIED** | Pricing engine rejects `duration < minDurationInclusive` with a structured error before computing totals. `extraUnits = Math.max(0, ...)` ensures non-negative extras. |
-| Discount never exceeds gross | **VERIFIED** | Coupon application enforces `discount_vnd ≤ final_amount_vnd`; verified in `packages/booking/test/payment/payment-settlement.test.ts`. |
-| Final amount equals gross minus discount | **VERIFIED** | Coupon application logic; verified by unit test. |
-| Quote snapshot does not change after pricing edits | **VERIFIED_WITH_LIMITATION** | Quote `price_snapshot` is written once at quote creation; no update path is exposed. Immutability is by code path; no DB trigger prevents UPDATE. See gap-register PRICING-005 P3. |
-| Invalid / missing required price fails closed | **VERIFIED** | `audit-phase8a/audit-exhaustive-verification.test.ts` "rejects a misconfigured catalog with a missing base-plan price" + `pricing-engine.test.ts` fail-closed cases. |
-| Inactive plan is never selected | **VERIFIED** | `auditIsEligible` and production `isEligible` both reject `status !== 'ACTIVE'`. DB constraint `rate_plans_code_ck` enforces the code allow-list. |
-| Invalid time granularity fails closed | **VERIFIED** | `parseInstant` rejects non-15-minute timestamps with a structured error; covered by `pricing-engine.test.ts`. |
-| Duration above 24 h fails closed | **VERIFIED** | `max_duration_minutes_inclusive ≤ 1440` is a DB CHECK constraint; `selection-rule-matcher.ts` `durationMinutes` rejects `> AUDIT_MAX_DURATION_MINUTES`. |
-| Equivalent UTC/local intervals normalize consistently | **VERIFIED** | Pricing engine normalises UTC → `localMinuteOfDay` via `Intl.DateTimeFormat` with the requested timezone; covered by audit-exhaustive cross-midnight slot. |
-| Extra-hour count is mathematically correct | **VERIFIED** | Covered by `pricing-engine.test.ts` "extra-hour rounding" cases + audit-oracle parity. |
-| No uncovered requested minutes | **VERIFIED** | All eligible base plans have `min_duration_minutes_inclusive ≤ duration ≤ max_duration_minutes_inclusive`; `validateActiveRuleSet` rejects configurations with uncovered cells. |
-| No accidental double charging | **VERIFIED** | `extraUnits` is computed once; coupon discount is computed against the unmodified gross; settlement tests prove atomicity. |
-| No time-zone truncation | **VERIFIED** | The matcher uses `Intl.DateTimeFormat` which does not perform day-boundary truncation in the relevant timezone. |
-| No SQL/client disagreement | **VERIFIED_WITH_LIMITATION** | The pricing selector is pure JavaScript over a `PricingCatalog` snapshot; the SQL store returns the same plan and price rows that the matcher uses. The audit did not find any divergence in this audit's tests. |
-| Production and oracle totals are identical | **FAIL** | 2 032 / 8 928 (22.76 %) scenarios disagree. See Section 2 above. |
+| Invariant                                             | Result                       | Evidence                                                                                                                                                                                                         |
+| ----------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deterministic output for identical input              | **VERIFIED**                 | Pricing engine is pure; given identical catalog and input it returns identical `totalAmountVnd` and `selectedPlanCode`. Verified by re-running unit tests.                                                       |
+| No floating-point money                               | **VERIFIED**                 | All prices are stored as `bigint` in DB (`rate_plan_prices.price_vnd bigint NOT NULL`) and as `number` (with `Number.isSafeInteger` guard) in code. `extraUnits = Math.ceil(...)` operates on integer minutes.   |
+| Total never negative                                  | **VERIFIED**                 | Pricing engine rejects `duration < minDurationInclusive` with a structured error before computing totals. `extraUnits = Math.max(0, ...)` ensures non-negative extras.                                           |
+| Discount never exceeds gross                          | **VERIFIED**                 | Coupon application enforces `discount_vnd ≤ final_amount_vnd`; verified in `packages/booking/test/payment/payment-settlement.test.ts`.                                                                           |
+| Final amount equals gross minus discount              | **VERIFIED**                 | Coupon application logic; verified by unit test.                                                                                                                                                                 |
+| Quote snapshot does not change after pricing edits    | **VERIFIED_WITH_LIMITATION** | Quote `price_snapshot` is written once at quote creation; no update path is exposed. Immutability is by code path; no DB trigger prevents UPDATE. See gap-register PRICING-005 P3.                               |
+| Invalid / missing required price fails closed         | **VERIFIED**                 | `audit-phase8a/audit-exhaustive-verification.test.ts` "rejects a misconfigured catalog with a missing base-plan price" + `pricing-engine.test.ts` fail-closed cases.                                             |
+| Inactive plan is never selected                       | **VERIFIED**                 | `auditIsEligible` and production `isEligible` both reject `status !== 'ACTIVE'`. DB constraint `rate_plans_code_ck` enforces the code allow-list.                                                                |
+| Invalid time granularity fails closed                 | **VERIFIED**                 | `parseInstant` rejects non-15-minute timestamps with a structured error; covered by `pricing-engine.test.ts`.                                                                                                    |
+| Duration above 24 h fails closed                      | **VERIFIED**                 | `max_duration_minutes_inclusive ≤ 1440` is a DB CHECK constraint; `selection-rule-matcher.ts` `durationMinutes` rejects `> AUDIT_MAX_DURATION_MINUTES`.                                                          |
+| Equivalent UTC/local intervals normalize consistently | **VERIFIED**                 | Pricing engine normalises UTC → `localMinuteOfDay` via `Intl.DateTimeFormat` with the requested timezone; covered by audit-exhaustive cross-midnight slot.                                                       |
+| Extra-hour count is mathematically correct            | **VERIFIED**                 | Covered by `pricing-engine.test.ts` "extra-hour rounding" cases + audit-oracle parity.                                                                                                                           |
+| No uncovered requested minutes                        | **VERIFIED**                 | All eligible base plans have `min_duration_minutes_inclusive ≤ duration ≤ max_duration_minutes_inclusive`; `validateActiveRuleSet` rejects configurations with uncovered cells.                                  |
+| No accidental double charging                         | **VERIFIED**                 | `extraUnits` is computed once; coupon discount is computed against the unmodified gross; settlement tests prove atomicity.                                                                                       |
+| No time-zone truncation                               | **VERIFIED**                 | The matcher uses `Intl.DateTimeFormat` which does not perform day-boundary truncation in the relevant timezone.                                                                                                  |
+| No SQL/client disagreement                            | **VERIFIED_WITH_LIMITATION** | The pricing selector is pure JavaScript over a `PricingCatalog` snapshot; the SQL store returns the same plan and price rows that the matcher uses. The audit did not find any divergence in this audit's tests. |
+| Production and oracle totals are identical            | **FAIL**                     | 2 032 / 8 928 (22.76 %) scenarios disagree. See Section 2 above.                                                                                                                                                 |
 
 ## 5. Selection Policy Identification
 

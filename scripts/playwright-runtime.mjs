@@ -34,7 +34,9 @@ export function resolvePlaywrightRuntime(source = process.env) {
     throw new Error('PLAYWRIGHT_BETTER_AUTH_SECRET must contain at least 32 characters.');
   }
   if (!validateAdminPassword(password)) {
-    throw new Error('PLAYWRIGHT_ADMIN_PASSWORD must be at least 16 characters with uppercase, lowercase, digit, and special character.');
+    throw new Error(
+      'PLAYWRIGHT_ADMIN_PASSWORD must be at least 16 characters with uppercase, lowercase, digit, and special character.',
+    );
   }
 
   return {

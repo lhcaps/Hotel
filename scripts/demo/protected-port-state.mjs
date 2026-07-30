@@ -12,9 +12,7 @@ export function snapshotProtectedPort(pid) {
 }
 
 export function compareProtectedPortStates(before, after) {
-  const ok =
-    before.kind === after.kind &&
-    (before.kind === 'FREE' || before.pid === after.pid);
+  const ok = before.kind === after.kind && (before.kind === 'FREE' || before.pid === after.pid);
   return {
     ok,
     detail: ok

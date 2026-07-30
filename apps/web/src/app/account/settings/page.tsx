@@ -7,7 +7,11 @@ export default async function AccountSettingsPage() {
   const locale = resolveLocale((await cookies()).get('room_locale')?.value);
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (apiBase === undefined) {
-    return <main><p>{translate(locale, 'account.serverUnavailable')}</p></main>;
+    return (
+      <main>
+        <p>{translate(locale, 'account.serverUnavailable')}</p>
+      </main>
+    );
   }
   const cookieHeader = (await headers()).get('cookie') ?? '';
   const response = await fetch(`${new URL(apiBase).origin}/api/v1/customer/profile`, {
@@ -15,10 +19,20 @@ export default async function AccountSettingsPage() {
     cache: 'no-store',
   });
   if (response.status === 401) {
-    return <main><p><a href="/login">{translate(locale, 'account.signInSettings')}</a></p></main>;
+    return (
+      <main>
+        <p>
+          <a href="/login">{translate(locale, 'account.signInSettings')}</a>
+        </p>
+      </main>
+    );
   }
   if (!response.ok) {
-    return <main><p>{translate(locale, 'account.profileLoadError')}</p></main>;
+    return (
+      <main>
+        <p>{translate(locale, 'account.profileLoadError')}</p>
+      </main>
+    );
   }
 
   return (

@@ -41,25 +41,16 @@ export class ClaimBookingController {
   @Post(':bookingCode/claim')
   @Version('1')
   @HttpCode(HttpStatus.OK)
-  public async claim(
-    @Param('bookingCode') bookingCode: string,
-    @Req() request: RequestLike,
-  ) {
+  public async claim(@Param('bookingCode') bookingCode: string, @Req() request: RequestLike) {
     const actor = await this.sessions.requireCustomer(request);
     const cookieValue = request.cookies?.['rm_guest_session_v1'] ?? null;
     const secret = process.env['GUEST_SESSION_SECRET'] ?? '';
     if (cookieValue === null || secret.length < 32) {
-      throw new HttpException(
-        { code: 'GUEST_SESSION_REQUIRED' },
-        HttpStatus.UNAUTHORIZED,
-      );
+      throw new HttpException({ code: 'GUEST_SESSION_REQUIRED' }, HttpStatus.UNAUTHORIZED);
     }
     const tokenDigest = hashGuestToken(cookieValue, secret);
     if (tokenDigest === null) {
-      throw new HttpException(
-        { code: 'GUEST_SESSION_MALFORMED' },
-        HttpStatus.UNAUTHORIZED,
-      );
+      throw new HttpException({ code: 'GUEST_SESSION_MALFORMED' }, HttpStatus.UNAUTHORIZED);
     }
     try {
       return await this.claims.claim({

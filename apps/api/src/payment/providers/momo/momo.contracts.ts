@@ -53,10 +53,7 @@ export const momoQueryResponseSchema = z
     message: z.string().min(1).max(1_000),
     resultCode: z.number().int(),
     transId: z
-      .union([
-        z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
-        z.string().regex(/^\d+$/),
-      ])
+      .union([z.number().int().positive().max(Number.MAX_SAFE_INTEGER), z.string().regex(/^\d+$/)])
       .optional(),
     signature: z.string().regex(/^[a-f0-9]{64}$/),
   })

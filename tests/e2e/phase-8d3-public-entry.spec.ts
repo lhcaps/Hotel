@@ -42,7 +42,9 @@ async function searchFromRoot(
   await page.getByLabel(labels.checkOut).fill(stay.checkOut);
   await page.getByLabel(labels.adults).fill('2');
   await page.getByRole('button', { name: labels.search }).click();
-  const results = page.getByLabel(locale === 'vi' ? 'Hạng phòng còn trống' : 'Available room types');
+  const results = page.getByLabel(
+    locale === 'vi' ? 'Hạng phòng còn trống' : 'Available room types',
+  );
   await expect(results.getByRole('heading', { name: 'Deluxe' })).toBeVisible();
   await expect(results.getByRole('link', { name: labels.room })).toBeVisible();
   return labels;

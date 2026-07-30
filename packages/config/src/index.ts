@@ -168,10 +168,7 @@ function simulatorLoopbackHost(value: string | undefined): string | null {
   return parsed.host;
 }
 
-function isSimulatorBackedLoopbackUrl(
-  url: string,
-  simulatorHost: string | null,
-): boolean {
+function isSimulatorBackedLoopbackUrl(url: string, simulatorHost: string | null): boolean {
   if (simulatorHost === null) return false;
   let parsed: URL;
   try {
@@ -393,8 +390,7 @@ const apiEnvironmentSchema = sharedEnvironmentSchema
             isSimulatorBackedLoopbackUrl(value.MOMO_API_BASE_URL, simulatorHost);
           const returnOk =
             value.MOMO_RETURN_URL !== undefined && isApiLoopbackUrl(value.MOMO_RETURN_URL);
-          const ipnOk =
-            value.MOMO_IPN_URL !== undefined && isApiLoopbackUrl(value.MOMO_IPN_URL);
+          const ipnOk = value.MOMO_IPN_URL !== undefined && isApiLoopbackUrl(value.MOMO_IPN_URL);
           const loopbackTestAdapter =
             value.NODE_ENV === 'test' &&
             validUrls.every((url) => url.protocol === 'http:' && isLoopbackUrl(url.toString()));
@@ -658,8 +654,7 @@ const apiEnvironmentSchema = sharedEnvironmentSchema
         isSimulatorBackedLoopbackUrl(value.VNPAY_API_BASE_URL, simulatorHost);
       const returnOk =
         value.VNPAY_RETURN_URL !== undefined && isApiLoopbackUrl(value.VNPAY_RETURN_URL);
-      const ipnOk =
-        value.VNPAY_IPN_URL !== undefined && isApiLoopbackUrl(value.VNPAY_IPN_URL);
+      const ipnOk = value.VNPAY_IPN_URL !== undefined && isApiLoopbackUrl(value.VNPAY_IPN_URL);
       const loopbackTestAdapter =
         value.NODE_ENV === 'test' &&
         validUrls.every((url) => url.protocol === 'http:' && isLoopbackUrl(url.toString()));

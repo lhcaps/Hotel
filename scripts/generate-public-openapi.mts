@@ -124,14 +124,19 @@ const document = {
         requestBody: {
           required: true,
           content: {
-            'application/json': { schema: { $ref: '#/components/schemas/AvailabilityOfferRequest' } },
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AvailabilityOfferRequest' },
+            },
           },
         },
         responses: {
           '200': {
-            description: 'Active, price-complete eligible plan offers only; no physical-room identities.',
+            description:
+              'Active, price-complete eligible plan offers only; no physical-room identities.',
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/AvailabilityOfferResponse' } },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AvailabilityOfferResponse' },
+              },
             },
           },
           '400': { $ref: '#/components/responses/InvalidRequest' },

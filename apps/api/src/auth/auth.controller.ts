@@ -15,7 +15,10 @@ import { createLogger } from '@room/observability';
 @Controller({ path: 'auth', version: VERSION_NEUTRAL })
 export class AuthController {
   private readonly auth: AuthRequestHandler;
-  private readonly logger = createLogger({ service: 'api', environment: process.env.NODE_ENV ?? 'unknown' });
+  private readonly logger = createLogger({
+    service: 'api',
+    environment: process.env.NODE_ENV ?? 'unknown',
+  });
 
   constructor(@Inject(ROOM_AUTH) auth: AuthRequestHandler) {
     this.auth = auth;
@@ -44,7 +47,12 @@ export class AuthController {
           ? JSON.stringify(rawBody)
           : undefined;
       this.logger.debug(
-        { method: req.method, url: url.toString(), headers: Object.keys(headers), body: bodyStr?.slice(0, 200) },
+        {
+          method: req.method,
+          url: url.toString(),
+          headers: Object.keys(headers),
+          body: bodyStr?.slice(0, 200),
+        },
         'Better Auth request',
       );
       const authReq = new Request(url, {
@@ -74,12 +82,18 @@ export class AuthController {
   // Catch-all for Better Auth endpoints. NestJS @Get('*') under a controller
   // prefix matches anything after the prefix, e.g. /api/auth/sign-in/oauth2.
   @Get('*')
-  async handleGet(@Req() req: FastifyRequest, @Res({ passthrough: true }) reply: unknown): Promise<unknown> {
+  async handleGet(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) reply: unknown,
+  ): Promise<unknown> {
     return this.handleAuthRequest(req, reply as FastifyReply);
   }
 
   @Post('*')
-  async handlePost(@Req() req: FastifyRequest, @Res({ passthrough: true }) reply: unknown): Promise<unknown> {
+  async handlePost(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) reply: unknown,
+  ): Promise<unknown> {
     return this.handleAuthRequest(req, reply as FastifyReply);
   }
 }

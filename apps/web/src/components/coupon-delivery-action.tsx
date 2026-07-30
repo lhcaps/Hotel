@@ -24,7 +24,9 @@ export function CouponDeliveryAction({ bookingCode }: { readonly bookingCode: st
       )
       .catch((cause: unknown) => {
         setStatus(
-          cause instanceof AdminApiError ? translate(locale, 'admin.couponsLoadError') : translate(locale, 'admin.couponsLoadError'),
+          cause instanceof AdminApiError
+            ? translate(locale, 'admin.couponsLoadError')
+            : translate(locale, 'admin.couponsLoadError'),
         );
       });
   }, [locale]);
@@ -48,14 +50,14 @@ export function CouponDeliveryAction({ bookingCode }: { readonly bookingCode: st
     setStatus(undefined);
     try {
       await adminApi.sendAdminBookingCoupons(bookingCode, selectedCodes, crypto.randomUUID());
-      setStatus(
-        translate(locale, 'admin.couponQueued'),
-      );
+      setStatus(translate(locale, 'admin.couponQueued'));
       setSelectedCodes([]);
       setConfirmed(false);
     } catch (cause: unknown) {
       setStatus(
-        cause instanceof AdminApiError ? translate(locale, 'admin.couponQueueError') : translate(locale, 'admin.couponQueueError'),
+        cause instanceof AdminApiError
+          ? translate(locale, 'admin.couponQueueError')
+          : translate(locale, 'admin.couponQueueError'),
       );
     } finally {
       setPending(false);
@@ -101,7 +103,9 @@ export function CouponDeliveryAction({ bookingCode }: { readonly bookingCode: st
             </label>
           ) : null}
           <button disabled={!hasSelection || !confirmed || pending} type="submit">
-            {pending ? translate(locale, 'admin.queueing') : translate(locale, 'admin.queueCouponDelivery')}
+            {pending
+              ? translate(locale, 'admin.queueing')
+              : translate(locale, 'admin.queueCouponDelivery')}
           </button>
         </form>
       )}

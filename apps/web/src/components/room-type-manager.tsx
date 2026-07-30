@@ -6,11 +6,7 @@ import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
-import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-} from './ui/field';
+import { Field, FieldGroup, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
 
 interface RoomTypeEditDraft {
@@ -225,7 +221,9 @@ export function RoomTypeManager() {
       <form onSubmit={create}>
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="room-type-price-tier">{translate(locale, 'roomType.priceTier')}</FieldLabel>
+            <FieldLabel htmlFor="room-type-price-tier">
+              {translate(locale, 'roomType.priceTier')}
+            </FieldLabel>
             <select
               disabled={pending || tiers.length === 0}
               id="room-type-price-tier"
@@ -260,7 +258,9 @@ export function RoomTypeManager() {
             />
           </Field>
           <Field>
-            <FieldLabel htmlFor="room-type-max-adults">{translate(locale, 'roomType.maxAdults')}</FieldLabel>
+            <FieldLabel htmlFor="room-type-max-adults">
+              {translate(locale, 'roomType.maxAdults')}
+            </FieldLabel>
             <Input
               disabled={pending}
               id="room-type-max-adults"
@@ -272,7 +272,9 @@ export function RoomTypeManager() {
             />
           </Field>
           <Field>
-            <FieldLabel htmlFor="room-type-max-children">{translate(locale, 'roomType.maxChildren')}</FieldLabel>
+            <FieldLabel htmlFor="room-type-max-children">
+              {translate(locale, 'roomType.maxChildren')}
+            </FieldLabel>
             <Input
               disabled={pending}
               id="room-type-max-children"
@@ -284,7 +286,9 @@ export function RoomTypeManager() {
             />
           </Field>
           <Field>
-            <FieldLabel htmlFor="room-type-max-occupancy">{translate(locale, 'roomType.maxOccupancy')}</FieldLabel>
+            <FieldLabel htmlFor="room-type-max-occupancy">
+              {translate(locale, 'roomType.maxOccupancy')}
+            </FieldLabel>
             <Input
               disabled={pending}
               id="room-type-max-occupancy"
@@ -301,7 +305,9 @@ export function RoomTypeManager() {
         </FieldGroup>
       </form>
       {message === undefined ? null : <p role="alert">{message}</p>}
-      {types === undefined ? <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p> : null}
+      {types === undefined ? (
+        <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
+      ) : null}
       {types === undefined || types.items.length === 0 ? null : (
         <table>
           <thead>
@@ -328,7 +334,9 @@ export function RoomTypeManager() {
                         </FieldLabel>
                         <Input
                           id={`edit-name-${roomType.id}`}
-                          onChange={(event) => updateDraft(roomType.id, { name: event.target.value })}
+                          onChange={(event) =>
+                            updateDraft(roomType.id, { name: event.target.value })
+                          }
                           required
                           value={draft.name}
                         />
@@ -446,7 +454,9 @@ export function RoomTypeManager() {
         <h2>{translate(locale, 'roomType.assignAmenity')}</h2>
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="room-type-assign-target">{translate(locale, 'roomType.assignTarget')}</FieldLabel>
+            <FieldLabel htmlFor="room-type-assign-target">
+              {translate(locale, 'roomType.assignTarget')}
+            </FieldLabel>
             <select
               disabled={pending || types?.items.length === 0}
               id="room-type-assign-target"
@@ -463,7 +473,9 @@ export function RoomTypeManager() {
             </select>
           </Field>
           <Field>
-            <FieldLabel htmlFor="room-type-assign-amenity">{translate(locale, 'admin.amenities')}</FieldLabel>
+            <FieldLabel htmlFor="room-type-assign-amenity">
+              {translate(locale, 'admin.amenities')}
+            </FieldLabel>
             <select
               disabled={pending || amenities.length === 0}
               id="room-type-assign-amenity"
@@ -477,10 +489,7 @@ export function RoomTypeManager() {
               ))}
             </select>
           </Field>
-          <Button
-            disabled={pending || amenityRoomTypeId === '' || amenityId === ''}
-            type="submit"
-          >
+          <Button disabled={pending || amenityRoomTypeId === '' || amenityId === ''} type="submit">
             {translate(locale, 'roomType.assignAmenity')}
           </Button>
         </FieldGroup>

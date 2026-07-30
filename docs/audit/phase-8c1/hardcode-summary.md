@@ -10,15 +10,15 @@ Scope: production source and Phase 8C additions were reviewed separately from fi
 
 ## Classification totals
 
-| Classification | Count |
-| --- | ---: |
-| APPROVED_DOMAIN_INVARIANT | 3 |
-| TEST_OR_SEED_ONLY | 2 |
-| VALIDATED_SERVER_CONFIGURATION | 1 |
-| DATABASE_CATALOG_DATA | 1 |
-| DUPLICATED_POLICY | 1 |
-| SECRET_OR_SECURITY_RISK | 1 |
-| HARMFUL_HARDCODE | 1 fixed |
+| Classification                 |   Count |
+| ------------------------------ | ------: |
+| APPROVED_DOMAIN_INVARIANT      |       3 |
+| TEST_OR_SEED_ONLY              |       2 |
+| VALIDATED_SERVER_CONFIGURATION |       1 |
+| DATABASE_CATALOG_DATA          |       1 |
+| DUPLICATED_POLICY              |       1 |
+| SECRET_OR_SECURITY_RISK        |       1 |
+| HARMFUL_HARDCODE               | 1 fixed |
 
 ## Extensibility assessment
 

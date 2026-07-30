@@ -151,7 +151,9 @@ describe('QuoteContactForm', () => {
     await user.type(screen.getByLabelText('Email'), 'guest@example.test');
     await user.click(screen.getByRole('button', { name: 'Giữ chỗ' }));
 
-    expect(await screen.findByText('Báo giá đã hết hạn. Vui lòng tạo báo giá mới.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Báo giá đã hết hạn. Vui lòng tạo báo giá mới.'),
+    ).toBeInTheDocument();
     expect(onHoldCreated).not.toHaveBeenCalled();
   });
 
@@ -215,9 +217,7 @@ describe('QuoteContactForm', () => {
   });
 
   it('renders an accessible form with no violations', async () => {
-    const { container } = render(
-      <QuoteContactForm quote={makeQuote()} onHoldCreated={vi.fn()} />,
-    );
+    const { container } = render(<QuoteContactForm quote={makeQuote()} onHoldCreated={vi.fn()} />);
     expect((await axe(container)).violations).toHaveLength(0);
   });
 });

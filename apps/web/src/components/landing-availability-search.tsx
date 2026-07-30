@@ -2,10 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import type {
-  AvailabilitySearchResponse,
-  NearbyAvailabilityResponse,
-} from '@room/contracts';
+import type { AvailabilitySearchResponse, NearbyAvailabilityResponse } from '@room/contracts';
 
 import { publicApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';

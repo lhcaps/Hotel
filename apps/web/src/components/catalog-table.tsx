@@ -55,7 +55,11 @@ export function CatalogTable<T extends CatalogRow>({
       })
       .catch((cause: unknown) => {
         if (!active) return;
-        setError(cause instanceof AdminApiError ? translate(locale, 'catalog.loadError') : translate(locale, 'catalog.loadError'));
+        setError(
+          cause instanceof AdminApiError
+            ? translate(locale, 'catalog.loadError')
+            : translate(locale, 'catalog.loadError'),
+        );
       });
     return () => {
       active = false;
@@ -75,7 +79,9 @@ export function CatalogTable<T extends CatalogRow>({
       );
     } catch (cause) {
       setError(
-        cause instanceof AdminApiError ? translate(locale, 'catalog.saveError') : translate(locale, 'catalog.saveError'),
+        cause instanceof AdminApiError
+          ? translate(locale, 'catalog.saveError')
+          : translate(locale, 'catalog.saveError'),
       );
     } finally {
       setPendingId(undefined);
@@ -108,7 +114,9 @@ export function CatalogTable<T extends CatalogRow>({
       {error === undefined ? null : <p role="alert">{error}</p>}
       {visibleItems !== undefined && visibleItems.length === 0 ? (
         <div className="table-empty">
-          {items !== undefined && items.length > 0 ? translate(locale, 'catalog.noResults') : emptyMessage}
+          {items !== undefined && items.length > 0
+            ? translate(locale, 'catalog.noResults')
+            : emptyMessage}
         </div>
       ) : null}
       {visibleItems === undefined || visibleItems.length === 0 ? null : (
@@ -121,7 +129,9 @@ export function CatalogTable<T extends CatalogRow>({
                 </th>
               ))}
               <th scope="col">{translate(locale, 'admin.status')}</th>
-              {archive === undefined ? null : <th scope="col">{translate(locale, 'admin.action')}</th>}
+              {archive === undefined ? null : (
+                <th scope="col">{translate(locale, 'admin.action')}</th>
+              )}
             </tr>
           </thead>
           <tbody>

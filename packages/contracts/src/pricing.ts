@@ -310,9 +310,7 @@ export const selectionRuleSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    if (
-      (value.minCheckInMinuteInclusive === null) !== (value.maxCheckInMinuteExclusive === null)
-    ) {
+    if ((value.minCheckInMinuteInclusive === null) !== (value.maxCheckInMinuteExclusive === null)) {
       context.addIssue({
         code: 'custom',
         path: ['minCheckInMinuteInclusive'],
@@ -428,9 +426,7 @@ export const ratePlanCreateCommandSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    if (
-      (value.minCheckInMinuteInclusive === null) !== (value.maxCheckInMinuteExclusive === null)
-    ) {
+    if ((value.minCheckInMinuteInclusive === null) !== (value.maxCheckInMinuteExclusive === null)) {
       context.addIssue({
         code: 'custom',
         path: ['minCheckInMinuteInclusive'],

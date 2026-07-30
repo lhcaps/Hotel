@@ -100,7 +100,8 @@ describe('CouponEvaluationSnapshot', () => {
     const serializable = {
       ...snapshot,
       fixedAmountVnd: snapshot.fixedAmountVnd === null ? null : snapshot.fixedAmountVnd.toString(),
-      maximumDiscountVnd: snapshot.maximumDiscountVnd === null ? null : snapshot.maximumDiscountVnd.toString(),
+      maximumDiscountVnd:
+        snapshot.maximumDiscountVnd === null ? null : snapshot.maximumDiscountVnd.toString(),
       minimumOrderAmountVnd: snapshot.minimumOrderAmountVnd.toString(),
       grossAmountVnd: snapshot.grossAmountVnd.toString(),
       discountAmountVnd: snapshot.discountAmountVnd.toString(),

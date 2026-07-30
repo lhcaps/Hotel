@@ -57,7 +57,12 @@ export function PaymentStatusSummary({ bookingCode }: Readonly<{ bookingCode: st
         </div>
         <div>
           <dt className="text-slate-500">{translate(locale, 'payment.attempt')}</dt>
-          <dd>{translatePaymentStatus(locale, status.attemptStatus) === translate(locale, 'payment.status.UNKNOWN') ? translate(locale, 'payment.pendingProvider') : translatePaymentStatus(locale, status.attemptStatus)}</dd>
+          <dd>
+            {translatePaymentStatus(locale, status.attemptStatus) ===
+            translate(locale, 'payment.status.UNKNOWN')
+              ? translate(locale, 'payment.pendingProvider')
+              : translatePaymentStatus(locale, status.attemptStatus)}
+          </dd>
         </div>
         <div>
           <dt className="text-slate-500">{translate(locale, 'payment.booking')}</dt>

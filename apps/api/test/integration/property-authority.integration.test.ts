@@ -1,9 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import {
-  createDatabaseClient,
-  migrateDatabase,
-  type DatabaseClient,
-} from '@room/database';
+import { createDatabaseClient, migrateDatabase, type DatabaseClient } from '@room/database';
 import {
   createPreparedGuardedTestDatabase,
   type GuardedTestDatabase,

@@ -22,10 +22,15 @@ test('ADMIN edits a room type description and persists the change', async ({ pag
   await firstRow.getByRole('button', { name: 'Lưu thay đổi' }).click();
   await expect(page.getByText(/Đã cập nhật/)).toBeVisible();
   await page.reload();
-  await expect(firstRow.getByLabel('Mô tả loại phòng')).toHaveValue('Mô tả được cập nhật bởi Playwright');
+  await expect(firstRow.getByLabel('Mô tả loại phòng')).toHaveValue(
+    'Mô tả được cập nhật bởi Playwright',
+  );
 });
 
-test('ADMIN renames an amenity and the change is reflected in the public catalog', async ({ page, request }) => {
+test('ADMIN renames an amenity and the change is reflected in the public catalog', async ({
+  page,
+  request,
+}) => {
   await loginAsAdmin(page);
   await page.goto('/admin/amenities');
   const firstRow = page.locator('table tbody tr').first();

@@ -291,9 +291,7 @@ export class MomoAdapter implements PaymentProviderAdapter {
     const external = request.signal;
     const timeoutSignal = AbortSignal.timeout(effectiveTimeoutMs);
     const signal =
-      external === undefined
-        ? timeoutSignal
-        : AbortSignal.any([external, timeoutSignal]);
+      external === undefined ? timeoutSignal : AbortSignal.any([external, timeoutSignal]);
 
     let response: Response;
     try {

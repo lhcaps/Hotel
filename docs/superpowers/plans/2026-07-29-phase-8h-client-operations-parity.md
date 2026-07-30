@@ -22,12 +22,14 @@
 ### Task 1: Document redacted parity and decisions
 
 **Files:**
+
 - Create: `docs/audit/phase-8h/client-workbook-parity-matrix.md`
 - Create: `docs/audit/phase-8h/client-workbook-parity-matrix.csv`
 - Create: `docs/audit/phase-8h/pricing-adjustment-reconciliation.md`
 - Create: `docs/audit/phase-8h/payment-collection-gap.md`
 
 **Interfaces:**
+
 - Consumes: workbook structural inventory and current schema/API contracts.
 - Produces: `PARTIAL_PAYMENT=DOMAIN_CHANGE_REQUIRED_DEFERRED` and single-property decision for all later tasks.
 
@@ -37,6 +39,7 @@
 ### Task 2: Housekeeping authority and operations DTO
 
 **Files:**
+
 - Modify: `packages/database/src/schema.ts`
 - Create: `packages/database/drizzle/0020_phase8h_room_housekeeping.sql`
 - Modify: `packages/contracts/src/admin.ts`
@@ -47,6 +50,7 @@
 - Create: `packages/database/test/integration/phase8h-housekeeping.test.ts`
 
 **Interfaces:**
+
 - Produces `RoomHousekeepingStatus = 'CLEAN' | 'DIRTY' | 'CLEANING'` and `PATCH /api/v1/admin/rooms/:roomId/housekeeping` accepting `{ status: RoomHousekeepingStatus }`.
 - Emits existing `audit_events` aggregate `ROOM` with safe `{ status }` payload.
 
@@ -58,6 +62,7 @@
 ### Task 3: Server-shaped ADMIN room operations board
 
 **Files:**
+
 - Modify: `packages/contracts/src/admin.ts`
 - Modify: `apps/api/src/catalog/catalog.controller.ts`
 - Modify: `apps/api/src/catalog/catalog.repository.ts`
@@ -68,6 +73,7 @@
 - Create: `tests/e2e/phase-8h-room-operations.spec.ts`
 
 **Interfaces:**
+
 - Produces `GET /api/v1/admin/rooms/operations?date=<ISO date>` returning room code, room type/tier, housekeeping state, and server-shaped occupancy labels.
 - Consumes the Task 2 update endpoint and refreshes server data after a successful update.
 
@@ -79,12 +85,14 @@
 ### Task 4: Preserve and clarify existing booking/pricing presentation
 
 **Files:**
+
 - Modify: `apps/web/src/components/rate-plan-manager.tsx`
 - Create: `apps/web/test/rate-plan-matrix.test.tsx`
 - Modify: `apps/web/src/components/booking-detail-panel.tsx`
 - Modify: `apps/web/test/booking-detail-panel.test.tsx`
 
 **Interfaces:**
+
 - Consumes existing `RatePlan.prices`, existing ADMIN booking detail, and no new money calculations.
 - Produces readable rate-plan x price-tier matrix and masked list/detail disclosure consistent with existing contracts.
 
@@ -96,12 +104,14 @@
 ### Task 5: Customer-safe confirmation projection
 
 **Files:**
+
 - Create: `apps/web/src/components/booking-confirmation.tsx`
 - Modify: `apps/web/src/app/account/bookings/[bookingCode]/page.tsx`
 - Modify: `apps/web/src/app/booking/manage/[bookingCode]/claim-client.tsx`
 - Create: `apps/web/test/booking-confirmation.test.tsx`
 
 **Interfaces:**
+
 - Consumes existing authorized customer/guest booking DTOs only.
 - Produces a printable summary with booking code, public property name, room type, interval, occupancy, final amount, booking/payment status, and support instruction.
 
@@ -113,6 +123,7 @@
 ### Task 6: Authoritative operational reporting
 
 **Files:**
+
 - Create: `packages/contracts/src/admin-reporting.ts`
 - Modify: `packages/contracts/src/index.ts`
 - Create: `apps/api/src/reporting/admin-operational-report.repository.ts`
@@ -126,6 +137,7 @@
 - Create: `tests/e2e/phase-8h-operational-report.spec.ts`
 
 **Interfaces:**
+
 - Produces `GET /api/v1/admin/operational-report?from=<ISO>&to=<ISO>&bookingStatus=<optional>&paymentStatus=<optional>&ratePlanId=<optional>&roomTypeId=<optional>`.
 - Returns dated VND aggregates, measures metadata, category breakdowns, detailed table rows, and `generatedAt`.
 
@@ -139,6 +151,7 @@
 ### Task 7: Accessibility, evidence, and fresh closure
 
 **Files:**
+
 - Create: `docs/audit/phase-8h/visual-fidelity-ledger.md`
 - Modify: `tests/e2e/phase-8h-room-operations.spec.ts`
 - Modify: `tests/e2e/phase-8h-operational-report.spec.ts`

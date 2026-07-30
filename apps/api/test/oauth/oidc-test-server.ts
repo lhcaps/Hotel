@@ -69,9 +69,7 @@ interface TestControlPayload {
 const DEFAULT_HOST = '127.0.0.1';
 const CODE_TTL_MS = 60_000;
 
-export async function startOidcTestServer(
-  options: OidcTestServerOptions,
-): Promise<OidcTestServer> {
+export async function startOidcTestServer(options: OidcTestServerOptions): Promise<OidcTestServer> {
   const host = options.host ?? DEFAULT_HOST;
   const codes = new Map<string, IssuedCode>();
 

@@ -45,10 +45,7 @@ export class CustomerBookingsController {
 
   @Get(':bookingCode')
   @Version('1')
-  public async detail(
-    @Req() request: RequestLike,
-    @Param('bookingCode') bookingCode: string,
-  ) {
+  public async detail(@Req() request: RequestLike, @Param('bookingCode') bookingCode: string) {
     const actor = await this.sessions.requireCustomer(request);
     try {
       return await this.bookings.detailForCustomer(actor.userId, bookingCode);

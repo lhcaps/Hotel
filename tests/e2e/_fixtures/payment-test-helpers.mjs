@@ -88,7 +88,9 @@ async function createGuestSession(bookingCode, email, apiBase) {
     body: JSON.stringify({ bookingCode, email }),
   });
   if (request.status !== 201) {
-    throw new Error(`OTP request failed: status=${request.status} body=${JSON.stringify(request.body)}`);
+    throw new Error(
+      `OTP request failed: status=${request.status} body=${JSON.stringify(request.body)}`,
+    );
   }
   const otp = await waitForVerificationEmail(email);
   const response = await fetch(`${apiBase}/public/guest-access/otp/verify`, {
@@ -139,7 +141,9 @@ export async function createQuote(apiBase = getApiBaseUrl()) {
     body: JSON.stringify({ ...interval, roomTypeId: DELUXE_ROOM_TYPE }),
   });
   if (response.status !== 201 && response.status !== 200) {
-    throw new Error(`quote failed: status=${response.status} body=${JSON.stringify(response.body)}`);
+    throw new Error(
+      `quote failed: status=${response.status} body=${JSON.stringify(response.body)}`,
+    );
   }
   return response.body;
 }
@@ -172,7 +176,11 @@ export async function createBookingHold(apiBase = getApiBaseUrl()) {
   };
 }
 
-export async function readPaymentStatus(bookingCode, guestSessionCookie, apiBase = getApiBaseUrl()) {
+export async function readPaymentStatus(
+  bookingCode,
+  guestSessionCookie,
+  apiBase = getApiBaseUrl(),
+) {
   const response = await fetch(`${apiBase}/public/bookings/${bookingCode}/payment`, {
     headers: {
       cookie: `rm_guest_session_v1=${guestSessionCookie}`,
@@ -187,11 +195,19 @@ export async function readPaymentStatus(bookingCode, guestSessionCookie, apiBase
   return { status: response.status, body };
 }
 
-export async function initiateMomoPayment(bookingCode, guestSessionCookie, apiBase = getApiBaseUrl()) {
+export async function initiateMomoPayment(
+  bookingCode,
+  guestSessionCookie,
+  apiBase = getApiBaseUrl(),
+) {
   return initiatePaymentAttempt('momo', bookingCode, guestSessionCookie, apiBase);
 }
 
-export async function initiateVnpayPayment(bookingCode, guestSessionCookie, apiBase = getApiBaseUrl()) {
+export async function initiateVnpayPayment(
+  bookingCode,
+  guestSessionCookie,
+  apiBase = getApiBaseUrl(),
+) {
   return initiatePaymentAttempt('vnpay', bookingCode, guestSessionCookie, apiBase);
 }
 
@@ -210,9 +226,7 @@ async function initiatePaymentAttempt(provider, bookingCode, guestSessionCookie,
   );
   const text = await response.text();
   if (response.status !== 200) {
-    throw new Error(
-      `${provider} initiation failed: status=${response.status} body=${text}`,
-    );
+    throw new Error(`${provider} initiation failed: status=${response.status} body=${text}`);
   }
   const body = text.length > 0 ? JSON.parse(text) : {};
   return { ...body, idempotencyKey };

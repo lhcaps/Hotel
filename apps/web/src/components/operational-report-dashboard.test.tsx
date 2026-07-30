@@ -39,7 +39,9 @@ describe('OperationalReportDashboard', () => {
     );
 
     expect((await screen.findAllByText('900,000 VND')).length).toBeGreaterThan(0);
-    expect(screen.getByText('Outstanding revenue is unavailable until partial payments are modeled.')).toBeTruthy();
+    expect(
+      screen.getByText('Outstanding revenue is unavailable until partial payments are modeled.'),
+    ).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Daily revenue' })).toBeTruthy();
     expect(getOperationalReport).toHaveBeenCalledOnce();
   });

@@ -1,6 +1,10 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import type { RatePlan, RatePlanCreateCommand, RatePlanSelectionRuleCommand } from '@room/contracts';
+import type {
+  RatePlan,
+  RatePlanCreateCommand,
+  RatePlanSelectionRuleCommand,
+} from '@room/contracts';
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { formatVnd, translate, type Locale } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
@@ -60,9 +64,17 @@ function summarisePlan(locale: Locale, plan: RatePlan): string {
   const windowText =
     plan.minCheckInMinuteInclusive === null || plan.maxCheckInMinuteExclusive === null
       ? translate(locale, 'ratePlan.anyTime')
-      : translate(locale, 'ratePlan.checkInWindow', { from: minutesToTime(plan.minCheckInMinuteInclusive), to: minutesToTime(plan.maxCheckInMinuteExclusive) });
-  const durationText = translate(locale, 'ratePlan.durationRange', { min: formatDuration(locale, plan.minDurationMinutesInclusive ?? 60), max: formatDuration(locale, plan.maxDurationMinutesInclusive ?? 1440) });
-  const includedText = translate(locale, 'ratePlan.includedDuration', { duration: formatDuration(locale, plan.includedDurationMinutes) });
+      : translate(locale, 'ratePlan.checkInWindow', {
+          from: minutesToTime(plan.minCheckInMinuteInclusive),
+          to: minutesToTime(plan.maxCheckInMinuteExclusive),
+        });
+  const durationText = translate(locale, 'ratePlan.durationRange', {
+    min: formatDuration(locale, plan.minDurationMinutesInclusive ?? 60),
+    max: formatDuration(locale, plan.maxDurationMinutesInclusive ?? 1440),
+  });
+  const includedText = translate(locale, 'ratePlan.includedDuration', {
+    duration: formatDuration(locale, plan.includedDurationMinutes),
+  });
   const extraText = translate(locale, 'ratePlan.extraHourSummary');
   const priorityText = translate(locale, 'ratePlan.priorityValue', { priority: plan.priority });
   return [windowText, durationText, includedText, extraText, priorityText].join(' ');
@@ -131,10 +143,7 @@ function statusLabel(locale: Locale, status: RatePlan['status']): string {
   }
 }
 
-function draftToCommand(
-  plan: RatePlan,
-  draft: SelectionRuleDraft,
-): RatePlanSelectionRuleCommand {
+function draftToCommand(plan: RatePlan, draft: SelectionRuleDraft): RatePlanSelectionRuleCommand {
   const command: RatePlanSelectionRuleCommand = {};
   if (draft.includedDurationMinutes !== plan.includedDurationMinutes) {
     command.includedDurationMinutes = draft.includedDurationMinutes;
@@ -184,7 +193,9 @@ export function RatePlanManager() {
       })
       .catch((error: unknown) =>
         setMessage(
-          error instanceof AdminApiError ? translate(locale, 'ratePlan.loadError') : translate(locale, 'ratePlan.loadError'),
+          error instanceof AdminApiError
+            ? translate(locale, 'ratePlan.loadError')
+            : translate(locale, 'ratePlan.loadError'),
         ),
       );
   useEffect(load, [locale]);
@@ -199,7 +210,9 @@ export function RatePlanManager() {
       setPlans((current) => current?.map((item) => (item.id === plan.id ? next : item)));
     } catch (error) {
       setMessage(
-        error instanceof AdminApiError ? translate(locale, 'ratePlan.statusError') : translate(locale, 'ratePlan.statusError'),
+        error instanceof AdminApiError
+          ? translate(locale, 'ratePlan.statusError')
+          : translate(locale, 'ratePlan.statusError'),
       );
     } finally {
       setPending(false);
@@ -224,11 +237,11 @@ export function RatePlanManager() {
       minCheckInMinuteInclusive:
         createDraft.minCheckInMinuteInclusive === ''
           ? null
-          : timeToMinutes(createDraft.minCheckInMinuteInclusive) ?? null,
+          : (timeToMinutes(createDraft.minCheckInMinuteInclusive) ?? null),
       maxCheckInMinuteExclusive:
         createDraft.maxCheckInMinuteExclusive === ''
           ? null
-          : timeToMinutes(createDraft.maxCheckInMinuteExclusive) ?? null,
+          : (timeToMinutes(createDraft.maxCheckInMinuteExclusive) ?? null),
       minDurationMinutesInclusive: createDraft.isBasePlan
         ? createDraft.minDurationMinutesInclusive
         : null,
@@ -245,7 +258,9 @@ export function RatePlanManager() {
       load();
     } catch (error) {
       setMessage(
-        error instanceof AdminApiError ? translate(locale, 'ratePlan.createError') : translate(locale, 'ratePlan.createError'),
+        error instanceof AdminApiError
+          ? translate(locale, 'ratePlan.createError')
+          : translate(locale, 'ratePlan.createError'),
       );
     } finally {
       setCreating(false);
@@ -262,7 +277,11 @@ export function RatePlanManager() {
       await adminApi.updateRatePlanPrice(planId, tierId, amountVnd);
       load();
     } catch (error) {
-      setMessage(error instanceof AdminApiError ? translate(locale, 'ratePlan.priceSaveError') : translate(locale, 'ratePlan.priceSaveError'));
+      setMessage(
+        error instanceof AdminApiError
+          ? translate(locale, 'ratePlan.priceSaveError')
+          : translate(locale, 'ratePlan.priceSaveError'),
+      );
     } finally {
       setPending(false);
     }
@@ -300,7 +319,8 @@ export function RatePlanManager() {
     }
   }
   const sortedPlans = useMemo(
-    () => (plans === undefined ? undefined : [...plans].sort((a, b) => a.code.localeCompare(b.code))),
+    () =>
+      plans === undefined ? undefined : [...plans].sort((a, b) => a.code.localeCompare(b.code)),
     [plans],
   );
   return (
@@ -310,9 +330,7 @@ export function RatePlanManager() {
       {message ? <p role="alert">{message}</p> : null}
       <fieldset>
         <legend>{translate(locale, 'ratePlan.createLegend')}</legend>
-        <p>
-          {translate(locale, 'ratePlan.createHelp')}
-        </p>
+        <p>{translate(locale, 'ratePlan.createHelp')}</p>
         <label>
           {translate(locale, 'ratePlan.code')}
           <input
@@ -484,7 +502,8 @@ export function RatePlanManager() {
                   {plan.name} ({plan.code})
                 </h2>
                 <p>
-                  {translate(locale, 'admin.status')}: <strong>{statusLabel(locale, plan.status)}</strong>
+                  {translate(locale, 'admin.status')}:{' '}
+                  <strong>{statusLabel(locale, plan.status)}</strong>
                   {plan.isBasePlan ? null : ` — ${translate(locale, 'ratePlan.extraHourSummary')}`}
                 </p>
                 <p>{summarisePlan(locale, plan)}</p>
@@ -502,7 +521,9 @@ export function RatePlanManager() {
                           type="number"
                         />
                       </label>{' '}
-                      {price.amountVnd === null ? translate(locale, 'ratePlan.unconfigured') : formatVnd(locale, price.amountVnd)}{' '}
+                      {price.amountVnd === null
+                        ? translate(locale, 'ratePlan.unconfigured')
+                        : formatVnd(locale, price.amountVnd)}{' '}
                       <button
                         disabled={pending || plan.status === 'INACTIVE'}
                         onClick={(event) =>
@@ -648,7 +669,10 @@ export function RatePlanManager() {
                       {translate(locale, 'ratePlan.saveSelection')}
                     </button>
                     {draft.isDirty ? (
-                      <span aria-live="polite"> · {translate(locale, 'ratePlan.unsavedChanges')}</span>
+                      <span aria-live="polite">
+                        {' '}
+                        · {translate(locale, 'ratePlan.unsavedChanges')}
+                      </span>
                     ) : null}
                   </fieldset>
                 ) : null}

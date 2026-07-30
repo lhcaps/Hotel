@@ -35,34 +35,34 @@ The two full Playwright reruns, the coupon Mailpit vertical, and the standalone 
 
 ## Phase 8D.3 public entry refresh
 
-| Command | Exit | Result |
-| --- | ---: | --- |
-| `pnpm --filter @room/web test:unit -- test/public-homepage.test.tsx test/public-pricing.a11y.test.tsx test/i18n.test.ts` | 0 | 3 files, 11 tests passed; root loading, empty, error, result, quote routing and axe critical/serious checks covered |
-| `pnpm check:i18n-critical` | 0 | 73 source files scanned; 0 direct Vietnamese critical copy |
-| `pnpm check:endpoints` | 0 | 74 runtime routes; 69 documented; 4 allowlisted |
-| `pnpm check:openapi` | 0 | admin 36/public 18 operations; coupon schema 11/11 |
-| `pnpm lint` | 0 | 9 workspace tasks passed |
-| `pnpm typecheck` | 0 | 9 workspace tasks passed |
-| `pnpm test:unit` | 0 | 15 workspace tasks passed; API 50 files / 300 tests |
-| `pnpm build` | 0 | 9 workspace tasks passed; Next production build includes dynamic `/` |
-| `pnpm db:check` / `pnpm db:status` | 0 / 0 | migration validation passed; schema `phase-8d-client-acceptance-v1` |
-| focused Playwright root spec | 1 | blocked before browser startup: `PLAYWRIGHT_BETTER_AUTH_SECRET` is absent; no credential was fabricated |
-| `pnpm demo:preflight` | 0 | port 3001 protected and untouched; all prerequisite checks passed |
-| `pnpm demo:lifecycle-test` | 1 | 12/15: protected port 3001 owner was null before and after; API live health/smoke consequently failed; all owned processes and ports were released |
-| `pnpm demo:smoke` | 1 | invoked concurrently with the lifecycle run by this validation batch and collided on demo ports 3090/3100; no source change implicated |
+| Command                                                                                                                  |  Exit | Result                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------ | ----: | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @room/web test:unit -- test/public-homepage.test.tsx test/public-pricing.a11y.test.tsx test/i18n.test.ts` |     0 | 3 files, 11 tests passed; root loading, empty, error, result, quote routing and axe critical/serious checks covered                                |
+| `pnpm check:i18n-critical`                                                                                               |     0 | 73 source files scanned; 0 direct Vietnamese critical copy                                                                                         |
+| `pnpm check:endpoints`                                                                                                   |     0 | 74 runtime routes; 69 documented; 4 allowlisted                                                                                                    |
+| `pnpm check:openapi`                                                                                                     |     0 | admin 36/public 18 operations; coupon schema 11/11                                                                                                 |
+| `pnpm lint`                                                                                                              |     0 | 9 workspace tasks passed                                                                                                                           |
+| `pnpm typecheck`                                                                                                         |     0 | 9 workspace tasks passed                                                                                                                           |
+| `pnpm test:unit`                                                                                                         |     0 | 15 workspace tasks passed; API 50 files / 300 tests                                                                                                |
+| `pnpm build`                                                                                                             |     0 | 9 workspace tasks passed; Next production build includes dynamic `/`                                                                               |
+| `pnpm db:check` / `pnpm db:status`                                                                                       | 0 / 0 | migration validation passed; schema `phase-8d-client-acceptance-v1`                                                                                |
+| focused Playwright root spec                                                                                             |     1 | blocked before browser startup: `PLAYWRIGHT_BETTER_AUTH_SECRET` is absent; no credential was fabricated                                            |
+| `pnpm demo:preflight`                                                                                                    |     0 | port 3001 protected and untouched; all prerequisite checks passed                                                                                  |
+| `pnpm demo:lifecycle-test`                                                                                               |     1 | 12/15: protected port 3001 owner was null before and after; API live health/smoke consequently failed; all owned processes and ports were released |
+| `pnpm demo:smoke`                                                                                                        |     1 | invoked concurrently with the lifecycle run by this validation batch and collided on demo ports 3090/3100; no source change implicated             |
 
 ## Phase 8D.2 closure refresh
 
-| Command | Exit | Result |
-| --- | ---: | --- |
-| `pnpm check:i18n-critical` | 0 | 72 files; `DIRECT_VI_COPY_CRITICAL_SOURCE=0` |
-| `pnpm check:endpoints` | 0 | 74 runtime, 69 documented, 4 allowlisted |
-| `pnpm check:openapi` | 0 | admin 36/public 18 operations; coupon schema 11/11 |
-| `pnpm --filter @room/web test:unit` | 0 | 28 files, 124 tests |
-| focused Phase 8D.2 Playwright | 0 | 3 passed, 0 skipped |
-| `pnpm test:e2e` run 1 | 0 | 64 primary + 1 unavailable, 0 skipped |
-| `pnpm test:e2e` run 2 | 0 | 64 primary + 1 unavailable, 0 skipped |
-| `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm build` | 0 | workspace passed |
-| `pnpm db:check`, `pnpm db:status`, `pnpm db:test` | 0 | deterministic local database gates passed |
-| `pnpm audit --prod --audit-level=high` | 0 | high threshold passed |
-| `pnpm demo:preflight`, `pnpm demo:lifecycle-test`, `pnpm demo:smoke` | 0 | preflight; 15/15 lifecycle; 22/22 smoke |
+| Command                                                              | Exit | Result                                             |
+| -------------------------------------------------------------------- | ---: | -------------------------------------------------- |
+| `pnpm check:i18n-critical`                                           |    0 | 72 files; `DIRECT_VI_COPY_CRITICAL_SOURCE=0`       |
+| `pnpm check:endpoints`                                               |    0 | 74 runtime, 69 documented, 4 allowlisted           |
+| `pnpm check:openapi`                                                 |    0 | admin 36/public 18 operations; coupon schema 11/11 |
+| `pnpm --filter @room/web test:unit`                                  |    0 | 28 files, 124 tests                                |
+| focused Phase 8D.2 Playwright                                        |    0 | 3 passed, 0 skipped                                |
+| `pnpm test:e2e` run 1                                                |    0 | 64 primary + 1 unavailable, 0 skipped              |
+| `pnpm test:e2e` run 2                                                |    0 | 64 primary + 1 unavailable, 0 skipped              |
+| `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm build`        |    0 | workspace passed                                   |
+| `pnpm db:check`, `pnpm db:status`, `pnpm db:test`                    |    0 | deterministic local database gates passed          |
+| `pnpm audit --prod --audit-level=high`                               |    0 | high threshold passed                              |
+| `pnpm demo:preflight`, `pnpm demo:lifecycle-test`, `pnpm demo:smoke` |    0 | preflight; 15/15 lifecycle; 22/22 smoke            |

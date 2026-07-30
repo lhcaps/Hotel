@@ -1,8 +1,5 @@
 import { type DatabaseClient } from '@room/database';
-import {
-  createQuoteRequestSchema,
-  type CreateQuoteRequest,
-} from '@room/contracts';
+import { createQuoteRequestSchema, type CreateQuoteRequest } from '@room/contracts';
 
 export type RecommendationRequest = CreateQuoteRequest;
 

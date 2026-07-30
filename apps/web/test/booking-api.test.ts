@@ -7,7 +7,10 @@ interface FetchCall {
   readonly init?: RequestInit;
 }
 
-function jsonResponse(body: unknown, init: { status?: number; statusText?: string } = {}): Response {
+function jsonResponse(
+  body: unknown,
+  init: { status?: number; statusText?: string } = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status: init.status ?? 200,
     statusText: init.statusText ?? 'OK',
@@ -100,14 +103,15 @@ describe('bookingApi', () => {
     );
     await bookingApi.getGuestBooking('RM-AB23-CD45-EF67');
 
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({ loggedOutAt: '2027-01-10T03:00:00.000Z' }),
-    );
+    fetchMock.mockResolvedValueOnce(jsonResponse({ loggedOutAt: '2027-01-10T03:00:00.000Z' }));
     await bookingApi.logoutGuestAccess();
 
     expect(fetchMock.mock.calls).toHaveLength(6);
 
-    const calls = fetchMock.mock.calls.map(([input, init]) => ({ input, init })) as readonly FetchCall[];
+    const calls = fetchMock.mock.calls.map(([input, init]) => ({
+      input,
+      init,
+    })) as readonly FetchCall[];
     expect(calls[0]?.input).toBe('http://api.local/api/v1/public/quotes/quote-id/bookings');
     expect(calls[0]?.init?.method).toBe('POST');
     expect(calls[0]?.init?.credentials).toBe('include');

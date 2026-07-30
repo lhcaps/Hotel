@@ -19,7 +19,9 @@ export function RoomDetailQuoteAction({
   const locale = useLocale();
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [offers, setOffers] = useState<Awaited<ReturnType<typeof publicApi.eligibleOffers>> | undefined>();
+  const [offers, setOffers] = useState<
+    Awaited<ReturnType<typeof publicApi.eligibleOffers>> | undefined
+  >();
   const [selectedPlanCode, setSelectedPlanCode] = useState<string>();
   const state = readBookingSearchQuery(new URLSearchParams(search));
 

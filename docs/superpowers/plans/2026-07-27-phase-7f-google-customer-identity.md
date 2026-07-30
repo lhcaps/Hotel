@@ -268,19 +268,23 @@ For unit/integration testing we cannot hit real Google. We will:
 ## K. Test plan
 
 Stage P (database):
+
 - Fresh migration: `pnpm db:reset && pnpm db:migrate`.
 - Upgrade from 7e: applied migration over `phase-7e-dual-provider-delivery-v1`;
   verified rows preserved.
 - Constraint tests for FK RESTRICT, NULL tolerance, profile uniqueness.
 
 Stage Q (integration):
+
 - 25 cases enumerated in the spec — see test file
   `apps/api/test/integration/customer-identity.integration.test.ts`.
 
 Stage R (Playwright):
+
 - New `tests/customer-identity.e2e.spec.ts` — vertical E2E.
 
 Stage T (demo):
+
 - Demo default `GOOGLE_AUTH_ENABLED=false`. Smoke + lifecycle unchanged.
 
 ## L. Documentation

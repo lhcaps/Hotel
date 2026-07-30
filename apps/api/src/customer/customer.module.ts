@@ -15,11 +15,7 @@ export const CUSTOMER_AUDIT_ADAPTER = Symbol('CUSTOMER_AUDIT_ADAPTER');
 
 @Module({
   imports: [AppDatabaseModule, AuthModule],
-  controllers: [
-    CustomerProfileController,
-    ClaimBookingController,
-    CustomerBookingsController,
-  ],
+  controllers: [CustomerProfileController, ClaimBookingController, CustomerBookingsController],
   providers: [
     {
       provide: CUSTOMER_AUDIT_ADAPTER,
@@ -48,10 +44,6 @@ export const CUSTOMER_AUDIT_ADAPTER = Symbol('CUSTOMER_AUDIT_ADAPTER');
         new CustomerBookingService(database.client),
     },
   ],
-  exports: [
-    CustomerProfileService,
-    ClaimBookingService,
-    CustomerBookingService,
-  ],
+  exports: [CustomerProfileService, ClaimBookingService, CustomerBookingService],
 })
 export class CustomerModule {}

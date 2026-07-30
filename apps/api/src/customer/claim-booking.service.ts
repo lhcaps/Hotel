@@ -41,9 +41,7 @@ export interface ClaimBookingResult {
   readonly wasAlreadyClaimed: boolean;
 }
 
-type DbTransaction = Parameters<
-  Parameters<DatabaseClient['transaction']>[0]
->[0];
+type DbTransaction = Parameters<Parameters<DatabaseClient['transaction']>[0]>[0];
 
 /**
  * Links a guest booking to the CUSTOMER's user id once the CUSTOMER proves

@@ -43,22 +43,14 @@ async function expectPrimaryAffordance(page: Page): Promise<void> {
 }
 
 test.describe('customer identity — login surface', () => {
-  test('login page renders CUSTOMER sign-in affordance and guest fallback', async ({
-    page,
-  }) => {
+  test('login page renders CUSTOMER sign-in affordance and guest fallback', async ({ page }) => {
     await page.goto('/login');
-    await expect(
-      page.getByRole('heading', { name: 'Đăng nhập khách hàng' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Đăng nhập khách hàng' })).toBeVisible();
     await expectPrimaryAffordance(page);
-    await expect(
-      page.getByRole('button', { name: 'Truy cập đặt phòng của tôi' }),
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Truy cập đặt phòng của tôi' })).toBeVisible();
   });
 
-  test('unauthenticated /account/profile surfaces the login prompt', async ({
-    page,
-  }) => {
+  test('unauthenticated /account/profile surfaces the login prompt', async ({ page }) => {
     await page.goto('/account/profile');
     await expect(page.getByText(/đăng nhập/i).first()).toBeVisible();
   });

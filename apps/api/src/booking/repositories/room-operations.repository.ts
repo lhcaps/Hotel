@@ -1,7 +1,10 @@
 import type { DatabasePool } from '@room/database';
 import type { AdminRoomOperationsQuery } from '@room/contracts';
 
-import type { RoomOperationRow, RoomOperationsRepositoryPort } from '../services/room-operations.service.js';
+import type {
+  RoomOperationRow,
+  RoomOperationsRepositoryPort,
+} from '../services/room-operations.service.js';
 
 interface DbRow {
   room_id: string;
@@ -15,7 +18,10 @@ interface DbRow {
 export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
   public constructor(private readonly pool: Pick<DatabasePool, 'query'>) {}
 
-  public async list(propertyId: string, query: AdminRoomOperationsQuery): Promise<readonly RoomOperationRow[]> {
+  public async list(
+    propertyId: string,
+    query: AdminRoomOperationsQuery,
+  ): Promise<readonly RoomOperationRow[]> {
     const result = await this.pool.query<DbRow>(
       `SELECT r.id AS room_id, r.room_number, r.status AS room_status,
               r.housekeeping_status,
@@ -43,7 +49,14 @@ export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
       roomStatus: row.room_status,
       housekeepingStatus: row.housekeeping_status,
       maintenanceState: row.maintenance_state,
-      bookings: (row.bookings as Array<{ bookingCode: string; status: RoomOperationRow['bookings'][number]['status']; checkIn: string; checkOut: string }>).map((booking) => ({
+      bookings: (
+        row.bookings as Array<{
+          bookingCode: string;
+          status: RoomOperationRow['bookings'][number]['status'];
+          checkIn: string;
+          checkOut: string;
+        }>
+      ).map((booking) => ({
         ...booking,
         checkIn: new Date(booking.checkIn),
         checkOut: new Date(booking.checkOut),

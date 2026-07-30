@@ -1,6 +1,7 @@
 import { setTimeout as scheduleTimeout } from 'node:timers/promises';
 
-export type WorkerSchedulerJobName = 'HOLD_EXPIRATION' | 'OUTBOX_DELIVERY' | 'PAYMENT_RECONCILIATION';
+export type WorkerSchedulerJobName =
+  'HOLD_EXPIRATION' | 'OUTBOX_DELIVERY' | 'PAYMENT_RECONCILIATION';
 
 export interface WorkerSchedulerJobOptions {
   readonly name: WorkerSchedulerJobName;
@@ -127,14 +128,20 @@ export class WorkerScheduler {
 
   public constructor(options: WorkerSchedulerOptions) {
     const startAt = options.now ? options.now() : Date.now();
-    const expirationIntervalMs = validatePositive(options.expiration.intervalMs, 'expiration.intervalMs');
+    const expirationIntervalMs = validatePositive(
+      options.expiration.intervalMs,
+      'expiration.intervalMs',
+    );
     const outboxIntervalMs = validatePositive(options.outbox.intervalMs, 'outbox.intervalMs');
     const reconciliation = options.reconciliation ?? {
       name: 'PAYMENT_RECONCILIATION' as const,
       intervalMs: 3_600_000,
       run: async () => undefined,
     };
-    const reconciliationIntervalMs = validatePositive(reconciliation.intervalMs, 'reconciliation.intervalMs');
+    const reconciliationIntervalMs = validatePositive(
+      reconciliation.intervalMs,
+      'reconciliation.intervalMs',
+    );
     const initialBackoffMs = validatePositive(options.initialBackoffMs, 'initialBackoffMs');
     const maxBackoffMs = validatePositive(options.maxBackoffMs, 'maxBackoffMs');
     if (maxBackoffMs < initialBackoffMs) {

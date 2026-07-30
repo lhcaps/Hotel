@@ -61,9 +61,7 @@ describe('calculatePercentageDiscount', () => {
   });
 
   it('rejects basis points outside [1, 10000]', () => {
-    expect(() => calculatePercentageDiscount(0, null, 100_000n)).toThrow(
-      CouponInvalidInputError,
-    );
+    expect(() => calculatePercentageDiscount(0, null, 100_000n)).toThrow(CouponInvalidInputError);
     expect(() => calculatePercentageDiscount(10_001, null, 100_000n)).toThrow(
       CouponInvalidInputError,
     );
@@ -73,9 +71,7 @@ describe('calculatePercentageDiscount', () => {
   });
 
   it('rejects non-positive maximumDiscountVnd when set', () => {
-    expect(() => calculatePercentageDiscount(1_000, 0n, 100_000n)).toThrow(
-      CouponInvalidInputError,
-    );
+    expect(() => calculatePercentageDiscount(1_000, 0n, 100_000n)).toThrow(CouponInvalidInputError);
     expect(() => calculatePercentageDiscount(1_000, -1n, 100_000n)).toThrow(
       CouponInvalidInputError,
     );

@@ -35,7 +35,10 @@ export function CouponSummary({
         {translate(locale, 'coupon.heading', { code: coupon.code })}
       </h3>
       <p className="mt-1 text-xs text-slate-600">
-        {translate(locale, coupon.discountType === 'PERCENTAGE' ? 'coupon.percentage' : 'coupon.fixed')}
+        {translate(
+          locale,
+          coupon.discountType === 'PERCENTAGE' ? 'coupon.percentage' : 'coupon.fixed',
+        )}
       </p>
       <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
         <div>

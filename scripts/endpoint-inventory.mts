@@ -1,4 +1,7 @@
-export type RouteDecorator = Readonly<{ method: 'delete' | 'get' | 'patch' | 'post' | 'put'; path: string }>;
+export type RouteDecorator = Readonly<{
+  method: 'delete' | 'get' | 'patch' | 'post' | 'put';
+  path: string;
+}>;
 
 const METHOD_DECORATOR = /@(Get|Post|Patch|Put|Delete)\(\s*(?:'([^']*)')?\s*\)/g;
 

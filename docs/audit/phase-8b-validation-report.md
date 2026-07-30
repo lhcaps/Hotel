@@ -8,20 +8,20 @@
 
 ### Contract verification
 
-| Required behavior | Test |
-| --- | --- |
-| 11:00 + 1h selects THREE (300 000 VND) over LUNCH (359 000 VND). | `apps/api/test/pricing-cheapest.test.ts` case 1 |
-| Lowest gross among eligible plans wins. | cases 2, 3, 4 |
-| Equal total → priority tie-break. | case 5 |
-| Equal total + priority → fewer extra units wins. | case 6 |
-| Complete equality → stable plan identity wins. | case 7 |
-| Missing base-plan price rejected; valid alternatives remain usable. | case 8 |
-| All candidates invalid → fail closed. | case 9 |
-| Inactive plan never selected. | case 10 |
-| Cross-midnight, month-end, year-end, leap day, 1h, 24h. | cases 11-15 |
-| Duration > 24h rejected. | case 16 |
-| Quote snapshot unchanged after catalog edit. | case 17 |
-| Historical priority-wins snapshot remains readable. | case 18 |
+| Required behavior                                                   | Test                                            |
+| ------------------------------------------------------------------- | ----------------------------------------------- |
+| 11:00 + 1h selects THREE (300 000 VND) over LUNCH (359 000 VND).    | `apps/api/test/pricing-cheapest.test.ts` case 1 |
+| Lowest gross among eligible plans wins.                             | cases 2, 3, 4                                   |
+| Equal total → priority tie-break.                                   | case 5                                          |
+| Equal total + priority → fewer extra units wins.                    | case 6                                          |
+| Complete equality → stable plan identity wins.                      | case 7                                          |
+| Missing base-plan price rejected; valid alternatives remain usable. | case 8                                          |
+| All candidates invalid → fail closed.                               | case 9                                          |
+| Inactive plan never selected.                                       | case 10                                         |
+| Cross-midnight, month-end, year-end, leap day, 1h, 24h.             | cases 11-15                                     |
+| Duration > 24h rejected.                                            | case 16                                         |
+| Quote snapshot unchanged after catalog edit.                        | case 17                                         |
+| Historical priority-wins snapshot remains readable.                 | case 18                                         |
 
 ### Exhaustive oracle match
 
@@ -68,23 +68,23 @@
 
 ### Contract verification
 
-| Required behavior | Test |
-| --- | --- |
-| Exact interval already cheapest → no unnecessary suggestions. | case 1 |
-| Nearest cheaper interval found within ±60 minutes. | case 2 |
-| Globally cheapest nearby interval found. | case 3 |
-| Duration preserved exactly across every recommendation. | case 4 |
-| ±60 boundaries included. | case 5 |
-| Outside ±60 excluded. | case 6 |
-| Unavailable candidates excluded. | case 7 |
-| No physical-room identity leakage. | case 8 |
-| Coupon preview affects ranking without reservation. | case 9 |
-| Stale recommendation explicitly marked advisory. | case 10 |
-| Ties deterministic. | case 11 |
-| No dominated duplicate suggestions. | case 12 |
-| Maximum 3 recommendations. | case 13 |
-| No strictly cheaper candidates → empty recommendations. | case 14 |
-| Concurrent availability change forces a fresh revalidation. | case 15 |
+| Required behavior                                             | Test    |
+| ------------------------------------------------------------- | ------- |
+| Exact interval already cheapest → no unnecessary suggestions. | case 1  |
+| Nearest cheaper interval found within ±60 minutes.            | case 2  |
+| Globally cheapest nearby interval found.                      | case 3  |
+| Duration preserved exactly across every recommendation.       | case 4  |
+| ±60 boundaries included.                                      | case 5  |
+| Outside ±60 excluded.                                         | case 6  |
+| Unavailable candidates excluded.                              | case 7  |
+| No physical-room identity leakage.                            | case 8  |
+| Coupon preview affects ranking without reservation.           | case 9  |
+| Stale recommendation explicitly marked advisory.              | case 10 |
+| Ties deterministic.                                           | case 11 |
+| No dominated duplicate suggestions.                           | case 12 |
+| Maximum 3 recommendations.                                    | case 13 |
+| No strictly cheaper candidates → empty recommendations.       | case 14 |
+| Concurrent availability change forces a fresh revalidation.   | case 15 |
 
 ### Availability safety
 

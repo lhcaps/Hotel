@@ -92,7 +92,8 @@ export function CouponList() {
                 {coupon.discountType} · {discount(locale, coupon)}
               </p>
               <p>
-                {formatDateTime(locale, coupon.validFrom)} — {formatDateTime(locale, coupon.validUntil)}
+                {formatDateTime(locale, coupon.validFrom)} —{' '}
+                {formatDateTime(locale, coupon.validUntil)}
               </p>
               <p>
                 {translate(locale, 'coupon.scope')}:{' '}
@@ -114,7 +115,9 @@ export function CouponList() {
                   <dd>{coupon.counts.released}</dd>
                 </div>
               </dl>
-              <Link href={`/admin/coupons/${coupon.id}`}>{translate(locale, 'coupon.viewDetails')}</Link>
+              <Link href={`/admin/coupons/${coupon.id}`}>
+                {translate(locale, 'coupon.viewDetails')}
+              </Link>
             </article>
           ))}
         </div>

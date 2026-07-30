@@ -31,7 +31,9 @@ function sessionRecord(overrides: Partial<GuestSessionRecord> = {}): GuestSessio
   };
 }
 
-function services(overrides: { findActive?: (digest: Buffer, now: Date) => Promise<GuestSessionRecord | null> }) {
+function services(overrides: {
+  findActive?: (digest: Buffer, now: Date) => Promise<GuestSessionRecord | null>;
+}) {
   const repository = {
     findActiveSession: vi.fn().mockImplementation(overrides.findActive ?? (async () => null)),
   } as unknown as GuestSessionRepository;
@@ -56,7 +58,10 @@ describe('GuestSessionService', () => {
     });
     await service.authenticate(token, new Date('2026-07-23T00:00:00.000Z'));
     const expectedDigest = digestSessionToken(SECRETS.sessionSecret, token);
-    expect(repository.findActiveSession).toHaveBeenCalledWith(expectedDigest, new Date('2026-07-23T00:00:00.000Z'));
+    expect(repository.findActiveSession).toHaveBeenCalledWith(
+      expectedDigest,
+      new Date('2026-07-23T00:00:00.000Z'),
+    );
   });
 
   it('produces a digest equivalent to computeDigest under the session domain', () => {

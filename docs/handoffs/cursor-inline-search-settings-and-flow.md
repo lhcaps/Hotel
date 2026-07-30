@@ -25,15 +25,15 @@ This delivery changes the public landing search from navigation-first to inline 
 
 ## Request-flow matrix
 
-| Surface | Namespace | Access boundary | Public data exposure |
-|---|---|---|---|
-| Availability discovery | `POST /api/v1/availability/search` | Anonymous | Aggregate room-type availability, capacity, public amenity labels, nullable authoritative offer summary |
-| Public room catalog | `GET /api/v1/public/room-types` | Anonymous | Public room-type descriptions, capacity, amenity names only |
-| Quote and hold | `/api/v1/quotes`, `/api/v1/public/quotes/:quoteId/bookings` | Anonymous with opaque quote / contact verification | Server issues immutable quote; client cannot set totals or reserve inventory locally |
-| Guest booking access | `/api/v1/public/guest-access/*`, `/api/v1/public/bookings/*` | OTP / booking-code scoped | Booking data only after guest-access verification |
-| Customer account | `/api/v1/customer/profile`, `/api/v1/customer/bookings` | Customer session | Session owner's profile and bookings only |
-| Administration and operations | `/api/v1/admin/*` | ADMIN role and permissions | Never reachable through public availability/catalog endpoints |
-| Payments and callbacks | public booking payment attempts; `/api/v1/webhooks/*`; provider returns | Booking/guest authorization or provider signature | Settlement remains verified server-side; browser returns do not settle payments |
+| Surface                       | Namespace                                                               | Access boundary                                    | Public data exposure                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Availability discovery        | `POST /api/v1/availability/search`                                      | Anonymous                                          | Aggregate room-type availability, capacity, public amenity labels, nullable authoritative offer summary |
+| Public room catalog           | `GET /api/v1/public/room-types`                                         | Anonymous                                          | Public room-type descriptions, capacity, amenity names only                                             |
+| Quote and hold                | `/api/v1/quotes`, `/api/v1/public/quotes/:quoteId/bookings`             | Anonymous with opaque quote / contact verification | Server issues immutable quote; client cannot set totals or reserve inventory locally                    |
+| Guest booking access          | `/api/v1/public/guest-access/*`, `/api/v1/public/bookings/*`            | OTP / booking-code scoped                          | Booking data only after guest-access verification                                                       |
+| Customer account              | `/api/v1/customer/profile`, `/api/v1/customer/bookings`                 | Customer session                                   | Session owner's profile and bookings only                                                               |
+| Administration and operations | `/api/v1/admin/*`                                                       | ADMIN role and permissions                         | Never reachable through public availability/catalog endpoints                                           |
+| Payments and callbacks        | public booking payment attempts; `/api/v1/webhooks/*`; provider returns | Booking/guest authorization or provider signature  | Settlement remains verified server-side; browser returns do not settle payments                         |
 
 `pnpm check:endpoints` passed with 79 runtime routes, 75 documented routes, and 4 explicit allowlist entries. `pnpm check:openapi` passed with 39 admin operations and 20 public operations.
 

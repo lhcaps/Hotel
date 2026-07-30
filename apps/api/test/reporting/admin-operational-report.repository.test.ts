@@ -34,7 +34,7 @@ describe('AdminOperationalReportRepository', () => {
 
     const [metricsSql, params] = query.mock.calls[0] as [string, unknown[]];
     expect(metricsSql).toContain('b.property_id = $1');
-    expect(metricsSql).toContain("pay.status IS NULL");
+    expect(metricsSql).toContain('pay.status IS NULL');
     expect(params).toEqual([
       'property-1',
       new Date('2026-07-29T00:00:00.000Z'),

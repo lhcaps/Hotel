@@ -72,35 +72,35 @@ The official material confirms:
 
 ### Spec traceability
 
-| Spec item | Status | Evidence |
-| --- | --- | --- |
-| Algorithm: HMAC-SHA256 (status query) | VERIFIED | `createHmac('sha256', ...)` in `momo.signature.ts`; audit oracle agrees. |
-| Canonical field order (4 fields) | VERIFIED_WITH_LIMITATION | Production uses `accessKey, orderId, partnerCode, requestId`. Audit oracle agrees. The audit could not access MoMo's live sandbox; the canonical field order is taken from the documented sample in `momo.signature.ts` and validated only against itself. |
-| Empty-value handling | VERIFIED_WITH_LIMITATION | Production and audit-oracle both exclude empty fields; the documented query canonical form has no empty values, but the same convention as initiation/IPN applies. |
-| UTF-8 / encoding behaviour | VERIFIED | Production uses `Buffer.from(canonical, 'utf8')`; audit oracle agrees. |
-| Amount as integer VND | VERIFIED | Reconciliation cycle passes the canonical amount from the query response verbatim to `applyVerifiedPaymentEvent`; amount-mismatch path is unchanged from IPN. |
-| Order uniqueness | VERIFIED | DB enforces uniqueness on `payment_attempts(provider_order_id)` and the new `payments_property_booking_uq`. |
-| RequestId uniqueness | VERIFIED | Same generation; DB enforces uniqueness. |
-| Secret key server-only | VERIFIED | `MOMO_SECRET_KEY` is loaded via `@room/config` zod schema; the schema rejects test placeholders in production. |
-| Constant-time comparison | VERIFIED | `crypto.timingSafeEqual` in `hasValidMomoSignature`. |
-| Duplicate IPN idempotency | VERIFIED | `payment_provider_events.event_key UNIQUE` + `applyVerifiedPaymentEvent` returns `DUPLICATE` for replayed events (covered by `packages/booking/test/payment/payment-settlement.test.ts`). |
-| Replayed callback | VERIFIED | Same mechanism as duplicate IPN. |
-| Unknown order handling | VERIFIED | `applyVerifiedPaymentEvent` raises `UNKNOWN_ORDER` for unknown `provider_order_id`. |
-| Reconciliation status query integration | VERIFIED_WITH_LIMITATION | Status-query adapter is wired through `ReconciliationStatusQueryPort`. Live sandbox acceptance is `EXTERNAL_BLOCKED`; the oracle is deterministic and sandbox-independent. |
-| Provider timeout handling (status query) | VERIFIED_WITH_LIMITATION | Adapter bounded timeout (1..60 s) via `AbortSignal`; transient errors drive the bounded policy. |
-| Network retry behaviour (status query) | VERIFIED | Reconciliation policy with `maxAttempts = 8` and `delayMinutes = [1, 5, 15, 60, 240]`; lease semantics; bounded batch. |
-| Status-query API | VERIFIED | `momoQueryResponseSchema` and `buildMomoQueryCanonicalString` are present in the source. |
-| Reconciliation behaviour | VERIFIED_WITH_LIMITATION | Reconciliation service is wired; live sandbox acceptance is `EXTERNAL_BLOCKED`. |
-| PII / log redaction | VERIFIED_WITH_LIMITATION | Pino logger has `redact` paths configured in `@room/observability`. The MoMo adapter does not log full raw payloads. Phase 8C additionally does not log the query response body, raw query URL, or signature. The audit did not find evidence of `orderInfo` being logged. |
+| Spec item                                | Status                   | Evidence                                                                                                                                                                                                                                                                   |
+| ---------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Algorithm: HMAC-SHA256 (status query)    | VERIFIED                 | `createHmac('sha256', ...)` in `momo.signature.ts`; audit oracle agrees.                                                                                                                                                                                                   |
+| Canonical field order (4 fields)         | VERIFIED_WITH_LIMITATION | Production uses `accessKey, orderId, partnerCode, requestId`. Audit oracle agrees. The audit could not access MoMo's live sandbox; the canonical field order is taken from the documented sample in `momo.signature.ts` and validated only against itself.                 |
+| Empty-value handling                     | VERIFIED_WITH_LIMITATION | Production and audit-oracle both exclude empty fields; the documented query canonical form has no empty values, but the same convention as initiation/IPN applies.                                                                                                         |
+| UTF-8 / encoding behaviour               | VERIFIED                 | Production uses `Buffer.from(canonical, 'utf8')`; audit oracle agrees.                                                                                                                                                                                                     |
+| Amount as integer VND                    | VERIFIED                 | Reconciliation cycle passes the canonical amount from the query response verbatim to `applyVerifiedPaymentEvent`; amount-mismatch path is unchanged from IPN.                                                                                                              |
+| Order uniqueness                         | VERIFIED                 | DB enforces uniqueness on `payment_attempts(provider_order_id)` and the new `payments_property_booking_uq`.                                                                                                                                                                |
+| RequestId uniqueness                     | VERIFIED                 | Same generation; DB enforces uniqueness.                                                                                                                                                                                                                                   |
+| Secret key server-only                   | VERIFIED                 | `MOMO_SECRET_KEY` is loaded via `@room/config` zod schema; the schema rejects test placeholders in production.                                                                                                                                                             |
+| Constant-time comparison                 | VERIFIED                 | `crypto.timingSafeEqual` in `hasValidMomoSignature`.                                                                                                                                                                                                                       |
+| Duplicate IPN idempotency                | VERIFIED                 | `payment_provider_events.event_key UNIQUE` + `applyVerifiedPaymentEvent` returns `DUPLICATE` for replayed events (covered by `packages/booking/test/payment/payment-settlement.test.ts`).                                                                                  |
+| Replayed callback                        | VERIFIED                 | Same mechanism as duplicate IPN.                                                                                                                                                                                                                                           |
+| Unknown order handling                   | VERIFIED                 | `applyVerifiedPaymentEvent` raises `UNKNOWN_ORDER` for unknown `provider_order_id`.                                                                                                                                                                                        |
+| Reconciliation status query integration  | VERIFIED_WITH_LIMITATION | Status-query adapter is wired through `ReconciliationStatusQueryPort`. Live sandbox acceptance is `EXTERNAL_BLOCKED`; the oracle is deterministic and sandbox-independent.                                                                                                 |
+| Provider timeout handling (status query) | VERIFIED_WITH_LIMITATION | Adapter bounded timeout (1..60 s) via `AbortSignal`; transient errors drive the bounded policy.                                                                                                                                                                            |
+| Network retry behaviour (status query)   | VERIFIED                 | Reconciliation policy with `maxAttempts = 8` and `delayMinutes = [1, 5, 15, 60, 240]`; lease semantics; bounded batch.                                                                                                                                                     |
+| Status-query API                         | VERIFIED                 | `momoQueryResponseSchema` and `buildMomoQueryCanonicalString` are present in the source.                                                                                                                                                                                   |
+| Reconciliation behaviour                 | VERIFIED_WITH_LIMITATION | Reconciliation service is wired; live sandbox acceptance is `EXTERNAL_BLOCKED`.                                                                                                                                                                                            |
+| PII / log redaction                      | VERIFIED_WITH_LIMITATION | Pino logger has `redact` paths configured in `@room/observability`. The MoMo adapter does not log full raw payloads. Phase 8C additionally does not log the query response body, raw query URL, or signature. The audit did not find evidence of `orderInfo` being logged. |
 
 ### Live acceptance status
 
-| Gate | Status |
-| --- | --- |
-| `MOMO_DETERMINISTIC_CONTRACT` | VERIFIED_WITH_LIMITATION (no live sandbox vectors; vectors are from the documented sample) |
-| `MOMO_STATUS_QUERY_CONTRACT` | VERIFIED_WITH_LIMITATION (status-query canonical string and response shape are present in source; sandbox verification is `EXTERNAL_BLOCKED`) |
-| `MOMO_SANDBOX_ACCEPTANCE` | EXTERNAL_BLOCKED (no sandbox credentials in repo; per Section 2 safety boundaries, the audit did not contact MoMo) |
-| `MOMO_PRODUCTION_ACCEPTANCE` | EXTERNAL_BLOCKED (no merchant credentials, no registered IPN URL, no production sandbox) |
+| Gate                          | Status                                                                                                                                        |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MOMO_DETERMINISTIC_CONTRACT` | VERIFIED_WITH_LIMITATION (no live sandbox vectors; vectors are from the documented sample)                                                    |
+| `MOMO_STATUS_QUERY_CONTRACT`  | VERIFIED_WITH_LIMITATION (status-query canonical string and response shape are present in source; sandbox verification is `EXTERNAL_BLOCKED`) |
+| `MOMO_SANDBOX_ACCEPTANCE`     | EXTERNAL_BLOCKED (no sandbox credentials in repo; per Section 2 safety boundaries, the audit did not contact MoMo)                            |
+| `MOMO_PRODUCTION_ACCEPTANCE`  | EXTERNAL_BLOCKED (no merchant credentials, no registered IPN URL, no production sandbox)                                                      |
 
 ## 2. VNPAY — Phase 8C delta
 
@@ -135,46 +135,46 @@ The official material confirms:
 
 ### Spec traceability
 
-| Spec item | Status | Evidence |
-| --- | --- | --- |
-| Algorithm: HMAC-SHA512 | VERIFIED | `createHmac('sha512', ...)`; audit oracle agrees. |
-| Canonical key sorting (a→z) | VERIFIED | `Object.keys(fields).sort(...)`; audit oracle agrees. |
-| Exclusion of `vnp_SecureHash` and `vnp_SecureHashType` | VERIFIED | Both production and oracle maintain an `EXCLUDED_KEYS` set. |
-| Empty-value handling | VERIFIED | Both exclude empty values. |
-| Space encoding | VERIFIED_WITH_LIMITATION | Both production and audit-oracle encode literal ` ` as `+`. Consistent with `URLSearchParams.toString()`; deviates from RFC 3986 `%20`. This is documented as `PAYMENT-002` P1 with current provider encoding and remains `EXTERNAL_BLOCKED`. |
-| **Amount scaling (×100 vs ×1)** | **FAIL — deterministic P1; remains EXTERNAL_BLOCKED** | Official PAY API 2.1.0 requires integer VND multiplied by 100. The current adapter sends raw VND. Reproduction: a 100,000 VND quote produces `vnp_Amount=100000`; required PAY value is `10000000`. Reconciliation reuses the same adapter and inherits the same P1. |
-| Currency / timezone formatting | VERIFIED | `formatVnpayDate` uses `yyyyMMddHHmmss` Asia/Ho_Chi_Minh; consistent across production and oracle. |
-| Expiration timestamp | VERIFIED | `vnp_ExpireDate` populated; verified by unit test. |
-| TmnCode | VERIFIED | `vnp_TmnCode` populated from env; secret redacted from logs. |
-| Secret storage | VERIFIED | `VNPAY_HASH_SECRET` via `@room/config` zod schema; placeholder rejected in production. |
-| Constant-time comparison | VERIFIED | `crypto.timingSafeEqual`. |
-| Duplicate IPN idempotency | VERIFIED | Same mechanism as MoMo. |
-| Replayed callback | VERIFIED | Same mechanism as MoMo. |
-| Unknown order | VERIFIED | `applyVerifiedPaymentEvent` raises `UNKNOWN_ORDER`. |
-| Status-query API | VERIFIED | `vnp_QueryDr` is integrated; reconciliation cycle calls it via `ReconciliationStatusQueryPort`. |
-| Reconciliation behaviour | VERIFIED_WITH_LIMITATION | Reconciliation service is wired; live sandbox acceptance is `EXTERNAL_BLOCKED`. |
-| PII / log redaction | VERIFIED_WITH_LIMITATION | Same as MoMo. |
+| Spec item                                              | Status                                                | Evidence                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Algorithm: HMAC-SHA512                                 | VERIFIED                                              | `createHmac('sha512', ...)`; audit oracle agrees.                                                                                                                                                                                                                    |
+| Canonical key sorting (a→z)                            | VERIFIED                                              | `Object.keys(fields).sort(...)`; audit oracle agrees.                                                                                                                                                                                                                |
+| Exclusion of `vnp_SecureHash` and `vnp_SecureHashType` | VERIFIED                                              | Both production and oracle maintain an `EXCLUDED_KEYS` set.                                                                                                                                                                                                          |
+| Empty-value handling                                   | VERIFIED                                              | Both exclude empty values.                                                                                                                                                                                                                                           |
+| Space encoding                                         | VERIFIED_WITH_LIMITATION                              | Both production and audit-oracle encode literal ` ` as `+`. Consistent with `URLSearchParams.toString()`; deviates from RFC 3986 `%20`. This is documented as `PAYMENT-002` P1 with current provider encoding and remains `EXTERNAL_BLOCKED`.                        |
+| **Amount scaling (×100 vs ×1)**                        | **FAIL — deterministic P1; remains EXTERNAL_BLOCKED** | Official PAY API 2.1.0 requires integer VND multiplied by 100. The current adapter sends raw VND. Reproduction: a 100,000 VND quote produces `vnp_Amount=100000`; required PAY value is `10000000`. Reconciliation reuses the same adapter and inherits the same P1. |
+| Currency / timezone formatting                         | VERIFIED                                              | `formatVnpayDate` uses `yyyyMMddHHmmss` Asia/Ho_Chi_Minh; consistent across production and oracle.                                                                                                                                                                   |
+| Expiration timestamp                                   | VERIFIED                                              | `vnp_ExpireDate` populated; verified by unit test.                                                                                                                                                                                                                   |
+| TmnCode                                                | VERIFIED                                              | `vnp_TmnCode` populated from env; secret redacted from logs.                                                                                                                                                                                                         |
+| Secret storage                                         | VERIFIED                                              | `VNPAY_HASH_SECRET` via `@room/config` zod schema; placeholder rejected in production.                                                                                                                                                                               |
+| Constant-time comparison                               | VERIFIED                                              | `crypto.timingSafeEqual`.                                                                                                                                                                                                                                            |
+| Duplicate IPN idempotency                              | VERIFIED                                              | Same mechanism as MoMo.                                                                                                                                                                                                                                              |
+| Replayed callback                                      | VERIFIED                                              | Same mechanism as MoMo.                                                                                                                                                                                                                                              |
+| Unknown order                                          | VERIFIED                                              | `applyVerifiedPaymentEvent` raises `UNKNOWN_ORDER`.                                                                                                                                                                                                                  |
+| Status-query API                                       | VERIFIED                                              | `vnp_QueryDr` is integrated; reconciliation cycle calls it via `ReconciliationStatusQueryPort`.                                                                                                                                                                      |
+| Reconciliation behaviour                               | VERIFIED_WITH_LIMITATION                              | Reconciliation service is wired; live sandbox acceptance is `EXTERNAL_BLOCKED`.                                                                                                                                                                                      |
+| PII / log redaction                                    | VERIFIED_WITH_LIMITATION                              | Same as MoMo.                                                                                                                                                                                                                                                        |
 
 ### Live acceptance status
 
-| Gate | Status |
-| --- | --- |
-| `VNPAY_DETERMINISTIC_CONTRACT` | VERIFIED_WITH_LIMITATION (space encoding and amount-scaling flagged for production acceptance) |
-| `VNPAY_STATUS_QUERY_CONTRACT` | VERIFIED_WITH_LIMITATION (status-query canonical shape reuses create/IPN; sandbox verification is `EXTERNAL_BLOCKED`) |
-| `VNPAY_SANDBOX_ACCEPTANCE` | EXTERNAL_BLOCKED |
-| `VNPAY_PRODUCTION_ACCEPTANCE` | EXTERNAL_BLOCKED |
+| Gate                           | Status                                                                                                                |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `VNPAY_DETERMINISTIC_CONTRACT` | VERIFIED_WITH_LIMITATION (space encoding and amount-scaling flagged for production acceptance)                        |
+| `VNPAY_STATUS_QUERY_CONTRACT`  | VERIFIED_WITH_LIMITATION (status-query canonical shape reuses create/IPN; sandbox verification is `EXTERNAL_BLOCKED`) |
+| `VNPAY_SANDBOX_ACCEPTANCE`     | EXTERNAL_BLOCKED                                                                                                      |
+| `VNPAY_PRODUCTION_ACCEPTANCE`  | EXTERNAL_BLOCKED                                                                                                      |
 
 ## 3. Cross-Provider Findings (Phase 8C delta)
 
-| ID | Finding | Severity | Phase 8C status |
-| --- | --- | --- | --- |
-| `PAYMENT-001` | No automated reconciliation job. | P1 | **CLOSED** by Phase 8C (`packages/booking/src/payment/reconciliation.ts` + worker tick). |
-| `PAYMENT-002` | VNPAY canonical-string space encoding (`+` vs `%20`). | P1 | **OPEN; EXTERNAL_BLOCKED**. Live sandbox required. |
-| `PAYMENT-003` | VNPAY amount scaling (×100 vs ×1). | P1 | **OPEN; EXTERNAL_BLOCKED**. Live sandbox required. |
-| `PAYMENT-004` | Provider-event retention policy not documented. | P2 | OPEN; unchanged. |
-| `PAYMENT-005` | No `request-id` propagation in audit logs for provider callbacks. | P3 | OPEN; unchanged. |
-| `PAYMENT-006` | Reconciliation cycle over-runs provider without lease recovery. | P1 | **CLOSED** by Phase 8C (lease + bounded batch + bounded query timeout + `LEASE_LOST` outcome). |
-| `PAYMENT-007` | Cross-provider race produces two confirmations. | P1 | **CLOSED** by Phase 8C (`payments_property_booking_uq` + settlement lock order + `REVIEW_REQUIRED` for the loser). |
+| ID            | Finding                                                           | Severity | Phase 8C status                                                                                                    |
+| ------------- | ----------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `PAYMENT-001` | No automated reconciliation job.                                  | P1       | **CLOSED** by Phase 8C (`packages/booking/src/payment/reconciliation.ts` + worker tick).                           |
+| `PAYMENT-002` | VNPAY canonical-string space encoding (`+` vs `%20`).             | P1       | **OPEN; EXTERNAL_BLOCKED**. Live sandbox required.                                                                 |
+| `PAYMENT-003` | VNPAY amount scaling (×100 vs ×1).                                | P1       | **OPEN; EXTERNAL_BLOCKED**. Live sandbox required.                                                                 |
+| `PAYMENT-004` | Provider-event retention policy not documented.                   | P2       | OPEN; unchanged.                                                                                                   |
+| `PAYMENT-005` | No `request-id` propagation in audit logs for provider callbacks. | P3       | OPEN; unchanged.                                                                                                   |
+| `PAYMENT-006` | Reconciliation cycle over-runs provider without lease recovery.   | P1       | **CLOSED** by Phase 8C (lease + bounded batch + bounded query timeout + `LEASE_LOST` outcome).                     |
+| `PAYMENT-007` | Cross-provider race produces two confirmations.                   | P1       | **CLOSED** by Phase 8C (`payments_property_booking_uq` + settlement lock order + `REVIEW_REQUIRED` for the loser). |
 
 ## 4. Closing
 

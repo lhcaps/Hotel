@@ -1,10 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import {
-  createDatabasePool,
-  migrateDatabase,
-  type DatabasePool,
-} from '@room/database';
+import { createDatabasePool, migrateDatabase, type DatabasePool } from '@room/database';
 import {
   createPreparedGuardedTestDatabase,
   type GuardedTestDatabase,
@@ -22,8 +18,7 @@ import {
 import { normalizeContact, type NormalizedContact } from '../../src/contact.js';
 import { createBookingHoldWithRetry } from '../../src/services/create-booking-hold.js';
 
-const couponLockQuery = (statement: string) =>
-  /FROM\s+"coupons".*FOR UPDATE/is.test(statement);
+const couponLockQuery = (statement: string) => /FROM\s+"coupons".*FOR UPDATE/is.test(statement);
 
 const COUPON_CODE = 'QUOTA-RACE';
 const HOLD_DURATION_MS = 15 * 60 * 1000;

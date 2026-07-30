@@ -33,10 +33,7 @@ export interface CountdownView {
   readonly expired: boolean;
 }
 
-export function computeCountdown(
-  clock: ServerClock,
-  holdExpiresAtIso: string,
-): CountdownView {
+export function computeCountdown(clock: ServerClock, holdExpiresAtIso: string): CountdownView {
   const expiresAt = new Date(holdExpiresAtIso).getTime();
   const remaining = expiresAt - serverNowMs(clock);
   return { remainingMs: remaining, expired: remaining <= 0 };

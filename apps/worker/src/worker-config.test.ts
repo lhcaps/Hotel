@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  parseWorkerOperationalConfig,
-  requireWorkerOperationalConfig,
-} from './worker-config.js';
+import { parseWorkerOperationalConfig, requireWorkerOperationalConfig } from './worker-config.js';
 
 describe('worker operational config', () => {
   it('accepts continuous mode', () => {
@@ -113,9 +110,15 @@ describe('worker operational config', () => {
   });
 
   it('rejects reconciliation settings outside bounds', () => {
-    expect(parseWorkerOperationalConfig({ WORKER_RECONCILIATION_BATCH_SIZE: '101' }).success).toBe(false);
-    expect(parseWorkerOperationalConfig({ WORKER_RECONCILIATION_LEASE_TTL_MS: '900' }).success).toBe(false);
-    expect(parseWorkerOperationalConfig({ WORKER_RECONCILIATION_CONCURRENCY: '26' }).success).toBe(false);
+    expect(parseWorkerOperationalConfig({ WORKER_RECONCILIATION_BATCH_SIZE: '101' }).success).toBe(
+      false,
+    );
+    expect(
+      parseWorkerOperationalConfig({ WORKER_RECONCILIATION_LEASE_TTL_MS: '900' }).success,
+    ).toBe(false);
+    expect(parseWorkerOperationalConfig({ WORKER_RECONCILIATION_CONCURRENCY: '26' }).success).toBe(
+      false,
+    );
   });
 
   it('throws via requireWorkerOperationalConfig on invalid input', () => {

@@ -1,10 +1,4 @@
-import {
-  customerProfiles,
-  type DatabaseClient,
-  eq,
-  sql,
-  users,
-} from '@room/database';
+import { customerProfiles, type DatabaseClient, eq, sql, users } from '@room/database';
 
 import type { CustomerProfilePatchInput } from './customer-profile.schema.js';
 

@@ -41,10 +41,7 @@ export function assertPositiveInteger(value: bigint, field: string): void {
   }
 }
 
-export function calculateFixedDiscount(
-  fixedAmountVnd: bigint,
-  grossAmountVnd: bigint,
-): bigint {
+export function calculateFixedDiscount(fixedAmountVnd: bigint, grossAmountVnd: bigint): bigint {
   assertPositiveInteger(fixedAmountVnd, 'fixedAmountVnd');
   assertNonNegativeInteger(grossAmountVnd, 'grossAmountVnd');
   if (fixedAmountVnd > grossAmountVnd) return grossAmountVnd;

@@ -89,10 +89,7 @@ export const paymentConfirmationSource = pgEnum('payment_confirmation_source', [
 export const operationalReviewCategory = pgEnum('operational_review_category', [
   'PAID_CANCELLATION',
 ]);
-export const operationalReviewStatus = pgEnum('operational_review_status', [
-  'OPEN',
-  'RESOLVED',
-]);
+export const operationalReviewStatus = pgEnum('operational_review_status', ['OPEN', 'RESOLVED']);
 
 export const schemaMetadata = pgTable(
   'schema_metadata',
@@ -387,10 +384,7 @@ export const ratePlans = pgTable(
     }).onDelete('restrict'),
     unique('rate_plans_property_id_id_uq').on(table.propertyId, table.id),
     uniqueIndex('rate_plans_property_code_uq').on(table.propertyId, table.code),
-    check(
-      'rate_plans_code_format_ck',
-      sql`${table.code} ~ '^[A-Z0-9_]{1,64}$'`,
-    ),
+    check('rate_plans_code_format_ck', sql`${table.code} ~ '^[A-Z0-9_]{1,64}$'`),
     check(
       'rate_plans_duration_ck',
       sql`${table.includedDurationMinutes} >= 60 AND ${table.includedDurationMinutes} <= 1440
@@ -755,33 +749,33 @@ export const bookings = pgTable(
       sql`jsonb_typeof(${table.priceSnapshot}) = 'object' AND ${table.priceSnapshot} <> '{}'::jsonb`,
     ),
     check('bookings_hold_expiry_ck', sql`${table.holdExpiresAt} > ${table.createdAt}`),
-          check(
-            'bookings_expired_at_ck',
-            sql`(${table.status} = 'EXPIRED' AND ${table.expiredAt} IS NOT NULL)
+    check(
+      'bookings_expired_at_ck',
+      sql`(${table.status} = 'EXPIRED' AND ${table.expiredAt} IS NOT NULL)
                 OR (${table.status} <> 'EXPIRED' AND ${table.expiredAt} IS NULL)`,
-          ),
-          check(
-            'bookings_cancelled_at_ck',
-            sql`(${table.status} = 'CANCELLED' AND ${table.cancelledAt} IS NOT NULL)
+    ),
+    check(
+      'bookings_cancelled_at_ck',
+      sql`(${table.status} = 'CANCELLED' AND ${table.cancelledAt} IS NOT NULL)
                 OR (${table.status} <> 'CANCELLED' AND ${table.cancelledAt} IS NULL)`,
-          ),
-          check(
-            'bookings_checked_in_at_ck',
-            sql`(${table.status} IN ('CHECKED_IN', 'CHECKED_OUT')
+    ),
+    check(
+      'bookings_checked_in_at_ck',
+      sql`(${table.status} IN ('CHECKED_IN', 'CHECKED_OUT')
                   AND ${table.checkedInAt} IS NOT NULL)
                 OR (${table.status} NOT IN ('CHECKED_IN', 'CHECKED_OUT')
                     AND ${table.checkedInAt} IS NULL)`,
-          ),
-          check(
-            'bookings_checked_out_at_ck',
-            sql`(${table.status} = 'CHECKED_OUT' AND ${table.checkedOutAt} IS NOT NULL)
+    ),
+    check(
+      'bookings_checked_out_at_ck',
+      sql`(${table.status} = 'CHECKED_OUT' AND ${table.checkedOutAt} IS NOT NULL)
                 OR (${table.status} <> 'CHECKED_OUT' AND ${table.checkedOutAt} IS NULL)`,
-          ),
-          check(
-            'bookings_no_show_at_ck',
-            sql`(${table.status} = 'NO_SHOW' AND ${table.noShowAt} IS NOT NULL)
+    ),
+    check(
+      'bookings_no_show_at_ck',
+      sql`(${table.status} = 'NO_SHOW' AND ${table.noShowAt} IS NOT NULL)
                 OR (${table.status} <> 'NO_SHOW' AND ${table.noShowAt} IS NULL)`,
-          ),
+    ),
     check(
       'bookings_cancellation_reason_ck',
       sql`${table.cancellationReason} IS NULL
@@ -1124,10 +1118,7 @@ export const paymentProviderEvents = pgTable(
       foreignColumns: [paymentAttempts.propertyId, paymentAttempts.id],
     }).onDelete('restrict'),
     uniqueIndex('payment_provider_events_provider_event_uq').on(table.provider, table.eventKey),
-    index('payment_provider_events_provider_received_idx').on(
-      table.provider,
-      table.receivedAt,
-    ),
+    index('payment_provider_events_provider_received_idx').on(table.provider, table.receivedAt),
     index('payment_provider_events_attempt_received_idx').on(
       table.paymentAttemptId,
       table.receivedAt,

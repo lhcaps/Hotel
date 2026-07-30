@@ -1,19 +1,9 @@
-import {
-  afterAll,
-  beforeAll,
-  describe,
-  expect,
-  it,
-} from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   createPreparedGuardedTestDatabase,
   type GuardedTestDatabase,
 } from '@room/database/testing';
-import {
-  createDatabaseClient,
-  migrateDatabase,
-  type DatabaseClient,
-} from '@room/database';
+import { createDatabaseClient, migrateDatabase, type DatabaseClient } from '@room/database';
 
 import { NearbyAvailabilityService } from '../../src/pricing/nearby-availability.service.js';
 import { NearbyAvailabilityRepository } from '../../src/pricing/nearby-availability.repository.js';
@@ -54,12 +44,7 @@ describe('nearby availability priceability filter', () => {
       `INSERT INTO room_types (id,property_id,price_tier_id,code,name,max_adults,max_children,max_occupancy,status) VALUES
        ($1,$2,$3,'UNP','Unpriced',2,1,3,'ACTIVE'),
        ($4,$2,$3,'PRC','Priced',2,1,3,'ACTIVE')`,
-      [
-        ids.noPlanType,
-        ids.property,
-        ids.tier,
-        ids.pricedType,
-      ],
+      [ids.noPlanType, ids.property, ids.tier, ids.pricedType],
     );
     await database.pool.query(
       `INSERT INTO rooms (id,property_id,room_type_id,room_number,status) VALUES

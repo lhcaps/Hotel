@@ -16,47 +16,47 @@ working tree also contains a large in-flight Phase 8C change set. The
 "Top-line verdict: PASS" claim below is therefore retracted until every
 field below is backed by a fresh, CLI-authoritative command capture.
 
-| # | Field | Value |
-| --- | --- | --- |
-| 1 | Phase | Phase 8B.1 — Pricing Product Vertical, Admin Catalog Extensibility, Browser E2E and Release-Evidence Closure |
-| 2 | Branch | phase5-booking-hold-guest-access |
-| 3 | HEAD at finalization | `7d2ac0d docs(phase-8b1): publish 38-field final verdict` |
-| 4 | Latest commit | `7d2ac0d docs(phase-8b1): publish 38-field final verdict` |
-| 5 | Top-line verdict | PARTIAL_PENDING_EVIDENCE — see risk register (field 39) |
-| 6 | Supersession chain | Phase 8B.1 supersedes Phase 8B for new quotes only; ADR-0010 supersedes ADR-0005; ADR-0005 supersedes ADR-0003. |
-| 7 | Gate 0 — Repository Truth | IN_PROGRESS — recovery audit captured at `docs/audit/current-integration-recovery.md`; no destructive ops performed; subagents stopped. |
-| 8 | Gate A — Documentation and Evidence Reconciliation | IN_PROGRESS — verdict edited to honest PARTIAL_PENDING_EVIDENCE; will become PASS only after isolation commit and focused evidence |
-| 9 | Gate B — Authoritative Pricing Call Graph | IN_PROGRESS — same parity argument as Phase 8B-1's verdict; cheapest-eligible selector wired for /quotes and /recommendations/stay-times; will be re-asserted at isolation commit |
-| 10 | Schema version | phase-8b1-pricing-product-vertical-v1 (pending re-affirmation by db:check + journal inspection) |
-| 11 | Rule version (new quotes) | phase-8b-cheapest-eligible-pricing-v1 (matches Zod literal in `packages/contracts/src/pricing.ts`) |
-| 12 | Migration 0016 | pending focused identity + lineage + upgrade evidence (see §6.1 of `docs/audit/current-integration-recovery.md`) |
-| 13 | Released migrations | untouched |
-| 14 | Rate plan codes dynamic | regex `^[A-Z0-9_]{1,64}$` in contracts, schema, and database |
-| 15 | SIX_HOUR_FLEX reachable | yes — cheapest-pricing integration test (7/7 green) confirms it wins over FIVE_HOUR_COMBO when the latter is priced higher — recorded at HEAD 7d2ac0d |
-| 16 | Recommendation API endpoint | POST /api/v1/recommendations/stay-times (public, schema-validated, non-reserving) |
-| 17 | Recommendation rule version lock | matches /api/v1/quotes exactly (asserted by smoke: `public.pricing.rule-version`) |
-| 18 | Public web vertical | mounted on existing /booking/quote/[quoteId] flow, no new URL introduced |
-| 19 | Reissue path | POST /api/v1/quotes — same endpoint as primary path, no privileged backend |
-| 20 | Coupon preview in recommendations | non-reserving (no DB write) per route handler in `apps/api/src/pricing/recommendation.routes.ts` |
-| 21 | Coupon preview in quote issuance | unchanged from Phase 8B |
-| 22 | ADMIN configurability — rate plans | IN_PROGRESS (ADMIN create vertical in working tree; awaiting focused integration + Playwright evidence) |
-| 23 | ADMIN configurability — rate plan prices | IN_PROGRESS |
-| 24 | ADMIN configurability — selection rules | IN_PROGRESS |
-| 25 | ADMIN configurability — coupons | unchanged from Phase 8B (PASS confirmed) |
-| 26 | ADMIN configurability — room types / rooms / amenities / property | PASS (unchanged from Phase 8B) |
-| 27 | Lint | pending — focused `pnpm --filter <pkg> lint` runs captured in recovery audit; full clean re-run required at isolation commit |
-| 28 | Typecheck | pending — same as field 27 |
-| 29 | Unit tests | contracts 258/258 GREEN; database 17/17 GREEN; booking 222/228 GREEN (6 Gate B Phase 8C failures carried as vertical debt); web 102/102 GREEN |
-| 30 | Build | contracts build GREEN at HEAD; web build pending |
-| 31 | OpenAPI — admin | pending — re-run `pnpm check:openapi` against the bumped schema after isolation commit |
-| 32 | OpenAPI — public | pending — same as 31 |
-| 33 | OpenAPI — admin coupon validator | pending — re-run after isolation commit |
-| 34 | Database check | `db:check` GREEN at HEAD; Phase 8C migration 0017 deliberately excluded from Gate A evidence |
-| 35 | Dependency audit | pending — re-run `pnpm audit --prod --audit-level=high` |
-| 36 | Demo lifecycle | pending — re-run `node scripts/demo/lifecycle.test.mjs` |
-| 37 | PostgreSQL integration (cheapest-pricing-pg) | PASS — 7 of 7 (captured by `apps/api/test/integration/cheapest-pricing-pg.integration.test.ts`) |
-| 38 | Browser e2e (phase-8b1-stay-time-recommendations) | rewrote to use shared `availabilitySearchResponseSchema`; deterministic EARLY_BIRD_FLEX seed path remains in place; no permanent skip; awaiting focused Playwright capture with disposable DB |
-| 39 | Risk register | OPEN — see below |
+| #   | Field                                                             | Value                                                                                                                                                                                         |
+| --- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Phase                                                             | Phase 8B.1 — Pricing Product Vertical, Admin Catalog Extensibility, Browser E2E and Release-Evidence Closure                                                                                  |
+| 2   | Branch                                                            | phase5-booking-hold-guest-access                                                                                                                                                              |
+| 3   | HEAD at finalization                                              | `7d2ac0d docs(phase-8b1): publish 38-field final verdict`                                                                                                                                     |
+| 4   | Latest commit                                                     | `7d2ac0d docs(phase-8b1): publish 38-field final verdict`                                                                                                                                     |
+| 5   | Top-line verdict                                                  | PARTIAL_PENDING_EVIDENCE — see risk register (field 39)                                                                                                                                       |
+| 6   | Supersession chain                                                | Phase 8B.1 supersedes Phase 8B for new quotes only; ADR-0010 supersedes ADR-0005; ADR-0005 supersedes ADR-0003.                                                                               |
+| 7   | Gate 0 — Repository Truth                                         | IN_PROGRESS — recovery audit captured at `docs/audit/current-integration-recovery.md`; no destructive ops performed; subagents stopped.                                                       |
+| 8   | Gate A — Documentation and Evidence Reconciliation                | IN_PROGRESS — verdict edited to honest PARTIAL_PENDING_EVIDENCE; will become PASS only after isolation commit and focused evidence                                                            |
+| 9   | Gate B — Authoritative Pricing Call Graph                         | IN_PROGRESS — same parity argument as Phase 8B-1's verdict; cheapest-eligible selector wired for /quotes and /recommendations/stay-times; will be re-asserted at isolation commit             |
+| 10  | Schema version                                                    | phase-8b1-pricing-product-vertical-v1 (pending re-affirmation by db:check + journal inspection)                                                                                               |
+| 11  | Rule version (new quotes)                                         | phase-8b-cheapest-eligible-pricing-v1 (matches Zod literal in `packages/contracts/src/pricing.ts`)                                                                                            |
+| 12  | Migration 0016                                                    | pending focused identity + lineage + upgrade evidence (see §6.1 of `docs/audit/current-integration-recovery.md`)                                                                              |
+| 13  | Released migrations                                               | untouched                                                                                                                                                                                     |
+| 14  | Rate plan codes dynamic                                           | regex `^[A-Z0-9_]{1,64}$` in contracts, schema, and database                                                                                                                                  |
+| 15  | SIX_HOUR_FLEX reachable                                           | yes — cheapest-pricing integration test (7/7 green) confirms it wins over FIVE_HOUR_COMBO when the latter is priced higher — recorded at HEAD 7d2ac0d                                         |
+| 16  | Recommendation API endpoint                                       | POST /api/v1/recommendations/stay-times (public, schema-validated, non-reserving)                                                                                                             |
+| 17  | Recommendation rule version lock                                  | matches /api/v1/quotes exactly (asserted by smoke: `public.pricing.rule-version`)                                                                                                             |
+| 18  | Public web vertical                                               | mounted on existing /booking/quote/[quoteId] flow, no new URL introduced                                                                                                                      |
+| 19  | Reissue path                                                      | POST /api/v1/quotes — same endpoint as primary path, no privileged backend                                                                                                                    |
+| 20  | Coupon preview in recommendations                                 | non-reserving (no DB write) per route handler in `apps/api/src/pricing/recommendation.routes.ts`                                                                                              |
+| 21  | Coupon preview in quote issuance                                  | unchanged from Phase 8B                                                                                                                                                                       |
+| 22  | ADMIN configurability — rate plans                                | IN_PROGRESS (ADMIN create vertical in working tree; awaiting focused integration + Playwright evidence)                                                                                       |
+| 23  | ADMIN configurability — rate plan prices                          | IN_PROGRESS                                                                                                                                                                                   |
+| 24  | ADMIN configurability — selection rules                           | IN_PROGRESS                                                                                                                                                                                   |
+| 25  | ADMIN configurability — coupons                                   | unchanged from Phase 8B (PASS confirmed)                                                                                                                                                      |
+| 26  | ADMIN configurability — room types / rooms / amenities / property | PASS (unchanged from Phase 8B)                                                                                                                                                                |
+| 27  | Lint                                                              | pending — focused `pnpm --filter <pkg> lint` runs captured in recovery audit; full clean re-run required at isolation commit                                                                  |
+| 28  | Typecheck                                                         | pending — same as field 27                                                                                                                                                                    |
+| 29  | Unit tests                                                        | contracts 258/258 GREEN; database 17/17 GREEN; booking 222/228 GREEN (6 Gate B Phase 8C failures carried as vertical debt); web 102/102 GREEN                                                 |
+| 30  | Build                                                             | contracts build GREEN at HEAD; web build pending                                                                                                                                              |
+| 31  | OpenAPI — admin                                                   | pending — re-run `pnpm check:openapi` against the bumped schema after isolation commit                                                                                                        |
+| 32  | OpenAPI — public                                                  | pending — same as 31                                                                                                                                                                          |
+| 33  | OpenAPI — admin coupon validator                                  | pending — re-run after isolation commit                                                                                                                                                       |
+| 34  | Database check                                                    | `db:check` GREEN at HEAD; Phase 8C migration 0017 deliberately excluded from Gate A evidence                                                                                                  |
+| 35  | Dependency audit                                                  | pending — re-run `pnpm audit --prod --audit-level=high`                                                                                                                                       |
+| 36  | Demo lifecycle                                                    | pending — re-run `node scripts/demo/lifecycle.test.mjs`                                                                                                                                       |
+| 37  | PostgreSQL integration (cheapest-pricing-pg)                      | PASS — 7 of 7 (captured by `apps/api/test/integration/cheapest-pricing-pg.integration.test.ts`)                                                                                               |
+| 38  | Browser e2e (phase-8b1-stay-time-recommendations)                 | rewrote to use shared `availabilitySearchResponseSchema`; deterministic EARLY_BIRD_FLEX seed path remains in place; no permanent skip; awaiting focused Playwright capture with disposable DB |
+| 39  | Risk register                                                     | OPEN — see below                                                                                                                                                                              |
 
 ## Risk register (open, blocked from PASS)
 

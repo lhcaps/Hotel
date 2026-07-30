@@ -21,10 +21,14 @@ describe('AdminOperationalReportService', () => {
     const service = new AdminOperationalReportService(repository);
 
     await expect(
-      service.getReport('property-1', {
-        from: '2026-07-29T00:00:00.000Z',
-        to: '2026-07-29T23:59:59.999Z',
-      }, new Date('2026-07-30T00:00:00.000Z')),
+      service.getReport(
+        'property-1',
+        {
+          from: '2026-07-29T00:00:00.000Z',
+          to: '2026-07-29T23:59:59.999Z',
+        },
+        new Date('2026-07-30T00:00:00.000Z'),
+      ),
     ).resolves.toMatchObject({
       grossRevenueVnd: 900_000,
       settledRevenueVnd: 600_000,

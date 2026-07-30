@@ -154,7 +154,10 @@ export function BookingDetailPanel({ bookingCode, email, onLogout }: BookingDeta
         <div>
           <dt className="text-sm text-slate-500">{translate(locale, 'admin.guest')}</dt>
           <dd className="font-medium">
-            {translate(locale, 'guest.guests', { adults: booking.adults, children: booking.children })}
+            {translate(locale, 'guest.guests', {
+              adults: booking.adults,
+              children: booking.children,
+            })}
           </dd>
         </div>
         <div>

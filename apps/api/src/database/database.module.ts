@@ -1,10 +1,7 @@
 import { Module } from '@nestjs/common';
 import { type ApiEnvironment } from '@room/config';
 
-import {
-  createApplicationDatabaseProvider,
-  DatabaseProvider,
-} from './database.provider.js';
+import { createApplicationDatabaseProvider, DatabaseProvider } from './database.provider.js';
 
 export const API_ENVIRONMENT = Symbol('API_ENVIRONMENT');
 

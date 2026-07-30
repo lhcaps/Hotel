@@ -105,7 +105,9 @@ describe('GuestAccessOtpRequestService', () => {
     );
     expect(result.challengeRef).toBe(DECOY_REF);
     expect(result.cooldownSeconds).toBe(0);
-    expect(new Date(result.expiresAt).getTime()).toBe(new Date('2026-07-23T00:05:00.000Z').getTime());
+    expect(new Date(result.expiresAt).getTime()).toBe(
+      new Date('2026-07-23T00:05:00.000Z').getTime(),
+    );
   });
 
   it('rejects invalid input via Zod', async () => {

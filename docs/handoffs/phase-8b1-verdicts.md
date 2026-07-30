@@ -19,21 +19,21 @@ Date: 2026-07-28
 
 The exact regression numbers in the table below are **pending re-run** at HEAD `7d2ac0d`; the rows that match existing captured artifacts are marked PASS, the rows that need a fresh `pnpm` run are marked **pending — awaiting command evidence**.
 
-| Evidence gate | Result |
-| --- | --- |
-| Schema-version in `EXPECTED_SCHEMA_VERSION` | PASS (`phase-8b1-pricing-product-vertical-v1`) |
-| `pnpm lint` | pending — awaiting command evidence |
-| `pnpm typecheck` | pending — awaiting command evidence |
-| `pnpm test:unit` | pending — exact per-package counts not re-verified at HEAD `7d2ac0d`; awaiting command evidence |
-| `pnpm build` | pending — awaiting command evidence |
-| `pnpm check:openapi` | pending — admin 31 ops / public 18 ops / 11/11 coupon cases are prior-phase claims; awaiting command evidence |
-| `pnpm db:check` | pending — re-run against migration 0017 + any Phase 8C additions |
-| `pnpm audit --prod --audit-level=high` | pending — awaiting command evidence |
-| `node scripts/demo/lifecycle.test.mjs` | pending — exact 16/16 count not re-verified at HEAD `7d2ac0d`; awaiting command evidence |
-| `apps/api/test/integration/cheapest-pricing-pg.integration.test.ts` | PASS (7/7) — captured in existing artifact set |
-| `apps/api/test/audit-phase8b` | PASS (4/4) — captured in existing artifact set |
-| `apps/web/test/stay-time-recommendations.test.tsx` | pending — prior report claimed 5/5; awaiting command evidence |
-| `tests/e2e/phase-8b1-stay-time-recommendations.spec.ts` | added — happy path unconditional; reissue case `test.skip`-gated |
+| Evidence gate                                                       | Result                                                                                                        |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Schema-version in `EXPECTED_SCHEMA_VERSION`                         | PASS (`phase-8b1-pricing-product-vertical-v1`)                                                                |
+| `pnpm lint`                                                         | pending — awaiting command evidence                                                                           |
+| `pnpm typecheck`                                                    | pending — awaiting command evidence                                                                           |
+| `pnpm test:unit`                                                    | pending — exact per-package counts not re-verified at HEAD `7d2ac0d`; awaiting command evidence               |
+| `pnpm build`                                                        | pending — awaiting command evidence                                                                           |
+| `pnpm check:openapi`                                                | pending — admin 31 ops / public 18 ops / 11/11 coupon cases are prior-phase claims; awaiting command evidence |
+| `pnpm db:check`                                                     | pending — re-run against migration 0017 + any Phase 8C additions                                              |
+| `pnpm audit --prod --audit-level=high`                              | pending — awaiting command evidence                                                                           |
+| `node scripts/demo/lifecycle.test.mjs`                              | pending — exact 16/16 count not re-verified at HEAD `7d2ac0d`; awaiting command evidence                      |
+| `apps/api/test/integration/cheapest-pricing-pg.integration.test.ts` | PASS (7/7) — captured in existing artifact set                                                                |
+| `apps/api/test/audit-phase8b`                                       | PASS (4/4) — captured in existing artifact set                                                                |
+| `apps/web/test/stay-time-recommendations.test.tsx`                  | pending — prior report claimed 5/5; awaiting command evidence                                                 |
+| `tests/e2e/phase-8b1-stay-time-recommendations.spec.ts`             | added — happy path unconditional; reissue case `test.skip`-gated                                              |
 
 ## Known follow-ups
 

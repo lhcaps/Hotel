@@ -123,10 +123,7 @@ export async function countQuotaUsage(
   couponId: string,
   customerEmailDigest: Buffer | null,
 ): Promise<QuotaUsage> {
-  const consumed = inArray(bookingCouponApplications.applicationStatus, [
-    'RESERVED',
-    'REDEEMED',
-  ]);
+  const consumed = inArray(bookingCouponApplications.applicationStatus, ['RESERVED', 'REDEEMED']);
   const totalRow = await tx
     .select({ count: sql<number>`count(*)::int` })
     .from(bookingCouponApplications)
@@ -218,16 +215,12 @@ export async function revalidateCouponForHold(
     throw new CouponRequoteRequiredError('Final amount drifted from quote');
   }
 
-  const hasLimits =
-    definition.totalUsageLimit !== null || definition.perCustomerLimit !== null;
+  const hasLimits = definition.totalUsageLimit !== null || definition.perCustomerLimit !== null;
   const usage = await countQuotaUsage(tx, definition.id, input.customerEmailDigest);
   if (definition.totalUsageLimit !== null && usage.total >= definition.totalUsageLimit) {
     throw new CouponLimitReachedError('Coupon total usage limit reached');
   }
-  if (
-    definition.perCustomerLimit !== null &&
-    usage.forCustomer >= definition.perCustomerLimit
-  ) {
+  if (definition.perCustomerLimit !== null && usage.forCustomer >= definition.perCustomerLimit) {
     throw new CouponCustomerLimitReachedError('Coupon per-customer limit reached');
   }
 
@@ -326,8 +319,7 @@ export async function releaseCouponApplicationForBooking(
 }
 
 export type RedeemApplicationInput =
-  | RedeemApplicationInputForBooking
-  | RedeemApplicationInputNoApplication;
+  RedeemApplicationInputForBooking | RedeemApplicationInputNoApplication;
 
 interface RedeemApplicationInputForBooking {
   readonly bookingId: string;
@@ -340,8 +332,7 @@ interface RedeemApplicationInputNoApplication {
 }
 
 export type RedeemApplicationResult =
-  | RedeemApplicationResultRedeemed
-  | RedeemApplicationResultNoApplication;
+  RedeemApplicationResultRedeemed | RedeemApplicationResultNoApplication;
 
 interface RedeemApplicationResultRedeemed {
   readonly status: 'redeemed';

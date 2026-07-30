@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
-import {
-  AdminApiError,
-  adminApi,
-  type AdminPaymentDetail,
-} from '../../../../lib/admin-api';
+import { AdminApiError, adminApi, type AdminPaymentDetail } from '../../../../lib/admin-api';
 import { useLocale } from '../../../../components/locale-provider';
-import { formatDateTime, formatVnd, translate, translatePaymentStatus } from '../../../../lib/i18n/messages';
+import {
+  formatDateTime,
+  formatVnd,
+  translate,
+  translatePaymentStatus,
+} from '../../../../lib/i18n/messages';
 
 interface AdminPaymentDetailPageProps {
   readonly params: Readonly<{ paymentId: string }>;
@@ -30,7 +31,9 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
       .then(setDetail)
       .catch((cause: unknown) => {
         setError(
-          cause instanceof AdminApiError ? translate(locale, 'admin.paymentDetailLoadError') : translate(locale, 'admin.paymentDetailLoadError'),
+          cause instanceof AdminApiError
+            ? translate(locale, 'admin.paymentDetailLoadError')
+            : translate(locale, 'admin.paymentDetailLoadError'),
         );
       });
   }, [params.paymentId, locale]);
@@ -58,9 +61,7 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
       .catch((cause: unknown) => {
         if (cause instanceof AdminApiError && cause.problem.status === 409) {
           void refresh().finally(() => {
-            setError(
-              translate(locale, 'admin.paymentConflict'),
-            );
+            setError(translate(locale, 'admin.paymentConflict'));
           });
         } else if (cause instanceof AdminApiError) {
           setError(translate(locale, 'admin.providerQueryError'));
@@ -77,7 +78,9 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
   if (detail === undefined && error === undefined) {
     return (
       <section className="admin-page">
-        <h1>{translate(locale, 'account.payment')} {params.paymentId.slice(0, 8)}</h1>
+        <h1>
+          {translate(locale, 'account.payment')} {params.paymentId.slice(0, 8)}
+        </h1>
         <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
       </section>
     );
@@ -86,7 +89,9 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
   if (detail === undefined) {
     return (
       <section className="admin-page">
-        <h1>{translate(locale, 'account.payment')} {params.paymentId.slice(0, 8)}</h1>
+        <h1>
+          {translate(locale, 'account.payment')} {params.paymentId.slice(0, 8)}
+        </h1>
         <p role="alert" style={{ color: 'var(--color-danger)' }}>
           {error}
         </p>
@@ -97,17 +102,20 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
 
   return (
     <section className="admin-page">
-      <h1>{translate(locale, 'account.payment')} {detail.paymentId.slice(0, 8)}</h1>
+      <h1>
+        {translate(locale, 'account.payment')} {detail.paymentId.slice(0, 8)}
+      </h1>
       <p>
-        {translate(locale, 'admin.status')}: <strong>{translatePaymentStatus(locale, detail.status)}</strong>
-        {detail.provider === null ? '' : ` · ${translate(locale, 'admin.provider')}: ${detail.provider}`} · {translate(locale, 'account.bookings')}:{' '}
+        {translate(locale, 'admin.status')}:{' '}
+        <strong>{translatePaymentStatus(locale, detail.status)}</strong>
+        {detail.provider === null
+          ? ''
+          : ` · ${translate(locale, 'admin.provider')}: ${detail.provider}`}{' '}
+        · {translate(locale, 'account.bookings')}:{' '}
         <Link href={`/admin/bookings/${detail.bookingCode}`}>{detail.bookingCode}</Link>
       </p>
       {detail.needsReview ? (
-        <p
-          role="status"
-          style={{ color: 'var(--color-warning, #b45309)', fontWeight: 600 }}
-        >
+        <p role="status" style={{ color: 'var(--color-warning, #b45309)', fontWeight: 600 }}>
           {translate(locale, 'admin.paymentReviewRequired')}
         </p>
       ) : null}
@@ -184,7 +192,9 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
                   <td>{formatVnd(locale, attempt.amountVnd)}</td>
                   <td>{formatDateTime(locale, attempt.createdAt)}</td>
                   <td>
-                    {attempt.completedAt === null ? '—' : formatDateTime(locale, attempt.completedAt)}
+                    {attempt.completedAt === null
+                      ? '—'
+                      : formatDateTime(locale, attempt.completedAt)}
                   </td>
                   <td>{attempt.failureReason ?? '—'}</td>
                 </tr>
@@ -275,17 +285,13 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
           <p>{translate(locale, 'admin.noProvider')}</p>
         ) : confirmingQuery ? (
           <form onSubmit={onQueryProvider}>
-            <p>
-              {translate(locale, 'admin.providerQueryHelp')}
-            </p>
+            <p>{translate(locale, 'admin.providerQueryHelp')}</p>
             <button disabled={pending} type="submit">
-              {pending ? translate(locale, 'admin.querying') : translate(locale, 'admin.confirmProviderQuery')}
+              {pending
+                ? translate(locale, 'admin.querying')
+                : translate(locale, 'admin.confirmProviderQuery')}
             </button>
-            <button
-              disabled={pending}
-              onClick={() => setConfirmingQuery(false)}
-              type="button"
-            >
+            <button disabled={pending} onClick={() => setConfirmingQuery(false)} type="button">
               {translate(locale, 'admin.cancel')}
             </button>
           </form>

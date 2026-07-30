@@ -31,7 +31,9 @@ describe('RoomOperationsService', () => {
         to: '2026-07-29T23:59:59.999Z',
       }),
     ).resolves.toMatchObject({
-      items: [{ roomNumber: '101', housekeepingStatus: 'DIRTY', bookings: [{ bookingCode: 'BK-101' }] }],
+      items: [
+        { roomNumber: '101', housekeepingStatus: 'DIRTY', bookings: [{ bookingCode: 'BK-101' }] },
+      ],
     });
   });
 });

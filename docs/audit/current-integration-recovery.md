@@ -39,104 +39,104 @@ Conflict between Gate A and Gate B is visible already:
 
 ### Modified files (55)
 
-| Path | Gate | Notes |
-| --- | --- | --- |
-| `.env.example` | B | provider env keys |
-| `apps/api/src/payment/payment.module.ts` | B | module wiring |
-| `apps/api/src/payment/providers/momo/momo.adapter.ts` | B | |
-| `apps/api/src/payment/providers/momo/momo.contracts.ts` | B | |
-| `apps/api/src/payment/providers/momo/momo.errors.ts` | B | |
-| `apps/api/src/payment/providers/momo/momo.signature.ts` | B | |
-| `apps/api/src/payment/providers/vnpay/vnpay.adapter.ts` | B | |
-| `apps/api/src/payment/providers/vnpay/vnpay.contracts.ts` | B | |
-| `apps/api/src/payment/providers/vnpay/vnpay.errors.ts` | B | |
-| `apps/api/src/pricing/rate-plan.controller.ts` | A | rate-plan create vertical |
-| `apps/api/src/pricing/rate-plan.repository.ts` | A | |
-| `apps/api/src/pricing/rate-plan.service.ts` | A | |
-| `apps/api/test/health.service.test.ts` | A/B | shared |
-| `apps/api/test/payment/payment.module.test.ts` | B | |
-| `apps/api/test/playwright-global-setup.ts` | B | test infra |
-| `apps/api/test/rate-plan.service.test.ts` | A | |
-| `apps/web/src/app/admin/layout.tsx` | A | nav entry for rate plans |
-| `apps/web/src/components/rate-plan-manager.tsx` | A | |
-| `apps/web/src/components/stay-time-recommendations.tsx` | A | recommendation reissue |
-| `apps/web/src/lib/admin-api.ts` | A+B | admin client (rate plans + payments) |
-| `apps/worker/src/main.ts` | B | |
-| `apps/worker/src/scheduler/worker-runner.ts` | B | |
-| `apps/worker/src/scheduler/worker-scheduler.ts` | B | |
-| `apps/worker/src/worker-config.test.ts` | B | |
-| `apps/worker/src/worker-config.ts` | B | |
-| `docs/audit/phase-8b1-validation-report.md` | A | |
-| `docs/domain/business-invariants.md` | A | |
-| `docs/engineering/admin-api-contract.md` | A | |
-| `docs/handoffs/phase-8b1-final-verdict.md` | A | top-line verdict (already self-declared "pending" for lint/typecheck/unit/build/openapi/db-check) |
-| `docs/handoffs/phase-8b1-verdicts.md` | A | |
-| `docs/openapi/admin-v1.json` | A+B | dual-purpose |
-| `docs/product/user-journeys.md` | A | |
-| `docs/security/AUTH_RBAC_POLICY.md` | A/B | |
-| `docs/security/threat-model.md` | A/B | |
-| `packages/auth/src/permissions.ts` | A+B | |
-| `packages/auth/test/permissions.test.ts` | A/B | |
-| `packages/booking/src/payment/adapter.ts` | B | |
-| `packages/booking/src/payment/errors.ts` | B | |
-| `packages/booking/src/payment/index.ts` | B | |
-| `packages/booking/src/payment/payment-service.ts` | B | |
-| `packages/booking/src/payment/types.ts` | B | |
-| `packages/config/src/index.ts` | B | |
-| `packages/config/test/environment.test.ts` | B | |
-| `packages/contracts/src/index.ts` | A+B | exports admin-payment-reconciliation but also Gate A admin exports |
-| `packages/contracts/src/pricing.ts` | A | rate-plan + recommendation schemas |
-| `packages/database/drizzle/meta/_journal.json` | A+B | migration 0016 + 0017 |
-| `packages/database/src/schema-status.ts` | B | |
-| `packages/database/src/schema.ts` | A+B | rate plan + payment |
-| `packages/database/test/integration/historical-migration-identity.test.ts` | A | |
-| `packages/database/test/integration/migration-readiness.test.ts` | B | |
-| `packages/database/test/integration/phase7c-payment-schema.test.ts` | B | |
-| `packages/database/test/integration/snapshot-lineage.test.ts` | A | |
-| `scripts/demo/start.mjs` | A | |
-| `scripts/generate-openapi.mts` | A+B | |
-| `tests/e2e/phase-8b1-stay-time-recommendations.spec.ts` | A | |
+| Path                                                                       | Gate | Notes                                                                                             |
+| -------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------- |
+| `.env.example`                                                             | B    | provider env keys                                                                                 |
+| `apps/api/src/payment/payment.module.ts`                                   | B    | module wiring                                                                                     |
+| `apps/api/src/payment/providers/momo/momo.adapter.ts`                      | B    |                                                                                                   |
+| `apps/api/src/payment/providers/momo/momo.contracts.ts`                    | B    |                                                                                                   |
+| `apps/api/src/payment/providers/momo/momo.errors.ts`                       | B    |                                                                                                   |
+| `apps/api/src/payment/providers/momo/momo.signature.ts`                    | B    |                                                                                                   |
+| `apps/api/src/payment/providers/vnpay/vnpay.adapter.ts`                    | B    |                                                                                                   |
+| `apps/api/src/payment/providers/vnpay/vnpay.contracts.ts`                  | B    |                                                                                                   |
+| `apps/api/src/payment/providers/vnpay/vnpay.errors.ts`                     | B    |                                                                                                   |
+| `apps/api/src/pricing/rate-plan.controller.ts`                             | A    | rate-plan create vertical                                                                         |
+| `apps/api/src/pricing/rate-plan.repository.ts`                             | A    |                                                                                                   |
+| `apps/api/src/pricing/rate-plan.service.ts`                                | A    |                                                                                                   |
+| `apps/api/test/health.service.test.ts`                                     | A/B  | shared                                                                                            |
+| `apps/api/test/payment/payment.module.test.ts`                             | B    |                                                                                                   |
+| `apps/api/test/playwright-global-setup.ts`                                 | B    | test infra                                                                                        |
+| `apps/api/test/rate-plan.service.test.ts`                                  | A    |                                                                                                   |
+| `apps/web/src/app/admin/layout.tsx`                                        | A    | nav entry for rate plans                                                                          |
+| `apps/web/src/components/rate-plan-manager.tsx`                            | A    |                                                                                                   |
+| `apps/web/src/components/stay-time-recommendations.tsx`                    | A    | recommendation reissue                                                                            |
+| `apps/web/src/lib/admin-api.ts`                                            | A+B  | admin client (rate plans + payments)                                                              |
+| `apps/worker/src/main.ts`                                                  | B    |                                                                                                   |
+| `apps/worker/src/scheduler/worker-runner.ts`                               | B    |                                                                                                   |
+| `apps/worker/src/scheduler/worker-scheduler.ts`                            | B    |                                                                                                   |
+| `apps/worker/src/worker-config.test.ts`                                    | B    |                                                                                                   |
+| `apps/worker/src/worker-config.ts`                                         | B    |                                                                                                   |
+| `docs/audit/phase-8b1-validation-report.md`                                | A    |                                                                                                   |
+| `docs/domain/business-invariants.md`                                       | A    |                                                                                                   |
+| `docs/engineering/admin-api-contract.md`                                   | A    |                                                                                                   |
+| `docs/handoffs/phase-8b1-final-verdict.md`                                 | A    | top-line verdict (already self-declared "pending" for lint/typecheck/unit/build/openapi/db-check) |
+| `docs/handoffs/phase-8b1-verdicts.md`                                      | A    |                                                                                                   |
+| `docs/openapi/admin-v1.json`                                               | A+B  | dual-purpose                                                                                      |
+| `docs/product/user-journeys.md`                                            | A    |                                                                                                   |
+| `docs/security/AUTH_RBAC_POLICY.md`                                        | A/B  |                                                                                                   |
+| `docs/security/threat-model.md`                                            | A/B  |                                                                                                   |
+| `packages/auth/src/permissions.ts`                                         | A+B  |                                                                                                   |
+| `packages/auth/test/permissions.test.ts`                                   | A/B  |                                                                                                   |
+| `packages/booking/src/payment/adapter.ts`                                  | B    |                                                                                                   |
+| `packages/booking/src/payment/errors.ts`                                   | B    |                                                                                                   |
+| `packages/booking/src/payment/index.ts`                                    | B    |                                                                                                   |
+| `packages/booking/src/payment/payment-service.ts`                          | B    |                                                                                                   |
+| `packages/booking/src/payment/types.ts`                                    | B    |                                                                                                   |
+| `packages/config/src/index.ts`                                             | B    |                                                                                                   |
+| `packages/config/test/environment.test.ts`                                 | B    |                                                                                                   |
+| `packages/contracts/src/index.ts`                                          | A+B  | exports admin-payment-reconciliation but also Gate A admin exports                                |
+| `packages/contracts/src/pricing.ts`                                        | A    | rate-plan + recommendation schemas                                                                |
+| `packages/database/drizzle/meta/_journal.json`                             | A+B  | migration 0016 + 0017                                                                             |
+| `packages/database/src/schema-status.ts`                                   | B    |                                                                                                   |
+| `packages/database/src/schema.ts`                                          | A+B  | rate plan + payment                                                                               |
+| `packages/database/test/integration/historical-migration-identity.test.ts` | A    |                                                                                                   |
+| `packages/database/test/integration/migration-readiness.test.ts`           | B    |                                                                                                   |
+| `packages/database/test/integration/phase7c-payment-schema.test.ts`        | B    |                                                                                                   |
+| `packages/database/test/integration/snapshot-lineage.test.ts`              | A    |                                                                                                   |
+| `scripts/demo/start.mjs`                                                   | A    |                                                                                                   |
+| `scripts/generate-openapi.mts`                                             | A+B  |                                                                                                   |
+| `tests/e2e/phase-8b1-stay-time-recommendations.spec.ts`                    | A    |                                                                                                   |
 
 ### Untracked files (selected — there are also .d.ts/.mjs helpers)
 
-| Path | Gate | Notes |
-| --- | --- | --- |
-| `apps/api/src/payment/admin-payment-reconciliation.controller.ts` | B | new |
-| `apps/api/src/payment/admin-payment-reconciliation.errors.ts` | B | new |
-| `apps/api/src/payment/admin-payment-reconciliation.service.ts` | B | new — also referenced as module by `apps/api/src/payment/services/admin-payment-reconciliation.service.ts` |
-| `apps/api/src/payment/repositories/admin-payment.repository.ts` | B | new |
-| `apps/api/src/payment/services/admin-payment-reconciliation.service.ts` | B | new — **self-imports** from its own filename; cascade root |
-| `apps/api/src/payment/admin-payment-reconciliation.*.test.ts` (3 files) | B | new |
-| `apps/api/test/payment/gate-b1-*.ts/.ts` (oracles) | B | new |
-| `apps/api/test/payment/gate-b9-race-matrix.test.ts` | B | new |
-| `apps/api/test/payment/momo.query.test.ts`, `vnpay.query.test.ts` | B | new |
-| `apps/api/test/payment/payment-provider-simulator-runner.{d.ts,mjs}` | B | new |
-| `apps/web/src/app/admin/payments/` | B | new |
-| `apps/web/test/admin-payment-{detail-page,api,page}.{test.tsx,test.ts}` | B | new |
-| `apps/worker/src/jobs/process-reconciliation.ts` | B | new |
-| `apps/worker/src/reconciliation/` | B | new dir |
-| `docs/architecture/adr/ADR-0011-payment-settlement-reconciliation.md` | B | new |
-| `docs/audit/phase-8c-validation-report.md`, `docs/audit/phase-8c/` | B | new |
-| `docs/domain/payment-state-machine.md` | B | new |
-| `docs/engineering/payment-architecture.md` | B | new |
-| `docs/handoffs/phase-8c-payment-settlement-reconciliation.md`, `phase-8c-verdicts.md` | B | new |
-| `docs/runbooks/phase-8c-payment-reconciliation.md` | B | new |
-| `docs/superpowers/{plans,specs}/2026-07-28-phase-8c-payment-...` | B | new |
-| `packages/booking/src/payment/reconciliation.ts` | B | new |
-| `packages/booking/test/concurrency/gate-b9-cross-provider-race.test.ts` | B | new |
-| `packages/booking/test/payment/reconciliation*.test.ts` (2) | B | new |
-| `packages/contracts/src/admin-payment-reconciliation.ts` | B | new |
-| `packages/database/drizzle/0017_optimal_freak.sql` | B | new migration |
-| `packages/database/drizzle/meta/0017_snapshot.json` | B | new |
-| `packages/database/test/integration/migration-folder.ts` | B | new |
-| `packages/database/test/integration/phase8b1-migration-0016-upgrade.test.ts` | A | new — but is untracked; should have been committed |
-| `packages/database/test/integration/phase8c-payment-reconciliation.test.ts` | B | new |
-| `scripts/demo/payment.mjs` | B | new |
-| `tests/e2e/payment-gate-b11-b12.spec.ts` | B | new |
-| `tests/e2e/_fixtures/` | B | new |
-| `packages/database/{` | — | **stray literal `{` directory created by one subagent**; must be deleted |
-| `test-db-check.cjs`, `test-db-check.mjs` | — | stray test scripts |
-| `api-run.txt`, `playwright-out.txt` | — | stray logs (not source) |
+| Path                                                                                  | Gate | Notes                                                                                                      |
+| ------------------------------------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------- |
+| `apps/api/src/payment/admin-payment-reconciliation.controller.ts`                     | B    | new                                                                                                        |
+| `apps/api/src/payment/admin-payment-reconciliation.errors.ts`                         | B    | new                                                                                                        |
+| `apps/api/src/payment/admin-payment-reconciliation.service.ts`                        | B    | new — also referenced as module by `apps/api/src/payment/services/admin-payment-reconciliation.service.ts` |
+| `apps/api/src/payment/repositories/admin-payment.repository.ts`                       | B    | new                                                                                                        |
+| `apps/api/src/payment/services/admin-payment-reconciliation.service.ts`               | B    | new — **self-imports** from its own filename; cascade root                                                 |
+| `apps/api/src/payment/admin-payment-reconciliation.*.test.ts` (3 files)               | B    | new                                                                                                        |
+| `apps/api/test/payment/gate-b1-*.ts/.ts` (oracles)                                    | B    | new                                                                                                        |
+| `apps/api/test/payment/gate-b9-race-matrix.test.ts`                                   | B    | new                                                                                                        |
+| `apps/api/test/payment/momo.query.test.ts`, `vnpay.query.test.ts`                     | B    | new                                                                                                        |
+| `apps/api/test/payment/payment-provider-simulator-runner.{d.ts,mjs}`                  | B    | new                                                                                                        |
+| `apps/web/src/app/admin/payments/`                                                    | B    | new                                                                                                        |
+| `apps/web/test/admin-payment-{detail-page,api,page}.{test.tsx,test.ts}`               | B    | new                                                                                                        |
+| `apps/worker/src/jobs/process-reconciliation.ts`                                      | B    | new                                                                                                        |
+| `apps/worker/src/reconciliation/`                                                     | B    | new dir                                                                                                    |
+| `docs/architecture/adr/ADR-0011-payment-settlement-reconciliation.md`                 | B    | new                                                                                                        |
+| `docs/audit/phase-8c-validation-report.md`, `docs/audit/phase-8c/`                    | B    | new                                                                                                        |
+| `docs/domain/payment-state-machine.md`                                                | B    | new                                                                                                        |
+| `docs/engineering/payment-architecture.md`                                            | B    | new                                                                                                        |
+| `docs/handoffs/phase-8c-payment-settlement-reconciliation.md`, `phase-8c-verdicts.md` | B    | new                                                                                                        |
+| `docs/runbooks/phase-8c-payment-reconciliation.md`                                    | B    | new                                                                                                        |
+| `docs/superpowers/{plans,specs}/2026-07-28-phase-8c-payment-...`                      | B    | new                                                                                                        |
+| `packages/booking/src/payment/reconciliation.ts`                                      | B    | new                                                                                                        |
+| `packages/booking/test/concurrency/gate-b9-cross-provider-race.test.ts`               | B    | new                                                                                                        |
+| `packages/booking/test/payment/reconciliation*.test.ts` (2)                           | B    | new                                                                                                        |
+| `packages/contracts/src/admin-payment-reconciliation.ts`                              | B    | new                                                                                                        |
+| `packages/database/drizzle/0017_optimal_freak.sql`                                    | B    | new migration                                                                                              |
+| `packages/database/drizzle/meta/0017_snapshot.json`                                   | B    | new                                                                                                        |
+| `packages/database/test/integration/migration-folder.ts`                              | B    | new                                                                                                        |
+| `packages/database/test/integration/phase8b1-migration-0016-upgrade.test.ts`          | A    | new — but is untracked; should have been committed                                                         |
+| `packages/database/test/integration/phase8c-payment-reconciliation.test.ts`           | B    | new                                                                                                        |
+| `scripts/demo/payment.mjs`                                                            | B    | new                                                                                                        |
+| `tests/e2e/payment-gate-b11-b12.spec.ts`                                              | B    | new                                                                                                        |
+| `tests/e2e/_fixtures/`                                                                | B    | new                                                                                                        |
+| `packages/database/{`                                                                 | —    | **stray literal `{` directory created by one subagent**; must be deleted                                   |
+| `test-db-check.cjs`, `test-db-check.mjs`                                              | —    | stray test scripts                                                                                         |
+| `api-run.txt`, `playwright-out.txt`                                                   | —    | stray logs (not source)                                                                                    |
 
 ## 3. Suspected type-resolution cascade root cause
 
@@ -146,7 +146,7 @@ Multiple distinct issues observed in the current tree, ordered by likelihood:
 
 Earlier §3.1 of this inventory (now superseded) called this file a
 self-import. That was **wrong**. The relative import
-`../admin-payment-reconciliation.service.js` resolves to the *companion*
+`../admin-payment-reconciliation.service.js` resolves to the _companion_
 file in the parent directory at
 `apps/api/src/payment/admin-payment-reconciliation.service.ts`, which
 is the correct port boundary file.
@@ -156,7 +156,7 @@ is the correct port boundary file.
 - `apps/api/src/payment/admin-payment-reconciliation.service.ts`
   owns the compile-safe surface — the request type, the outcome
   discriminated union, the `AdminPaymentReconciliationService`
-  *interface*, the `ADMIN_PAYMENT_RECONCILIATION_SERVICE` symbol token,
+  _interface_, the `ADMIN_PAYMENT_RECONCILIATION_SERVICE` symbol token,
   and the NOOP outcome note (via the noop provider).
 - `apps/api/src/payment/services/admin-payment-reconciliation.service.ts`
   owns the concrete orchestration `class AdminPaymentReconciliationService`
@@ -164,8 +164,8 @@ is the correct port boundary file.
   `AdminPaymentReconciliationServiceInterface`).
 - No file imports itself.
 - No duplicate `class AdminPaymentReconciliationService` exists
-  (only the parent file has the *interface* of the same name; the
-  subfolder has the *class*).
+  (only the parent file has the _interface_ of the same name; the
+  subfolder has the _class_).
 
 The Phase 8C vertical #1 may still choose to extract a `port.ts` file
 for stylistic clarity, but doing so is a refinement not a correctness
@@ -202,7 +202,7 @@ The actual cascade is **shared-package drift**, not a self-import.
   whose `requestType` and `orderType` widened to `string` and could
   not satisfy the narrowed MoMo literal interfaces (fixed in §11).
 
-The cascade root is therefore *not* a self-referential import — it is
+The cascade root is therefore _not_ a self-referential import — it is
 the predictable consequence of N writers editing the same contract
 surface without serialization, exactly as the recovery protocol
 predicted at §3 of the original emergency directive.
@@ -283,14 +283,14 @@ Phase 8C verticals after Gate A closes.
 
 ## 7. Layer checkpoint results (CLI authoritative)
 
-| Layer | Lint | Typecheck | Unit | Build | Notes |
-| --- | --- | --- | --- | --- | --- |
-| A `@room/contracts` | PASS (0) | PASS | PASS (258/258) | PASS | clean |
-| B `@room/database` | PASS (0) | PASS | PASS (17/17) | n/a (`db:check` PASS) | `db:check` only validates drizzle metadata; integration tests deferred to Gate A close |
-| C `@room/booking` | PASS (0) | PASS | **FAIL 6/228** (Gate B verticals) | n/a | see 7.1 — 5 gate-b9 race tests + 1 transient-retry test are Phase 8C domain regressions; not in scope for Gate A close |
-| D `@room/api` | PASS (0) | PASS | n/a | n/a | fixed rootDir removal in tsconfig + `as const` on MoMo test fixtures |
-| E `@room/worker` | PASS (0) | PASS | n/a | n/a | fixed `leaseOwner` threading in process-reconciliation.ts |
-| F `@room/web` | PASS (0) | PASS | PASS (102/102) | n/a | clean |
+| Layer               | Lint     | Typecheck | Unit                              | Build                 | Notes                                                                                                                  |
+| ------------------- | -------- | --------- | --------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| A `@room/contracts` | PASS (0) | PASS      | PASS (258/258)                    | PASS                  | clean                                                                                                                  |
+| B `@room/database`  | PASS (0) | PASS      | PASS (17/17)                      | n/a (`db:check` PASS) | `db:check` only validates drizzle metadata; integration tests deferred to Gate A close                                 |
+| C `@room/booking`   | PASS (0) | PASS      | **FAIL 6/228** (Gate B verticals) | n/a                   | see 7.1 — 5 gate-b9 race tests + 1 transient-retry test are Phase 8C domain regressions; not in scope for Gate A close |
+| D `@room/api`       | PASS (0) | PASS      | n/a                               | n/a                   | fixed rootDir removal in tsconfig + `as const` on MoMo test fixtures                                                   |
+| E `@room/worker`    | PASS (0) | PASS      | n/a                               | n/a                   | fixed `leaseOwner` threading in process-reconciliation.ts                                                              |
+| F `@room/web`       | PASS (0) | PASS      | PASS (102/102)                    | n/a                   | clean                                                                                                                  |
 
 Layer C source/lint/typecheck fixes applied (not lint suppression):
 
@@ -400,10 +400,10 @@ Options:
 
 A. Stop the A→F loop, fix the 7 booking failures, then resume D/E/F.
 B. Stop after layer C; commit only the type/contract fixes (the
-   `leaseId`/`leaseOwner` field additions and the eslint config) on
-   their own, then resume booking unit fixes separately.
+`leaseId`/`leaseOwner` field additions and the eslint config) on
+their own, then resume booking unit fixes separately.
 C. Treat layer C as red, surface a checkpoint report and wait for
-   instructions.
+instructions.
 
 Per the protocol section 10 ("Recovery checkpoint report"), I should
 deliver the checkpoint now and wait.

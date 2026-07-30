@@ -426,7 +426,10 @@ test.describe('Phase 6E ADMIN coupon vertical', () => {
     // remains a test failure.
     expect(
       consoleErrors.filter(
-        (line) => !/Failed to load resource: the server responded with a status of (401|403) \((Unauthorized|Forbidden)\)/.test(line),
+        (line) =>
+          !/Failed to load resource: the server responded with a status of (401|403) \((Unauthorized|Forbidden)\)/.test(
+            line,
+          ),
       ),
     ).toEqual([]);
   });

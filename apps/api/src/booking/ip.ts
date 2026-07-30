@@ -56,7 +56,9 @@ function ipv4ToInt(value: string): number | null {
   if (octets.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) {
     return null;
   }
-  return ((octets[0] ?? 0) << 24) | ((octets[1] ?? 0) << 16) | ((octets[2] ?? 0) << 8) | (octets[3] ?? 0);
+  return (
+    ((octets[0] ?? 0) << 24) | ((octets[1] ?? 0) << 16) | ((octets[2] ?? 0) << 8) | (octets[3] ?? 0)
+  );
 }
 
 function ipMatchesCidr(ip: string, cidr: string): boolean {
