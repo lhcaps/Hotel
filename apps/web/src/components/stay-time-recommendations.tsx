@@ -82,11 +82,7 @@ export function StayTimeRecommendations(props: RecommendationFormProps) {
     void search();
   }, [search]);
 
-  async function applyCandidate(
-    checkIn: string,
-    checkOut: string,
-    recommendationPlanCode: string,
-  ) {
+  async function applyCandidate(checkIn: string, checkOut: string, recommendationPlanCode: string) {
     setApplying(true);
     setError(undefined);
     try {

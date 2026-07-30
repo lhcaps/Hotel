@@ -94,9 +94,9 @@ test.describe('phase1 browser api seams', () => {
     await page.getByLabel('Người lớn').fill('2');
     await page.getByRole('button', { name: 'Tìm phòng' }).click();
 
-    await expect(
-      page.getByText('Không còn phòng đúng thời gian bạn chọn'),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Không còn phòng đúng thời gian bạn chọn')).toBeVisible({
+      timeout: 15_000,
+    });
     await page.waitForTimeout(1_500);
 
     expect(oldRouteRequests, 'old /availability/nearby must never be called').toHaveLength(0);
@@ -160,9 +160,9 @@ test.describe('phase1 browser api seams', () => {
     await page.getByLabel('Người lớn').fill('2');
     await page.getByRole('button', { name: 'Tìm phòng' }).click();
 
-    await expect(
-      page.getByText('Không còn phòng đúng thời gian bạn chọn'),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Không còn phòng đúng thời gian bạn chọn')).toBeVisible({
+      timeout: 15_000,
+    });
     await page.waitForTimeout(1_500);
     expect(availabilityBodies.length).toBeGreaterThanOrEqual(1);
     const body = availabilityBodies[0] as Record<string, unknown>;

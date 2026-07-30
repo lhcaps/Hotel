@@ -380,8 +380,7 @@ function NearbyCandidateGroup({
             : translate(locale, 'search.nearbyShift', { minutes: candidate.shiftMinutes })}
         </h3>
         <p>
-          {formatDateTime(locale, candidate.checkIn)} –{' '}
-          {formatDateTime(locale, candidate.checkOut)}
+          {formatDateTime(locale, candidate.checkIn)} – {formatDateTime(locale, candidate.checkOut)}
         </p>
       </header>
       <div className="availability-results__grid">

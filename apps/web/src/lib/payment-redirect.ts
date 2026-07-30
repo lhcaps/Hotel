@@ -29,10 +29,7 @@ function isLoopbackHost(hostname: string): boolean {
   return false;
 }
 
-export function assertSafePaymentRedirect(
-  rawUrl: string,
-  runtime: PaymentRedirectRuntime,
-): URL {
+export function assertSafePaymentRedirect(rawUrl: string, runtime: PaymentRedirectRuntime): URL {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
