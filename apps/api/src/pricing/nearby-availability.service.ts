@@ -213,7 +213,7 @@ export class NearbyAvailabilityService {
         .map((type) => {
           const availableRoomCount = availableRoomCountForShift(type, snapshot, shift);
           if (availableRoomCount === 0) return null;
-          const offer = evaluateRoomType(
+          return evaluateRoomType(
             type,
             {
               checkIn: shiftedCheckIn,
@@ -225,9 +225,9 @@ export class NearbyAvailabilityService {
             snapshot.amenitiesByRoomType.get(type.id) ?? [],
             availableRoomCount,
           );
-          return offer;
         })
-        .filter(<T>(value: T | null): value is T => value !== null);
+        .filter(<T>(value: T | null): value is T => value !== null)
+        .filter((entry) => entry.offer !== null);
       if (roomTypesForCandidate.length === 0) continue;
       out.push({
         checkIn: shiftedCheckIn,

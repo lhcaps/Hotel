@@ -262,7 +262,7 @@ function ResultCard({
         ) : null}
       </CardContent>
       <CardFooter className="availability-results__room-footer">
-        {availableRoomCount > 0 ? (
+        {availableRoomCount > 0 && offer ? (
           <Link
             className="hospitality-button"
             href={`/rooms/${roomTypeId}?${toBookingSearchQuery(state)}`}
