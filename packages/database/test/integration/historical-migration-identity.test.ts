@@ -4,7 +4,7 @@
  * The published repository is squashed into a single clean root commit, so the
  * historical ancestry used by the legacy test cannot be relied upon any more.
  * Migration provenance is now encoded in
- * `packages/database/drizzle/meta/migration-provenance.json`. This test asserts
+ * `packages/database/drizzle/migration-provenance.json`. This test asserts
  * durable invariants without consulting git ancestry:
  *
  *   1. The released migration .sql files match the journal one-to-one and in
@@ -27,7 +27,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const DRIZZLE_DIR = resolve(import.meta.dirname, '..', '..', 'drizzle');
-const PROVENANCE_PATH = resolve(DRIZZLE_DIR, 'meta', 'migration-provenance.json');
+const PROVENANCE_PATH = resolve(DRIZZLE_DIR, 'migration-provenance.json');
 
 interface ProvenanceEntry {
   readonly index: number;

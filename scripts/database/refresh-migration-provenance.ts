@@ -15,7 +15,7 @@ import { resolve } from 'node:path';
 
 const repoRoot = resolve(import.meta.dirname, '..', '..');
 const drizzleDir = resolve(repoRoot, 'packages', 'database', 'drizzle');
-const manifestPath = resolve(drizzleDir, 'meta', 'migration-provenance.json');
+const manifestPath = resolve(drizzleDir, 'migration-provenance.json');
 
 interface ProvenanceEntry {
   index: number;
