@@ -23,10 +23,6 @@ const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/u;
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/u;
 const HO_CHI_MINH_OFFSET_MINUTES = 7 * 60;
 
-function pad(value: number): string {
-  return value < 10 ? `0${value}` : String(value);
-}
-
 function ensureValidDate(parts: RegExpMatchArray): { year: number; month: number; day: number } {
   const year = Number(parts[1]);
   const month = Number(parts[2]);

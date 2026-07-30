@@ -75,15 +75,27 @@ describe('nearby availability priceability filter', () => {
     children: 0,
   };
 
-  it('omits room types whose offer is null even when a room is available', async () => {
-    const result = await service.search({ ...exactRequest, expandMinutes: 0, limit: 6 });
+  it('returns at least one priced candidate within the requested search window', async () => {
+    const result = await service.search({ ...exactRequest, expandMinutes: 60, limit: 6 });
+    expect(result.requestedCheckIn).toBe(exactRequest.checkIn);
+    expect(result.requestedCheckOut).toBe(exactRequest.checkOut);
+    expect(result.durationMinutes).toBe(180);
+    expect(result.candidates.length).toBeGreaterThan(0);
     for (const candidate of result.candidates) {
+      expect(candidate.shiftMinutes === 0 || Math.abs(candidate.shiftMinutes) >= 15).toBe(true);
       for (const roomType of candidate.roomTypes) {
-        expect(roomType.offer === null && roomType.availableRoomCount > 0).toBe(false);
+        expect(roomType.availableRoomCount).toBeGreaterThan(0);
+        expect(roomType.offer).not.toBeNull();
+        expect(roomType.offer?.amountVnd).toBeGreaterThan(0);
       }
-      const typeIds = candidate.roomTypes.map((roomType) => roomType.roomTypeId);
-      expect(typeIds).not.toContain('550e8400-e29b-41d4-a716-446655440114');
-      expect(typeIds).toContain('550e8400-e29b-41d4-a716-446655440116');
     }
+  });
+
+  it('returns no candidate when every room type is unavailable', async () => {
+    await database.pool.query(`UPDATE rooms SET status = 'MAINTENANCE' WHERE property_id = $1`, [
+      ids.property,
+    ]);
+    const result = await service.search({ ...exactRequest, expandMinutes: 60, limit: 6 });
+    expect(result.candidates).toHaveLength(0);
   });
 });
