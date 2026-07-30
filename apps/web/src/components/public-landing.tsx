@@ -17,34 +17,16 @@ import type { PublicRoomCatalogResponse } from '@room/contracts/public-room-cata
 import { publicHospitalityContent } from '../content/public-hospitality-content';
 import { translate } from '../lib/i18n/messages';
 import { publicRoomImage } from '../lib/public-room-catalog';
+import { toPublicCatalogState } from '../lib/public-catalog-state';
 import { LandingAvailabilitySearch } from './landing-availability-search';
 import { useLocale } from './locale-provider';
-
-type LandingRoom = {
-  id: string;
-  name: string;
-  description: string | null;
-  maxOccupancy: number;
-  amenities: readonly { name: string }[];
-};
-
-function fallbackRooms(locale: 'vi' | 'en'): readonly LandingRoom[] {
-  return publicHospitalityContent.rooms.map((room, index) => ({
-    id: room.key,
-    name: translate(locale, `landing.room.${room.key}` as never),
-    description: translate(locale, `landing.room.${room.key}.description` as never),
-    maxOccupancy: index === 1 ? 4 : 2,
-    amenities: [],
-  }));
-}
 
 export function PublicLanding({
   catalog = null,
 }: Readonly<{ catalog?: PublicRoomCatalogResponse | null }>) {
   const locale = useLocale();
-  const catalogRooms = catalog?.items ?? [];
-  const usesCatalog = catalogRooms.length > 0;
-  const rooms = usesCatalog ? catalogRooms : fallbackRooms(locale);
+  const state = toPublicCatalogState(catalog);
+  const catalogRooms = state.kind === 'ready' ? state.catalog.items : [];
 
   return (
     <main id="main-content">
@@ -97,34 +79,61 @@ export function PublicLanding({
             {translate(locale, 'landing.exploreRooms')} <ArrowRight aria-hidden="true" size={16} />
           </Link>
         </div>
-        <div className="hospitality-rooms">
-          {rooms.slice(0, 3).map((room) => (
-            <article className="hospitality-room" key={room.id}>
-              <img alt={room.name} src={publicRoomImage(room.id)} />
-              <div className="hospitality-room__body">
-                <div className="hospitality-room__title-row">
-                  <h3>{room.name}</h3>
-                  <span>
-                    <Users aria-hidden="true" size={15} />
-                    {translate(locale, 'search.capacity', { count: room.maxOccupancy })}
-                  </span>
+        {catalogRooms.length > 0 ? (
+          <div className="hospitality-rooms" data-testid="landing-featured-rooms">
+            {catalogRooms.slice(0, 3).map((room) => (
+              <article className="hospitality-room" key={room.id}>
+                <img alt={room.name} src={publicRoomImage(room.id)} />
+                <div className="hospitality-room__body">
+                  <div className="hospitality-room__title-row">
+                    <h3>{room.name}</h3>
+                    <span>
+                      <Users aria-hidden="true" size={15} />
+                      {translate(locale, 'search.capacity', { count: room.maxOccupancy })}
+                    </span>
+                  </div>
+                  {room.description === null ? null : <p>{room.description}</p>}
+                  {room.amenities.length > 0 ? (
+                    <ul aria-label={translate(locale, 'catalog.amenities')}>
+                      {room.amenities.slice(0, 3).map((amenity) => (
+                        <li key={amenity.name}>{amenity.name}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <Link href={`/rooms/${room.id}`}>
+                    {translate(locale, 'catalog.detailHeading')}{' '}
+                    <ArrowRight aria-hidden="true" size={16} />
+                  </Link>
                 </div>
-                {room.description === null ? null : <p>{room.description}</p>}
-                {room.amenities.length > 0 ? (
-                  <ul aria-label={translate(locale, 'catalog.amenities')}>
-                    {room.amenities.slice(0, 3).map((amenity) => (
-                      <li key={amenity.name}>{amenity.name}</li>
-                    ))}
-                  </ul>
-                ) : null}
-                <Link href={usesCatalog ? `/rooms/${room.id}` : '/rooms'}>
-                  {translate(locale, 'catalog.detailHeading')}{' '}
-                  <ArrowRight aria-hidden="true" size={16} />
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <section
+            aria-labelledby="landing-featured-empty-heading"
+            className="rooms-catalog__status"
+            data-testid="landing-featured-empty"
+            role={state.kind === 'unavailable' ? 'alert' : undefined}
+          >
+            <h2 id="landing-featured-empty-heading">
+              {translate(
+                locale,
+                state.kind === 'unavailable'
+                  ? 'catalog.unavailableHeading'
+                  : 'catalog.emptyHeading',
+              )}
+            </h2>
+            <p>
+              {translate(
+                locale,
+                state.kind === 'unavailable' ? 'catalog.unavailableBody' : 'catalog.emptyBody',
+              )}
+            </p>
+            <Link className="hospitality-button mt-4" href="/rooms">
+              {translate(locale, 'catalog.retry')}
+            </Link>
+          </section>
+        )}
       </section>
 
       <section

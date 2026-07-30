@@ -3,10 +3,14 @@ import { cookies } from 'next/headers';
 
 import { resolveLocale, translate } from '../../lib/i18n/messages';
 import { loadPublicRoomCatalog, publicRoomImage } from '../../lib/public-room-catalog';
+import { toPublicCatalogState } from '../../lib/public-catalog-state';
+
+export const dynamic = 'force-dynamic';
 
 export default async function PublicRoomsPage() {
   const [cookieStore, catalog] = await Promise.all([cookies(), loadPublicRoomCatalog()]);
   const locale = resolveLocale(cookieStore.get('room_locale')?.value);
+  const state = toPublicCatalogState(catalog);
   return (
     <main className="rooms-catalog" id="main-content">
       <header className="rooms-catalog__intro">
@@ -17,13 +21,35 @@ export default async function PublicRoomsPage() {
           {translate(locale, 'catalog.checkStay')}
         </Link>
       </header>
-      {catalog === null ? (
-        <p className="rooms-catalog__status" role="alert">
-          {translate(locale, 'search.loadErrorHelp')}
-        </p>
-      ) : (
+      {state.kind === 'unavailable' ? (
+        <section
+          aria-labelledby="rooms-catalog-status-heading"
+          className="rooms-catalog__status"
+          data-testid="rooms-catalog-unavailable"
+          role="alert"
+        >
+          <h2 id="rooms-catalog-status-heading">
+            {translate(locale, 'catalog.unavailableHeading')}
+          </h2>
+          <p>{translate(locale, 'catalog.unavailableBody')}</p>
+          <Link className="hospitality-button mt-4" href="/rooms">
+            {translate(locale, 'catalog.retry')}
+          </Link>
+        </section>
+      ) : null}
+      {state.kind === 'empty' ? (
+        <section
+          aria-labelledby="rooms-catalog-empty-heading"
+          className="rooms-catalog__status"
+          data-testid="rooms-catalog-empty"
+        >
+          <h2 id="rooms-catalog-empty-heading">{translate(locale, 'catalog.emptyHeading')}</h2>
+          <p>{translate(locale, 'catalog.emptyBody')}</p>
+        </section>
+      ) : null}
+      {state.kind === 'ready' ? (
         <section aria-label={translate(locale, 'catalog.list')} className="room-catalog-list">
-          {catalog.items.map((room, index) => {
+          {state.catalog.items.map((room, index) => {
             const detailsHref = `/rooms/${room.id}`;
             return (
               <article className="room-catalog-list__item" key={room.id} data-room-index={index}>
@@ -59,7 +85,7 @@ export default async function PublicRoomsPage() {
             );
           })}
         </section>
-      )}
+      ) : null}
     </main>
   );
 }

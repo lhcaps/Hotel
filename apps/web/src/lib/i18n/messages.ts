@@ -1386,6 +1386,52 @@ const variableMessages = {
     'hold.underMinute': 'Còn dưới một phút.',
     'hold.underFiveMinutes': 'Còn dưới 5 phút.',
     'hold.printConfirmation': 'In mã xác nhận',
+    'hold.emailNotice':
+      'Email xác nhận giữ chỗ đã được gửi đến email liên hệ của bạn. Vui lòng kiểm tra hộp thư đến và thư rác.',
+    'catalog.emptyHeading': 'Chưa có hạng phòng đang được mở bán',
+    'catalog.emptyBody':
+      'Hiện chưa có hạng phòng nào được niêm yết cho kỳ lưu trú này. Vui lòng quay lại sau hoặc liên hệ cơ sở.',
+    'catalog.unavailableHeading': 'Không thể tải danh sách hạng phòng',
+    'catalog.unavailableBody':
+      'Hệ thống đang bận hoặc có lỗi kết nối. Vui lòng thử lại sau ít phút.',
+    'catalog.retry': 'Thử lại',
+    'roomDetail.browseHeading': 'Kiểm tra tình trạng phòng',
+    'roomDetail.browseHelp':
+      'Chọn thời gian để kiểm tra tình trạng phòng. Hệ thống sẽ trả về báo giá chính thức dựa trên cơ sở dữ liệu.',
+    'roomDetail.browseCta': 'Kiểm tra phòng',
+    'success.heading': 'Đặt phòng thành công',
+    'success.subHeading': 'Cảm ơn bạn đã đặt phòng. Dưới đây là thông tin xác nhận.',
+    'success.emailNotice':
+      'Email xác nhận đặt phòng đã được gửi đến địa chỉ liên hệ của bạn. Vui lòng giữ mã đặt phòng để tra cứu.',
+    'success.print': 'In xác nhận',
+    'success.manage': 'Quản lý đặt phòng',
+    'success.home': 'Về trang chủ',
+    'success.demoMailpit': 'Môi trường demo: mở Mailpit để xem email.',
+    'payment.loadErrorRetry': 'Tải lại',
+    'payment.states.loading': 'Đang kiểm tra thanh toán…',
+    'payment.states.notStarted': 'Chưa thanh toán',
+    'payment.states.notStartedHelp':
+      'Chọn MoMo hoặc VNPAY phía dưới để tiến hành thanh toán. Bạn có thể hoàn tất trong thời gian giữ chỗ.',
+    'payment.states.pending': 'Đang xác nhận thanh toán',
+    'payment.states.pendingHelp':
+      'Hệ thống đã nhận yêu cầu và đang chờ xác nhận từ cổng thanh toán. Trang này sẽ tự cập nhật khi có kết quả.',
+    'payment.states.succeeded': 'Thanh toán thành công',
+    'payment.states.failed': 'Thanh toán thất bại',
+    'payment.states.failedHelp':
+      'Giao dịch không thành công. Vui lòng thử lại hoặc chọn phương thức khác.',
+    'payment.states.cancelled': 'Đã huỷ thanh toán',
+    'payment.states.cancelledHelp':
+      'Bạn đã huỷ giao dịch. Bạn có thể bắt đầu lại thanh toán bất cứ lúc nào trong thời gian giữ chỗ.',
+    'payment.states.expired': 'Đã hết hạn',
+    'payment.states.expiredHelp':
+      'Giữ chỗ hoặc phiên thanh toán đã hết hạn. Vui lòng tạo báo giá mới để tiếp tục.',
+    'payment.states.reviewRequired': 'Cần xem xét',
+    'payment.states.reviewRequiredHelp':
+      'Vui lòng không thanh toán lại. Đội ngũ cơ sở đang kiểm tra giao dịch và sẽ phản hồi sớm nhất.',
+    'payment.states.loadError': 'Không thể tải trạng thái thanh toán',
+    'payment.states.loadErrorHelp':
+      'Hệ thống đang bận hoặc có lỗi kết nối. Hãy thử tải lại trạng thái để tiếp tục.',
+    'guest.sessionExpiredAction': 'Yêu cầu mã mới',
     'payment.selection': 'Thanh toán',
     'payment.selectionHelp': 'Chọn phương thức để tiếp tục. Số tiền được xác định trên máy chủ.',
     'payment.loadError': 'Không thể tải phương thức thanh toán.',
@@ -1551,6 +1597,52 @@ const variableMessages = {
     'hold.underMinute': 'Less than one minute remains.',
     'hold.underFiveMinutes': 'Less than five minutes remain.',
     'hold.printConfirmation': 'Print confirmation',
+    'hold.emailNotice':
+      'A booking-hold confirmation email was sent to your contact address. Please check your inbox and spam folder.',
+    'catalog.emptyHeading': 'No room types are on sale right now',
+    'catalog.emptyBody':
+      'No room types are currently listed for this stay. Please come back later or contact the property.',
+    'catalog.unavailableHeading': 'Room types could not be loaded',
+    'catalog.unavailableBody':
+      'The service is busy or there is a connection issue. Please try again in a moment.',
+    'catalog.retry': 'Retry',
+    'roomDetail.browseHeading': 'Check room availability',
+    'roomDetail.browseHelp':
+      'Choose a time to check room availability. The system will return an authoritative quote from the database.',
+    'roomDetail.browseCta': 'Check availability',
+    'success.heading': 'Booking confirmed',
+    'success.subHeading': 'Thank you for your booking. Your confirmation details are below.',
+    'success.emailNotice':
+      'A booking confirmation email was sent to your contact address. Please keep the booking code for your records.',
+    'success.print': 'Print confirmation',
+    'success.manage': 'Manage booking',
+    'success.home': 'Return home',
+    'success.demoMailpit': 'Demo environment: open Mailpit to view the email.',
+    'payment.loadErrorRetry': 'Retry',
+    'payment.states.loading': 'Checking payment status…',
+    'payment.states.notStarted': 'Awaiting payment',
+    'payment.states.notStartedHelp':
+      'Choose MoMo or VNPAY below to continue. You can complete payment while the hold is still active.',
+    'payment.states.pending': 'Confirming payment',
+    'payment.states.pendingHelp':
+      'We have received the request and are awaiting confirmation from the payment gateway. This page will update automatically.',
+    'payment.states.succeeded': 'Payment succeeded',
+    'payment.states.failed': 'Payment failed',
+    'payment.states.failedHelp':
+      'The payment did not succeed. Please try again or pick another method.',
+    'payment.states.cancelled': 'Payment cancelled',
+    'payment.states.cancelledHelp':
+      'You cancelled this payment. You can start a new attempt while the hold is still active.',
+    'payment.states.expired': 'Expired',
+    'payment.states.expiredHelp':
+      'The booking hold or payment window has expired. Please create a new quote to continue.',
+    'payment.states.reviewRequired': 'Review required',
+    'payment.states.reviewRequiredHelp':
+      'Do not pay again. The property is reviewing this payment and will respond shortly.',
+    'payment.states.loadError': 'Payment status could not be loaded',
+    'payment.states.loadErrorHelp':
+      'The service is busy or there is a connection issue. Retry loading the status to continue.',
+    'guest.sessionExpiredAction': 'Request a new code',
     'payment.selection': 'Payment',
     'payment.selectionHelp': 'Choose a method to continue. The server determines the amount.',
     'payment.loadError': 'Payment methods could not be loaded.',

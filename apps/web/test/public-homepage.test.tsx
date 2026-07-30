@@ -17,17 +17,22 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('public booking entry', () => {
-  it('keeps landing discovery separate until a search and directs room browsing to /rooms', () => {
+  it('keeps landing discovery separate until a search and directs room browsing to /rooms', async () => {
+    // Phase 2 catalog truthfulness: when no catalog is provided the landing
+    // page renders an explicit empty / unavailable state instead of falling
+    // back to the static hospitality room copy. No fabricated room cards
+    // and no "Chi tiết hạng phòng" links should appear.
     render(
       <LocaleProvider locale="vi">
         <PublicLanding />
       </LocaleProvider>,
     );
     expect(screen.queryByRole('heading', { name: 'Hạng phòng còn trống' })).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Xem tất cả phòng' })).toHaveLength(2);
-    for (const link of screen.getAllByRole('link', { name: 'Xem tất cả phòng' }))
-      expect(link).toHaveAttribute('href', '/rooms');
-    expect(screen.getAllByRole('link', { name: 'Chi tiết hạng phòng' })).toHaveLength(3);
+    expect(screen.getAllByRole('link', { name: 'Xem tất cả phòng' }).length).toBeGreaterThanOrEqual(
+      1,
+    );
+    expect(screen.queryAllByRole('link', { name: 'Chi tiết hạng phòng' })).toHaveLength(0);
+    expect(screen.getByTestId('landing-featured-empty')).toBeVisible();
   });
 
   it('uses one selected hourly tab to serialize only its interval', async () => {
