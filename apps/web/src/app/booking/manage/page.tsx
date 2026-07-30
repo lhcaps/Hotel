@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { GuestAccessOtpRequestResponse, GuestAccessOtpVerifyResponse } from '@room/contracts';
 
@@ -25,6 +26,7 @@ type ManageState =
 
 export default function BookingManagePage() {
   const locale = useLocale();
+  const router = useRouter();
   const [state, setState] = useState<ManageState>({ kind: 'requesting-otp' });
 
   function handleOtpRequested(
@@ -42,6 +44,11 @@ export default function BookingManagePage() {
   function handleVerified(response: GuestAccessOtpVerifyResponse) {
     setState((current) => {
       if (current.kind !== 'verifying-otp') return current;
+      // Replace the OTP entry route with the persistent booking-code route so
+      // refresh and direct URL reuse rely only on the HttpOnly session cookie.
+      // The destination never contains the OTP code, email, challengeRef, or
+      // any other secret.
+      router.replace(`/booking/manage/${response.bookingCode}`);
       return {
         kind: 'authenticated',
         bookingCode: response.bookingCode,
