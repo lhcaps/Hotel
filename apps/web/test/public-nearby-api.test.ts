@@ -11,10 +11,18 @@ describe('publicApi.searchNearbyAvailability routing', () => {
       const url =
         typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
       calls.push({ url, init });
-      return new Response(JSON.stringify({ candidates: [] }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          requestedCheckIn: '2027-01-10T04:00:00.000Z',
+          requestedCheckOut: '2027-01-10T07:00:00.000Z',
+          durationMinutes: 180,
+          candidates: [],
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      );
     }) as typeof fetch;
     try {
       const response = await publicApi.searchNearbyAvailability({
@@ -34,7 +42,6 @@ describe('publicApi.searchNearbyAvailability routing', () => {
     const last = calls[0];
     expect(last).toBeDefined();
     expect(last?.url).toMatch(/\/public\/availability\/nearby(\?|$)/);
-    expect(last?.url).not.toMatch(/\/api\/v1\/availability\/nearby(\?|$)/);
-    expect(last?.url).not.toMatch(/\/availability\/nearby(\?|$)/);
+    expect(last?.url).toBe('http://api.local/api/v1/public/availability/nearby');
   });
 });

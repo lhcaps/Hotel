@@ -443,7 +443,7 @@ export const publicApi = {
       availabilitySearchResponseSchema.parse(response),
     ),
   searchNearbyAvailability: (body: NearbyAvailabilityRequest) =>
-    request<unknown>('/availability/nearby', {
+    request<unknown>('/public/availability/nearby', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(nearbyAvailabilityRequestSchema.parse(body)),

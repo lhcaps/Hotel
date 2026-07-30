@@ -33,14 +33,14 @@ describe('buildHourlyInterval', () => {
     expect(result.checkOut).toBe('2027-01-01T00:45:00+07:00');
   });
 
-  it('rounds to the next quarter hour before adding duration', () => {
+  it('rounds the start time to the next quarter hour before computing checkout', () => {
     const result = buildHourlyInterval({
       date: '2026-07-31',
       time: '23:53',
-      durationMinutes: 15,
+      durationMinutes: 60,
     });
     expect(result.checkIn).toBe('2026-08-01T00:00:00+07:00');
-    expect(result.checkOut).toBe('2026-08-01T00:15:00+07:00');
+    expect(result.checkOut).toBe('2026-08-01T01:00:00+07:00');
   });
 
   it('rejects a duration below 60 minutes', () => {

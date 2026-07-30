@@ -3,8 +3,18 @@
 import { useEffect, useState } from 'react';
 
 import { bookingApi, type PublicPaymentProvider } from '../lib/booking-api';
+import { assertSafePaymentRedirect } from '../lib/payment-redirect';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+
+type Runtime = 'development' | 'test' | 'production';
+
+const PAYMENT_RUNTIME: Runtime =
+  process.env['NEXT_PUBLIC_PAYMENT_REDIRECT_RUNTIME'] === 'production'
+    ? 'production'
+    : process.env['NEXT_PUBLIC_PAYMENT_REDIRECT_RUNTIME'] === 'test'
+      ? 'test'
+      : 'development';
 
 export function PaymentProviderSelector({ bookingCode }: Readonly<{ bookingCode: string }>) {
   const locale = useLocale();
@@ -35,8 +45,7 @@ export function PaymentProviderSelector({ bookingCode }: Readonly<{ bookingCode:
         provider,
         globalThis.crypto.randomUUID(),
       );
-      const url = new URL(result.redirectUrl);
-      if (url.protocol !== 'https:') throw new Error('unsafe redirect');
+      const url = assertSafePaymentRedirect(result.redirectUrl, PAYMENT_RUNTIME);
       globalThis.location.assign(url.toString());
     } catch {
       setMessage(translate(locale, 'payment.initError'));

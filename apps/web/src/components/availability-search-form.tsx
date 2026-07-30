@@ -9,6 +9,7 @@ import { Field, FieldGroup, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import {
+  buildHourlyInterval,
   readBookingSearchQuery,
   toBookingSearchQuery,
   type BookingMode,
@@ -22,10 +23,6 @@ const FIVE_MINUTE_MS = 5 * 60_000;
 
 function withOffset(value: string) {
   return `${value}:00+07:00`;
-}
-
-function dateTime(date: string, time: string) {
-  return withOffset(`${date}T${time}`);
 }
 
 function inputDateTime(value: string | undefined) {
@@ -62,19 +59,6 @@ function roundUpToNextQuarterHour(time: string) {
   const newHour = Math.floor(rounded / 60) % 24;
   const newMinute = rounded % 60;
   return `${String(newHour).padStart(2, '0')}:${String(newMinute).padStart(2, '0')}`;
-}
-
-function addMinutes(time: string, minutes: number) {
-  const [hour, minute] = time.split(':').map(Number);
-  if (
-    hour === undefined ||
-    minute === undefined ||
-    !Number.isFinite(hour) ||
-    !Number.isFinite(minute)
-  )
-    return '';
-  const total = hour * 60 + minute + minutes;
-  return `${String(Math.floor((total % 1440) / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
 export function AvailabilitySearchForm({
@@ -149,20 +133,28 @@ export function AvailabilitySearchForm({
       }
     }
 
-    const interval =
-      bookingMode === 'hourly'
-        ? submittedHourlyDate && submittedHourlyStart
-          ? {
-              checkIn: dateTime(submittedHourlyDate, submittedHourlyStart),
-              checkOut: dateTime(
-                submittedHourlyDate,
-                addMinutes(submittedHourlyStart, submittedDuration),
-              ),
-            }
-          : undefined
-        : submittedCheckIn && submittedCheckOut
-          ? { checkIn: withOffset(submittedCheckIn), checkOut: withOffset(submittedCheckOut) }
-          : undefined;
+    type IntervalResult = { readonly checkIn: string; readonly checkOut: string } | undefined;
+    let interval: IntervalResult;
+    try {
+      interval =
+        bookingMode === 'hourly'
+          ? submittedHourlyDate && submittedHourlyStart
+            ? buildHourlyInterval({
+                date: submittedHourlyDate,
+                time: submittedHourlyStart,
+                durationMinutes: submittedDuration,
+              })
+            : undefined
+          : submittedCheckIn && submittedCheckOut
+            ? {
+                checkIn: withOffset(submittedCheckIn),
+                checkOut: withOffset(submittedCheckOut),
+              }
+            : undefined;
+    } catch {
+      setError(translate(locale, 'search.invalidInterval'));
+      return;
+    }
 
     if (
       !interval ||
