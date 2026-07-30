@@ -18,13 +18,21 @@ export default async function QuotePage({
   const checkOut = readParam('checkOut');
   const adults = readParam('adults');
   const children = readParam('children');
+  const selectedPlanCode = readParam('selectedPlanCode');
   const context =
     roomTypeId !== undefined &&
     checkIn !== undefined &&
     checkOut !== undefined &&
     adults !== undefined &&
     children !== undefined
-      ? { roomTypeId, checkIn, checkOut, adults, children }
+      ? {
+          roomTypeId,
+          checkIn,
+          checkOut,
+          adults,
+          children,
+          ...(selectedPlanCode !== undefined ? { selectedPlanCode } : {}),
+        }
       : null;
   return <QuoteView id={quoteId} context={context} />;
 }

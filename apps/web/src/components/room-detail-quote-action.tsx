@@ -64,7 +64,9 @@ export function RoomDetailQuoteAction({
         children: state.children,
         selectedPlanCode,
       });
-      router.push(`/booking/quote/${quote.id}?roomTypeId=${roomTypeId}&${search}`);
+      const params = new URLSearchParams(search);
+      params.set('selectedPlanCode', selectedPlanCode);
+      router.push(`/booking/quote/${quote.id}?roomTypeId=${roomTypeId}&${params.toString()}`);
     } catch {
       setFailed(true);
     } finally {

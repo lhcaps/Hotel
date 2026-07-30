@@ -22,6 +22,7 @@ interface RecommendationFormProps {
   readonly adults: number;
   readonly children: number;
   readonly couponCode?: string;
+  readonly selectedPlanCode?: string;
 }
 
 function describeShift(locale: Locale, shiftMinutes: number): string {
@@ -85,24 +86,39 @@ export function StayTimeRecommendations(props: RecommendationFormProps) {
     setApplying(true);
     setError(undefined);
     try {
-      const result = await publicApi.issueQuote({
+      const body: {
+        roomTypeId: string;
+        checkIn: string;
+        checkOut: string;
+        adults: number;
+        children: number;
+        selectedPlanCode?: string;
+        couponCode?: string;
+      } = {
         roomTypeId: props.roomTypeId,
         checkIn,
         checkOut,
         adults: props.adults,
         children: props.children,
-        ...(props.couponCode !== undefined && props.couponCode !== ''
-          ? { couponCode: props.couponCode }
-          : {}),
-      });
-      const search = new URLSearchParams({
+      };
+      if (props.selectedPlanCode !== undefined && props.selectedPlanCode !== '') {
+        body.selectedPlanCode = props.selectedPlanCode;
+      }
+      if (props.couponCode !== undefined && props.couponCode !== '') {
+        body.couponCode = props.couponCode;
+      }
+      const result = await publicApi.issueQuote(body);
+      const query = new URLSearchParams({
         roomTypeId: props.roomTypeId,
         checkIn,
         checkOut,
         adults: String(props.adults),
         children: String(props.children),
       });
-      router.push(`/booking/quote/${result.id}?${search.toString()}`);
+      if (props.selectedPlanCode !== undefined && props.selectedPlanCode !== '') {
+        query.set('selectedPlanCode', props.selectedPlanCode);
+      }
+      router.push(`/booking/quote/${result.id}?${query.toString()}`);
     } catch {
       setError(translate(locale, 'recommendations.quoteError'));
       setApplying(false);

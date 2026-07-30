@@ -32,6 +32,7 @@ export interface QuoteContext {
   readonly checkOut: string;
   readonly adults: string;
   readonly children: string;
+  readonly selectedPlanCode?: string;
 }
 
 function describeError(locale: Locale, error: unknown): string {
@@ -76,6 +77,9 @@ function buildContextQuery(context: QuoteContext): string {
     adults: context.adults,
     children: context.children,
   });
+  if (context.selectedPlanCode !== undefined && context.selectedPlanCode !== '') {
+    params.set('selectedPlanCode', context.selectedPlanCode);
+  }
   return params.toString();
 }
 
@@ -130,15 +134,29 @@ export function QuoteView({
     setCouponError(null);
     setCouponPending(true);
     const token = (loadTokenRef.current += 1);
+    const requestBody: {
+      roomTypeId: string;
+      checkIn: string;
+      checkOut: string;
+      adults: number;
+      children: number;
+      selectedPlanCode?: string;
+      couponCode?: string;
+    } = {
+      roomTypeId: context.roomTypeId,
+      checkIn: context.checkIn,
+      checkOut: context.checkOut,
+      adults: Number(context.adults),
+      children: Number(context.children),
+    };
+    if (context.selectedPlanCode !== undefined && context.selectedPlanCode !== '') {
+      requestBody.selectedPlanCode = context.selectedPlanCode;
+    }
+    if (couponCode.length > 0) {
+      requestBody.couponCode = couponCode;
+    }
     try {
-      const result = await publicApi.issueQuote({
-        roomTypeId: context.roomTypeId,
-        checkIn: context.checkIn,
-        checkOut: context.checkOut,
-        adults: Number(context.adults),
-        children: Number(context.children),
-        ...(couponCode.length > 0 ? { couponCode } : {}),
-      });
+      const result = await publicApi.issueQuote(requestBody);
       if (token !== loadTokenRef.current) return;
       const query = buildContextQuery(context);
       router.push(`/booking/quote/${result.id}?${query}`);
@@ -226,6 +244,9 @@ export function QuoteView({
                 checkOut={context.checkOut}
                 adults={Number(context.adults)}
                 children={Number(context.children)}
+                {...(context.selectedPlanCode !== undefined
+                  ? { selectedPlanCode: context.selectedPlanCode }
+                  : {})}
                 {...(quote.coupon?.code !== undefined && quote.coupon.code !== ''
                   ? { couponCode: quote.coupon.code }
                   : {})}

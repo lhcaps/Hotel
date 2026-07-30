@@ -84,6 +84,7 @@ const CONTEXT = {
   checkOut: '2027-01-10T06:00:00.000Z',
   adults: '2',
   children: '0',
+  selectedPlanCode: 'THREE_HOUR_COMBO',
 };
 
 describe('QuoteView coupon integration', () => {
@@ -149,11 +150,61 @@ describe('QuoteView coupon integration', () => {
       checkOut: CONTEXT.checkOut,
       adults: 2,
       children: 0,
+      selectedPlanCode: CONTEXT.selectedPlanCode,
       couponCode: 'SUMMER-50K',
     });
     expect(body).not.toHaveProperty('discountAmountVnd');
     expect(body).not.toHaveProperty('finalAmountVnd');
     expect(body).not.toHaveProperty('couponId');
+  });
+
+  it('preserves selectedPlanCode through a coupon clear cycle (applies then clears)', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(QUOTE_WITHOUT_COUPON))
+      .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS))
+      .mockResolvedValueOnce(jsonResponse({ id: '00000000-0000-4000-8000-000000000011' }))
+      .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS))
+      .mockResolvedValueOnce(jsonResponse(QUOTE_WITHOUT_COUPON));
+    const user = userEvent.setup();
+    render(<QuoteView id={QUOTE_WITHOUT_COUPON.id} context={CONTEXT} />);
+
+    await screen.findByText('Hoàn tất giữ chỗ');
+    await user.type(screen.getByLabelText('Mã giảm giá'), 'SUMMER-50K');
+    await user.click(screen.getByRole('button', { name: 'Áp dụng' }));
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3));
+
+    const applyCall = fetchMock.mock.calls[2];
+    const applyInit = applyCall?.[1] as RequestInit | undefined;
+    const applyBody = JSON.parse(String(applyInit?.body)) as Record<string, unknown>;
+    expect(applyBody.selectedPlanCode).toBe('THREE_HOUR_COMBO');
+    expect(applyBody.couponCode).toBe('SUMMER-50K');
+  });
+
+  it('omits selectedPlanCode when not provided in context but never infers a plan during clear', async () => {
+    const CONTEXT_NO_PLAN = {
+      roomTypeId: '11111111-1111-4111-8111-111111111111',
+      checkIn: '2027-01-10T03:00:00.000Z',
+      checkOut: '2027-01-10T06:00:00.000Z',
+      adults: '2',
+      children: '0',
+    };
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(QUOTE_WITHOUT_COUPON))
+      .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS))
+      .mockResolvedValueOnce(jsonResponse({ id: '00000000-0000-4000-8000-000000000012' }));
+    const user = userEvent.setup();
+    render(<QuoteView id={QUOTE_WITHOUT_COUPON.id} context={CONTEXT_NO_PLAN} />);
+
+    await screen.findByText('Hoàn tất giữ chỗ');
+    await user.type(screen.getByLabelText('Mã giảm giá'), 'SUMMER-50K');
+    await user.click(screen.getByRole('button', { name: 'Áp dụng' }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    const issueCall = fetchMock.mock.calls[2];
+    const init = issueCall?.[1] as RequestInit | undefined;
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    expect(body).not.toHaveProperty('selectedPlanCode');
+    expect(body.couponCode).toBe('SUMMER-50K');
   });
 
   it('shows a safe Vietnamese error and does not replace the current quote when the coupon is rejected', async () => {
@@ -192,6 +243,7 @@ describe('QuoteView coupon integration', () => {
     const init = issueCall?.[1] as RequestInit | undefined;
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body).not.toHaveProperty('couponCode');
+    expect(body.selectedPlanCode).toBe('THREE_HOUR_COMBO');
   });
 
   it('does not write the coupon code to URL or browser storage', async () => {
