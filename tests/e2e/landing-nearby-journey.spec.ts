@@ -21,12 +21,15 @@ test('Landing exact availability renders DB-backed room cards without navigating
 
 test('Landing exact-empty triggers exactly one nearby HTTP request', async ({ page }) => {
   const nearbyRequests: string[] = [];
-  await page.route('**/api/v1/availability/nearby', (route) => {
+  await page.route('**/api/v1/public/availability/nearby', (route) => {
     nearbyRequests.push(route.request().url());
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
+        requestedCheckIn: '2030-12-31T11:00:00.000Z',
+        requestedCheckOut: '2030-12-31T14:00:00.000Z',
+        durationMinutes: 180,
         candidates: [],
       }),
     });

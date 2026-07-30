@@ -82,7 +82,11 @@ export function StayTimeRecommendations(props: RecommendationFormProps) {
     void search();
   }, [search]);
 
-  async function applyCandidate(checkIn: string, checkOut: string) {
+  async function applyCandidate(
+    checkIn: string,
+    checkOut: string,
+    recommendationPlanCode: string,
+  ) {
     setApplying(true);
     setError(undefined);
     try {
@@ -92,7 +96,7 @@ export function StayTimeRecommendations(props: RecommendationFormProps) {
         checkOut: string;
         adults: number;
         children: number;
-        selectedPlanCode?: string;
+        selectedPlanCode: string;
         couponCode?: string;
       } = {
         roomTypeId: props.roomTypeId,
@@ -100,10 +104,8 @@ export function StayTimeRecommendations(props: RecommendationFormProps) {
         checkOut,
         adults: props.adults,
         children: props.children,
+        selectedPlanCode: recommendationPlanCode,
       };
-      if (props.selectedPlanCode !== undefined && props.selectedPlanCode !== '') {
-        body.selectedPlanCode = props.selectedPlanCode;
-      }
       if (props.couponCode !== undefined && props.couponCode !== '') {
         body.couponCode = props.couponCode;
       }
@@ -114,10 +116,8 @@ export function StayTimeRecommendations(props: RecommendationFormProps) {
         checkOut,
         adults: String(props.adults),
         children: String(props.children),
+        selectedPlanCode: recommendationPlanCode,
       });
-      if (props.selectedPlanCode !== undefined && props.selectedPlanCode !== '') {
-        query.set('selectedPlanCode', props.selectedPlanCode);
-      }
       router.push(`/booking/quote/${result.id}?${query.toString()}`);
     } catch {
       setError(translate(locale, 'recommendations.quoteError'));
@@ -224,7 +224,13 @@ export function StayTimeRecommendations(props: RecommendationFormProps) {
                   <button
                     className="hospitality-button mt-3 px-4 py-2 disabled:opacity-60"
                     disabled={applying || candidate.availabilityStatus === 'UNAVAILABLE'}
-                    onClick={() => void applyCandidate(candidate.checkIn, candidate.checkOut)}
+                    onClick={() =>
+                      void applyCandidate(
+                        candidate.checkIn,
+                        candidate.checkOut,
+                        candidate.selectedPlanCode,
+                      )
+                    }
                     type="button"
                   >
                     {applying
