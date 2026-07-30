@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { resolveLocale, translate } from '../../../lib/i18n/messages';
+
+import { AvailabilitySearchForm } from '../../../components/availability-search-form';
 import { RoomDetailQuoteAction } from '../../../components/room-detail-quote-action';
+import { readBookingSearchQuery } from '../../../lib/booking-search-state';
+import { resolveLocale, translate } from '../../../lib/i18n/messages';
 import { loadPublicRoomType, publicRoomImage } from '../../../lib/public-room-catalog';
 
 export default async function PublicRoomDetailPage({
@@ -19,9 +22,11 @@ export default async function PublicRoomDetailPage({
       typeof value === 'string' ? [[key, value]] : [],
     ),
   );
+  const intervalState = readBookingSearchQuery(search);
+  const searchString = search.toString();
   return (
     <main className="rooms-catalog" id="main-content">
-      <Link href={search.size > 0 ? `/booking/search?${search.toString()}` : '/rooms'}>
+      <Link href={search.size > 0 ? `/booking/search?${searchString}` : '/rooms'}>
         {translate(locale, 'catalog.backToResults')}
       </Link>
       {room === null ? (
@@ -29,7 +34,7 @@ export default async function PublicRoomDetailPage({
           {translate(locale, 'search.loadErrorHelp')}
         </p>
       ) : (
-        <section className="room-detail">
+        <section className="room-detail" data-testid="room-detail">
           <img alt={room.name} src={publicRoomImage(room.id)} />
           <div>
             <p>{translate(locale, 'public.roomsPricing')}</p>
@@ -48,8 +53,33 @@ export default async function PublicRoomDetailPage({
             ) : (
               <p>{translate(locale, 'catalog.amenitiesHelp')}</p>
             )}
-            <p className="rooms-catalog__status">{translate(locale, 'catalog.statusPrompt')}</p>
-            <RoomDetailQuoteAction roomTypeId={roomTypeId} search={search.toString()} />
+            {intervalState === undefined ? (
+              <p className="rooms-catalog__status">{translate(locale, 'catalog.statusPrompt')}</p>
+            ) : null}
+            {intervalState === undefined ? (
+              <section
+                aria-labelledby="room-detail-browse-heading"
+                className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                data-testid="room-detail-browse-cta"
+              >
+                <h2 id="room-detail-browse-heading" className="text-lg font-semibold">
+                  {translate(locale, 'roomDetail.browseHeading')}
+                </h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  {translate(locale, 'roomDetail.browseHelp')}
+                </p>
+                <div className="mt-4">
+                  <AvailabilitySearchForm variant="search" />
+                </div>
+              </section>
+            ) : (
+              <>
+                <p className="rooms-catalog__status" data-testid="room-detail-selected-interval">
+                  {translate(locale, 'roomDetail.browseHelp')}
+                </p>
+                <RoomDetailQuoteAction roomTypeId={roomTypeId} search={searchString} />
+              </>
+            )}
           </div>
         </section>
       )}
