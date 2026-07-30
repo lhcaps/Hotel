@@ -1,0 +1,38 @@
+{
+  "name": "@room/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src test scripts drizzle.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run --exclude dist/** test/unit",
+    "test:coverage": "vitest run --coverage --exclude dist/** test/unit",
+    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:check": "drizzle-kit check --config drizzle.config.ts",
+    "db:migrate": "node ../../scripts/with-local-env.mjs tsx scripts/migrate.ts",
+    "db:seed:development": "node ../../scripts/with-local-env.mjs tsx scripts/seed-development.ts",
+    "db:test": "node ../../scripts/with-local-env.mjs vitest run --exclude dist/** test/integration",
+    "db:status": "node ../../scripts/with-local-env.mjs tsx scripts/status.ts",
+    "demo:db:create": "node ../../scripts/with-local-env.mjs tsx scripts/demo-lifecycle.ts create",
+    "demo:db:drop": "node ../../scripts/with-local-env.mjs tsx scripts/demo-lifecycle.ts drop",
+    "demo:seed": "node ../../scripts/with-local-env.mjs tsx scripts/demo-seed.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.2",
+    "pg": "8.16.3"
+  },
+  "devDependencies": {
+    "@room/eslint-config": "workspace:*",
+    "@room/typescript-config": "workspace:*",
+    "@types/pg": "8.15.6",
+    "drizzle-kit": "0.31.10",
+    "tsx": "4.20.6"
+  }
+}

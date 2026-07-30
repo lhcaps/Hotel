@@ -1,0 +1,32 @@
+variable,owner,secret,required_when,safe_local_value,sandbox_requirement,production_requirement,frontend_visibility,validation,current_status,related_route,readiness_result
+GOOGLE_AUTH_ENABLED,api,no,Google enabled,false,true with valid credentials,true with valid credentials,never,true|false,DISABLED,/api/auth/sign-in/social,DISABLED
+NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,web,no,legacy compatibility only,false,not an activation source,not an activation source,public boolean,true|false,DISABLED,/login,NOT_AUTHORITATIVE
+GOOGLE_CLIENT_ID,api,yes,GOOGLE_AUTH_ENABLED=true,empty,Google OAuth client,production OAuth client,never,8..512 non-placeholder production,MISSING_CREDENTIAL,/api/auth/callback/google,BLOCKED_MISSING_CREDENTIAL
+GOOGLE_CLIENT_SECRET,api,yes,GOOGLE_AUTH_ENABLED=true,empty,Google OAuth secret,production OAuth secret,never,16..1024 non-placeholder production,MISSING_CREDENTIAL,/api/auth/callback/google,BLOCKED_MISSING_CREDENTIAL
+GOOGLE_REDIRECT_URI,api,no,GOOGLE_AUTH_ENABLED=true,http://localhost:3001/api/auth/callback/google,exact registered callback,HTTPS outside loopback,never,URL exact local path; HTTPS outside loopback,READY_LOCAL_VALUE,/api/auth/callback/google,READY_CODE
+GOOGLE_AUTH_BASE_URL,api,no,optional,empty,optional override,HTTPS non-loopback production,never,URL,NOT_APPLICABLE,/api/auth,NOT_APPLICABLE
+MOMO_ENABLED,api,no,provider activation,false,true only with full sandbox config,true only with full production config,never,true|false,DISABLED,/api/v1/public/bookings/{bookingCode}/payments/momo/attempts,DISABLED
+MOMO_ENVIRONMENT,api,no,MOMO_ENABLED=true,sandbox,sandbox,production,never,sandbox|production,DISABLED,MoMo adapter,DISABLED
+MOMO_PARTNER_CODE,api,yes,MOMO_ENABLED=true,empty,issued sandbox merchant code,issued production merchant code,never,1..50,MISSING_CREDENTIAL,MoMo adapter,BLOCKED_MISSING_CREDENTIAL
+MOMO_ACCESS_KEY,api,yes,MOMO_ENABLED=true,empty,issued sandbox access key,issued production access key,never,1..200,MISSING_CREDENTIAL,MoMo adapter,BLOCKED_MISSING_CREDENTIAL
+MOMO_SECRET_KEY,api,yes,MOMO_ENABLED=true,empty,issued sandbox secret,issued production secret,never,32..512 non-placeholder production,MISSING_CREDENTIAL,MoMo adapter,BLOCKED_MISSING_CREDENTIAL
+MOMO_API_BASE_URL,api,no,MOMO_ENABLED=true,https://test-payment.momo.vn,locked test-payment.momo.vn,non-sandbox HTTPS endpoint,never,URL HTTPS except deliberate test loopback,DISABLED,MoMo create/query,BLOCKED_MISSING_CREDENTIAL
+MOMO_RETURN_URL,api,no,MOMO_ENABLED=true,empty,public HTTPS /api/v1/payments/providers/momo/return,public HTTPS callback,never,URL HTTPS outside test loopback,DISABLED,/api/v1/payments/providers/momo/return,BLOCKED_MISSING_PUBLIC_HTTPS
+MOMO_IPN_URL,api,no,MOMO_ENABLED=true,empty,public HTTPS /api/v1/webhooks/momo,public HTTPS callback,never,URL HTTPS outside test loopback,DISABLED,/api/v1/webhooks/momo,BLOCKED_MISSING_PUBLIC_HTTPS
+MOMO_REQUEST_TYPE,api,no,MOMO_ENABLED=true,captureWallet,captureWallet,provider-approved value,never,literal captureWallet,READY,MoMo create,READY_CODE
+MOMO_REQUEST_TIMEOUT_MS,api,no,MOMO_ENABLED=true,30000,30000,30000,never,integer exactly 30000,READY,MoMo adapter,READY_CODE
+VNPAY_ENABLED,api,no,provider activation,false,true only with full sandbox config,true only with full production config,never,true|false,DISABLED,/api/v1/public/bookings/{bookingCode}/payments/vnpay/attempts,DISABLED
+VNPAY_ENVIRONMENT,api,no,VNPAY_ENABLED=true,sandbox,sandbox,production,never,sandbox|production,DISABLED,VNPAY adapter,DISABLED
+VNPAY_TMN_CODE,api,yes,VNPAY_ENABLED=true,empty,sandbox TmnCode,production TmnCode,never,1..32,MISSING_CREDENTIAL,VNPAY adapter,BLOCKED_MISSING_CREDENTIAL
+VNPAY_HASH_SECRET,api,yes,VNPAY_ENABLED=true,empty,sandbox hash secret,production hash secret,never,32..512,MISSING_CREDENTIAL,VNPAY adapter,BLOCKED_MISSING_CREDENTIAL
+VNPAY_API_BASE_URL,api,no,VNPAY_ENABLED=true,https://sandbox.vnpayment.vn/paymentv2/vpcpay.html,locked sandbox host,production HTTPS endpoint,never,URL HTTPS except deliberate test loopback,DISABLED,VNPAY payment URL,BLOCKED_MISSING_CREDENTIAL
+VNPAY_RETURN_URL,api,no,VNPAY_ENABLED=true,empty,public HTTPS /api/v1/payments/providers/vnpay/return,public HTTPS callback,never,URL HTTPS outside test loopback,DISABLED,/api/v1/payments/providers/vnpay/return,BLOCKED_MISSING_PUBLIC_HTTPS
+VNPAY_IPN_URL,api,no,VNPAY_ENABLED=true,empty,public HTTPS /api/v1/webhooks/vnpay,public HTTPS callback,never,URL HTTPS outside test loopback,DISABLED,/api/v1/webhooks/vnpay,BLOCKED_MISSING_PUBLIC_HTTPS
+VNPAY_REQUEST_TIMEOUT_MS,api,no,VNPAY_ENABLED=true,10000,1000..30000,1000..30000,never,bounded integer,READY,VNPAY query,READY_CODE
+SMTP_HOST,worker,no,all worker runtimes,127.0.0.1,Mailpit loopback,provider hostname,never,non-empty,READY_MAILPIT,worker outbox,READY_LOCAL
+SMTP_PORT,worker,no,all worker runtimes,1025,Mailpit port,provider port,never,1..65535,READY_MAILPIT,worker outbox,READY_LOCAL
+SMTP_SECURE,worker,no,all worker runtimes,false,false for Mailpit,provider TLS policy,never,true|false,READY_MAILPIT,worker SMTP transport,READY_LOCAL
+SMTP_FROM,worker,no,all worker runtimes,no-reply@room-management.local,local sender,verified sender identity,never,email,READY_MAILPIT,worker outbox,READY_LOCAL
+SMTP_USER,worker,yes,non-loopback authenticated SMTP,empty,optional for Mailpit,required for authenticated provider,never,non-empty when supplied,MISSING_CREDENTIAL,worker SMTP transport,BLOCKED_MISSING_CREDENTIAL
+SMTP_PASSWORD,worker,yes,non-loopback authenticated SMTP,empty,optional for Mailpit,required for authenticated provider,never,non-empty when supplied,MISSING_CREDENTIAL,worker SMTP transport,BLOCKED_MISSING_CREDENTIAL
+SMTP_LIVE_TEST_RECIPIENT,live acceptance,no,opt-in email acceptance,empty,dedicated synthetic recipient,dedicated synthetic recipient,never,email,EXTERNAL_APPROVAL_PENDING,live acceptance,BLOCKED_MISSING_CREDENTIAL

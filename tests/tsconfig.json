@@ -1,0 +1,9 @@
+{
+  "extends": "../packages/typescript-config/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["@playwright/test", "node"]
+  },
+  "include": ["playwright.config.ts", "e2e/**/*.ts", "e2e/**/*.tsx"],
+  "exclude": ["node_modules", "../node_modules"]
+}

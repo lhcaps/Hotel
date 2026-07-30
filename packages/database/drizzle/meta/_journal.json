@@ -1,0 +1,153 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1784638573642,
+      "tag": "0000_silly_jocasta",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784638579710,
+      "tag": "0001_custom_invariants",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784657274773,
+      "tag": "0002_tiny_ultragirl",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784660943768,
+      "tag": "0003_gorgeous_punisher",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784669580252,
+      "tag": "0004_natural_paper_doll",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784728238749,
+      "tag": "0005_ambiguous_blazing_skull",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784728404100,
+      "tag": "0006_phase5_custom_invariants",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784916335239,
+      "tag": "0007_phase6_coupon_core",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784916350927,
+      "tag": "0008_phase6_coupon_invariants",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1784920970017,
+      "tag": "0009_swift_polaris",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784921000000,
+      "tag": "0010_phase6_coupon_reference_closure",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1785021008647,
+      "tag": "0011_phase7b_data_driven_pricing",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1785062472914,
+      "tag": "0012_many_kylun",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1785079044243,
+      "tag": "0013_sad_mathemanic",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1785087544593,
+      "tag": "0014_phase7f_google_customer_identity",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1785160142361,
+      "tag": "0015_phase7g_admin_booking_operations",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1785180587720,
+      "tag": "0016_workable_captain_cross",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1785186334889,
+      "tag": "0017_optimal_freak",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1785202400000,
+      "tag": "0018_phase8c_schema_metadata_repair",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1785217980000,
+      "tag": "0019_phase8d_coupon_delivery",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1785324277129,
+      "tag": "0020_panoramic_mantis",
+      "breakpoints": true
+    }
+  ]
+}

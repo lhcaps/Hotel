@@ -1,0 +1,29 @@
+# Phase 8F Verdicts
+
+This document records repository-owned implementation verdicts. Live provider acceptance is intentionally not marked passing without external-provider evidence.
+
+```text
+PLAYWRIGHT_BASELINE_AUDIT=PASS
+DETERMINISTIC_EXTERNAL_NETWORK_CALLS=0
+PLAYWRIGHT_SECRET_LEAKS=0
+PROVIDER_CONFIG_MATRIX=PASS
+PROVIDER_READINESS_COMMAND=PASS
+FE_BACKEND_PROVIDER_FLAG_DRIFT=0
+UI_FALSE_ACTIVE_PROVIDER=0
+PROVIDER_FE_BE_CONTRACT_DRIFT=0
+UNVALIDATED_PROVIDER_NETWORK_RESPONSES=0
+PROVIDER_REQUIRED_UI_STATES_MISSING=0
+GOOGLE_CODE_READINESS=PASS
+MOMO_CODE_READINESS=PASS
+VNPAY_CODE_READINESS=PASS
+SMTP_CODE_READINESS=PASS
+PUBLIC_CALLBACK_CODE_READINESS=PASS
+CALLBACK_URL_SINGLE_AUTHORITY=PASS
+CALLBACK_HOST_VALIDATION=PASS
+PROVIDER_SECRET_GIT_LEAKS=0
+PROVIDER_SECRET_LOG_LEAKS=0
+PROVIDER_SECRET_BROWSER_LEAKS=0
+SECOND_PAYMENT_SETTLEMENT_PATHS=0
+```
+
+The final validation report records exact test commands and counts from the implementation HEAD. Production remains blocked on real provider accounts, stable public infrastructure, operational monitoring, backup/restore, and deployment security gates.

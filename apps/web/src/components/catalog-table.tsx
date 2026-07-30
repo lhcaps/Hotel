@@ -1,0 +1,153 @@
+'use client';
+
+import { useEffect, useState, type ReactNode } from 'react';
+
+import { AdminApiError, type CatalogPage } from '../lib/admin-api';
+import { translate } from '../lib/i18n/messages';
+import { useLocale } from './locale-provider';
+
+interface CatalogRow {
+  readonly id: string;
+  readonly status: string;
+}
+
+interface CatalogColumn<T> {
+  readonly heading: string;
+  readonly cell: (item: T) => ReactNode;
+}
+
+interface CatalogTableProps<T extends CatalogRow> {
+  readonly title: string;
+  readonly description: string;
+  readonly emptyMessage: string;
+  readonly load: () => Promise<CatalogPage<T>>;
+  readonly columns: readonly CatalogColumn<T>[];
+  readonly archive?: (id: string) => Promise<T>;
+  readonly archiveLabel?: (item: T) => string;
+  readonly filter?: {
+    readonly label: string;
+    readonly placeholder: string;
+    readonly matches: (item: T, query: string) => boolean;
+  };
+}
+
+export function CatalogTable<T extends CatalogRow>({
+  title,
+  description,
+  emptyMessage,
+  load,
+  columns,
+  archive,
+  archiveLabel,
+  filter,
+}: CatalogTableProps<T>) {
+  const locale = useLocale();
+  const [items, setItems] = useState<readonly T[]>();
+  const [error, setError] = useState<string>();
+  const [pendingId, setPendingId] = useState<string>();
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    void load()
+      .then((page) => {
+        if (active) setItems(page.items);
+      })
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setError(cause instanceof AdminApiError ? translate(locale, 'catalog.loadError') : translate(locale, 'catalog.loadError'));
+      });
+    return () => {
+      active = false;
+    };
+  }, [load, locale]);
+
+  async function archiveItem(item: T) {
+    if (archive === undefined) return;
+    setPendingId(item.id);
+    setError(undefined);
+    try {
+      const archived = await archive(item.id);
+      setItems((current) =>
+        current === undefined
+          ? current
+          : current.map((candidate) => (candidate.id === archived.id ? archived : candidate)),
+      );
+    } catch (cause) {
+      setError(
+        cause instanceof AdminApiError ? translate(locale, 'catalog.saveError') : translate(locale, 'catalog.saveError'),
+      );
+    } finally {
+      setPendingId(undefined);
+    }
+  }
+
+  const visibleItems =
+    items === undefined || filter === undefined || query.trim() === ''
+      ? items
+      : items.filter((item) => filter.matches(item, query.trim()));
+
+  return (
+    <section className="admin-page">
+      <h1>{title}</h1>
+      <p>{description}</p>
+      {filter === undefined ? null : (
+        <label>
+          {filter.label}
+          <input
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={filter.placeholder}
+            type="search"
+            value={query}
+          />
+        </label>
+      )}
+      {visibleItems === undefined && error === undefined ? (
+        <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
+      ) : null}
+      {error === undefined ? null : <p role="alert">{error}</p>}
+      {visibleItems !== undefined && visibleItems.length === 0 ? (
+        <div className="table-empty">
+          {items !== undefined && items.length > 0 ? translate(locale, 'catalog.noResults') : emptyMessage}
+        </div>
+      ) : null}
+      {visibleItems === undefined || visibleItems.length === 0 ? null : (
+        <table>
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th key={column.heading} scope="col">
+                  {column.heading}
+                </th>
+              ))}
+              <th scope="col">{translate(locale, 'admin.status')}</th>
+              {archive === undefined ? null : <th scope="col">{translate(locale, 'admin.action')}</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {visibleItems.map((item) => (
+              <tr key={item.id}>
+                {columns.map((column) => (
+                  <td key={column.heading}>{column.cell(item)}</td>
+                ))}
+                <td>{item.status}</td>
+                {archive === undefined ? null : (
+                  <td>
+                    <button
+                      aria-label={archiveLabel?.(item) ?? translate(locale, 'catalog.archive')}
+                      disabled={pendingId !== undefined || item.status === 'INACTIVE'}
+                      onClick={() => void archiveItem(item)}
+                      type="button"
+                    >
+                      {translate(locale, 'catalog.archive')}
+                    </button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}

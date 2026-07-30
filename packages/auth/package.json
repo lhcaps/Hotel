@@ -1,0 +1,27 @@
+{
+  "name": "@room/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src test scripts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run --exclude dist/**",
+    "admin:bootstrap": "node ../../scripts/with-local-env.mjs tsx scripts/bootstrap-admin.ts"
+  },
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "1.6.23",
+    "@room/config": "workspace:*",
+    "@room/database": "workspace:*",
+    "@room/observability": "workspace:*",
+    "better-auth": "1.6.23"
+  },
+  "devDependencies": {
+    "@room/eslint-config": "workspace:*",
+    "@room/typescript-config": "workspace:*"
+  }
+}

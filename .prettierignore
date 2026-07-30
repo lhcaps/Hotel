@@ -1,0 +1,13 @@
+.toolcache/
+node_modules/
+dist/
+.next/
+coverage/
+playwright-report/
+test-results/
+docs/product/
+docs/domain/
+docs/architecture/
+docs/security/
+apps/web/next-env.d.ts
+apps/web/storybook-static/

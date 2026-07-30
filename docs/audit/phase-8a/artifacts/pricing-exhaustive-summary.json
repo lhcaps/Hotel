@@ -1,0 +1,10 @@
+{
+  "tier": "TIER_1",
+  "scenarios": 8928,
+  "matches": 6896,
+  "mismatches": 2032,
+  "productionExceptions": 0,
+  "oracleNoMatch": 0,
+  "oracleResolved": 8928,
+  "catalogFingerprint": "phase-7b-locked-defaults"
+}

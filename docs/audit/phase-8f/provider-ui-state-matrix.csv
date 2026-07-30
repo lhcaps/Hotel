@@ -1,0 +1,14 @@
+surface,state,server_authority,customer_safe_behavior,status
+Login,Google disabled,GET /api/v1/public/provider-readiness,button disabled with localized unavailable message,PASS
+Login,Google ready,GET /api/v1/public/provider-readiness then Better Auth server,starts redirect with allowlisted callback URL,PASS
+Login,Google rejection or callback failure,Better Auth response,safe localized error without raw OAuth payload,PASS
+Checkout,provider configuration unavailable,server readiness response,disabled provider action with generic unavailable reason,PASS
+Checkout,property disabled,server readiness response,disabled provider action with generic unavailable reason,PASS
+Checkout,maintenance,server readiness response,disabled provider action with configured maintenance message,PASS
+Checkout,provider ready,server readiness response,enabled checkout action and server-issued redirect only,PASS
+Checkout,redirect pending,initiation response,pending label prevents duplicate click,PASS
+Booking payment status,returned pending or final,authoritative payment status endpoint,poll persisted state; never trusts return query,PASS
+ADMIN payment providers,configuration unavailable,admin server response,non-secret configured status and disabled enable control,PASS
+ADMIN payment providers,property setting,admin server response,manages display/maintenance only; no credentials,PASS
+ADMIN payment evidence,reconciliation and events,admin payment endpoints,shows application evidence; no raw provider payload,PASS
+Email delivery,outbox queued/sent/retry,worker/outbox state,existing administrative evidence only,PASS

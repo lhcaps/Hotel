@@ -1,0 +1,23 @@
+{
+  "extends": "../../packages/typescript-config/node.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "types": ["node"],
+    "lib": ["ES2024"]
+  },
+  "include": ["**/*.mjs"],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "test-results",
+    "storybook-static",
+    "**/*.test.mjs",
+    "eslint.config.mjs"
+  ]
+}

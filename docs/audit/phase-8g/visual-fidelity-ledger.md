@@ -1,0 +1,23 @@
+# Phase 8G Visual Fidelity Ledger
+
+Date: 2026-07-29
+Reference: `docs/design/references/phase-8g-hospitality-product-concept.png`
+
+## Captured evidence
+
+| Surface | Evidence | Expected concept behaviour | Actual render | Correction / intentional deviation |
+|---|---|---|---|---|
+| Public home, desktop | `output/playwright/phase-8g-home-desktop-final.png` | Calm white hospitality header, clear blue booking action, spacious first viewport | Header, title hierarchy, booking form and primary CTA use the approved restrained palette and spacing | No room imagery was added because the existing public availability contract does not expose a safe image field. |
+| Public home, mobile | `output/playwright/phase-8g-home-mobile.png` | Header and booking form remain usable at 390px without horizontal overflow | Header wraps, form stacks to one column, and CTA occupies the available width | API-backed session probe fails closed when the local API listener is unavailable; this is an environment constraint, not a client fallback state. |
+| Quote / recommendation | Component and focused test evidence | Desktop decision area with supporting summary; mobile one-column flow | Quote uses a two-column layout at desktop and safely stacks below 800px; raw plan codes are replaced with customer plan labels | A live quote screenshot requires the local API and seeded quote context, unavailable during this capture session. |
+| HOLD / payment | Component and focused test evidence | Clear hold progression and truthful provider state | Step sequence, authoritative countdown, expired search return, provider option rows and persisted-status polling are implemented | A live provider/hold screenshot requires the local API listener. No simulated provider success was introduced. |
+| Customer profile / bookings | Component and focused test evidence | Open account surfaces with grouped profile details and scannable booking rows | Account pages share the light hospitality surface treatment and mobile-safe field/list stacking | Authenticated capture requires the local API listener and deterministic session. |
+| ADMIN CRUD | Focused operational test evidence | Compact, table-first operations workspace | Existing admin tables, filters, forms, pagination, and actions receive a consistent contained presentation | Authenticated browser capture requires the local API listener and ADMIN session. |
+
+## Comparison conclusion
+
+- Hierarchy: public title, booking action, quote decision content, and account content are visually prioritized.
+- Palette and geometry: semantic white, cool-slate, ink, blue, success/warning/destructive tokens; 8-12px surface geometry; restrained borders and shadows.
+- Responsive: public search, quote, profile, booking rows/detail, and ADMIN table surfaces include explicit narrow-width behavior.
+- Intentional scope limits: public room images, amenities, descriptions, starting prices, rate-plan alternatives, and customer booking room snapshots are not rendered where current authoritative contracts do not expose them.
+- Remaining visual evidence limitation: live authenticated, seeded quote/HOLD, payment, and ADMIN screenshots await a running local API acceptance stack. The UI does not fabricate those states for screenshots.

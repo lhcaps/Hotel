@@ -1,0 +1,20 @@
+{
+  "extends": "../packages/typescript-config/base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "include": [
+    "generate-openapi.mts",
+    "generate-public-openapi.mts",
+    "check-openapi-structure.mts",
+    "validate-admin-coupon-schema.mts",
+    "run-tests.mjs",
+    "run-playwright.mjs",
+    "with-local-env.mjs"
+  ]
+}

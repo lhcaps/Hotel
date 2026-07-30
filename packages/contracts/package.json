@@ -1,0 +1,25 @@
+{
+  "name": "@room/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./pricing": "./src/pricing.ts",
+    "./public-room-catalog": "./src/public-room-catalog.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint src test",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run --exclude dist/**",
+    "test:coverage": "vitest run --coverage --exclude dist/**"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@room/eslint-config": "workspace:*",
+    "@room/typescript-config": "workspace:*"
+  }
+}

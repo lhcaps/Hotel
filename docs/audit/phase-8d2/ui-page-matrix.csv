@@ -1,0 +1,16 @@
+surface,locale,coverage,evidence,status
+public-search,vi/en,search and quote entry,availability-quote.spec.ts and phase-8d2-localization.spec.ts,PASS
+quote-recommendation,vi/en,quote summary coupon and recommendation components,web unit localization and axe checks,PASS
+hold-contact,vi/en,contact validation and HOLD creation,quote-contact-form.test.tsx and public booking vertical,PASS
+payment,vi/en,provider selection return and status,deterministic payment browser suite,PASS
+otp-login,vi/en,OTP guest access and deterministic identity,public booking and customer identity suites,PASS
+customer-profile,vi/en,profile edit reload and logout,phase-8d2-localization.spec.ts,PASS
+customer-bookings,vi/en,booking list locale persistence,phase-8d2-localization.spec.ts,PASS
+admin-shell,vi/en,navigation skip link and session controls,phase-8d2-localization.spec.ts,PASS
+admin-rate-plans,vi/en,create selection activation and responsive layout,phase-8b1-admin-rate-plan.spec.ts and phase-8d2-localization.spec.ts,PASS
+admin-coupons,vi/en,catalog shell and mobile-safe layout,admin-coupon.spec.ts and phase-8d2-localization.spec.ts,PASS
+admin-bookings,vi/en,filter detail cancel check-in check-out no-show,phase-7g-admin-booking-operations.spec.ts,PASS
+coupon-delivery,vi/en,masked recipient and deterministic Mailpit queue,phase-8d-coupon-delivery.spec.ts,PASS
+operational-reviews,vi/en,open resolve and responsive shell,phase-7g-admin-booking-operations.spec.ts and phase-8d2-localization.spec.ts,PASS
+admin-payments,vi/en,filters reconciliations and safe provider query,web unit axe tests and phase-8d2-localization.spec.ts,PASS
+payment-reconciliation-detail,vi/en,status detail no manual success action,admin-payment-detail-page.test.tsx,PASS

@@ -1,0 +1,14 @@
+area,page,desktop_1366,mobile_390,coverage,result,notes
+Public,landing/search,PASS,PASS,Playwright availability quote,PASS,Search and quote navigation passed
+Public,quote and recommendation,PASS,PASS,Playwright phase-8b1 recommendations,PASS,Recommendation reissue passed; no console/page errors in payment E2E
+Public,HOLD/contact,PASS,PASS,Playwright public booking and coupon verticals,PASS,OTP and guest cookie flow passed
+Public,payment selection/status,PASS,PASS,Playwright payment-gate-b11-b12,PASS,MoMo/VNPAY test simulator settlement passed
+Public,guest OTP,PASS,PASS,Playwright public booking vertical,PASS,Session-required and logout paths passed
+Public,customer login/profile/bookings,PASS,PASS,Playwright customer identity browser,PASS,Deterministic OAuth browser vertical passed
+ADMIN,shell/dashboard,PASS,PASS,All admin Playwright specs,PASS,ADMIN sign-in and shell navigation passed
+ADMIN,catalog/property/rooms/maintenance,PASS,PASS,Admin catalog vertical specs,PASS,CRUD critical controls passed
+ADMIN,rate plans,PASS,PASS,Phase-8b1 admin rate-plan spec,PASS,Generic create/edit/activate/inactivate vertical passed
+ADMIN,coupons,PASS,PASS,Admin coupon desktop/mobile specs,PASS,Mobile critical controls visible
+ADMIN,bookings and operational reviews,PASS,PASS,Phase-7g admin operations spec,PASS,Cancel/check-in/check-out/no-show/review paths passed
+ADMIN,payment providers,PASS,PASS,Payment provider operations spec,PASS,Non-secret settings operation passed
+ADMIN,payments and reconciliation,PASS,PASS,Payment Gate B11/B12 browser spec,PASS,List/detail/timeline/reconciliation behavior passed

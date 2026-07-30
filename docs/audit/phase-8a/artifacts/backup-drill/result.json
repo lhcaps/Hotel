@@ -1,0 +1,39 @@
+{
+  "drillId": "phase-8a-backup-restore-drill-1",
+  "commit": "<audit HEAD>",
+  "postgresqlVersion": "18.4",
+  "tools": {
+    "pg_dump": "18.4 (Debian 18.4-1.pgdg13+1)",
+    "pg_restore": "18.4 (Debian 18.4-1.pgdg13+1)"
+  },
+  "source": {
+    "database": "room_management",
+    "format": "custom (pg_dump -Fc)",
+    "flags": ["--no-owner", "--no-acl"],
+    "dumpDurationSeconds": 0.243,
+    "dumpSizeBytes": 146890,
+    "artifactPath": "/tmp/audit_backup_drill.dump"
+  },
+  "restore": {
+    "database": "audit_backup_drill_dst",
+    "flags": ["--no-owner", "--no-acl"],
+    "restoreDurationSeconds": 0.493
+  },
+  "integrity": {
+    "properties": 2,
+    "rooms": 6,
+    "rate_plans": 6,
+    "audit_events": 0,
+    "matchesSource": true,
+    "fkCheck": "skipped (no rows in payment/booking tables in dev source)",
+    "notes": "Both source and restored DBs have identical row counts. Property/room/rate-plan domains preserved. No customer-side aggregates exist in the dev DB, so FK checks across payments/bookings were not exercised."
+  },
+  "verdict": {
+    "PASS": true,
+    "limitations": [
+      "No payment/booking aggregates existed in the dev source, so cross-aggregate FK integrity was not exercised.",
+      "Point-in-time recovery was not tested because no WAL archive pipeline is configured in this dev container.",
+      "Restored DB is not exercised by API startup (only count checks). A full app-boot round-trip on the restored DB is recommended in Phase 8F."
+    ]
+  }
+}

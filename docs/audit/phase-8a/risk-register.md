@@ -1,0 +1,20 @@
+# Phase 8A — Risk Register
+
+Risk IDs match gap-register IDs where applicable; new risks (R-NNN) cover cross-cutting or external-only items.
+
+| ID | Risk | Probability | Impact | Mitigation | Owner | Phase |
+|---|---|---|---|---|---|---|
+| R-PRICING-001 | Production selector is not the cheapest valid option in 22.76% of exhaustive scenarios and 11.7% of random cases. | Confirmed | High (overcharge) | PRICING-001 fix: cheapest-first selection; Phase 8B. | API + Product | 8B |
+| R-PRICING-002 | No approved rules for flexible-time recommendation. | Confirmed | Medium (cannot ship the feature) | PRICING-002 fix: product decision. | Product | 8B |
+| R-PAYMENT-001 | VNPAY canonical-string space encoding may differ from spec (`+` vs `%20`). | Possible | High (signature mismatch in production) | PAYMENT-002 fix: sandbox conformance test in Phase 8D. | API | 8D |
+| R-PAYMENT-002 | VNPAY amount scaling (×100 vs ×1) unverified. | Possible | High (100× amounts in production) | PAYMENT-003 fix: sandbox conformance test in Phase 8D. | API | 8D |
+| R-PAYMENT-003 | No automated reconciliation job. | Confirmed | Medium (silent drift) | PAYMENT-001 fix: status-query integration in Phase 8D. | API | 8D |
+| R-DATA-001 | `operational_reviews.payment_id` lacks DB-level cross-check. | Confirmed | Medium (review evidence misrouted) | DATA-001 fix: add DB trigger. | Database | 8C |
+| R-DEPLOY-001 | No production deployment artifacts. | Confirmed | Blocking | DEPLOYMENT-001 fix: Phase 8H. | DevOps | 8H |
+| R-DEPLOY-002 | No production SMTP. | Confirmed | High (silent email failure) | DEPLOYMENT-002 fix: Phase 8H. | DevOps | 8H |
+| R-OBS-001 | No SLOs / metrics / alerts. | Confirmed | High (no MTTR baseline) | OBSERVABILITY-001 fix: Phase 8F. | SRE | 8F |
+| R-BACKUP-001 | No documented RPO/RTO. | Confirmed | High (compliance / customer questions) | BACKUP-001 fix: Phase 8F. | SRE | 8F |
+| R-MIGRATION-001 | No expand-contract strategy for breaking migrations. | Confirmed | Medium (downtime during rollout) | MIGRATION-001 fix: Phase 8F. | Database | 8F |
+| R-LIVE-001 | Sandbox / production acceptance cannot be performed in this audit. | Confirmed (blocked) | High (no production evidence) | Phase 8D with merchant credentials + registered callback URLs. | Customer / Provider | 8D |
+| R-CAPACITY-001 | No approved capacity / SLO targets. | Confirmed | High (cannot scale confidently) | CAPACITY-001 fix: SRE decision in Phase 8G. | SRE | 8G |
+| R-EXTERNAL-001 | Phase 8F / 8G / 8H require infrastructure (SMTP provider, monitoring, CDN, DNS, TLS, secrets manager) not in the repo. | Confirmed | Blocking | Customer / SRE to provide. | Customer | 8H |

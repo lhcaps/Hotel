@@ -1,0 +1,14 @@
+{
+  "phase": "8B",
+  "testFile": "apps/api/test/audit-phase8b/audit-exhaustive-cheapest.test.ts",
+  "date": "2026-07-28",
+  "scenarios": 26784,
+  "scenariosPerConfiguration": 8928,
+  "configurations": [
+    "standard",
+    "non-monotonic",
+    "equal-price"
+  ],
+  "verdict": "PASS",
+  "notes": "96 local-minute slots × 93 valid 15-minute durations × 3 representative dates (22, 31, plus 31-day month). Compared production CHEAPEST_ELIGIBLE_THEN_PRIORITY against the audit-independent oracle. Zero mismatches under standard, non-monotonic, and equal-price configurations."
+}

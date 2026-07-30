@@ -1,0 +1,3815 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Room Management Admin API",
+    "version": "1.0.0",
+    "description": "Secure ADMIN-only catalog operations. Authentication uses HttpOnly session cookies. Public availability, quote, booking HOLD and guest-access routes are published separately in docs/openapi/public-v1.json."
+  },
+  "security": [{ "cookieAuth": [] }],
+  "paths": {
+    "/api/v1/admin/payment-providers": {
+      "get": {
+        "operationId": "listAdminPaymentProviders",
+        "responses": {
+          "200": {
+            "description": "Non-secret payment provider settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/PaymentProviderAdmin" }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/payment-providers/{provider}": {
+      "patch": {
+        "operationId": "updateAdminPaymentProvider",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": { "enum": ["MOMO", "VNPAY"] }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PaymentProviderUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated non-secret provider settings.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaymentProviderAdmin" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/payments": {
+      "get": {
+        "operationId": "listAdminPayments",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "$ref": "#/components/schemas/AdminPaymentListStatus" }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "schema": { "$ref": "#/components/schemas/AdminPaymentProviderFilter" }
+          },
+          {
+            "name": "bookingCode",
+            "in": "query",
+            "schema": { "type": "string", "minLength": 1, "maxLength": 64 }
+          },
+          { "name": "reviewRequired", "in": "query", "schema": { "type": "boolean" } },
+          {
+            "name": "createdFrom",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "createdTo",
+            "in": "query",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminPaymentListQuery" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Masked, safe payment summaries with bounded pagination.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminPaymentListResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/payments/{paymentId}": {
+      "get": {
+        "operationId": "getAdminPaymentDetail",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Redacted payment detail including booking reference, masked attempts, masked provider refs, event timeline, reconciliation, audit and operational review.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminPaymentDetail" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "404": { "$ref": "#/components/responses/AdminPaymentNotFound" }
+        }
+      }
+    },
+    "/api/v1/admin/payments/{paymentId}/reconcile": {
+      "post": {
+        "operationId": "reconcileAdminPayment",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminPaymentReconcileRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Triggers a provider query. The endpoint never fabricates a SUCCESS outcome and never mutates the payment status directly; only the provided reconciliation state is returned.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminPaymentReconcileResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "404": { "$ref": "#/components/responses/AdminPaymentNotFound" },
+          "409": { "$ref": "#/components/responses/AdminPaymentReconciliationConflict" },
+          "429": { "$ref": "#/components/responses/AdminPaymentReconciliationRateLimited" }
+        }
+      }
+    },
+    "/api/v1/admin/operational-report": {
+      "get": {
+        "operationId": "getAdminOperationalReport",
+        "summary": "Read server-aggregated operational metrics for the current property.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "bookingStatuses",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/components/schemas/AdminReportBookingStatus" }
+            }
+          },
+          {
+            "name": "paymentStatuses",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/components/schemas/AdminReportPaymentStatus" }
+            }
+          },
+          {
+            "name": "ratePlanCodes",
+            "in": "query",
+            "schema": { "type": "array", "items": { "type": "string", "maxLength": 64 } }
+          },
+          {
+            "name": "roomTierCodes",
+            "in": "query",
+            "schema": { "type": "array", "items": { "type": "string", "maxLength": 64 } }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Property-scoped metrics aggregated on the server; outstanding revenue is null until partial payments are modeled.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminOperationalReport" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/v1/admin/room-operations": {
+      "get": {
+        "operationId": "listAdminRoomOperations",
+        "summary": "Read physical-room occupancy, housekeeping and maintenance state from the server.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "format": "date-time" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Property-scoped operational room rows.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AdminRoomOperationsResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/v1/admin/me": {
+      "get": {
+        "operationId": "getAdminMe",
+        "responses": {
+          "200": {
+            "description": "Safe current administrator identity.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AdminMe" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/property": {
+      "get": {
+        "operationId": "getProperty",
+        "responses": {
+          "200": {
+            "description": "Current property.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Property" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      },
+      "patch": {
+        "operationId": "updateProperty",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/PropertyCommand" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated property.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Property" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/price-tiers": {
+      "get": {
+        "operationId": "listPriceTiers",
+        "responses": {
+          "200": { "description": "Deterministically ordered price tiers." },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      },
+      "post": {
+        "operationId": "createPriceTier",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/PriceTierCommand" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created price tier.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/PriceTier" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/price-tiers/{id}": {
+      "patch": {
+        "operationId": "updatePriceTier",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/PriceTierCommand" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated price tier.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/PriceTier" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/price-tiers/{id}/archive": {
+      "post": {
+        "operationId": "archivePriceTier",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ArchiveCommand" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Archived price tier.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/PriceTier" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/room-types": {
+      "get": {
+        "operationId": "listRoomTypes",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Deterministically ordered room types." },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      },
+      "post": {
+        "operationId": "createRoomType",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RoomTypeCommand" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created room type.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/RoomType" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/room-types/{id}/archive": {
+      "post": {
+        "operationId": "archiveRoomType",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ArchiveCommand" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Archived room type.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/RoomType" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/room-types/{id}/amenities": {
+      "post": {
+        "operationId": "assignRoomTypeAmenity",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AssignAmenityCommand" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Amenity assigned to room type." },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/room-types/{id}/amenities/{amenityId}": {
+      "delete": {
+        "operationId": "removeRoomTypeAmenity",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "amenityId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removal result for the room-type / amenity pair.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "roomTypeId": { "type": "string", "format": "uuid" },
+                    "amenityId": { "type": "string", "format": "uuid" },
+                    "existed": { "type": "boolean" }
+                  },
+                  "required": ["roomTypeId", "amenityId", "existed"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/room-types/{id}": {
+      "patch": {
+        "operationId": "updateRoomType",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RoomTypePatch" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated room type.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/RoomType" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/v1/admin/amenities/{id}": {
+      "patch": {
+        "operationId": "updateAmenity",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/AmenityPatch" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated amenity.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Amenity" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/rooms/{id}": {
+      "patch": {
+        "operationId": "updateRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RoomPatch" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated physical room.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Room" } } }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/amenities": {
+      "get": {
+        "operationId": "listAmenities",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Deterministically ordered amenities." },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      },
+      "post": {
+        "operationId": "createAmenity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/AmenityCommand" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created amenity.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Amenity" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/amenities/{id}/archive": {
+      "post": {
+        "operationId": "archiveAmenity",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ArchiveCommand" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Archived amenity.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Amenity" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/rooms": {
+      "get": {
+        "operationId": "listRooms",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Deterministically ordered physical rooms." },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      },
+      "post": {
+        "operationId": "createRoom",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RoomCommand" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created physical room.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Room" } } }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/rooms/{id}/archive": {
+      "post": {
+        "operationId": "archiveRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ArchiveCommand" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Archived physical room.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Room" } } }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/rooms/{id}/housekeeping": {
+      "patch": {
+        "operationId": "updateRoomHousekeeping",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RoomHousekeepingCommand" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated internal housekeeping state for a physical room.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Room" } } }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/maintenance-blocks": {
+      "get": {
+        "operationId": "listMaintenanceBlocks",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Maintenance blocks ordered by start time." },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      },
+      "post": {
+        "operationId": "createMaintenanceBlock",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MaintenanceBlockCommand" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created maintenance block and inventory ledger allocation.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/MaintenanceBlock" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/maintenance-blocks/{id}/cancel": {
+      "post": {
+        "operationId": "cancelMaintenanceBlock",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancelled maintenance block and released inventory allocation.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/MaintenanceBlock" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/rate-plans": {
+      "get": {
+        "operationId": "listRatePlans",
+        "responses": {
+          "200": {
+            "description": "Rate plans with a price entry for every active price tier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/RatePlan" }
+                    }
+                  },
+                  "required": ["items"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      },
+      "post": {
+        "operationId": "createRatePlan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RatePlanCreateCommand" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created rate plan in DRAFT status.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/RatePlan" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/rate-plans/{id}/prices/{priceTierId}": {
+      "put": {
+        "operationId": "setRatePlanPrice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "priceTierId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RatePlanPriceCommand" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated rate-plan price. The endpoint returns no response body."
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      },
+      "patch": {
+        "operationId": "patchRatePlanPrice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "priceTierId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RatePlanPriceCommand" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated rate-plan price. The endpoint returns no response body."
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/rate-plans/{id}/activate": {
+      "post": {
+        "operationId": "activateRatePlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RatePlanActivation" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Activated fully configured rate plan.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/RatePlan" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/rate-plans/{id}/inactivate": {
+      "post": {
+        "operationId": "inactivateRatePlan",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inactivated rate plan.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/RatePlan" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/coupons": {
+      "get": {
+        "operationId": "listCoupons",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Coupons ordered by creation time.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/CouponList" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      },
+      "post": {
+        "operationId": "createCoupon",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/AdminCouponCreate" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created coupon.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Coupon" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "409": { "$ref": "#/components/responses/CatalogConflict" }
+        }
+      }
+    },
+    "/api/v1/admin/coupons/{id}": {
+      "get": {
+        "operationId": "getCoupon",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Coupon detail with derived lifecycle and aggregate counts.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Coupon" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/coupons/{id}/disable": {
+      "post": {
+        "operationId": "disableCoupon",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disabled coupon. Existing reservations remain valid.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Coupon" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" }
+        }
+      }
+    },
+    "/api/v1/admin/bookings/{bookingCode}/send-coupons": {
+      "post": {
+        "operationId": "queueAdminBookingCouponDelivery",
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[A-Z0-9-]{4,32}$" }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "minLength": 16, "maxLength": 128 }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AdminBookingCouponDelivery" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "An idempotent transactional-outbox request; no coupon lifecycle state changes.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CouponDeliveryQueueResult" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/AuthenticationRequired" },
+          "403": { "$ref": "#/components/responses/PermissionDenied" },
+          "404": { "$ref": "#/components/responses/CouponDeliveryBookingNotFound" },
+          "409": { "$ref": "#/components/responses/CouponDeliveryConflict" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "rm_admin_session_v1",
+        "description": "HttpOnly, SameSite=Lax, Secure-in-production administrator session cookie. The raw token is never returned in any JSON body."
+      }
+    },
+    "schemas": {
+      "AdminBookingCouponDelivery": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "couponCodes": {
+            "minItems": 1,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 4,
+              "maxLength": 32,
+              "pattern": "^[A-Za-z0-9-]{4,32}$"
+            }
+          }
+        },
+        "required": ["couponCodes"],
+        "additionalProperties": false
+      },
+      "AdminCouponCreate": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 32,
+                "pattern": "^[A-Za-z0-9-]{4,32}$"
+              },
+              "discountType": { "type": "string", "const": "FIXED" },
+              "fixedAmountVnd": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "minimumOrderAmountVnd": {
+                "default": 0,
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "validFrom": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "validUntil": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "roomTypes": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": { "all": { "type": "boolean", "const": true } },
+                    "required": ["all"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "roomTypeIds": {
+                        "minItems": 1,
+                        "maxItems": 50,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        }
+                      }
+                    },
+                    "required": ["roomTypeIds"],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "totalUsageLimit": {
+                "anyOf": [
+                  { "type": "integer", "minimum": 1, "maximum": 1000000 },
+                  { "type": "null" }
+                ]
+              },
+              "perCustomerLimit": {
+                "anyOf": [
+                  { "type": "integer", "minimum": 1, "maximum": 1000000 },
+                  { "type": "null" }
+                ]
+              }
+            },
+            "required": [
+              "code",
+              "discountType",
+              "fixedAmountVnd",
+              "validFrom",
+              "validUntil",
+              "roomTypes"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 32,
+                "pattern": "^[A-Za-z0-9-]{4,32}$"
+              },
+              "discountType": { "type": "string", "const": "PERCENTAGE" },
+              "percentageBasisPoints": { "type": "integer", "minimum": 1, "maximum": 10000 },
+              "maximumDiscountVnd": {
+                "anyOf": [
+                  { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+                  { "type": "null" }
+                ]
+              },
+              "minimumOrderAmountVnd": {
+                "default": 0,
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "validFrom": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "validUntil": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "roomTypes": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": { "all": { "type": "boolean", "const": true } },
+                    "required": ["all"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "roomTypeIds": {
+                        "minItems": 1,
+                        "maxItems": 50,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        }
+                      }
+                    },
+                    "required": ["roomTypeIds"],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "totalUsageLimit": {
+                "anyOf": [
+                  { "type": "integer", "minimum": 1, "maximum": 1000000 },
+                  { "type": "null" }
+                ]
+              },
+              "perCustomerLimit": {
+                "anyOf": [
+                  { "type": "integer", "minimum": 1, "maximum": 1000000 },
+                  { "type": "null" }
+                ]
+              }
+            },
+            "required": [
+              "code",
+              "discountType",
+              "percentageBasisPoints",
+              "validFrom",
+              "validUntil",
+              "roomTypes"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "AdminMe": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "displayName": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "role": { "type": "string", "const": "ADMIN" },
+          "permissions": {
+            "readOnly": true,
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "sessionExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["id", "email", "displayName", "role", "permissions", "sessionExpiresAt"],
+        "additionalProperties": false
+      },
+      "Amenity": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "propertyId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["id", "propertyId", "code", "name", "status", "createdAt", "updatedAt"],
+        "additionalProperties": false
+      },
+      "AmenityCommand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 }
+        },
+        "required": ["code", "name"],
+        "additionalProperties": false
+      },
+      "AmenityPatch": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 160 } },
+        "required": ["name"],
+        "additionalProperties": false
+      },
+      "ArchiveCommand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": { "archive": { "default": true, "type": "boolean", "const": true } },
+        "additionalProperties": false
+      },
+      "AssignAmenityCommand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "amenityId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": ["amenityId"],
+        "additionalProperties": false
+      },
+      "Coupon": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "propertyId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9-]{4,32}$"
+          },
+          "status": { "type": "string", "enum": ["ACTIVE", "DISABLED"] },
+          "lifecycle": { "type": "string", "enum": ["AVAILABLE", "EXPIRED", "DISABLED"] },
+          "discountType": { "type": "string", "enum": ["FIXED", "PERCENTAGE"] },
+          "fixedAmountVnd": {
+            "anyOf": [
+              { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+              { "type": "null" }
+            ]
+          },
+          "percentageBasisPoints": {
+            "anyOf": [{ "type": "integer", "minimum": 1, "maximum": 10000 }, { "type": "null" }]
+          },
+          "maximumDiscountVnd": {
+            "anyOf": [
+              { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+              { "type": "null" }
+            ]
+          },
+          "minimumOrderAmountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "appliesToAllRoomTypes": { "type": "boolean" },
+          "roomTypeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "totalUsageLimit": {
+            "anyOf": [
+              { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+              { "type": "null" }
+            ]
+          },
+          "perCustomerLimit": {
+            "anyOf": [
+              { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+              { "type": "null" }
+            ]
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "activeReservations": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "redeemed": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+              "released": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+            },
+            "required": ["activeReservations", "redeemed", "released"],
+            "additionalProperties": false
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "disabledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              { "type": "null" }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "propertyId",
+          "code",
+          "status",
+          "lifecycle",
+          "discountType",
+          "fixedAmountVnd",
+          "percentageBasisPoints",
+          "maximumDiscountVnd",
+          "minimumOrderAmountVnd",
+          "validFrom",
+          "validUntil",
+          "appliesToAllRoomTypes",
+          "roomTypeIds",
+          "totalUsageLimit",
+          "perCustomerLimit",
+          "counts",
+          "createdAt",
+          "updatedAt",
+          "disabledAt"
+        ],
+        "additionalProperties": false
+      },
+      "CouponDeliveryQueueResult": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "deliveryId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "status": { "type": "string", "enum": ["PENDING", "SENT"] }
+        },
+        "required": ["deliveryId", "status"],
+        "additionalProperties": false
+      },
+      "CouponList": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+          "pageSize": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "propertyId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "code": {
+                  "type": "string",
+                  "minLength": 4,
+                  "maxLength": 32,
+                  "pattern": "^[A-Za-z0-9-]{4,32}$"
+                },
+                "status": { "type": "string", "enum": ["ACTIVE", "DISABLED"] },
+                "lifecycle": { "type": "string", "enum": ["AVAILABLE", "EXPIRED", "DISABLED"] },
+                "discountType": { "type": "string", "enum": ["FIXED", "PERCENTAGE"] },
+                "fixedAmountVnd": {
+                  "anyOf": [
+                    { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+                    { "type": "null" }
+                  ]
+                },
+                "percentageBasisPoints": {
+                  "anyOf": [
+                    { "type": "integer", "minimum": 1, "maximum": 10000 },
+                    { "type": "null" }
+                  ]
+                },
+                "maximumDiscountVnd": {
+                  "anyOf": [
+                    { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+                    { "type": "null" }
+                  ]
+                },
+                "minimumOrderAmountVnd": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "validFrom": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "validUntil": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "appliesToAllRoomTypes": { "type": "boolean" },
+                "roomTypeIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "totalUsageLimit": {
+                  "anyOf": [
+                    { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+                    { "type": "null" }
+                  ]
+                },
+                "perCustomerLimit": {
+                  "anyOf": [
+                    { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+                    { "type": "null" }
+                  ]
+                },
+                "counts": {
+                  "type": "object",
+                  "properties": {
+                    "activeReservations": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "redeemed": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                    "released": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+                  },
+                  "required": ["activeReservations", "redeemed", "released"],
+                  "additionalProperties": false
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "disabledAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    { "type": "null" }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "propertyId",
+                "code",
+                "status",
+                "lifecycle",
+                "discountType",
+                "fixedAmountVnd",
+                "percentageBasisPoints",
+                "maximumDiscountVnd",
+                "minimumOrderAmountVnd",
+                "validFrom",
+                "validUntil",
+                "appliesToAllRoomTypes",
+                "roomTypeIds",
+                "totalUsageLimit",
+                "perCustomerLimit",
+                "counts",
+                "createdAt",
+                "updatedAt",
+                "disabledAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["page", "pageSize", "items"],
+        "additionalProperties": false
+      },
+      "MaintenanceBlock": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "propertyId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "roomId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "reason": { "type": "string", "minLength": 1, "maxLength": 1000 },
+          "status": { "type": "string", "enum": ["ACTIVE", "CANCELLED"] },
+          "cancelledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              { "type": "null" }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "id",
+          "propertyId",
+          "roomId",
+          "startsAt",
+          "endsAt",
+          "reason",
+          "status",
+          "cancelledAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "MaintenanceBlockCommand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "reason": { "type": "string", "minLength": 1, "maxLength": 1000 }
+        },
+        "required": ["roomId", "startsAt", "endsAt", "reason"],
+        "additionalProperties": false
+      },
+      "PriceTier": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "propertyId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "sortOrder": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "id",
+          "propertyId",
+          "code",
+          "name",
+          "sortOrder",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "PriceTierCommand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "sortOrder": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["code", "name"],
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "status": { "type": "integer", "minimum": 400, "maximum": 599 },
+          "code": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "detail": { "type": "string", "minLength": 1, "maxLength": 1000 },
+          "requestId": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "errors": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": { "type": "string", "minLength": 1, "maxLength": 160 },
+                "message": { "type": "string", "minLength": 1, "maxLength": 500 }
+              },
+              "required": ["field", "message"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["type", "title", "status", "code", "detail", "requestId", "errors"],
+        "additionalProperties": false
+      },
+      "Property": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "timezone": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "currency": { "type": "string", "const": "VND" },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "timezone",
+          "currency",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "PropertyCommand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 }
+        },
+        "required": ["code", "name"],
+        "additionalProperties": false
+      },
+      "Room": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "propertyId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "roomTypeId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "roomNumber": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "MAINTENANCE"] },
+          "housekeepingStatus": { "type": "string", "enum": ["CLEAN", "DIRTY", "CLEANING"] },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "id",
+          "propertyId",
+          "roomTypeId",
+          "roomNumber",
+          "status",
+          "housekeepingStatus",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "RoomCommand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "roomTypeId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "roomNumber": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "MAINTENANCE"] }
+        },
+        "required": ["roomTypeId", "roomNumber"],
+        "additionalProperties": false
+      },
+      "RoomHousekeepingCommand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": { "status": { "type": "string", "enum": ["CLEAN", "DIRTY", "CLEANING"] } },
+        "required": ["status"],
+        "additionalProperties": false
+      },
+      "RoomPatch": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "roomNumber": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "roomTypeId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoomType": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "propertyId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "priceTierId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "description": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "maxAdults": { "type": "integer", "minimum": 1, "maximum": 20 },
+          "maxChildren": { "type": "integer", "minimum": 0, "maximum": 20 },
+          "maxOccupancy": { "type": "integer", "minimum": 1, "maximum": 40 },
+          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE"] },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "id",
+          "propertyId",
+          "priceTierId",
+          "code",
+          "name",
+          "description",
+          "maxAdults",
+          "maxChildren",
+          "maxOccupancy",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "RoomTypeCommand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "priceTierId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "description": {
+            "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2000 }, { "type": "null" }]
+          },
+          "maxAdults": { "type": "integer", "minimum": 1, "maximum": 20 },
+          "maxChildren": { "default": 0, "type": "integer", "minimum": 0, "maximum": 20 },
+          "maxOccupancy": { "type": "integer", "minimum": 1, "maximum": 40 }
+        },
+        "required": ["priceTierId", "code", "name", "maxAdults", "maxOccupancy"],
+        "additionalProperties": false
+      },
+      "RoomTypePatch": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "description": {
+            "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2000 }, { "type": "null" }]
+          },
+          "maxAdults": { "type": "integer", "minimum": 1, "maximum": 20 },
+          "maxChildren": { "type": "integer", "minimum": 0, "maximum": 20 },
+          "maxOccupancy": { "type": "integer", "minimum": 1, "maximum": 40 },
+          "priceTierId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RatePlan": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Z0-9_]+$" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "status": { "type": "string", "enum": ["DRAFT", "ACTIVE", "INACTIVE"] },
+          "includedDurationMinutes": { "type": "integer", "minimum": 60, "maximum": 1440 },
+          "priority": { "type": "integer", "minimum": 0, "maximum": 1000 },
+          "isBasePlan": { "type": "boolean" },
+          "minCheckInMinuteInclusive": {
+            "anyOf": [{ "type": "integer", "minimum": 0, "maximum": 1425 }, { "type": "null" }]
+          },
+          "maxCheckInMinuteExclusive": {
+            "anyOf": [{ "type": "integer", "minimum": 15, "maximum": 1440 }, { "type": "null" }]
+          },
+          "minDurationMinutesInclusive": {
+            "anyOf": [{ "type": "integer", "minimum": 60, "maximum": 1440 }, { "type": "null" }]
+          },
+          "maxDurationMinutesInclusive": {
+            "anyOf": [{ "type": "integer", "minimum": 60, "maximum": 1440 }, { "type": "null" }]
+          },
+          "prices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "priceTierId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "amountVnd": {
+                  "anyOf": [
+                    { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+                    { "type": "null" }
+                  ]
+                }
+              },
+              "required": ["priceTierId", "amountVnd"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "status",
+          "includedDurationMinutes",
+          "priority",
+          "isBasePlan",
+          "minCheckInMinuteInclusive",
+          "maxCheckInMinuteExclusive",
+          "minDurationMinutesInclusive",
+          "maxDurationMinutesInclusive",
+          "prices"
+        ],
+        "additionalProperties": false
+      },
+      "RatePlanActivation": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": { "activate": { "default": true, "type": "boolean", "const": true } },
+        "additionalProperties": false
+      },
+      "RatePlanCreateCommand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Z0-9_]+$" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "includedDurationMinutes": { "type": "integer", "minimum": 60, "maximum": 1440 },
+          "priority": { "type": "integer", "minimum": 0, "maximum": 1000 },
+          "isBasePlan": { "default": true, "type": "boolean" },
+          "minCheckInMinuteInclusive": {
+            "default": null,
+            "anyOf": [{ "type": "integer", "minimum": 0, "maximum": 1425 }, { "type": "null" }]
+          },
+          "maxCheckInMinuteExclusive": {
+            "default": null,
+            "anyOf": [{ "type": "integer", "minimum": 15, "maximum": 1440 }, { "type": "null" }]
+          },
+          "minDurationMinutesInclusive": {
+            "default": null,
+            "anyOf": [{ "type": "integer", "minimum": 60, "maximum": 1440 }, { "type": "null" }]
+          },
+          "maxDurationMinutesInclusive": {
+            "default": null,
+            "anyOf": [{ "type": "integer", "minimum": 60, "maximum": 1440 }, { "type": "null" }]
+          }
+        },
+        "required": ["code", "name", "includedDurationMinutes", "priority"],
+        "additionalProperties": false
+      },
+      "RatePlanPriceCommand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "amountVnd": { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 }
+        },
+        "required": ["amountVnd"],
+        "additionalProperties": false
+      },
+      "PaymentProviderAdmin": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "provider": { "type": "string", "enum": ["MOMO", "VNPAY"] },
+          "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "displayOrder": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "checkoutExpiryMinutes": { "type": "integer", "minimum": 1, "maximum": 60 },
+          "maintenanceMessage": {
+            "anyOf": [{ "type": "string", "maxLength": 500 }, { "type": "null" }]
+          },
+          "enabled": { "type": "boolean" },
+          "unavailableReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["CONFIGURATION_REQUIRED", "PROPERTY_DISABLED", "MAINTENANCE"]
+              },
+              { "type": "null" }
+            ]
+          },
+          "environment": { "type": "string", "enum": ["sandbox", "production"] },
+          "configured": { "type": "boolean" }
+        },
+        "required": [
+          "provider",
+          "displayName",
+          "displayOrder",
+          "checkoutExpiryMinutes",
+          "maintenanceMessage",
+          "enabled",
+          "unavailableReason",
+          "environment",
+          "configured"
+        ]
+      },
+      "PaymentProviderUpdate": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "displayOrder": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "checkoutExpiryMinutes": { "type": "integer", "minimum": 1, "maximum": 60 },
+          "maintenanceMessage": {
+            "anyOf": [{ "type": "string", "maxLength": 500 }, { "type": "null" }]
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminPaymentDetail": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["PENDING", "SUCCEEDED", "REVIEW_REQUIRED", "CANCELLED", "EXPIRED"]
+          },
+          "amountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "currency": { "type": "string", "const": "VND" },
+          "confirmationSource": {
+            "anyOf": [
+              { "type": "string", "enum": ["PROVIDER_EVENT", "NO_CHARGE"] },
+              { "type": "null" }
+            ]
+          },
+          "succeededAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              { "type": "null" }
+            ]
+          },
+          "reviewRequiredAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              { "type": "null" }
+            ]
+          },
+          "cancelledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              { "type": "null" }
+            ]
+          },
+          "expiredAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              { "type": "null" }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "booking": {
+            "type": "object",
+            "properties": {
+              "bookingId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "bookingCode": { "type": "string", "pattern": "^[A-Z0-9-]{4,32}$" },
+              "bookingStatus": {
+                "type": "string",
+                "enum": [
+                  "HOLD",
+                  "CONFIRMED",
+                  "EXPIRED",
+                  "CANCELLED",
+                  "NO_SHOW",
+                  "CHECKED_IN",
+                  "CHECKED_OUT"
+                ]
+              },
+              "finalAmountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+              "currency": { "type": "string", "const": "VND" },
+              "contact": {
+                "type": "object",
+                "properties": {
+                  "fullName": { "type": "string", "minLength": 1, "maxLength": 160 },
+                  "emailMasked": { "type": "string", "minLength": 3, "maxLength": 254 },
+                  "phoneMasked": { "type": "string", "minLength": 3, "maxLength": 32 }
+                },
+                "required": ["fullName", "emailMasked", "phoneMasked"],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "bookingId",
+              "bookingCode",
+              "bookingStatus",
+              "finalAmountVnd",
+              "currency",
+              "contact"
+            ],
+            "additionalProperties": false
+          },
+          "providerRef": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "provider": { "type": "string", "enum": ["MOMO", "VNPAY"] },
+                  "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+                  "configured": { "type": "boolean" },
+                  "enabled": { "type": "boolean" },
+                  "environment": { "type": "string", "enum": ["sandbox", "production"] },
+                  "checkoutExpiryMinutes": { "type": "integer", "minimum": 1, "maximum": 60 }
+                },
+                "required": [
+                  "provider",
+                  "displayName",
+                  "configured",
+                  "enabled",
+                  "environment",
+                  "checkoutExpiryMinutes"
+                ],
+                "additionalProperties": false
+              },
+              { "type": "null" }
+            ]
+          },
+          "attempts": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "paymentAttemptId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "provider": { "type": "string", "enum": ["MOMO", "VNPAY"] },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "PENDING",
+                    "SUCCEEDED",
+                    "FAILED",
+                    "REVIEW_REQUIRED",
+                    "EXPIRED",
+                    "CANCELLED"
+                  ]
+                },
+                "initiatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "completedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    { "type": "null" }
+                  ]
+                },
+                "amountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                "currency": { "type": "string", "const": "VND" },
+                "idempotencyKeyMasked": { "type": "string", "minLength": 1, "maxLength": 40 },
+                "providerOrderIdMasked": { "type": "string", "minLength": 1, "maxLength": 40 },
+                "providerTransactionIdMasked": {
+                  "anyOf": [
+                    { "type": "string", "minLength": 1, "maxLength": 40 },
+                    { "type": "null" }
+                  ]
+                }
+              },
+              "required": [
+                "paymentAttemptId",
+                "provider",
+                "status",
+                "initiatedAt",
+                "completedAt",
+                "amountVnd",
+                "currency",
+                "idempotencyKeyMasked",
+                "providerOrderIdMasked",
+                "providerTransactionIdMasked"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "timeline": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "eventType": { "type": "string", "minLength": 1, "maxLength": 120 },
+                "actorType": {
+                  "type": "string",
+                  "enum": ["GUEST", "CUSTOMER", "ADMIN", "SYSTEM", "PROVIDER"]
+                },
+                "actorId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    { "type": "null" }
+                  ]
+                },
+                "occurredAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "summary": { "type": "string", "minLength": 1, "maxLength": 280 }
+              },
+              "required": ["id", "eventType", "actorType", "actorId", "occurredAt", "summary"],
+              "additionalProperties": false
+            }
+          },
+          "reconciliation": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["NOT_REQUESTED", "IN_PROGRESS", "COMPLETED", "STALE"]
+              },
+              "requestedAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "requestedBy": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "lastAttemptCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+              "lastErrorCode": {
+                "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 80 }, { "type": "null" }]
+              },
+              "lastReconciledAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "nextEligibleAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "providerResponse": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["SUCCESS", "STILL_PENDING", "FAILED", "REVIEW_REQUIRED"]
+                  },
+                  { "type": "null" }
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "requestedAt",
+              "requestedBy",
+              "lastAttemptCount",
+              "lastErrorCode",
+              "lastReconciledAt",
+              "nextEligibleAt",
+              "providerResponse"
+            ],
+            "additionalProperties": false
+          },
+          "operationalReview": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "reviewId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "category": { "type": "string", "enum": ["PAID_CANCELLATION"] },
+                  "status": { "type": "string", "enum": ["OPEN", "RESOLVED"] },
+                  "openedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "openedReason": { "type": "string", "minLength": 1, "maxLength": 1000 },
+                  "resolvedAt": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      { "type": "null" }
+                    ]
+                  },
+                  "resolvedNote": {
+                    "anyOf": [
+                      { "type": "string", "minLength": 1, "maxLength": 2000 },
+                      { "type": "null" }
+                    ]
+                  }
+                },
+                "required": [
+                  "reviewId",
+                  "category",
+                  "status",
+                  "openedAt",
+                  "openedReason",
+                  "resolvedAt",
+                  "resolvedNote"
+                ],
+                "additionalProperties": false
+              },
+              { "type": "null" }
+            ]
+          },
+          "audit": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "eventType": { "type": "string", "minLength": 1, "maxLength": 120 },
+                "actorType": { "type": "string", "enum": ["GUEST", "CUSTOMER", "ADMIN", "SYSTEM"] },
+                "actorId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    { "type": "null" }
+                  ]
+                },
+                "occurredAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "summary": { "type": "string", "minLength": 1, "maxLength": 280 }
+              },
+              "required": ["id", "eventType", "actorType", "actorId", "occurredAt", "summary"],
+              "additionalProperties": false
+            }
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "paymentId",
+          "status",
+          "amountVnd",
+          "currency",
+          "confirmationSource",
+          "succeededAt",
+          "reviewRequiredAt",
+          "cancelledAt",
+          "expiredAt",
+          "createdAt",
+          "updatedAt",
+          "booking",
+          "providerRef",
+          "attempts",
+          "timeline",
+          "reconciliation",
+          "operationalReview",
+          "audit",
+          "serverTime"
+        ],
+        "additionalProperties": false
+      },
+      "AdminPaymentListQuery": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "page": { "default": 1, "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+          "pageSize": { "default": 20, "type": "integer", "minimum": 1, "maximum": 100 },
+          "status": {
+            "type": "string",
+            "enum": ["PENDING", "SUCCEEDED", "REVIEW_REQUIRED", "CANCELLED", "EXPIRED"]
+          },
+          "provider": { "type": "string", "enum": ["MOMO", "VNPAY"] },
+          "bookingCode": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "reviewRequired": {
+            "anyOf": [
+              { "type": "string", "const": "true" },
+              { "type": "string", "const": "false" },
+              { "type": "string", "const": "1" },
+              { "type": "string", "const": "0" }
+            ]
+          },
+          "createdFrom": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "createdTo": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminPaymentListResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "items": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "paymentId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["PENDING", "SUCCEEDED", "REVIEW_REQUIRED", "CANCELLED", "EXPIRED"]
+                },
+                "amountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                "currency": { "type": "string", "const": "VND" },
+                "confirmationSource": {
+                  "anyOf": [
+                    { "type": "string", "enum": ["PROVIDER_EVENT", "NO_CHARGE"] },
+                    { "type": "null" }
+                  ]
+                },
+                "reviewRequired": { "type": "boolean" },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "completedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    { "type": "null" }
+                  ]
+                },
+                "provider": {
+                  "anyOf": [{ "type": "string", "enum": ["MOMO", "VNPAY"] }, { "type": "null" }]
+                },
+                "booking": {
+                  "type": "object",
+                  "properties": {
+                    "bookingId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "bookingCode": { "type": "string", "pattern": "^[A-Z0-9-]{4,32}$" },
+                    "bookingStatus": {
+                      "type": "string",
+                      "enum": [
+                        "HOLD",
+                        "CONFIRMED",
+                        "EXPIRED",
+                        "CANCELLED",
+                        "NO_SHOW",
+                        "CHECKED_IN",
+                        "CHECKED_OUT"
+                      ]
+                    },
+                    "finalAmountVnd": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "currency": { "type": "string", "const": "VND" },
+                    "contact": {
+                      "type": "object",
+                      "properties": {
+                        "fullName": { "type": "string", "minLength": 1, "maxLength": 160 },
+                        "emailMasked": { "type": "string", "minLength": 3, "maxLength": 254 },
+                        "phoneMasked": { "type": "string", "minLength": 3, "maxLength": 32 }
+                      },
+                      "required": ["fullName", "emailMasked", "phoneMasked"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "bookingId",
+                    "bookingCode",
+                    "bookingStatus",
+                    "finalAmountVnd",
+                    "currency",
+                    "contact"
+                  ],
+                  "additionalProperties": false
+                },
+                "latestAttempt": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "paymentAttemptId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "provider": { "type": "string", "enum": ["MOMO", "VNPAY"] },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING",
+                            "SUCCEEDED",
+                            "FAILED",
+                            "REVIEW_REQUIRED",
+                            "EXPIRED",
+                            "CANCELLED"
+                          ]
+                        },
+                        "initiatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "completedAt": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            { "type": "null" }
+                          ]
+                        },
+                        "amountVnd": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "currency": { "type": "string", "const": "VND" },
+                        "idempotencyKeyMasked": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "providerOrderIdMasked": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 40
+                        },
+                        "providerTransactionIdMasked": {
+                          "anyOf": [
+                            { "type": "string", "minLength": 1, "maxLength": 40 },
+                            { "type": "null" }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "paymentAttemptId",
+                        "provider",
+                        "status",
+                        "initiatedAt",
+                        "completedAt",
+                        "amountVnd",
+                        "currency",
+                        "idempotencyKeyMasked",
+                        "providerOrderIdMasked",
+                        "providerTransactionIdMasked"
+                      ],
+                      "additionalProperties": false
+                    },
+                    { "type": "null" }
+                  ]
+                },
+                "providerRef": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "provider": { "type": "string", "enum": ["MOMO", "VNPAY"] },
+                        "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+                        "configured": { "type": "boolean" },
+                        "enabled": { "type": "boolean" },
+                        "environment": { "type": "string", "enum": ["sandbox", "production"] },
+                        "checkoutExpiryMinutes": { "type": "integer", "minimum": 1, "maximum": 60 }
+                      },
+                      "required": [
+                        "provider",
+                        "displayName",
+                        "configured",
+                        "enabled",
+                        "environment",
+                        "checkoutExpiryMinutes"
+                      ],
+                      "additionalProperties": false
+                    },
+                    { "type": "null" }
+                  ]
+                },
+                "operationalReview": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "reviewId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "category": { "type": "string", "enum": ["PAID_CANCELLATION"] },
+                        "status": { "type": "string", "enum": ["OPEN", "RESOLVED"] },
+                        "openedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "openedReason": { "type": "string", "minLength": 1, "maxLength": 1000 },
+                        "resolvedAt": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            { "type": "null" }
+                          ]
+                        },
+                        "resolvedNote": {
+                          "anyOf": [
+                            { "type": "string", "minLength": 1, "maxLength": 2000 },
+                            { "type": "null" }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "reviewId",
+                        "category",
+                        "status",
+                        "openedAt",
+                        "openedReason",
+                        "resolvedAt",
+                        "resolvedNote"
+                      ],
+                      "additionalProperties": false
+                    },
+                    { "type": "null" }
+                  ]
+                }
+              },
+              "required": [
+                "paymentId",
+                "status",
+                "amountVnd",
+                "currency",
+                "confirmationSource",
+                "reviewRequired",
+                "createdAt",
+                "updatedAt",
+                "completedAt",
+                "provider",
+                "booking",
+                "latestAttempt",
+                "providerRef",
+                "operationalReview"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "page": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+          "pageSize": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "totalItems": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+        },
+        "required": ["items", "page", "pageSize", "totalItems"],
+        "additionalProperties": false
+      },
+      "AdminPaymentListStatus": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": ["PENDING", "SUCCEEDED", "FAILED", "EXPIRED", "CANCELLED", "REVIEW_REQUIRED"]
+      },
+      "AdminPaymentProviderFilter": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": ["MOMO", "VNPAY"]
+      },
+      "AdminPaymentReconcileRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "note": { "type": "string", "minLength": 1, "maxLength": 500 },
+          "expectedAttemptId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "expectedUpdatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminPaymentReconcileResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "reconciliation": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["NOT_REQUESTED", "IN_PROGRESS", "COMPLETED", "STALE"]
+              },
+              "requestedAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "requestedBy": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "lastAttemptCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+              "lastErrorCode": {
+                "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 80 }, { "type": "null" }]
+              },
+              "lastReconciledAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "nextEligibleAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "providerResponse": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["SUCCESS", "STILL_PENDING", "FAILED", "REVIEW_REQUIRED"]
+                  },
+                  { "type": "null" }
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "requestedAt",
+              "requestedBy",
+              "lastAttemptCount",
+              "lastErrorCode",
+              "lastReconciledAt",
+              "nextEligibleAt",
+              "providerResponse"
+            ],
+            "additionalProperties": false
+          },
+          "payment": {
+            "type": "object",
+            "properties": {
+              "paymentId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["PENDING", "SUCCEEDED", "REVIEW_REQUIRED", "CANCELLED", "EXPIRED"]
+              },
+              "amountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+              "currency": { "type": "string", "const": "VND" },
+              "confirmationSource": {
+                "anyOf": [
+                  { "type": "string", "enum": ["PROVIDER_EVENT", "NO_CHARGE"] },
+                  { "type": "null" }
+                ]
+              },
+              "reviewRequired": { "type": "boolean" },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "completedAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "provider": {
+                "anyOf": [{ "type": "string", "enum": ["MOMO", "VNPAY"] }, { "type": "null" }]
+              },
+              "booking": {
+                "type": "object",
+                "properties": {
+                  "bookingId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "bookingCode": { "type": "string", "pattern": "^[A-Z0-9-]{4,32}$" },
+                  "bookingStatus": {
+                    "type": "string",
+                    "enum": [
+                      "HOLD",
+                      "CONFIRMED",
+                      "EXPIRED",
+                      "CANCELLED",
+                      "NO_SHOW",
+                      "CHECKED_IN",
+                      "CHECKED_OUT"
+                    ]
+                  },
+                  "finalAmountVnd": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "currency": { "type": "string", "const": "VND" },
+                  "contact": {
+                    "type": "object",
+                    "properties": {
+                      "fullName": { "type": "string", "minLength": 1, "maxLength": 160 },
+                      "emailMasked": { "type": "string", "minLength": 3, "maxLength": 254 },
+                      "phoneMasked": { "type": "string", "minLength": 3, "maxLength": 32 }
+                    },
+                    "required": ["fullName", "emailMasked", "phoneMasked"],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "bookingId",
+                  "bookingCode",
+                  "bookingStatus",
+                  "finalAmountVnd",
+                  "currency",
+                  "contact"
+                ],
+                "additionalProperties": false
+              },
+              "latestAttempt": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "paymentAttemptId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "provider": { "type": "string", "enum": ["MOMO", "VNPAY"] },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "PENDING",
+                          "SUCCEEDED",
+                          "FAILED",
+                          "REVIEW_REQUIRED",
+                          "EXPIRED",
+                          "CANCELLED"
+                        ]
+                      },
+                      "initiatedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "completedAt": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          { "type": "null" }
+                        ]
+                      },
+                      "amountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                      "currency": { "type": "string", "const": "VND" },
+                      "idempotencyKeyMasked": { "type": "string", "minLength": 1, "maxLength": 40 },
+                      "providerOrderIdMasked": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 40
+                      },
+                      "providerTransactionIdMasked": {
+                        "anyOf": [
+                          { "type": "string", "minLength": 1, "maxLength": 40 },
+                          { "type": "null" }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "paymentAttemptId",
+                      "provider",
+                      "status",
+                      "initiatedAt",
+                      "completedAt",
+                      "amountVnd",
+                      "currency",
+                      "idempotencyKeyMasked",
+                      "providerOrderIdMasked",
+                      "providerTransactionIdMasked"
+                    ],
+                    "additionalProperties": false
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "providerRef": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "provider": { "type": "string", "enum": ["MOMO", "VNPAY"] },
+                      "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+                      "configured": { "type": "boolean" },
+                      "enabled": { "type": "boolean" },
+                      "environment": { "type": "string", "enum": ["sandbox", "production"] },
+                      "checkoutExpiryMinutes": { "type": "integer", "minimum": 1, "maximum": 60 }
+                    },
+                    "required": [
+                      "provider",
+                      "displayName",
+                      "configured",
+                      "enabled",
+                      "environment",
+                      "checkoutExpiryMinutes"
+                    ],
+                    "additionalProperties": false
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "operationalReview": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "reviewId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "category": { "type": "string", "enum": ["PAID_CANCELLATION"] },
+                      "status": { "type": "string", "enum": ["OPEN", "RESOLVED"] },
+                      "openedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "openedReason": { "type": "string", "minLength": 1, "maxLength": 1000 },
+                      "resolvedAt": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          { "type": "null" }
+                        ]
+                      },
+                      "resolvedNote": {
+                        "anyOf": [
+                          { "type": "string", "minLength": 1, "maxLength": 2000 },
+                          { "type": "null" }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "reviewId",
+                      "category",
+                      "status",
+                      "openedAt",
+                      "openedReason",
+                      "resolvedAt",
+                      "resolvedNote"
+                    ],
+                    "additionalProperties": false
+                  },
+                  { "type": "null" }
+                ]
+              }
+            },
+            "required": [
+              "paymentId",
+              "status",
+              "amountVnd",
+              "currency",
+              "confirmationSource",
+              "reviewRequired",
+              "createdAt",
+              "updatedAt",
+              "completedAt",
+              "provider",
+              "booking",
+              "latestAttempt",
+              "providerRef",
+              "operationalReview"
+            ],
+            "additionalProperties": false
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["paymentId", "reconciliation", "payment", "serverTime"],
+        "additionalProperties": false
+      },
+      "AdminOperationalReportQuery": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "bookingStatuses": {
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "HOLD",
+                "CONFIRMED",
+                "EXPIRED",
+                "CANCELLED",
+                "NO_SHOW",
+                "CHECKED_IN",
+                "CHECKED_OUT"
+              ]
+            }
+          },
+          "paymentStatuses": {
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["NONE", "PENDING", "SUCCEEDED", "REVIEW_REQUIRED", "CANCELLED", "EXPIRED"]
+            }
+          },
+          "ratePlanCodes": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          "roomTierCodes": {
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        },
+        "required": ["from", "to"],
+        "additionalProperties": false
+      },
+      "AdminOperationalReport": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "grossRevenueVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "settledRevenueVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "outstandingRevenueVnd": { "type": "null" },
+          "bookingCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "confirmedCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "cancellationCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "customerCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "returningCustomerCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "daily": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                },
+                "revenueVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                "bookingCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+              },
+              "required": ["date", "revenueVnd", "bookingCount"],
+              "additionalProperties": false
+            }
+          },
+          "ratePlans": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": { "type": "string", "minLength": 1, "maxLength": 160 },
+                "revenueVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                "bookingCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+              },
+              "required": ["label", "revenueVnd", "bookingCount"],
+              "additionalProperties": false
+            }
+          },
+          "roomTypes": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": { "type": "string", "minLength": 1, "maxLength": 160 },
+                "revenueVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                "bookingCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+              },
+              "required": ["label", "revenueVnd", "bookingCount"],
+              "additionalProperties": false
+            }
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "grossRevenueVnd",
+          "settledRevenueVnd",
+          "outstandingRevenueVnd",
+          "bookingCount",
+          "confirmedCount",
+          "cancellationCount",
+          "customerCount",
+          "returningCustomerCount",
+          "daily",
+          "ratePlans",
+          "roomTypes",
+          "generatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "AdminRoomOperationsQuery": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["from", "to"],
+        "additionalProperties": false
+      },
+      "AdminRoomOperationsResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "items": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "roomId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "roomNumber": { "type": "string", "minLength": 1, "maxLength": 64 },
+                "roomStatus": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "MAINTENANCE"] },
+                "housekeepingStatus": { "type": "string", "enum": ["CLEAN", "DIRTY", "CLEANING"] },
+                "maintenanceState": { "type": "string", "enum": ["ACTIVE", "NONE"] },
+                "bookings": {
+                  "readOnly": true,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "bookingCode": { "type": "string", "minLength": 1, "maxLength": 64 },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "HOLD",
+                          "CONFIRMED",
+                          "EXPIRED",
+                          "CANCELLED",
+                          "NO_SHOW",
+                          "CHECKED_IN",
+                          "CHECKED_OUT"
+                        ]
+                      },
+                      "checkIn": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "checkOut": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      }
+                    },
+                    "required": ["bookingCode", "status", "checkIn", "checkOut"],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "roomId",
+                "roomNumber",
+                "roomStatus",
+                "housekeepingStatus",
+                "maintenanceState",
+                "bookings"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["items", "generatedAt"],
+        "additionalProperties": false
+      },
+      "AdminReportBookingStatus": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": [
+          "HOLD",
+          "CONFIRMED",
+          "EXPIRED",
+          "CANCELLED",
+          "NO_SHOW",
+          "CHECKED_IN",
+          "CHECKED_OUT"
+        ]
+      },
+      "AdminReportPaymentStatus": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": ["NONE", "PENDING", "SUCCEEDED", "REVIEW_REQUIRED", "CANCELLED", "EXPIRED"]
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "The request body or idempotency key is invalid.",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "The requested resource does not exist.",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+          }
+        }
+      },
+      "AuthenticationRequired": {
+        "description": "A valid active ADMIN session is required.",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+          }
+        }
+      },
+      "PermissionDenied": {
+        "description": "The current session lacks a required permission.",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+          }
+        }
+      },
+      "CatalogConflict": {
+        "description": "The requested catalog mutation conflicts with existing data.",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+          }
+        }
+      },
+      "CouponDeliveryBookingNotFound": {
+        "description": "No booking contact exists for the specified booking code.",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+          }
+        }
+      },
+      "CouponDeliveryConflict": {
+        "description": "Coupon availability changed or the idempotency key was reused with a different request.",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+          }
+        }
+      },
+      "AdminPaymentNotFound": {
+        "description": "No payment exists for the requested id within the active property scope.",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+          }
+        }
+      },
+      "AdminPaymentReconciliationConflict": {
+        "description": "The reconciliation request was rejected because the payment state changed since the request was prepared (expectedAttemptId / expectedUpdatedAt mismatch).",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+          }
+        }
+      },
+      "AdminPaymentReconciliationRateLimited": {
+        "description": "The reconciliation request was rate limited by the provider adapter; retry after the provided timestamp.",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: room
+          POSTGRES_PASSWORD: room
+          POSTGRES_DB: room_management
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U room -d room_management"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:8
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      mailpit:
+        image: axllent/mailpit:v1.29.0
+        ports:
+          - 1025:1025
+          - 8025:8025
+        options: >-
+          --health-cmd "wget -q -O - http://127.0.0.1:8025/ >/dev/null 2>&1 || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test:unit
+      - run: pnpm build
+      # `db:test` creates only disposable room_management_test_<uuid> databases.
+      - run: pnpm db:check
+      - run: pnpm db:test
+        env:
+          TEST_DATABASE_URL: postgresql://room:room@127.0.0.1:5432/room_management_test_base
+      - run: pnpm test:integration
+        env:
+          TEST_DATABASE_URL: postgresql://room:room@127.0.0.1:5432/room_management_test_base
+      - run: pnpm test:pricing
+      - run: pnpm test:availability
+        env:
+          TEST_DATABASE_URL: postgresql://room:room@127.0.0.1:5432/room_management_test_base
+      - run: pnpm test:quotes
+        env:
+          TEST_DATABASE_URL: postgresql://room:room@127.0.0.1:5432/room_management_test_base
+      - run: pnpm check:openapi
+      - run: pnpm storybook:build
+      - run: pnpm --filter @room/web test:unit
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+        env:
+          MAIL_HOST: 127.0.0.1
+          MAIL_PORT: '1025'
+          MAILPIT_API: http://127.0.0.1:8025
+          PLAYWRIGHT_MAILPIT_DELETE_HEADER: X-Playwright-Email
+          PLAYWRIGHT_TEST_DATABASE_NAME: room_management_test_ci
+          PLAYWRIGHT_BETTER_AUTH_SECRET: local-dev-only-secret-with-at-least-thirty-two-characters
+      - run: pnpm audit:deps
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2

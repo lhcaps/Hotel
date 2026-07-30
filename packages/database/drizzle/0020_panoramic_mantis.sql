@@ -1,0 +1,2 @@
+CREATE TYPE "public"."housekeeping_status" AS ENUM('CLEAN', 'DIRTY', 'CLEANING');--> statement-breakpoint
+ALTER TABLE "rooms" ADD COLUMN "housekeeping_status" "housekeeping_status" DEFAULT 'CLEAN' NOT NULL;

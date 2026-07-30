@@ -1,0 +1,14 @@
+variable,default,owner,backend_effect,frontend_effect,dependencies,safe_local_value,production_requirement
+GOOGLE_AUTH_ENABLED,false,API,registers Google provider,none,client id secret redirect,false,true with registered HTTPS callback
+NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,false,Web,renders Google action,renders Google action,server flag,false,must equal server flag
+GOOGLE_CLIENT_ID,empty,API,Google OAuth identity,none,Google registration,empty,required when Google enabled
+GOOGLE_CLIENT_SECRET,empty,API,Google OAuth token exchange,none,Google registration,empty secret manager required
+GOOGLE_REDIRECT_URI,local API callback,API,Google callback target,none,Google registration,http://localhost:3001/api/auth/callback/google,HTTPS public API callback
+GOOGLE_TRANSLATION_ENABLED,false,API,enables dynamic description translation,none,translation API,false,credential and quota
+MOMO_ENABLED,false,API,enables configured MoMo adapter,provider offered only when active,merchant config,false,sandbox/live merchant config plus HTTPS callback
+VNPAY_ENABLED,false,API,enables configured VNPAY adapter,provider offered only when active,merchant config,false,sandbox/live merchant config plus HTTPS callback
+SMTP_HOST,localhost,Worker,delivers OTP and coupon outbox,none,Mailpit/SMTP,localhost,authenticated SMTP where required
+WORKER_MODE,continuous,Worker,schedules expiry outbox reconciliation,indirect eventual status,DB Redis SMTP,continuous,continuous
+TRUSTED_PROXY_CIDRS,empty,API,trusts forwarded client identity,none,network topology,empty,explicit proxy CIDRs
+WEB_ORIGIN,http://localhost:3000,API,CORS/auth trusted origin,Web origin,Web server,http://localhost:3000,HTTPS public origin
+AUTH_BASE_URL,http://localhost:3001,API,Better Auth base,login API origin,http://localhost:3001,public HTTPS API origin

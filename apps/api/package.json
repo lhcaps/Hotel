@@ -1,0 +1,39 @@
+{
+  "name": "@room/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../scripts/with-local-env.mjs tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/main.js",
+    "lint": "eslint src test",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "vitest run --exclude dist/** --exclude test/integration/**",
+    "test:integration": "node ../../scripts/with-local-env.mjs vitest run --exclude dist/** test/integration",
+    "test:coverage": "vitest run --coverage --exclude dist/**"
+  },
+  "dependencies": {
+    "@fastify/cookie": "11.0.2",
+    "@fastify/cors": "11.3.0",
+    "@nestjs/common": "11.1.28",
+    "@nestjs/core": "11.1.28",
+    "@nestjs/platform-fastify": "11.1.28",
+    "@room/booking": "workspace:*",
+    "@room/config": "workspace:*",
+    "@room/contracts": "workspace:*",
+    "@room/auth": "workspace:*",
+    "@room/database": "workspace:*",
+    "@room/observability": "workspace:*",
+    "better-auth": "1.6.23",
+    "fastify": "5.10.0",
+    "ioredis": "5.11.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@room/eslint-config": "workspace:*",
+    "@room/typescript-config": "workspace:*",
+    "tsx": "4.21.0"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@room/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../scripts/with-local-env.mjs tsx watch src/main.ts",
+    "dev:once": "node ../../scripts/with-local-env.mjs tsx src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/main.js",
+    "lint": "eslint src test",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "node ../../scripts/with-local-env.mjs vitest run --exclude dist/**",
+    "test:coverage": "node ../../scripts/with-local-env.mjs vitest run --coverage --exclude dist/**"
+  },
+  "dependencies": {
+    "@room/booking": "workspace:*",
+    "@room/config": "workspace:*",
+    "@room/database": "workspace:*",
+    "@room/observability": "workspace:*",
+    "ioredis": "5.11.1",
+    "nodemailer": "9.0.3",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@room/eslint-config": "workspace:*",
+    "@room/typescript-config": "workspace:*",
+    "@types/nodemailer": "7.0.12",
+    "tsx": "4.21.0"
+  }
+}

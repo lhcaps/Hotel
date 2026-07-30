@@ -1,0 +1,260 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Room Management Customer and Operations API",
+    "version": "1.0.0",
+    "description": "Authenticated customer self-service and operational booking endpoints."
+  },
+  "paths": {
+    "/api/v1/admin/bookings": {
+      "get": {
+        "operationId": "listAdminBookings",
+        "summary": "List bookings for authorized operations staff.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/admin/bookings/{bookingCode}": {
+      "get": {
+        "operationId": "getAdminBooking",
+        "summary": "Read an operational booking detail.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/admin/bookings/{bookingCode}/cancel": {
+      "post": {
+        "operationId": "cancelAdminBooking",
+        "summary": "Cancel a booking through the authorized operational workflow.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/admin/bookings/{bookingCode}/check-in": {
+      "post": {
+        "operationId": "checkInAdminBooking",
+        "summary": "Check in a booking through the authorized operational workflow.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/admin/bookings/{bookingCode}/check-out": {
+      "post": {
+        "operationId": "checkOutAdminBooking",
+        "summary": "Check out a booking through the authorized operational workflow.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/admin/bookings/{bookingCode}/no-show": {
+      "post": {
+        "operationId": "markAdminBookingNoShow",
+        "summary": "Mark a booking as a no-show through the authorized operational workflow.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/admin/operational-reviews": {
+      "get": {
+        "operationId": "listOperationalReviews",
+        "summary": "List operational review records.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/admin/operational-reviews/{reviewId}": {
+      "get": {
+        "operationId": "getOperationalReview",
+        "summary": "Read one operational review record.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/admin/operational-reviews/{reviewId}/resolve": {
+      "post": {
+        "operationId": "resolveOperationalReview",
+        "summary": "Resolve an operational review with an authorized decision.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/admin/operational-report": {
+      "get": {
+        "operationId": "getAdminOperationalReport",
+        "summary": "Read server-aggregated operational metrics for the current property.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/admin/room-operations": {
+      "get": {
+        "operationId": "listAdminRoomOperations",
+        "summary": "Read physical-room occupancy, housekeeping and maintenance state from the server.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/admin/rate-plans/{id}/selection-rule": {
+      "patch": {
+        "operationId": "updateRatePlanSelectionRule",
+        "summary": "Update an authorized rate-plan selection rule.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}/claim": {
+      "post": {
+        "operationId": "claimCustomerBooking",
+        "summary": "Claim an eligible booking for the authenticated customer.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/customer/bookings": {
+      "get": {
+        "operationId": "listCustomerBookings",
+        "summary": "List bookings owned by the authenticated customer.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}": {
+      "get": {
+        "operationId": "getCustomerBooking",
+        "summary": "Read a booking owned by the authenticated customer.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/customer/profile/session": {
+      "get": {
+        "operationId": "getCustomerSessionStatus",
+        "summary": "Read whether the current optional cookie belongs to an authenticated customer.",
+        "responses": {
+          "200": {
+            "description": "Session status resolved without exposing customer profile data."
+          }
+        }
+      }
+    },
+    "/api/v1/customer/profile": {
+      "get": {
+        "operationId": "getCustomerProfile",
+        "summary": "Read the authenticated customer profile.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateCustomerProfile",
+        "summary": "Update the authenticated customer profile.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "cookieAuth": { "type": "apiKey", "in": "cookie", "name": "session" } }
+  }
+}

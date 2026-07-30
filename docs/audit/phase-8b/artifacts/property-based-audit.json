@@ -1,0 +1,14 @@
+{
+  "phase": "8B",
+  "testFile": "apps/api/test/audit-phase8b/audit-property-cheapest.test.ts",
+  "publishedSeed": 20260728,
+  "generated": 10000,
+  "executed": 9863,
+  "rejected": 137,
+  "oracleRejected": 0,
+  "empty": 0,
+  "compared": 9863,
+  "mismatches": 0,
+  "verdict": "PASS",
+  "explanation": "137 cases were rejected by the production selector with 'No active base plan matches the requested check-in and duration.' These are valid configurations where the seeded time/duration combination has no eligible base plan. The remaining 9,863 cases were compared against the independent oracle and produced zero mismatches."
+}

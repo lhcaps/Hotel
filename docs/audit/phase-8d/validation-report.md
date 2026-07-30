@@ -1,0 +1,68 @@
+# Phase 8D Validation Report
+
+## Fresh focused commands
+
+| Command                                                                                                                                                 | Exit | Result                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---: | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @room/web test:unit -- test/i18n.test.ts test/locale-route.test.ts test/coupon-delivery-action.test.tsx test/admin-payments-api.test.ts` |    0 | 4 files, 12 tests passed                                                                                                                                |
+| `pnpm --filter @room/web typecheck`                                                                                                                     |    0 | passed                                                                                                                                                  |
+| `pnpm --filter @room/config test:unit -- test/environment.test.ts`                                                                                      |    0 | 72 tests passed                                                                                                                                         |
+| `pnpm --filter @room/api test:unit -- coupon/translation/proxy focus`                                                                                   |    0 | 7 tests passed                                                                                                                                          |
+| `pnpm --filter @room/api typecheck`                                                                                                                     |    0 | passed                                                                                                                                                  |
+| `apps/api: trusted proxy parser`                                                                                                                        |    0 | 5 tests passed, including malformed IPv4/IPv6 CIDR rejection before Fastify startup                                                                     |
+| `packages/database: 0019 identity, snapshot, fresh, and upgrade focus`                                                                                  |    0 | 3 files, 44 tests passed; journal has one 0019 entry, snapshot links 0018, fresh 0000→0019 and populated 0018→0019 both passed                          |
+| `apps/api: vitest booking/pricing/coupon focus with local env`                                                                                          |    0 | 6 files, 37 tests passed                                                                                                                                |
+| `apps/api: coupon-delivery PostgreSQL integration`                                                                                                      |    0 | 2 tests passed                                                                                                                                          |
+| `pnpm --filter @room/worker test:unit -- coupon focus`                                                                                                  |    0 | 2 files, 3 tests passed                                                                                                                                 |
+| `pnpm --filter @room/worker typecheck`                                                                                                                  |    0 | passed                                                                                                                                                  |
+| `pnpm check:openapi`                                                                                                                                    |    0 | admin 36 operations, public 18 operations; coupon schema 11/11                                                                                          |
+| `pnpm lint`                                                                                                                                             |    0 | full workspace passed                                                                                                                                   |
+| `pnpm typecheck`                                                                                                                                        |    0 | full workspace passed                                                                                                                                   |
+| `pnpm test:unit`                                                                                                                                        |    0 | full workspace passed                                                                                                                                   |
+| `pnpm build`                                                                                                                                            |    0 | full workspace passed after correcting Turbopack internal import suffixes                                                                               |
+| `pnpm db:check`                                                                                                                                         |    0 | passed                                                                                                                                                  |
+| `pnpm db:migrate && pnpm db:status`                                                                                                                     |    0 | local schema marker is `phase-8d-client-acceptance-v1`                                                                                                  |
+| `pnpm db:test`                                                                                                                                          |    0 | 21 files, 157 tests passed                                                                                                                              |
+| `pnpm audit --prod --audit-level=high`                                                                                                                  |    0 | no high/critical; 1 low and 1 moderate remain                                                                                                           |
+| `pnpm demo:preflight`                                                                                                                                   |    0 | protected port 3001 untouched                                                                                                                           |
+| `pnpm demo:lifecycle-test`                                                                                                                              |    0 | 15/15 passed; lifecycle smoke 22/22 passed; port 3001 owner remained `250604`                                                                           |
+| `pnpm demo:smoke`                                                                                                                                       |    0 | self-contained lifecycle orchestration, 15/15 lifecycle checks and 22/22 smoke checks                                                                   |
+| `phase-8d-coupon-delivery.spec.ts`                                                                                                                      |    0 | ADMIN booking-detail browser action queued the delivery; continuous worker delivered it to Mailpit; delivery became `SENT` while coupon stayed `ACTIVE` |
+| `pnpm test:e2e` (full run #1)                                                                                                                           |    0 | 61 passed, 0 skipped in the primary suite; unavailable-API suite 1 passed                                                                               |
+| `pnpm test:e2e` (full run #2)                                                                                                                           |    0 | 61 passed, 0 skipped in the primary suite; unavailable-API suite 1 passed                                                                               |
+
+The two full Playwright reruns, the coupon Mailpit vertical, and the standalone demo smoke are deterministic local acceptance evidence. They do not replace live provider, certificate, public callback, or outbound SMTP acceptance. Critical-page VI/EN and focused responsive/accessibility closure remain partial, so this evidence does not promote the whole client-requirement phase to PASS.
+
+## Phase 8D.3 public entry refresh
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `pnpm --filter @room/web test:unit -- test/public-homepage.test.tsx test/public-pricing.a11y.test.tsx test/i18n.test.ts` | 0 | 3 files, 11 tests passed; root loading, empty, error, result, quote routing and axe critical/serious checks covered |
+| `pnpm check:i18n-critical` | 0 | 73 source files scanned; 0 direct Vietnamese critical copy |
+| `pnpm check:endpoints` | 0 | 74 runtime routes; 69 documented; 4 allowlisted |
+| `pnpm check:openapi` | 0 | admin 36/public 18 operations; coupon schema 11/11 |
+| `pnpm lint` | 0 | 9 workspace tasks passed |
+| `pnpm typecheck` | 0 | 9 workspace tasks passed |
+| `pnpm test:unit` | 0 | 15 workspace tasks passed; API 50 files / 300 tests |
+| `pnpm build` | 0 | 9 workspace tasks passed; Next production build includes dynamic `/` |
+| `pnpm db:check` / `pnpm db:status` | 0 / 0 | migration validation passed; schema `phase-8d-client-acceptance-v1` |
+| focused Playwright root spec | 1 | blocked before browser startup: `PLAYWRIGHT_BETTER_AUTH_SECRET` is absent; no credential was fabricated |
+| `pnpm demo:preflight` | 0 | port 3001 protected and untouched; all prerequisite checks passed |
+| `pnpm demo:lifecycle-test` | 1 | 12/15: protected port 3001 owner was null before and after; API live health/smoke consequently failed; all owned processes and ports were released |
+| `pnpm demo:smoke` | 1 | invoked concurrently with the lifecycle run by this validation batch and collided on demo ports 3090/3100; no source change implicated |
+
+## Phase 8D.2 closure refresh
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `pnpm check:i18n-critical` | 0 | 72 files; `DIRECT_VI_COPY_CRITICAL_SOURCE=0` |
+| `pnpm check:endpoints` | 0 | 74 runtime, 69 documented, 4 allowlisted |
+| `pnpm check:openapi` | 0 | admin 36/public 18 operations; coupon schema 11/11 |
+| `pnpm --filter @room/web test:unit` | 0 | 28 files, 124 tests |
+| focused Phase 8D.2 Playwright | 0 | 3 passed, 0 skipped |
+| `pnpm test:e2e` run 1 | 0 | 64 primary + 1 unavailable, 0 skipped |
+| `pnpm test:e2e` run 2 | 0 | 64 primary + 1 unavailable, 0 skipped |
+| `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm build` | 0 | workspace passed |
+| `pnpm db:check`, `pnpm db:status`, `pnpm db:test` | 0 | deterministic local database gates passed |
+| `pnpm audit --prod --audit-level=high` | 0 | high threshold passed |
+| `pnpm demo:preflight`, `pnpm demo:lifecycle-test`, `pnpm demo:smoke` | 0 | preflight; 15/15 lifecycle; 22/22 smoke |

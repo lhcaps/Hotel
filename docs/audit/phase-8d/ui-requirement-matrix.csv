@@ -1,0 +1,7 @@
+surface,primary_action,loading_or_pending,safe_error,confirmation,responsive_evidence,accessibility_evidence,status
+public-search,Search rooms,button disabled,translated error,n/a,existing flow layout,labelled native inputs,PASS_WITH_LIMITATION
+admin-booking-coupon,Queue coupon delivery,fieldset disabled,server problem detail,explicit checkbox,existing admin mobile grid,fieldset legend and live status,PASS_WITH_LIMITATION
+locale-switch,Switch language,button disabled,role alert,n/a,fixed compact control,button aria-label,PASS
+admin-navigation,Open operation page,n/a,n/a,n/a,existing mobile navigation grid,nav aria-label and skip link,PASS_WITH_LIMITATION
+payment-operations,Existing payment selection and reconciliation,existing states,existing safe errors,existing confirmation where applicable,not re-run in Phase 8D focused pass,not re-run in Phase 8D focused pass,PASS_WITH_LIMITATION
+phase-8d2-critical-matrix,One primary action per verified flow,localized pending states,localized safe errors,existing confirmations,390x844;768x1024;1366x768;1440x900,11 focused axe assertions plus keyboard locale switch,PASS

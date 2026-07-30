@@ -1,0 +1,12 @@
+vertical,initial,loading,empty,success,validation,conflict,forbidden,api_unavailable,unexpected_safe_error,status
+availability,form,submit label,no availability,result cards,browser required inputs,quote error,n/a,localized search error,localized search error,PASS
+quote,quote loading,quote loading,n/a,summary,invalid quote id,expired quote via hold,error page,not-found error,not-found error,PASS
+recommendations,quote panel,finding suitable times,no cheaper time,new quote navigation,server quote validation,stale quote safe retry,n/a,retryable localized error,localized error,PASS
+coupon,input,pending,n/a,coupon summary,code input,coupon revalidation,admin-only mutation,localized message,localized message,PASS
+hold,contact form,submit state,n/a,countdown success,contact inputs,inventory/coupon/quote messages,n/a,localized BookingApiError,localized error,PASS
+guest OTP,request form,request/verify state,n/a,booking detail,OTP inputs,rate limit/session expiry,n/a,localized unavailable,localized load error,PASS
+customer account,account page,server load,empty bookings,profile/list,profile form,claim status,CUSTOMER gate,server unavailable,localized error,PASS
+payments,provider list,redirecting,no providers,payment summary,n/a,stale reconciliation state,guest proof/admin guard,localized provider failure,localized failure,PASS
+ADMIN catalog,manager pages,manager loading,empty tables,mutations,input validation,server error,AdminAccessGuard,localized/non-secret error,localized error,PASS
+ADMIN operations,booking/review pages,loading,empty lists,operation result,reasons required,stale payment state,AdminAccessGuard,localized error,localized error,PASS
+worker driven,status panels,poll/refresh,n/a,expiry/outbox/payment updated,n/a,stale state,n/a,localized state,localized state,PASS

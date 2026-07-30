@@ -1,0 +1,13 @@
+route,method,auth,request_contract,response_contract,authoritative_action,web_client,OpenAPI,integration_evidence,status
+/api/v1/public/provider-readiness,GET,public,none,publicProviderReadinessSchema,server-derived non-secret Google action readiness,CustomerLoginClient,public-v1.json,provider-readiness.controller.test.ts,PASS
+/api/v1/public/payment-providers,GET,public,paymentProviderAvailabilitySchema[],paymentProviderAvailabilitySchema[],server-derived availability only,bookingApi.listPaymentProviders,public-v1.json,deterministic Playwright payment flow,PASS
+/api/v1/public/bookings/{bookingCode}/payments/momo/attempts,POST,guest session,Idempotency-Key,momoPaymentInitiationResponseSchema,creates attempt and provider checkout,bookingApi.initiatePayment,public-v1.json,momo-payment.integration.test.ts,PASS
+/api/v1/public/bookings/{bookingCode}/payments/vnpay/attempts,POST,guest session,Idempotency-Key,vnpayPaymentInitiationResponseSchema,creates attempt and provider checkout,bookingApi.initiatePayment,public-v1.json,momo-payment.integration.test.ts,PASS
+/api/v1/webhooks/momo,POST,provider signed IPN,raw JSON content type and signature,204,only verified event reaches applyVerifiedPaymentEvent,none,public-v1.json,momo-payment.integration.test.ts,PASS
+/api/v1/webhooks/vnpay,GET,provider signed IPN,signed query,provider RspCode,only verified event reaches applyVerifiedPaymentEvent,none,public-v1.json,momo-payment.integration.test.ts,PASS
+/api/v1/payments/providers/momo/return,GET,public,untrusted browser query,204,read-only no settlement,none,public-v1.json,momo-payment.integration.test.ts,PASS
+/api/v1/payments/providers/vnpay/return,GET,public,untrusted browser query,204,read-only no settlement,none,public-v1.json,momo-payment.integration.test.ts,PASS
+/api/v1/admin/payment-providers,GET,ADMIN catalog.property.manage,none,paymentProviderAdminSchema[],non-secret readiness/settings only,adminApi.listPaymentProviders,admin-v1.json,payment module tests,PASS
+/api/v1/admin/payment-providers/{provider},PATCH,ADMIN catalog.property.manage,paymentProviderUpdateSchema,paymentProviderAdminSchema,property setting update only,adminApi.updatePaymentProvider,admin-v1.json,payment module tests,PASS
+/api/auth/sign-in/social,POST,public,Better Auth provider/callback URL,z.object({url:z.string().url()}),OAuth initiation only,CustomerLoginClient validates URL envelope,Better Auth runtime,customer OAuth deterministic integration,PASS
+/api/auth/callback/google,GET,Google OAuth,provider callback,session redirect,Better Auth callback only,external browser redirect,Better Auth runtime,manual live checkpoint required,EXTERNAL_BLOCKED
