@@ -1009,11 +1009,35 @@ test.describe('Phase 2 customer browser vertical', () => {
     await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
 
-    // Exactly one confirmation email (idempotency proof).
-    const counts = await countMailpitMessages(
+    // Exactly one confirmation email (idempotency proof). Wait for the
+    // first email, then for the worker/outbox stability window so a
+    // delayed duplicate cannot sneak in afterwards, then re-read Mailpit
+    // and assert the count is still exactly one.
+    await waitFor(
+      async () => {
+        const counts = await countMailpitMessages(
+          recipientEmail,
+          new RegExp(`Booking confirmed: ${bookingCode}`),
+        );
+        return counts.matching === 1;
+      },
+      { timeoutMs: 15_000 },
+    );
+    // Stability window: wait long enough for the worker to process any
+    // would-be duplicate, then re-read Mailpit and confirm the count has
+    // not grown.
+    await page.waitForTimeout(3_000);
+    const finalCounts = await countMailpitMessages(
       recipientEmail,
       new RegExp(`Booking confirmed: ${bookingCode}`),
     );
-    expect(counts.matching).toBe(1);
+    expect(finalCounts.matching).toBe(1);
+
+    // Simulator observed at least 2 IPN attempts — both must settle the
+    // same way without producing extra confirmation emails or extra
+    // outbox rows. We rely on the count of email events being the
+    // canonical proof the worker dispatched exactly one confirmation.
+    const simCounts = await readSimulatorCounts();
+    expect(simCounts.counts.momoIpnAttempts).toBeGreaterThanOrEqual(initialIpnCount + 2);
   });
 });
