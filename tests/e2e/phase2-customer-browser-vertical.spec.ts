@@ -877,13 +877,15 @@ test.describe('Phase 2 customer browser vertical', () => {
 
   // ---------------------------------------------------------------------------
   // G5 — Public catalog unavailable state.
-  // The landing page server component reads ?__catalog=error to simulate an
-  // API failure. This bypasses the server-side fetch that page.route cannot
-  // intercept. The landing page must show role="alert" + unavailable heading
-  // + retry link, with zero room cards.
+  // Intercepts the real /api/v1/public/room-types response to return 500 and
+  // asserts the landing renders the truthful unavailable state with no room
+  // cards. The landing server component reads its data via that endpoint.
   // ---------------------------------------------------------------------------
   test('G5 catalog API 500 shows unavailable state, no room cards', async ({ page }) => {
-    await page.goto('/?__catalog=error');
+    await page.route('**/api/v1/public/room-types', (route) =>
+      route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"boom"}' }),
+    );
+    await page.goto('/');
     await expect(page.getByRole('alert')).toBeVisible({ timeout: 15_000 });
     await expect(
       page.getByRole('heading', { name: 'Không thể tải danh sách hạng phòng' }),
@@ -893,12 +895,19 @@ test.describe('Phase 2 customer browser vertical', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // G5 — Public catalog empty state.
-  // Uses ?__catalog=empty to simulate zero active rooms. The landing page must
-  // show the empty heading with zero room cards.
+  // G5 — Public catalog empty state. Intercepts the real catalog API to
+  // return a valid empty payload and asserts the empty heading renders
+  // with zero room cards and no unavailable alert.
   // ---------------------------------------------------------------------------
   test('G5 catalog API empty array shows empty state, no room cards', async ({ page }) => {
-    await page.goto('/?__catalog=empty');
+    await page.route('**/api/v1/public/room-types', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: '{"items":[]}',
+      }),
+    );
+    await page.goto('/');
     await expect(
       page.getByRole('heading', { name: 'Chưa có hạng phòng đang được mở bán' }),
     ).toBeVisible({ timeout: 15_000 });
