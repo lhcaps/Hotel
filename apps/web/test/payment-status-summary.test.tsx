@@ -54,11 +54,11 @@ describe('PaymentStatusSummary', () => {
         <PaymentStatusSummary bookingCode="RM-AB23-CD45-EF67" />
       </LocaleProvider>,
     );
-    expect(screen.getByTestId('payment-status-loading')).toBeVisible();
-    expect(screen.getByTestId('payment-status-loading-text')).toHaveTextContent(
-      'Đang kiểm tra thanh toán',
+    expect(screen.getByTestId('payment-loading-state')).toBeVisible();
+    expect(screen.getByTestId('payment-loading-text')).toHaveTextContent(
+      'Đang tải trạng thái thanh toán',
     );
-    expect(screen.getByTestId('payment-status-loading-skeleton')).toBeInTheDocument();
+    expect(screen.getByTestId('payment-loading-skeleton')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Trạng thái thanh toán' })).toBeVisible();
   });
 
@@ -74,7 +74,7 @@ describe('PaymentStatusSummary', () => {
     });
     expect(screen.getByTestId('payment-status-summary')).toHaveTextContent('MOMO');
     expect(screen.getByTestId('payment-status-summary')).toHaveTextContent('Payment status');
-    expect(screen.queryByTestId('payment-status-loading')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('payment-loading-state')).not.toBeInTheDocument();
   });
 
   it('renders the loaded state when the request resolves with NOT_STARTED so the provider selector stays usable', async () => {
@@ -92,8 +92,8 @@ describe('PaymentStatusSummary', () => {
     // that the summary section stays visible and does not fall back to the
     // LOAD_ERROR placeholder.
     expect(screen.getByTestId('payment-status-summary')).toHaveTextContent('MOMO');
-    expect(screen.queryByTestId('payment-status-load-error')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('payment-status-loading')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('payment-load-error')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('payment-loading-state')).not.toBeInTheDocument();
   });
 
   it('surfaces a visible LOAD_ERROR block with a retry control when the initial request fails', async () => {
@@ -104,9 +104,9 @@ describe('PaymentStatusSummary', () => {
       </LocaleProvider>,
     );
     await waitFor(() => {
-      expect(screen.getByTestId('payment-status-load-error')).toBeVisible();
+      expect(screen.getByTestId('payment-load-error')).toBeVisible();
     });
-    expect(screen.getByTestId('payment-status-load-error-text')).toHaveTextContent(
+    expect(screen.getByTestId('payment-load-error-text')).toHaveTextContent(
       'Không thể tải trạng thái thanh toán',
     );
     expect(screen.queryByTestId('payment-status-summary')).not.toBeInTheDocument();
@@ -121,17 +121,17 @@ describe('PaymentStatusSummary', () => {
       </LocaleProvider>,
     );
     await waitFor(() => {
-      expect(screen.getByTestId('payment-status-load-error')).toBeVisible();
+      expect(screen.getByTestId('payment-load-error')).toBeVisible();
     });
     getPaymentStatus.mockResolvedValueOnce(PAYMENT);
     const user = userEvent.setup();
     await act(async () => {
-      await user.click(screen.getByTestId('payment-status-load-error-retry'));
+      await user.click(screen.getByTestId('payment-load-error-retry'));
     });
     await waitFor(() => {
       expect(screen.getByTestId('payment-status-summary')).toBeVisible();
     });
-    expect(screen.queryByTestId('payment-status-load-error')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('payment-load-error')).not.toBeInTheDocument();
     expect(screen.getByTestId('payment-status-summary')).toHaveTextContent('MOMO');
   });
 });

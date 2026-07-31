@@ -57,16 +57,17 @@ export function PaymentStatusSummary({ bookingCode }: Readonly<{ bookingCode: st
         aria-busy="true"
         aria-live="polite"
         className="mt-4 rounded-md border border-slate-200 p-4"
-        data-testid="payment-status-loading"
+        data-testid="payment-loading-state"
+        role="status"
       >
         <h3 className="font-semibold">{translate(locale, 'payment.statusHeading')}</h3>
-        <p className="mt-2 text-sm text-slate-600" data-testid="payment-status-loading-text">
+        <p className="mt-2 text-sm text-slate-600" data-testid="payment-loading-text">
           {translate(locale, 'payment.states.loading')}
         </p>
         <div
           aria-hidden="true"
           className="mt-3 h-2 w-full animate-pulse rounded bg-slate-200"
-          data-testid="payment-status-loading-skeleton"
+          data-testid="payment-loading-skeleton"
         />
       </section>
     );
@@ -77,13 +78,13 @@ export function PaymentStatusSummary({ bookingCode }: Readonly<{ bookingCode: st
       <section
         aria-live="polite"
         className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4"
-        data-testid="payment-status-load-error"
+        data-testid="payment-load-error"
         role="alert"
       >
         <h3 className="font-semibold text-amber-900">
           {translate(locale, 'payment.statusHeading')}
         </h3>
-        <p className="mt-2 text-sm text-amber-900" data-testid="payment-status-load-error-text">
+        <p className="mt-2 text-sm text-amber-900" data-testid="payment-load-error-text">
           {translate(locale, 'payment.states.loadError')}
         </p>
         <p className="mt-1 text-sm text-amber-800">
@@ -92,7 +93,7 @@ export function PaymentStatusSummary({ bookingCode }: Readonly<{ bookingCode: st
         <button
           aria-label={translate(locale, 'payment.loadErrorRetry')}
           className="mt-3 inline-flex items-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-100"
-          data-testid="payment-status-load-error-retry"
+          data-testid="payment-load-error-retry"
           onClick={onRetry}
           type="button"
         >

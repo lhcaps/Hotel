@@ -309,7 +309,7 @@ describe('Phase 2.1 customer booking accessibility evidence', () => {
         <PaymentStatusSummary bookingCode="RM-AB23-CD45-EF67" />
       </LocaleProvider>,
     );
-    expect(screen.getByTestId('payment-status-loading')).toBeVisible();
+    expect(screen.getByTestId('payment-loading-state')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Trạng thái thanh toán' })).toBeVisible();
     await expectNoSeriousOrCritical(container);
   });
@@ -336,7 +336,7 @@ describe('Phase 2.1 customer booking accessibility evidence', () => {
       </LocaleProvider>,
     );
     await waitFor(() => {
-      expect(screen.getByTestId('payment-status-load-error')).toBeVisible();
+      expect(screen.getByTestId('payment-load-error')).toBeVisible();
     });
     expect(screen.getByRole('button', { name: 'Tải lại' })).toBeVisible();
     await expectNoSeriousOrCritical(container);

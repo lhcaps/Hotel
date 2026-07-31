@@ -1408,7 +1408,7 @@ const variableMessages = {
     'success.home': 'Về trang chủ',
     'success.demoMailpit': 'Môi trường demo: mở Mailpit để xem email.',
     'payment.loadErrorRetry': 'Tải lại',
-    'payment.states.loading': 'Đang kiểm tra thanh toán…',
+    'payment.states.loading': 'Đang tải trạng thái thanh toán',
     'payment.states.notStarted': 'Chưa thanh toán',
     'payment.states.notStartedHelp':
       'Chọn MoMo hoặc VNPAY phía dưới để tiến hành thanh toán. Bạn có thể hoàn tất trong thời gian giữ chỗ.',
