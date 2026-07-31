@@ -435,11 +435,8 @@ test.describe('Phase 2 customer browser vertical', () => {
       { timeoutMs: 15_000 },
     );
 
-    // No horizontal overflow on mobile beyond an 80px safety margin to absorb
-    // Next.js dev-only chrome (dev-tools button, error overlays, portal
-    // menus) and third-party browser chrome. The functional vertical
-    // success is the load-bearing assertion; the overflow check is a
-    // best-effort responsive smoke test.
+    // Strict horizontal overflow check on mobile: no tolerance. Production
+    // build must never let any surface exceed the viewport width.
     const overflow = await page.evaluate(() => {
       const docRoot = globalThis.document.documentElement;
       const body = globalThis.document.body;
@@ -1040,4 +1037,50 @@ test.describe('Phase 2 customer browser vertical', () => {
     const simCounts = await readSimulatorCounts();
     expect(simCounts.counts.momoIpnAttempts).toBeGreaterThanOrEqual(initialIpnCount + 2);
   });
+
+  // ---------------------------------------------------------------------------
+  // Responsive matrix — zero horizontal overflow across every viewport.
+  // Each surface is opened at every required viewport and asserted to have
+  // documentScroll === innerWidth and bodyScroll === innerWidth with zero
+  // tolerance. We pick surfaces that already render without auth so the
+  // matrix can run without seeding bookings per viewport.
+  // ---------------------------------------------------------------------------
+  const RESPONSIVE_VIEWPORTS = [
+    { width: 360, height: 800, label: '360x800' },
+    { width: 390, height: 844, label: '390x844' },
+    { width: 768, height: 1024, label: '768x1024' },
+    { width: 1024, height: 768, label: '1024x768' },
+    { width: 1366, height: 768, label: '1366x768' },
+    { width: 1440, height: 900, label: '1440x900' },
+    { width: 1920, height: 1080, label: '1920x1080' },
+  ];
+  const RESPONSIVE_SURFACES: ReadonlyArray<{
+    readonly path: string;
+    readonly heading: RegExp;
+  }> = [
+    { path: '/', heading: /Phòng nổi bật|Không thể tải danh sách|Chưa có hạng phòng/ },
+    { path: '/booking/search', heading: /Tìm phòng/ },
+    { path: '/booking/manage', heading: /Quản lý đặt phòng/ },
+  ];
+
+  for (const viewport of RESPONSIVE_VIEWPORTS) {
+    test(`R7 viewport ${viewport.label}: zero horizontal overflow on auth-free surfaces`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      for (const surface of RESPONSIVE_SURFACES) {
+        await page.goto(surface.path);
+        await expect(page.getByRole('heading').first()).toBeVisible({ timeout: 15_000 });
+        const overflow = await page.evaluate(() => ({
+          documentScroll: globalThis.document.documentElement.scrollWidth,
+          bodyScroll: globalThis.document.body.scrollWidth,
+          inner: globalThis.innerWidth,
+        }));
+        expect(
+          { documentScroll: overflow.documentScroll, bodyScroll: overflow.bodyScroll },
+          `viewport=${viewport.label} surface=${surface.path}`,
+        ).toEqual({ documentScroll: overflow.inner, bodyScroll: overflow.inner });
+      }
+    });
+  }
 });
