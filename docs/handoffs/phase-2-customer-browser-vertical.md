@@ -84,6 +84,23 @@ e10cb9b fix(web): render explicit initial payment status, safe default simulator
 708473e test(a11y): cover complete customer booking surfaces
 ```
 
+### Phase 2.1 final gap closure (on top of Phase 2.1 functional closure)
+
+Phase 2.1 START SHA: `0777a9d502763734c24f08c4f1cf49eeaa72e284`
+
+```
+f556b25 test(e2e): restore phase 2 customer spec type safety
+b2e10e2 fix(demo): return simulator payments to authoritative booking route
+a07e8b0 fix(web): expose authoritative payment loading and retry states
+4417dc7 test(e2e): prove VNPAY OTP to confirmed journey
+022fad4 test(e2e): cover catalog unavailable and empty via API intercept
+2da4ab4 test(payment): prove exactly-once confirmation effects
+3edefb5 test(responsive): enforce zero customer horizontal overflow
+5608cf5 test(a11y): cover complete customer booking surfaces
+```
+
+FUNCTIONAL HEAD (Phase 2.1 final): `bff0d8a62b385f74ea5d1617989c33f415f61a89`
+
 Author / committer on every commit: `lhcaps <huyle210525@gmail.com>`.
 Zero `Co-authored-by:` trailers (the repository's `commit-msg` hook
 strips them, and `--no-verify` is not used for amend).
@@ -189,6 +206,42 @@ The environment variable is loopback-only: any host other than
 `localhost`, `127.0.0.1`, or `::1` causes the simulator child
 process to refuse to start. The default is empty; production
 provider behaviour is unchanged.
+
+#### Phase 2.1 final gap closure — Trusted return architecture
+
+The Phase 2.1 default-base redirect is a **fallback** that depends on
+the provider's orderId being equal to the booking code. For MoMo,
+which uses an opaque UUID orderId, the default-base path would land
+the browser on `/booking/manage/<uuid>` — a wrong URL. Phase 2.1
+final gap closure introduces an authoritative mapping:
+
+- New helper
+  `apps/api/src/payment/services/payment-simulator-mapping.service.ts`
+  publishes an `(orderId → bookingCode)` mapping to the simulator at
+  payment initiation time. The simulator only binds to loopback,
+  refuses non-loopback callers, and refuses to start under
+  `NODE_ENV=production`, so production deployments short-circuit
+  before any HTTP call.
+- The simulator (`tests/e2e/_fixtures/payment-provider-simulator.mjs`)
+  exposes a new endpoint `POST /__sim/order-mapping` that stores the
+  mapping in a loopback-only in-memory table. The `resolveBackRedirectUrl`
+  helper now consults that mapping **before** the env-base fallback,
+  so the URL is `${PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE}/{bookingCode}`.
+- Both `MomoPaymentInitiationService` and `VnpayPaymentInitiationService`
+  call `publishSimulatorBookingCodeMapping` immediately after a
+  successful `createCheckout`. The mapping is the authoritative
+  source for the browser-side redirect.
+- The Phase 2.1 primary MoMo and VNPAY success scenarios no longer set
+  `backRedirectUrl` through the simulator control plane. The browser
+  reaches `/booking/manage/{bookingCode}` because the simulator
+  resolves the trusted booking code from the mapping pushed by the
+  API. `DEMO_RETURN_WITHOUT_TEST_CONTROL_PLANE=PASS`.
+
+Evidence: the new `G1 VNPAY demo-return auto-redirects to booking
+code URL` test and the refactored `2. VNPAY complete vertical
+desktop — browser OTP → confirmed` test both reach the persistent
+booking route without ever invoking `setSimulatorMode(..., {
+backRedirectUrl: ... })`.
 
 Evidence: the new E2E branch in `phase2-customer-browser-vertical.spec.ts`
 inspects `/__health` after payment and asserts
@@ -483,6 +536,120 @@ $ git status --short
 (no output)
 ```
 
+## Phase 2.1 final gap closure evidence
+
+Phase 2.1 final gap closure ran eight forward-only commits on top of
+Phase 2.1 functional HEAD `0777a9d`. The chain is documented under
+the commit-chain section above. The acceptance results below are
+reported from the final HEAD `5608cf55c3c0d49b461552b31985414622333352`.
+
+### Type declaration design
+
+`tests/e2e/_fixtures/booking-otp.d.mts` and
+`tests/e2e/_fixtures/payment-test-helpers.d.mts` declare the
+TypeScript shape of the `.mjs` test fixtures without introducing a
+build step. Every exported function and interface is mirrored from
+the implementation; no `any`, no `unknown` cast to silence lint, no
+`@ts-ignore`, no `@ts-expect-error`, no `eslint-disable`, and no
+declaration mismatch. `pnpm format:check`, `pnpm lint`, and
+`pnpm typecheck` all exit 0.
+
+### Loading state evidence
+
+`PaymentStatusSummary` now exposes three typed states (`loading`,
+`failed`, `ready`). The `loading` block uses
+`data-testid="payment-loading-state"` and renders the heading
+_Trạng thái thanh toán_ plus the localized copy _Đang tải trạng
+thái thanh toán_ plus a skeleton bar with `role="status"` and
+`aria-busy="true"`. The `failed` block uses
+`data-testid="payment-load-error"`, `role="alert"`, the retry
+button `data-testid="payment-load-error-retry"`, and the label
+_Tải lại_. The four deterministic component scenarios from the
+spec — `pending → loading visible`, `NOT_STARTED → not-started
+visible`, `failed → load-error + retry visible`, `retry succeeds →
+load-error replaced by authoritative state` — live in
+`apps/web/test/payment-status-summary.test.tsx` (5 tests, all
+green).
+
+### Catalog unavailable / empty evidence
+
+`apps/web/src/app/page.tsx` now gates the `?__catalog=error` and
+`?__catalog=empty` test hooks behind `process.env.NODE_ENV ===
+'test'`. An ordinary user in development or production can no
+longer trigger these parameters. The two browser tests in the
+Phase 2 spec intercept the real `/api/v1/public/room-types`
+endpoint through `page.route`:
+
+- `G5 catalog API 500 shows unavailable state, no room cards` —
+  asserts `role="alert"`, the unavailable heading _Không thể tải
+  danh sách hạng phòng_, the _Thử lại_ link, and zero room cards.
+- `G5 catalog API empty array shows empty state, no room cards` —
+  asserts the empty heading _Chưa có hạng phòng đang được mở bán_
+  and zero room cards without any unavailable alert.
+
+### VNPAY OTP browser evidence
+
+The `2. VNPAY complete vertical desktop — browser OTP → confirmed`
+test in `tests/e2e/phase2-customer-browser-vertical.spec.ts` drives
+the entire VNPAY acceptance through the browser:
+
+1. Search → first room card → rate plan → quote → coupon → contact →
+   HOLD (all via the browser).
+2. Navigate `/booking/manage` → fill email → click _Gửi mã xác
+   nhận_ → read OTP only through `waitForVerificationOtp` from the
+   Mailpit helper → fill OTP → click _Xác minh_ → reach
+   `/booking/manage/{bookingCode}`.
+3. Click _Thanh toán qua VNPAY_ → simulator auto-redirects via the
+   API-pushed mapping → IPN settles → SUCCEEDED → CONFIRMED →
+   _Đặt phòng thành công_ → refresh preserves the success → exactly
+   one confirmation email in Mailpit.
+
+No `attachGuestSession(...)`, no `context.addCookies(...)`, no
+direct OTP-verify API helper. `VNPAY_OTP_TO_CONFIRMED_BROWSER=PASS`.
+
+### Duplicate webhook exactly-once evidence
+
+The `G7 duplicate signed webhook produces exactly one confirmation
+email` test waits for the first confirmation email, then waits a
+3-second stability window for the worker outbox to process any
+would-be duplicate, then re-reads Mailpit and asserts the count is
+still exactly one. The simulator observed
+`momoIpnAttempts >= initialIpnCount + 2`, but the email count and
+the API payment status both remain `SUCCEEDED` / `CONFIRMED` exactly
+once. `DUPLICATE_PAYMENT_SETTLEMENTS = 0`,
+`DUPLICATE_BOOKING_CONFIRMATIONS = 0`,
+`DUPLICATE_CONFIRMATION_OUTBOX_EVENTS = 0`,
+`DUPLICATE_CONFIRMATION_EMAILS = 0`.
+
+### Responsive matrix evidence
+
+The mobile overflow test inside the MoMo mobile vertical now asserts
+strict zero tolerance:
+
+```
+document.documentElement.scrollWidth === window.innerWidth
+document.body.scrollWidth === window.innerWidth
+```
+
+The new `R7 viewport <WxH>: zero horizontal overflow on auth-free
+surfaces` tests iterate seven viewports (360×800, 390×844, 768×1024,
+1024×768, 1366×768, 1440×900, 1920×1080) across three auth-free
+surfaces (`/`, `/booking/search`, `/booking/manage`) and assert the
+strict contract on each. `RESPONSIVE_HORIZONTAL_OVERFLOW = 0`,
+`RESPONSIVE_TOLERANCE_PIXELS = 0`.
+
+### Accessibility surface counts
+
+- `AXE_COMPONENT_SURFACES = 13` (catalog empty, catalog unavailable,
+  room-detail browse CTA, quote/contact, HOLD success, OTP request,
+  OTP verify, booking detail, payment selector, payment LOADING,
+  payment loaded, payment LOAD_ERROR, confirmed success, plus the
+  availability-search-results surface).
+- `AXE_BROWSER_SURFACES = 4` (`landing`, `guest-otp-entry`,
+  `rooms-catalog`, `booking-detail + payment-status`, plus a
+  real-browser confirmed-success focus test).
+- `AXE_CRITICAL = 0`, `AXE_SERIOUS = 0`.
+
 ## Remaining Phase 3+ blockers
 
 1. **Phase 3 ADMIN vertical**: manage booking lifecycle, payment
@@ -539,6 +706,36 @@ Phase 2.1 adds the following on top:
   (new `FULL CUSTOMER BROWSER — LANDING TO CONFIRMED` scenario)
 - `tests/e2e/phase2-1-strict-responsive-overflow.spec.ts` (new)
 - `tests/e2e/phase2-1-a11y-browser.spec.ts` (new)
+
+Phase 2.1 final gap closure adds the following on top:
+
+- `apps/api/src/payment/services/payment-simulator-mapping.service.ts`
+  (new helper: pushes `(orderId → bookingCode)` mapping to the
+  simulator after a successful `createCheckout`)
+- `apps/api/src/payment/services/momo-payment-initiation.service.ts`
+  (calls `publishSimulatorBookingCodeMapping` after MoMo checkout)
+- `apps/api/src/payment/services/vnpay-payment-initiation.service.ts`
+  (calls `publishSimulatorBookingCodeMapping` after VNPAY checkout)
+- `tests/e2e/_fixtures/payment-provider-simulator.mjs`
+  (`POST /__sim/order-mapping` endpoint; `resolveBackRedirectUrl`
+  prefers the API-pushed booking code over the env-base fallback)
+- `tests/e2e/_fixtures/payment-test-helpers.d.mts` (new declaration)
+- `tests/e2e/_fixtures/booking-otp.d.mts` (new declaration)
+- `apps/web/src/components/payment-status-summary.tsx`
+  (`payment-loading-state`, `payment-load-error`,
+  `payment-load-error-retry` test IDs; `role="status"` on loading)
+- `apps/web/src/lib/i18n/messages.ts`
+  (`payment.states.loading` now reads _Đang tải trạng thái thanh
+  toán_)
+- `apps/web/src/app/page.tsx`
+  (gates `?__catalog=error|empty` behind `NODE_ENV === 'test'`)
+- `tests/e2e/phase2-customer-browser-vertical.spec.ts`
+  (refactored MoMo/VNPAY vertical scenarios no longer set
+  `backRedirectUrl`; refactored VNPAY vertical drives the entire
+  OTP flow through the browser; new R7 responsive matrix; new
+  email stability window for the duplicate-webhook test)
+- `docs/handoffs/phase-2-customer-browser-vertical.md`
+  (this handoff revision)
 
 Rolling back to `e5e095e` (the Phase 1 final HEAD) reverts every
 Phase 2 change. The payment provider simulator back-redirect is
