@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import AdminPaymentDetailPage from '../src/app/admin/payments/[paymentId]/page';
+import AdminPaymentDetailPage from '../src/app/admin/(protected)/payments/[paymentId]/page';
 import type { AdminPaymentDetail } from '../src/lib/admin-api';
 
 function jsonResponse(body: unknown, init: { status?: number } = {}): Response {

@@ -3,7 +3,7 @@ import { axe } from 'jest-axe';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CustomerProfileClient } from '../src/app/account/profile/customer-profile-client';
-import AdminBookingsPage from '../src/app/admin/bookings/page';
+import AdminBookingsPage from '../src/app/admin/(protected)/bookings/page';
 import { LocaleProvider } from '../src/components/locale-provider';
 import { PaymentProviderSelector } from '../src/components/payment-provider-selector';
 
