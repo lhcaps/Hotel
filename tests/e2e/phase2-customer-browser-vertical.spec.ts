@@ -280,21 +280,73 @@ test.describe('Phase 2 customer browser vertical', () => {
     );
   });
 
-  test('2. VNPAY complete vertical desktop → Đặt phòng thành công', async ({ page, context }) => {
+  test('2. VNPAY complete vertical desktop — browser OTP → confirmed', async ({ page }) => {
     test.setTimeout(180_000);
-    await setSimulatorMode('vnpay', 'verify');
-    const booking = await createBookingHold();
-    await attachGuestSession(context, booking.guestSessionCookie);
+    await setSimulatorMode('vnpay', 'verify', { reset: true });
+
+    // 1. Build HOLD entirely through the browser (search → quote → coupon →
+    // contact → HOLD). Quarter-hour aligned +07:00 timestamps so the
+    // deterministic DELUXE seed and lunch price produce a known amount.
+    const checkIn = new Date(Date.now() + 4 * 24 * 60 * 60_000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const checkInStr = `${checkIn.getUTCFullYear()}-${pad(checkIn.getUTCMonth() + 1)}-${pad(checkIn.getUTCDate())}T11:${pad(Math.floor(checkIn.getUTCMinutes() / 15) * 15)}:00+07:00`;
+    const checkOutStr = `${checkIn.getUTCFullYear()}-${pad(checkIn.getUTCMonth() + 1)}-${pad(checkIn.getUTCDate())}T12:${pad(Math.floor(checkIn.getUTCMinutes() / 15) * 15)}:00+07:00`;
+    await page.goto(
+      `/booking/search?mode=hourly&checkIn=${encodeURIComponent(checkInStr)}&checkOut=${encodeURIComponent(checkOutStr)}&adults=2&children=0`,
+    );
+    await expect(page.getByRole('button', { name: 'Tìm phòng' })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Tìm phòng' }).click();
+    await page.waitForLoadState('networkidle');
+    const firstCard = page.getByTestId('room-card').first();
+    await expect(firstCard).toBeVisible({ timeout: 60_000 });
+    await firstCard.getByTestId('room-card-cta').click();
+
+    const planButtons = page.getByTestId('room-detail-plan');
+    await expect(planButtons.first()).toBeVisible({ timeout: 30_000 });
+    const selectedPlanCode = await planButtons.first().getAttribute('data-plan-code');
+    if (!selectedPlanCode) throw new Error('Selected rate plan is missing data-plan-code');
+    await planButtons.first().click();
+    await expect(page.getByRole('button', { name: 'Nhận báo giá' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.getByRole('button', { name: 'Nhận báo giá' }).click();
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('quote-panel')).toBeVisible({ timeout: 30_000 });
+
+    await page.getByLabel('Mã giảm giá').fill('DEMO-FIXED');
+    await page.getByRole('button', { name: 'Áp dụng' }).click();
+    await expect(page.getByText('Giảm 50.000 ₫')).toBeVisible({ timeout: 15_000 });
+
+    const recipientEmail = `vn-e2e+${Date.now()}@mailpit.test`;
+    await page.getByLabel('Họ tên').fill('VN Browser OTP');
+    await page.getByLabel('Email').fill(recipientEmail);
+    await page.getByLabel('Số điện thoại').fill('0900000099');
+    await page.getByRole('button', { name: 'Giữ phòng' }).click();
+    await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
+    const bookingCode = (await page.getByTestId('hold-booking-code').innerText()).trim();
+    if (!/^[A-Z0-9-]+$/.test(bookingCode))
+      throw new Error(`Invalid booking code rendered: ${bookingCode}`);
+
+    // 2. Drive OTP entirely through the browser (no direct cookie attach).
+    await page.goto('/booking/manage');
+    await page.getByLabel('Email').fill(recipientEmail);
+    const otpRequest = page.waitForResponse(
+      (r) => r.url().includes('/api/v1/public/guest-access/otp/request') && r.status() === 200,
+    );
+    await page.getByRole('button', { name: 'Gửi mã xác nhận' }).click();
+    await otpRequest;
+    await page.waitForLoadState('networkidle');
+    const otp = await waitForVerificationOtp(recipientEmail, 45_000);
+    if (!/^\d{6}$/.test(otp)) throw new Error(`Invalid OTP delivered for ${recipientEmail}`);
+
+    await page.getByRole('textbox', { name: 'Mã xác nhận' }).fill(otp);
+    await page.getByRole('button', { name: 'Xác minh' }).click();
+    await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
+    expect(page.url()).toContain(bookingCode);
     const listener = attachListeners(page);
 
-    await page.goto(`/booking/manage/${booking.bookingCode}`);
-    await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
-
-    // No control-plane backRedirectUrl: VNPAY's vnp_TxnRef matches the
-    // booking code, so the simulator's legacy fallback appends the
-    // booking code to the trusted default base URL without any setup.
-    await setSimulatorMode('vnpay', 'verify');
-
+    // 3. Click VNPAY. The simulator auto-redirects via the API-pushed
+    // (orderId → bookingCode) mapping and the trusted default base URL.
     const initialIpnCount = (await readSimulatorCounts()).counts.vnpayIpnAttempts;
     const vnpayButton = page.getByRole('button', { name: 'Thanh toán qua VNPAY' });
     await expect(vnpayButton).toBeVisible();
@@ -304,25 +356,30 @@ test.describe('Phase 2 customer browser vertical', () => {
     ]);
 
     await waitFor(
-      async () => {
-        const counts = await readSimulatorCounts();
-        return counts.counts.vnpayIpnAttempts > initialIpnCount;
-      },
+      async () => (await readSimulatorCounts()).counts.vnpayIpnAttempts > initialIpnCount,
       { timeoutMs: 15_000 },
     );
 
     await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
-    expect(page.url()).toContain(booking.bookingCode);
-    await settlePayment(booking.bookingCode, booking.guestSessionCookie, listener);
+    expect(page.url()).toContain(bookingCode);
+    expect(page.url()).not.toContain('vnp_');
+
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
+    expect(listener.consoleErrors).toEqual([]);
+    expect(listener.pageErrors).toEqual([]);
+    expect(listener.requestFailures).toEqual([]);
 
-    // Exactly one confirmation email lands in Mailpit for this booking.
+    // 4. Refresh preserves success from authoritative server data.
+    await page.reload();
+    await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
+
+    // 5. Exactly one confirmation email lands in Mailpit for this booking.
     await waitFor(
       async () => {
         const counts = await countMailpitMessages(
-          booking.contactEmail,
-          new RegExp(`Booking confirmed: ${booking.bookingCode}`),
+          recipientEmail,
+          new RegExp(`Booking confirmed: ${bookingCode}`),
         );
         return counts.matching === 1;
       },
