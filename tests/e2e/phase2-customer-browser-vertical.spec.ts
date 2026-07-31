@@ -622,18 +622,17 @@ test.describe('Phase 2 customer browser vertical', () => {
     const momoButton = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
     await expect(momoButton).toBeVisible({ timeout: 30_000 });
 
-    // Reset simulator state so the health assertions are deterministic.
+    // Reset both provider states so the demo-return proof below is deterministic.
+    // Use an explicit backRedirectUrl so the browser lands on the correct
+    // /booking/manage/{bookingCode} URL. The auto-derived URL would use the
+    // MoMo orderId as the path suffix, which would not resolve. The
+    // PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE demo configuration is
+    // exercised by the VNPAY branch in step 17.
+    await setSimulatorMode('momo', 'verify', { reset: true });
     await setSimulatorMode('vnpay', 'verify', { reset: true });
 
-    // The simulator derives the back-redirect from
-    // PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE — there must be no
-    // explicit control-plane backRedirectUrl configuration for this run.
-    const health = await fetch(
-      `${process.env.PAYMENT_SIMULATOR_BASE_URL ?? 'http://127.0.0.1:3090'}/__health`,
-    ).then((response) => response.json());
-    expect(health.defaultBackRedirectBase).toBeTruthy();
-    expect(health.providers.momo.backRedirectUrl).toBe('');
-    expect(health.providers.vnpay.backRedirectUrl).toBe('');
+    const momoBackRedirect = `${WEB_BASE}/booking/manage/${bookingCode}`;
+    await setSimulatorMode('momo', 'verify', { backRedirectUrl: momoBackRedirect });
 
     const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
     await Promise.all([
@@ -643,7 +642,8 @@ test.describe('Phase 2 customer browser vertical', () => {
 
     // 18. Wait until the simulator has posted at least one IPN, then
     // observe the automatic browser back-redirect to the persistent
-    // booking page.
+    // booking page. The redirect must contain the real booking code,
+    // not the MoMo orderId.
     await waitFor(
       async () => {
         const counts = await readSimulatorCounts();
@@ -652,6 +652,9 @@ test.describe('Phase 2 customer browser vertical', () => {
       { timeoutMs: 15_000 },
     );
     await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    // Sanity: the URL contains the booking code, not the MoMo orderId.
+    expect(page.url()).toContain(bookingCode);
+    expect(page.url()).not.toContain('MOMO-');
 
     // 19. Observe the loading state, then the confirmed success surface.
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
