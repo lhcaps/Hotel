@@ -6,6 +6,7 @@ import Link from 'next/link';
 import type { Room, RoomType } from '@room/contracts';
 
 import { AdminApiError, adminApi } from '../../../../lib/admin-api';
+import { localizedCatalogSafetyReason } from '../../../../lib/catalog-safety';
 import { translate } from '../../../../lib/i18n/messages';
 import { useLocale } from '../../../../components/locale-provider';
 import { RoomHousekeepingManager } from '../../../../components/room-housekeeping-manager';
@@ -26,6 +27,9 @@ export default function Rooms() {
   const [types, setTypes] = useState<readonly RoomType[]>([]);
   const [drafts, setDrafts] = useState<Record<string, RoomDraft>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [archiveErrors, setArchiveErrors] = useState<Record<string, string>>({});
+  const [archivePending, setArchivePending] = useState<Record<string, boolean>>({});
+  const [archiveConfirmId, setArchiveConfirmId] = useState<string | undefined>();
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
 
@@ -70,12 +74,35 @@ export default function Rooms() {
       setMessage(translate(locale, 'room.updated', { number: updated.roomNumber }));
     } catch (cause) {
       const text =
-        cause instanceof AdminApiError && cause.problem?.detail !== undefined
-          ? cause.problem.detail
+        cause instanceof AdminApiError && cause.problem?.code !== undefined
+          ? localizedCatalogSafetyReason(locale, cause.problem.code, cause.problem.detail)
           : translate(locale, 'room.updateError');
       setErrors((current) => ({ ...current, [roomId]: text }));
     } finally {
       setPending(false);
+    }
+  }
+
+  async function refreshRooms() {
+    const page = await adminApi.listRooms();
+    setRooms(page.items);
+  }
+
+  async function archiveRoom(roomId: string) {
+    setArchivePending((current) => ({ ...current, [roomId]: true }));
+    setArchiveErrors((current) => ({ ...current, [roomId]: '' }));
+    setArchiveConfirmId(undefined);
+    try {
+      await adminApi.archiveRoom(roomId);
+      await refreshRooms();
+    } catch (cause) {
+      const text =
+        cause instanceof AdminApiError && cause.problem?.code !== undefined
+          ? localizedCatalogSafetyReason(locale, cause.problem.code, cause.problem.detail)
+          : translate(locale, 'room.archiveError');
+      setArchiveErrors((current) => ({ ...current, [roomId]: text }));
+    } finally {
+      setArchivePending((current) => ({ ...current, [roomId]: false }));
     }
   }
 
@@ -169,26 +196,55 @@ export default function Rooms() {
                   </td>
                   <td>{room.status}</td>
                   <td>
-                    <Button
-                      aria-label={translate(locale, 'room.archive', { number: room.roomNumber })}
-                      disabled={pending || room.status === 'INACTIVE'}
-                      onClick={() =>
-                        adminApi
-                          .archiveRoom(room.id)
-                          .then((updated) =>
-                            setRooms((current) =>
-                              current === undefined
-                                ? current
-                                : current.map((item) => (item.id === updated.id ? updated : item)),
-                            ),
-                          )
-                      }
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      {translate(locale, 'catalog.archive')}
-                    </Button>
+                    {archiveConfirmId === room.id ? (
+                      <div role="group">
+                        <Button
+                          aria-label={translate(locale, 'room.archive', {
+                            number: room.roomNumber,
+                          })}
+                          disabled={archivePending[room.id] === true}
+                          onClick={() => void archiveRoom(room.id)}
+                          size="sm"
+                          type="button"
+                          variant="destructive"
+                        >
+                          {archivePending[room.id] === true
+                            ? translate(locale, 'admin.cancelling')
+                            : translate(locale, 'catalog.archive')}
+                        </Button>
+                        <Button
+                          onClick={() => setArchiveConfirmId(undefined)}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                        >
+                          {translate(locale, 'admin.cancel')}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        aria-label={translate(locale, 'room.archive', {
+                          number: room.roomNumber,
+                        })}
+                        disabled={pending || room.status === 'INACTIVE'}
+                        onClick={() => {
+                          setArchiveErrors((current) => ({ ...current, [room.id]: '' }));
+                          setArchiveConfirmId(room.id);
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        {translate(locale, 'catalog.archive')}
+                      </Button>
+                    )}
+                    {archiveErrors[room.id] !== undefined &&
+                    archiveErrors[room.id] !== '' ? (
+                      <Alert variant="destructive">
+                        <AlertTitle>{translate(locale, 'room.archiveError')}</AlertTitle>
+                        <AlertDescription>{archiveErrors[room.id]}</AlertDescription>
+                      </Alert>
+                    ) : null}
                   </td>
                 </tr>
               );

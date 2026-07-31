@@ -484,6 +484,37 @@ const messages = {
     'catalog.saveError': 'Không thể lưu trữ dữ liệu.',
     'catalog.noResults': 'Không có kết quả phù hợp.',
     'catalog.archive': 'Lưu trữ',
+    'catalog.safety.room.archiveActiveBooking':
+      'Phòng này hiện đang được giữ bởi một đặt phòng đang hoạt động, không thể lưu trữ.',
+    'catalog.safety.room.archiveFutureBooking':
+      'Phòng này có đặt phòng tương lai chưa hoàn tất, không thể lưu trữ.',
+    'catalog.safety.room.archiveActiveMaintenance':
+      'Phòng này đang trong khối bảo trì đang hoạt động, không thể lưu trữ.',
+    'catalog.safety.room.archiveFutureMaintenance':
+      'Phòng này có khối bảo trì tương lai, không thể lưu trữ.',
+    'catalog.safety.room.archiveActiveInventoryBlock':
+      'Phòng này đang có khối tồn kho đang hoạt động, không thể lưu trữ.',
+    'catalog.safety.room.archiveFutureInventoryBlock':
+      'Phòng này có khối tồn kho tương lai, không thể lưu trữ.',
+    'catalog.safety.room.retypeActiveBooking':
+      'Phòng này hiện đang được giữ bởi một đặt phòng đang hoạt động, không thể đổi loại phòng.',
+    'catalog.safety.room.retypeFutureBooking':
+      'Phòng này có đặt phòng tương lai chưa hoàn tất, không thể đổi loại phòng.',
+    'catalog.safety.room.retypeActiveMaintenance':
+      'Phòng này đang trong khối bảo trì đang hoạt động, không thể đổi loại phòng.',
+    'catalog.safety.room.retypeFutureMaintenance':
+      'Phòng này có khối bảo trì tương lai, không thể đổi loại phòng.',
+    'catalog.safety.roomType.archiveActiveRooms':
+      'Loại phòng này vẫn còn phòng vật lý đang hoạt động, không thể lưu trữ.',
+    'catalog.safety.roomType.archiveFutureBooking':
+      'Loại phòng này có đặt phòng tương lai chưa hoàn tất, không thể lưu trữ.',
+    'catalog.safety.roomType.archiveActiveMaintenance':
+      'Loại phòng này có bảo trì đang hoạt động, không thể lưu trữ.',
+    'catalog.safety.roomType.archiveFutureMaintenance':
+      'Loại phòng này có bảo trì tương lai, không thể lưu trữ.',
+    'catalog.safety.roomType.archiveActiveRatePlan':
+      'Loại phòng này vẫn còn được sử dụng bởi gói giá đang hoạt động, không thể lưu trữ.',
+    'catalog.safety.unknown': 'Không thể lưu trữ tài nguyên danh mục này vì vi phạm ràng buộc dữ liệu.',
     'room.createHeading': 'Thêm phòng',
     'room.createHelp': 'Chọn loại phòng, nhập số phòng và lưu thay đổi.',
     'room.number': 'Số phòng',
@@ -531,6 +562,7 @@ const messages = {
     'roomType.createError': 'Không thể tạo loại phòng.',
     'roomType.archiveError': 'Không thể lưu trữ loại phòng.',
     'roomType.archived': 'Đã lưu trữ {name}.',
+    'room.archiveError': 'Không thể lưu trữ phòng.',
     'roomType.assignAmenity': 'Gán tiện nghi',
     'roomType.amenityAssigned': 'Đã gán tiện nghi cho loại phòng.',
     'roomType.assignError': 'Không thể gán tiện nghi.',
@@ -1116,6 +1148,37 @@ const messages = {
     'catalog.saveError': 'Data could not be saved.',
     'catalog.noResults': 'No matching result.',
     'catalog.archive': 'Archive',
+    'catalog.safety.room.archiveActiveBooking':
+      'This room is currently held by an active booking and cannot be archived.',
+    'catalog.safety.room.archiveFutureBooking':
+      'This room has a future booking that has not completed; it cannot be archived.',
+    'catalog.safety.room.archiveActiveMaintenance':
+      'This room is covered by an active maintenance block and cannot be archived.',
+    'catalog.safety.room.archiveFutureMaintenance':
+      'This room has a future maintenance block and cannot be archived.',
+    'catalog.safety.room.archiveActiveInventoryBlock':
+      'This room has an active inventory block and cannot be archived.',
+    'catalog.safety.room.archiveFutureInventoryBlock':
+      'This room has a future inventory block and cannot be archived.',
+    'catalog.safety.room.retypeActiveBooking':
+      'This room is currently held by an active booking and cannot be retyped.',
+    'catalog.safety.room.retypeFutureBooking':
+      'This room has a future booking that has not completed; it cannot be retyped.',
+    'catalog.safety.room.retypeActiveMaintenance':
+      'This room is covered by an active maintenance block and cannot be retyped.',
+    'catalog.safety.room.retypeFutureMaintenance':
+      'This room has a future maintenance block and cannot be retyped.',
+    'catalog.safety.roomType.archiveActiveRooms':
+      'This room type still has active physical rooms and cannot be archived.',
+    'catalog.safety.roomType.archiveFutureBooking':
+      'This room type has future bookings that have not completed; it cannot be archived.',
+    'catalog.safety.roomType.archiveActiveMaintenance':
+      'This room type has active maintenance and cannot be archived.',
+    'catalog.safety.roomType.archiveFutureMaintenance':
+      'This room type has future maintenance and cannot be archived.',
+    'catalog.safety.roomType.archiveActiveRatePlan':
+      'This room type is still referenced by an active rate plan and cannot be archived.',
+    'catalog.safety.unknown': 'This catalog resource cannot be archived because it would violate a data invariant.',
     'room.createHeading': 'Add room',
     'room.createHelp': 'Choose a room type, enter the room number, and save changes.',
     'room.number': 'Room number',
@@ -1164,6 +1227,7 @@ const messages = {
     'roomType.createError': 'The room type could not be created.',
     'roomType.archiveError': 'The room type could not be archived.',
     'roomType.archived': '{name} archived.',
+    'room.archiveError': 'The room could not be archived.',
     'roomType.assignAmenity': 'Assign amenity',
     'roomType.amenityAssigned': 'Amenity assigned to room type.',
     'roomType.assignError': 'The amenity could not be assigned.',

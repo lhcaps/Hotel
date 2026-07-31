@@ -2,6 +2,7 @@
 import type { Amenity, PriceTier, RoomType } from '@room/contracts';
 import { type FormEvent, useEffect, useState } from 'react';
 import { AdminApiError, adminApi, type CatalogPage } from '../lib/admin-api';
+import { localizedCatalogSafetyReason } from '../lib/catalog-safety';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -137,8 +138,12 @@ export function RoomTypeManager() {
           : { ...current, items: current.items.map((item) => (item.id === id ? roomType : item)) },
       );
       setMessage(translate(locale, 'roomType.archived', { name: roomType.name }));
-    } catch {
-      setMessage(translate(locale, 'roomType.archiveError'));
+    } catch (cause) {
+      const text =
+        cause instanceof AdminApiError && cause.problem?.code !== undefined
+          ? localizedCatalogSafetyReason(locale, cause.problem.code, cause.problem.detail)
+          : translate(locale, 'roomType.archiveError');
+      setMessage(text);
     } finally {
       setPending(false);
     }
@@ -205,8 +210,8 @@ export function RoomTypeManager() {
       setMessage(translate(locale, 'roomType.updated', { name: updated.name }));
     } catch (cause) {
       const text =
-        cause instanceof AdminApiError && cause.problem?.detail !== undefined
-          ? cause.problem.detail
+        cause instanceof AdminApiError && cause.problem?.code !== undefined
+          ? localizedCatalogSafetyReason(locale, cause.problem.code, cause.problem.detail)
           : translate(locale, 'roomType.updateError');
       setErrors((current) => ({ ...current, [id]: text }));
     } finally {
