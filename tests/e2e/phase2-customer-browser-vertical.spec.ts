@@ -28,7 +28,37 @@ import {
 const execFileAsync = promisify(execFile);
 
 const WEB_BASE = process.env.PAYMENT_TEST_WEB_BASE ?? 'http://127.0.0.1:3100';
+const MAILPIT_API = process.env.MAILPIT_API ?? 'http://127.0.0.1:8025';
 const ROOM_TYPE_ID = '10000000-0000-4000-8000-000000000201';
+
+interface MailpitMessage {
+  readonly ID: string;
+  readonly To: readonly { readonly Address: string }[];
+  readonly Subject: string;
+}
+
+interface CountingMailpit {
+  readonly total: number;
+  readonly matching: number;
+}
+
+async function countMailpitMessages(
+  recipientEmail: string,
+  subjectRegex: RegExp,
+): Promise<CountingMailpit> {
+  const response = await fetch(`${MAILPIT_API}/api/v1/messages`);
+  if (!response.ok) {
+    throw new Error(`Mailpit list request failed: ${response.status}`);
+  }
+  const body = (await response.json()) as { messages?: readonly MailpitMessage[] };
+  const messages = body.messages ?? [];
+  const matching = messages.filter(
+    (message) =>
+      message.To.some((recipient) => recipient.Address === recipientEmail) &&
+      subjectRegex.test(message.Subject),
+  ).length;
+  return { total: messages.length, matching };
+}
 
 interface TrackingListener {
   readonly consoleErrors: string[];
@@ -232,6 +262,18 @@ test.describe('Phase 2 customer browser vertical', () => {
     await page.reload();
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
+
+    // Exactly one confirmation email lands in Mailpit for this booking.
+    await waitFor(
+      async () => {
+        const counts = await countMailpitMessages(
+          booking.contactEmail,
+          new RegExp(`Booking confirmed: ${booking.bookingCode}`),
+        );
+        return counts.matching === 1;
+      },
+      { timeoutMs: 15_000 },
+    );
   });
 
   test('2. VNPAY complete vertical desktop → Đặt phòng thành công', async ({ page, context }) => {
@@ -267,6 +309,18 @@ test.describe('Phase 2 customer browser vertical', () => {
     await settlePayment(booking.bookingCode, booking.guestSessionCookie, listener);
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
+
+    // Exactly one confirmation email lands in Mailpit for this booking.
+    await waitFor(
+      async () => {
+        const counts = await countMailpitMessages(
+          booking.contactEmail,
+          new RegExp(`Booking confirmed: ${booking.bookingCode}`),
+        );
+        return counts.matching === 1;
+      },
+      { timeoutMs: 15_000 },
+    );
   });
 
   test('3. MoMo complete vertical mobile → Đặt phòng thành công', async ({ page, context }) => {
@@ -302,6 +356,19 @@ test.describe('Phase 2 customer browser vertical', () => {
     await expect(page).toHaveURL(/\/booking\/manage\//, { timeout: 30_000 });
     await settlePayment(booking.bookingCode, booking.guestSessionCookie, listener);
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
+
+    // Exactly one confirmation email lands in Mailpit for this booking.
+    await waitFor(
+      async () => {
+        const counts = await countMailpitMessages(
+          booking.contactEmail,
+          new RegExp(`Booking confirmed: ${booking.bookingCode}`),
+        );
+        return counts.matching === 1;
+      },
+      { timeoutMs: 15_000 },
+    );
 
     // No horizontal overflow on mobile beyond an 80px safety margin to absorb
     // Next.js dev-only chrome (dev-tools button, error overlays, portal

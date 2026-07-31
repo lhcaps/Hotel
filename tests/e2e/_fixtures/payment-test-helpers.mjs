@@ -173,6 +173,7 @@ export async function createBookingHold(apiBase = getApiBaseUrl()) {
     quoteId: quote.id,
     guestSessionCookie,
     finalAmountVnd: quote.pricing?.totalAmountVnd,
+    contactEmail,
   };
 }
 
