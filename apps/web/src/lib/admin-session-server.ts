@@ -85,7 +85,10 @@ async function fetchAdminMe(
   baseUrl: string,
   forwardHeaders: Record<string, string>,
 ): Promise<AdminMeFetchResult> {
-  const target = new URL(ADMIN_ME_PATH, baseUrl).toString();
+  const target = new URL(
+    `.${ADMIN_ME_PATH}`,
+    baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
+  ).toString();
   let response: Response;
   try {
     response = await fetch(target, {
@@ -125,7 +128,10 @@ async function probeCustomerSession(
   baseUrl: string,
   forwardHeaders: Record<string, string>,
 ): Promise<CustomerProbeResult> {
-  const target = new URL(CUSTOMER_SESSION_PATH, baseUrl).toString();
+  const target = new URL(
+    `.${CUSTOMER_SESSION_PATH}`,
+    baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
+  ).toString();
   let response: Response;
   try {
     response = await fetch(target, {

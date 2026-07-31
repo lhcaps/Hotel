@@ -26,3 +26,11 @@ infrastructure/docker/data/
 .vscode/
 .idea/
 *.tsbuildinfo
+
+# Generated task log files at the repository root. Created by
+# transient validation runs and never intended for commit.
+/commit*.log
+/format*.log
+/lint*.log
+/eslint*.log
+/final.log

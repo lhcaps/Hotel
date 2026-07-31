@@ -40,14 +40,9 @@ export default function AdminLoginPage() {
     setPending(true);
     setError(undefined);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-      if (apiBase === undefined) {
-        setError(translate(locale, 'admin.loginServerError'));
-        return;
-      }
-      const response = await fetch(`${new URL(apiBase).origin}/api/auth/sign-in/email`, {
+      const response = await fetch('/api/auth/sign-in/email', {
         method: 'POST',
-        credentials: 'include',
+        credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ email: form.get('email'), password: form.get('password') }),
       });
@@ -55,8 +50,8 @@ export default function AdminLoginPage() {
         setError(translate(locale, 'admin.loginError'));
         return;
       }
-      const meResponse = await fetch(`${new URL(apiBase).origin}/api/v1/admin/me`, {
-        credentials: 'include',
+      const meResponse = await fetch('/api/admin/me', {
+        credentials: 'same-origin',
       });
       if (!meResponse.ok) {
         setError(translate(locale, 'admin.loginError'));
@@ -75,13 +70,10 @@ export default function AdminLoginPage() {
     if (customerLogoutPending) return;
     setCustomerLogoutPending(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-      if (apiBase !== undefined) {
-        await fetch(`${new URL(apiBase).origin}/api/auth/sign-out`, {
-          method: 'POST',
-          credentials: 'include',
-        });
-      }
+      await fetch('/api/auth/sign-out', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
       // Remove the URL flag so the notice disappears once the customer
       // session is gone.
       router.replace('/admin/login');
@@ -146,8 +138,8 @@ export default function AdminLoginPage() {
               </Field>
               {error === undefined ? null : (
                 <Alert className="admin-login-error" variant="destructive">
-                  <AlertTitle>{translate(locale, 'admin.loginError')}</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertTitle>{translate(locale, 'admin.loginErrorTitle')}</AlertTitle>
+                  <AlertDescription>{translate(locale, 'admin.loginError')}</AlertDescription>
                 </Alert>
               )}
             </FieldGroup>

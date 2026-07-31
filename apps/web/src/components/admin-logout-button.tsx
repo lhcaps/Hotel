@@ -19,13 +19,13 @@ export function AdminLogoutButton() {
     setPending(true);
     setError(undefined);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-      if (apiBase !== undefined) {
-        await fetch(`${new URL(apiBase).origin}/api/auth/sign-out`, {
-          method: 'POST',
-          credentials: 'include',
-        });
-      }
+      // Use the same-origin proxy so the session cookie set by sign-in is
+      // cleared on the web origin (not just on the API origin where the
+      // browser would refuse to send a cross-site fetch).
+      await fetch('/api/auth/sign-out', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
       router.replace('/admin/login');
       router.refresh();
     } catch (cause) {

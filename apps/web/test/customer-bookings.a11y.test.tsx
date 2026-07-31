@@ -45,11 +45,7 @@ describe('CUSTOMER booking list accessibility', () => {
       </LocaleProvider>,
     );
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole('heading', { name: 'My bookings' }),
-      ).toBeVisible(),
-    );
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'My bookings' })).toBeVisible());
     expect(screen.getByRole('link', { name: /UAT-CONFIRMED-20270711/i })).toBeVisible();
     const result = await axe(container);
     expect(
