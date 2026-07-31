@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./pricing": "./src/pricing.ts",
-    "./public-room-catalog": "./src/public-room-catalog.ts"
+    "./public-room-catalog": "./src/public-room-catalog.ts",
+    "./admin": "./src/admin.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
