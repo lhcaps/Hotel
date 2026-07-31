@@ -63,6 +63,10 @@ export async function startPaymentProviderSimulator(): Promise<PaymentProviderSi
       PAYMENT_SIMULATOR_VNPAY_IPN_URL:
         process.env['PAYMENT_SIMULATOR_VNPAY_IPN_URL'] ??
         'http://127.0.0.1:3101/api/v1/webhooks/vnpay',
+      // Loopback-only default back-redirect so tests that skip the control-plane
+      // setup still return to /booking/manage/{bookingCode} after a simulator
+      // success click, matching the pnpm demo:phase6 behaviour.
+      PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE: 'http://127.0.0.1:3100/booking/manage',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
