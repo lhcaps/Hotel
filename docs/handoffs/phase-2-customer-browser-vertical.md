@@ -99,7 +99,7 @@ a07e8b0 fix(web): expose authoritative payment loading and retry states
 5608cf5 test(a11y): cover complete customer booking surfaces
 ```
 
-FUNCTIONAL HEAD (Phase 2.1 final): `7ca7e61f1bb1a0cfd0f7d0b9cb8b58c1cd27f936`
+FUNCTIONAL HEAD (Phase 2.1 final): `d66908178a1a18bceec9d6c2f625c8bea864f15b`
 
 Author / committer on every commit: `lhcaps <huyle210525@gmail.com>`.
 Zero `Co-authored-by:` trailers (the repository's `commit-msg` hook
