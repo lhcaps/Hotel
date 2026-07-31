@@ -10,9 +10,6 @@
  * return, invalid signature, duplicate webhook) or to seed the booking
  * before the browser click-through begins.
  */
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-
 import { expect, test } from '@playwright/test';
 
 import { waitForVerificationOtp } from './_fixtures/booking-otp.mjs';
@@ -25,8 +22,6 @@ import {
   setSimulatorMode,
   waitFor,
 } from './_fixtures/payment-test-helpers.mjs';
-
-const execFileAsync = promisify(execFile);
 
 const WEB_BASE = process.env.PAYMENT_TEST_WEB_BASE ?? 'http://127.0.0.1:3100';
 const MAILPIT_API = process.env.MAILPIT_API ?? 'http://127.0.0.1:8025';
@@ -128,6 +123,7 @@ async function settlePayment(
   return settled as { readonly paymentStatus: string; readonly bookingStatus: string };
 }
 
+// Attach a pre-established guest session cookie to the browser context.
 async function attachGuestSession(
   context: import('@playwright/test').BrowserContext,
   cookie: string,
@@ -383,13 +379,17 @@ test.describe('Phase 2 customer browser vertical', () => {
     // menus) and third-party browser chrome. The functional vertical
     // success is the load-bearing assertion; the overflow check is a
     // best-effort responsive smoke test.
-    const overflow = await page.evaluate(() => ({
-      documentScroll: document.documentElement.scrollWidth,
-      bodyScroll: document.body.scrollWidth,
-      inner: window.innerWidth,
-    }));
-    expect(overflow.documentScroll).toBeLessThanOrEqual(overflow.inner + 80);
-    expect(overflow.bodyScroll).toBeLessThanOrEqual(overflow.inner + 80);
+    const overflow = await page.evaluate(() => {
+      const docRoot = globalThis.document.documentElement;
+      const body = globalThis.document.body;
+      return {
+        documentScroll: docRoot.scrollWidth,
+        bodyScroll: body.scrollWidth,
+        inner: globalThis.innerWidth,
+      };
+    });
+    expect(overflow.documentScroll).toBe(overflow.inner);
+    expect(overflow.bodyScroll).toBe(overflow.inner);
   });
 
   test('11.A. forged return URL does not confirm a MoMo HOLD', async ({ page, context }) => {
@@ -478,7 +478,6 @@ test.describe('Phase 2 customer browser vertical', () => {
 
   test('12. FULL CUSTOMER BROWSER — landing to confirmed without API helper bypass', async ({
     page,
-    context,
   }) => {
     test.setTimeout(240_000);
     await setSimulatorMode('momo', 'verify', { reset: true });
@@ -520,7 +519,9 @@ test.describe('Phase 2 customer browser vertical', () => {
     const planButtons = page.getByTestId('room-detail-plan');
     await expect(planButtons.first()).toBeVisible();
     const selectedPlanCode = await planButtons.first().getAttribute('data-plan-code');
-    expect(selectedPlanCode).toBeTruthy();
+    if (!selectedPlanCode) {
+      throw new Error('Selected rate plan is missing data-plan-code attribute');
+    }
     await planButtons.first().click();
 
     // 6. Create a quote through the browser.
@@ -601,7 +602,9 @@ test.describe('Phase 2 customer browser vertical', () => {
     // 14. Read OTP from Mailpit through the test helper only.
     // The worker outbox runs at 250ms intervals; 45s gives enough headroom.
     const otp = await waitForVerificationOtp(recipientEmail, 45_000);
-    expect(otp).toMatch(/^\d{6}$/);
+    if (!otp || !/^\d{6}$/.test(otp)) {
+      throw new Error(`Valid OTP was not delivered for ${recipientEmail}`);
+    }
 
     // 15. Enter OTP in the browser.
     await page.getByRole('textbox', { name: 'Mã xác nhận' }).fill(otp);
@@ -622,12 +625,12 @@ test.describe('Phase 2 customer browser vertical', () => {
     const momoButton = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
     await expect(momoButton).toBeVisible({ timeout: 30_000 });
 
-    // Reset both provider states so the demo-return proof below is deterministic.
-    // Use an explicit backRedirectUrl so the browser lands on the correct
-    // /booking/manage/{bookingCode} URL. The auto-derived URL would use the
-    // MoMo orderId as the path suffix, which would not resolve. The
-    // PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE demo configuration is
-    // exercised by the VNPAY branch in step 17.
+    // Reset both provider states. Use an explicit backRedirectUrl for MoMo
+    // because MoMo's orderId (a UUID) does not match the booking code
+    // pattern — auto-redirect would send the browser to the wrong URL.
+    // VNPAY uses the booking code as vnp_TxnRef, so its auto-redirect
+    // already produces the correct /booking/manage/{bookingCode} URL; the
+    // VNPAY demo-return test proves that path.
     await setSimulatorMode('momo', 'verify', { reset: true });
     await setSimulatorMode('vnpay', 'verify', { reset: true });
 
@@ -676,5 +679,275 @@ test.describe('Phase 2 customer browser vertical', () => {
       },
       { timeoutMs: 15_000 },
     );
+  });
+
+  // ---------------------------------------------------------------------------
+  // G1 — VNPAY demo-return without control-plane backRedirectUrl.
+  // VNPAY uses the booking code as vnp_TxnRef, so the simulator's
+  // auto-derive logic (PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE +
+  // orderId) produces the correct /booking/manage/{bookingCode} URL.
+  // ---------------------------------------------------------------------------
+  test('G1 VNPAY demo-return auto-redirects to booking code URL', async ({ page }) => {
+    // 1. Create a HOLD through the browser (quote → coupon → contact → HOLD).
+    // Format date as local Vietnam time (UTC+7) without the trailing Z.
+    const checkIn = new Date(Date.now() + 8 * 24 * 60 * 60_000);
+    const checkOut = new Date(checkIn.getTime() + 3 * 60 * 60_000);
+    function toLocalIso(date: Date): string {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return (
+        `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+        `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}+07:00`
+      );
+    }
+    const checkInStr = toLocalIso(checkIn);
+    const checkOutStr = toLocalIso(checkOut);
+    await page.goto(
+      `/booking/search?mode=hourly&checkIn=${encodeURIComponent(checkInStr)}&checkOut=${encodeURIComponent(checkOutStr)}&adults=2&children=0`,
+    );
+    await expect(page.getByRole('button', { name: 'Tìm phòng' })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Tìm phòng' }).click();
+    // The search form uses router.push() which re-renders the same /booking/search
+    // route with new params. Wait for the API call to settle then the room card.
+    await page.waitForLoadState('networkidle');
+    const firstCard = page.getByTestId('room-card').first();
+    await expect(firstCard).toBeVisible({ timeout: 60_000 });
+    await firstCard.getByTestId('room-card-cta').click();
+
+    const planButtons = page.getByTestId('room-detail-plan');
+    await expect(planButtons.first()).toBeVisible({ timeout: 30_000 });
+    const selectedPlanCode = await planButtons.first().getAttribute('data-plan-code');
+    if (!selectedPlanCode) {
+      throw new Error('Selected rate plan is missing data-plan-code attribute');
+    }
+    await planButtons.first().click();
+    await expect(page.getByRole('button', { name: 'Nhận báo giá' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.getByRole('button', { name: 'Nhận báo giá' }).click();
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('quote-panel')).toBeVisible({ timeout: 30_000 });
+
+    // Apply a deterministic coupon.
+    await page.getByLabel('Mã giảm giá').fill('DEMO-FIXED');
+    await page.getByRole('button', { name: 'Áp dụng' }).click();
+    await expect(page.getByText('Giảm 50.000 ₫')).toBeVisible({ timeout: 15_000 });
+
+    // Fill contact and create HOLD.
+    const recipientEmail = `e2e+${Date.now()}@mailpit.test`;
+    await page.getByLabel('Họ tên').fill('Nguyen Van Demo');
+    await page.getByLabel('Email').fill(recipientEmail);
+    await page.getByLabel('Số điện thoại').fill('0900000001');
+    await page.getByRole('button', { name: 'Giữ phòng' }).click();
+
+    await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
+    const rawBookingCode = await page.getByTestId('hold-booking-code').innerText();
+    const bookingCode = rawBookingCode.trim();
+    if (!bookingCode || !/^[A-Z0-9-]+$/.test(bookingCode)) {
+      throw new Error('Booking code was not rendered or has invalid format');
+    }
+
+    // 2. Request OTP.
+    await page.goto('/booking/manage');
+    await page.getByLabel('Email').fill(recipientEmail);
+    const otpResponsePromise = page.waitForResponse(
+      (r) => r.url().includes('/api/v1/public/guest-access/otp/request') && r.status() === 200,
+    );
+    await page.getByRole('button', { name: 'Gửi mã xác nhận' }).click();
+    await otpResponsePromise;
+    await page.waitForLoadState('networkidle');
+    const otp = await waitForVerificationOtp(recipientEmail, 45_000);
+    if (!otp || !/^\d{6}$/.test(otp)) {
+      throw new Error(`Valid OTP was not delivered for ${recipientEmail}`);
+    }
+
+    // 3. Verify OTP — lands on /booking/manage/{bookingCode}.
+    await page.getByRole('textbox', { name: 'Mã xác nhận' }).fill(otp);
+    await page.getByRole('button', { name: 'Xác minh' }).click();
+    await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
+    expect(page.url()).toContain(bookingCode);
+
+    // 4. Reset VNPAY state — do NOT set backRedirectUrl.
+    // The auto-derive path exercises PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE.
+    await setSimulatorMode('vnpay', 'verify', { reset: true });
+
+    const initialIpnCount = (await readSimulatorCounts()).counts.vnpayIpnAttempts;
+    const vnpayButton = page.getByRole('button', { name: 'Thanh toán qua VNPAY' });
+    await expect(vnpayButton).toBeVisible();
+
+    // 5. Click VNPAY and let the simulator auto-redirect.
+    await Promise.all([
+      page.waitForURL((current) => current.host === '127.0.0.1:3090', { timeout: 30_000 }),
+      vnpayButton.click(),
+    ]);
+
+    // 6. Wait for IPN settlement.
+    await waitFor(
+      async () => {
+        const counts = await readSimulatorCounts();
+        return counts.counts.vnpayIpnAttempts > initialIpnCount;
+      },
+      { timeoutMs: 15_000 },
+    );
+
+    // 7. Auto-redirect must land on /booking/manage/{bookingCode}.
+    // VNPAY's vnp_TxnRef equals the booking code, so the simulator's
+    // auto-derive (DEFAULT_BACK_REDIRECT_BASE + orderId) produces the
+    // correct URL without any control-plane backRedirectUrl.
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    expect(page.url()).toContain(bookingCode);
+    expect(page.url()).not.toContain('vnp_');
+
+    // 8. Confirmed success surface.
+    await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
+
+    // 9. Refresh persistence.
+    await page.reload();
+    await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
+
+    // 10. One confirmation email.
+    await waitFor(
+      async () => {
+        const counts = await countMailpitMessages(
+          recipientEmail,
+          new RegExp(`Booking confirmed: ${bookingCode}`),
+        );
+        return counts.matching === 1;
+      },
+      { timeoutMs: 15_000 },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // G5 — Public catalog unavailable state.
+  // The landing page server component reads ?__catalog=error to simulate an
+  // API failure. This bypasses the server-side fetch that page.route cannot
+  // intercept. The landing page must show role="alert" + unavailable heading
+  // + retry link, with zero room cards.
+  // ---------------------------------------------------------------------------
+  test('G5 catalog API 500 shows unavailable state, no room cards', async ({ page }) => {
+    await page.goto('/?__catalog=error');
+    await expect(page.getByRole('alert')).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByRole('heading', { name: 'Không thể tải danh sách hạng phòng' }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Thử lại' })).toBeVisible();
+    await expect(page.getByTestId('room-card')).toHaveCount(0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // G5 — Public catalog empty state.
+  // Uses ?__catalog=empty to simulate zero active rooms. The landing page must
+  // show the empty heading with zero room cards.
+  // ---------------------------------------------------------------------------
+  test('G5 catalog API empty array shows empty state, no room cards', async ({ page }) => {
+    await page.goto('/?__catalog=empty');
+    await expect(
+      page.getByRole('heading', { name: 'Chưa có hạng phòng đang được mở bán' }),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('room-card')).toHaveCount(0);
+  });
+
+  // ---------------------------------------------------------------------------
+  // G7 — Duplicate webhook: exactly one booking transition + one email.
+  // ---------------------------------------------------------------------------
+  test('G7 duplicate signed webhook produces exactly one confirmation email', async ({ page }) => {
+    // Build booking through browser (quote → HOLD → OTP → /booking/manage/{code}).
+    const checkIn = new Date(Date.now() + 9 * 24 * 60 * 60_000);
+    const checkOut = new Date(checkIn.getTime() + 3 * 60 * 60_000);
+    function toLocalIso(date: Date): string {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return (
+        `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+        `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}+07:00`
+      );
+    }
+    const checkInStr = toLocalIso(checkIn);
+    const checkOutStr = toLocalIso(checkOut);
+    await page.goto(
+      `/booking/search?mode=hourly&checkIn=${encodeURIComponent(checkInStr)}&checkOut=${encodeURIComponent(checkOutStr)}&adults=2&children=0`,
+    );
+    await expect(page.getByRole('button', { name: 'Tìm phòng' })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: 'Tìm phòng' }).click();
+    // The search form uses router.push() which re-renders the same /booking/search
+    // route with new params. Wait for the API call to settle then the room card.
+    await page.waitForLoadState('networkidle');
+    const firstCard = page.getByTestId('room-card').first();
+    await expect(firstCard).toBeVisible({ timeout: 60_000 });
+    await firstCard.getByTestId('room-card-cta').click();
+
+    const planButtons = page.getByTestId('room-detail-plan');
+    await expect(planButtons.first()).toBeVisible({ timeout: 30_000 });
+    await planButtons.first().click();
+    await expect(page.getByRole('button', { name: 'Nhận báo giá' })).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.getByRole('button', { name: 'Nhận báo giá' }).click();
+    await page.waitForLoadState('networkidle');
+
+    const recipientEmail = `e2e+${Date.now()}@mailpit.test`;
+    await page.getByLabel('Họ tên').fill('Tran Van Check');
+    await page.getByLabel('Email').fill(recipientEmail);
+    await page.getByLabel('Số điện thoại').fill('0900000002');
+    await page.getByRole('button', { name: 'Giữ phòng' }).click();
+
+    await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
+    const rawBookingCode = await page.getByTestId('hold-booking-code').innerText();
+    const bookingCode = rawBookingCode.trim();
+    if (!bookingCode || !/^[A-Z0-9-]+$/.test(bookingCode)) {
+      throw new Error('Booking code was not rendered or has invalid format');
+    }
+
+    await page.goto('/booking/manage');
+    await page.getByLabel('Email').fill(recipientEmail);
+    const otpResp = page.waitForResponse(
+      (r) => r.url().includes('/api/v1/public/guest-access/otp/request') && r.status() === 200,
+    );
+    await page.getByRole('button', { name: 'Gửi mã xác nhận' }).click();
+    await otpResp;
+    await page.waitForLoadState('networkidle');
+    const otp = await waitForVerificationOtp(recipientEmail, 45_000);
+    if (!otp || !/^\d{6}$/.test(otp)) {
+      throw new Error(`Valid OTP was not delivered for ${recipientEmail}`);
+    }
+    await page.getByRole('textbox', { name: 'Mã xác nhận' }).fill(otp);
+    await page.getByRole('button', { name: 'Xác minh' }).click();
+    await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
+
+    // 12. Set duplicateIpns: true so the simulator fires the same signed
+    // MoMo IPN twice when the user clicks MoMo. The backend must accept
+    // both (idempotency) but only send one confirmation email.
+    await setSimulatorMode('momo', 'verify', { reset: true, duplicateIpns: true });
+    const momoBackRedirect = `${WEB_BASE}/booking/manage/${bookingCode}`;
+    await setSimulatorMode('momo', 'verify', { backRedirectUrl: momoBackRedirect });
+
+    // Count IPN attempts before the click.
+    const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
+    const momoBtn = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
+    await expect(momoBtn).toBeVisible();
+    await Promise.all([
+      page.waitForURL((current) => current.host === '127.0.0.1:3090', { timeout: 30_000 }),
+      momoBtn.click(),
+    ]);
+
+    // Wait for both IPN attempts.
+    await waitFor(
+      async () => {
+        const counts = await readSimulatorCounts();
+        return counts.counts.momoIpnAttempts >= initialIpnCount + 2;
+      },
+      { timeoutMs: 15_000 },
+    );
+
+    // Payment must still succeed despite duplicate IPNs.
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
+
+    // Exactly one confirmation email (idempotency proof).
+    const counts = await countMailpitMessages(
+      recipientEmail,
+      new RegExp(`Booking confirmed: ${bookingCode}`),
+    );
+    expect(counts.matching).toBe(1);
   });
 });
