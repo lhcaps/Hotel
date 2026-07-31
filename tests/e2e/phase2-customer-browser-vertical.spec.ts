@@ -226,12 +226,11 @@ test.describe('Phase 2 customer browser vertical', () => {
     await page.goto(`/booking/manage/${booking.bookingCode}`);
     await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
 
-    // Open the MoMo provider. The provider button navigates to the
-    // simulator. The simulator has been configured (via the global setup
-    // helper below) to redirect back to the persistent booking route
-    // after the IPN fires.
-    const backRedirect = `${WEB_BASE}/booking/manage/${booking.bookingCode}`;
-    await setSimulatorMode('momo', 'verify', { backRedirectUrl: backRedirect });
+    // No control-plane backRedirectUrl: the API server pushes the
+    // authoritative (orderId → bookingCode) mapping to the simulator at
+    // initiation time, and the simulator's default base URL resolves
+    // the booking code on the browser-side redirect.
+    await setSimulatorMode('momo', 'verify');
 
     const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
     const moMoButton = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
@@ -251,7 +250,8 @@ test.describe('Phase 2 customer browser vertical', () => {
       { timeoutMs: 15_000 },
     );
 
-    await expect(page).toHaveURL(/\/booking\/manage\//, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    expect(page.url()).toContain(booking.bookingCode);
     await settlePayment(booking.bookingCode, booking.guestSessionCookie, listener);
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
@@ -290,8 +290,10 @@ test.describe('Phase 2 customer browser vertical', () => {
     await page.goto(`/booking/manage/${booking.bookingCode}`);
     await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
 
-    const backRedirect = `${WEB_BASE}/booking/manage/${booking.bookingCode}`;
-    await setSimulatorMode('vnpay', 'verify', { backRedirectUrl: backRedirect });
+    // No control-plane backRedirectUrl: VNPAY's vnp_TxnRef matches the
+    // booking code, so the simulator's legacy fallback appends the
+    // booking code to the trusted default base URL without any setup.
+    await setSimulatorMode('vnpay', 'verify');
 
     const initialIpnCount = (await readSimulatorCounts()).counts.vnpayIpnAttempts;
     const vnpayButton = page.getByRole('button', { name: 'Thanh toán qua VNPAY' });
@@ -309,7 +311,8 @@ test.describe('Phase 2 customer browser vertical', () => {
       { timeoutMs: 15_000 },
     );
 
-    await expect(page).toHaveURL(/\/booking\/manage\//, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    expect(page.url()).toContain(booking.bookingCode);
     await settlePayment(booking.bookingCode, booking.guestSessionCookie, listener);
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
@@ -338,8 +341,8 @@ test.describe('Phase 2 customer browser vertical', () => {
     await page.goto(`/booking/manage/${booking.bookingCode}`);
     await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
 
-    const backRedirect = `${WEB_BASE}/booking/manage/${booking.bookingCode}`;
-    await setSimulatorMode('momo', 'verify', { backRedirectUrl: backRedirect });
+    // No control-plane backRedirectUrl: see MoMo desktop comment.
+    await setSimulatorMode('momo', 'verify');
 
     const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
     const moMoButton = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
@@ -357,7 +360,8 @@ test.describe('Phase 2 customer browser vertical', () => {
       { timeoutMs: 15_000 },
     );
 
-    await expect(page).toHaveURL(/\/booking\/manage\//, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    expect(page.url()).toContain(booking.bookingCode);
     await settlePayment(booking.bookingCode, booking.guestSessionCookie, listener);
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
@@ -625,17 +629,13 @@ test.describe('Phase 2 customer browser vertical', () => {
     const momoButton = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
     await expect(momoButton).toBeVisible({ timeout: 30_000 });
 
-    // Reset both provider states. Use an explicit backRedirectUrl for MoMo
-    // because MoMo's orderId (a UUID) does not match the booking code
-    // pattern — auto-redirect would send the browser to the wrong URL.
-    // VNPAY uses the booking code as vnp_TxnRef, so its auto-redirect
-    // already produces the correct /booking/manage/{bookingCode} URL; the
-    // VNPAY demo-return test proves that path.
+    // Reset both provider states. No control-plane backRedirectUrl is
+    // set on either provider: the API server pushes the (orderId →
+    // bookingCode) mapping to the simulator at initiation time, and the
+    // simulator's trusted default base URL resolves the authoritative
+    // booking code on the browser-side redirect.
     await setSimulatorMode('momo', 'verify', { reset: true });
     await setSimulatorMode('vnpay', 'verify', { reset: true });
-
-    const momoBackRedirect = `${WEB_BASE}/booking/manage/${bookingCode}`;
-    await setSimulatorMode('momo', 'verify', { backRedirectUrl: momoBackRedirect });
 
     const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
     await Promise.all([
@@ -916,10 +916,10 @@ test.describe('Phase 2 customer browser vertical', () => {
 
     // 12. Set duplicateIpns: true so the simulator fires the same signed
     // MoMo IPN twice when the user clicks MoMo. The backend must accept
-    // both (idempotency) but only send one confirmation email.
+    // both (idempotency) but only send one confirmation email. No
+    // control-plane backRedirectUrl: the API server pushed the
+    // (orderId → bookingCode) mapping at initiation time.
     await setSimulatorMode('momo', 'verify', { reset: true, duplicateIpns: true });
-    const momoBackRedirect = `${WEB_BASE}/booking/manage/${bookingCode}`;
-    await setSimulatorMode('momo', 'verify', { backRedirectUrl: momoBackRedirect });
 
     // Count IPN attempts before the click.
     const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;

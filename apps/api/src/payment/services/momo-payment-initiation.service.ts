@@ -17,6 +17,7 @@ import { MomoAdapter } from '../providers/momo/momo.adapter.js';
 import { MomoAdapterError } from '../providers/momo/momo.errors.js';
 import { PaymentInitiationError } from '../payment.errors.js';
 import { PaymentProviderSettingsService } from './payment-provider-settings.service.js';
+import { publishSimulatorBookingCodeMapping } from './payment-simulator-mapping.service.js';
 
 export interface InitiateMomoPaymentInput {
   readonly bookingCode: string;
@@ -90,6 +91,17 @@ export class MomoPaymentInitiationService {
       if (checkout.providerOrderId !== attempt.providerOrderId) {
         throw new PaymentInitiationError('MOMO_INITIATION_REJECTED');
       }
+      // Side-effect: in development, tell the local simulator which booking
+      // code corresponds to the provider's orderId so the simulator's
+      // browser-side redirect lands on the persistent booking page without
+      // any test control-plane backRedirectUrl setup. The simulator refuses
+      // any non-loopback base, so production environments (which never
+      // start the simulator) remain unaffected.
+      await publishSimulatorBookingCodeMapping({
+        provider: 'momo',
+        orderId: attempt.providerOrderId,
+        bookingCode: booking.bookingCode,
+      });
       return {
         paymentId: payment.id,
         paymentAttemptId: attempt.id,

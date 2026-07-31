@@ -162,13 +162,38 @@ const requestCounts = {
   vnpayIpnAttempts: 0,
 };
 
+// Order id → booking code mapping. The API server pushes this mapping when it
+// initiates a payment attempt so the simulator's browser-side redirect can
+// use the authoritative booking code (the provider's orderId is opaque — e.g.
+// MoMo returns a UUID — and must never be interpreted as a booking code by the
+// browser). Loopback-only: the simulator refuses the endpoint outside loopback.
+const orderBookingCodeMapping = new Map();
+
+function lookupBookingCodeForOrder(orderId) {
+  if (typeof orderId !== 'string' || orderId.length === 0) return '';
+  return orderBookingCodeMapping.get(orderId) ?? '';
+}
+
 function resolveBackRedirectUrl(provider, orderId) {
   const state = providerState[provider];
   if (state.backRedirectUrl !== '') return state.backRedirectUrl;
+  // Preferred path: the API server has pushed the authoritative booking code
+  // for this orderId. The base URL is configured server-side via
+  // PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE; we only substitute the
+  // booking code (never the provider orderId) to keep the URL trustworthy.
+  const bookingCode = lookupBookingCodeForOrder(orderId);
+  if (bookingCode !== '' && RESOLVED_DEFAULT_BACK_REDIRECT_BASE !== '') {
+    try {
+      return validateBackRedirectUrl(
+        `${RESOLVED_DEFAULT_BACK_REDIRECT_BASE}/${encodeURIComponent(bookingCode)}`,
+      );
+    } catch {
+      return '';
+    }
+  }
   if (RESOLVED_DEFAULT_BACK_REDIRECT_BASE === '') return '';
-  // The order id is the booking code (server-side mapping is authoritative).
-  // Append the booking code as a single segment. Re-validate to keep the
-  // safety contract: any non-loopback base is rejected.
+  // Legacy fallback: append the orderId verbatim. Only safe when the provider
+  // itself embeds the booking code in the order id (VNPAY's vnp_TxnRef).
   try {
     return validateBackRedirectUrl(
       `${RESOLVED_DEFAULT_BACK_REDIRECT_BASE}/${encodeURIComponent(orderId)}`,
@@ -578,6 +603,37 @@ function handleHealth(response) {
   });
 }
 
+async function handleOrderMapping(request, response) {
+  let body;
+  try {
+    body = await readJsonBody(request);
+  } catch {
+    jsonResponse(response, 400, { ok: false, error: 'orderMapping.invalidJson' });
+    return;
+  }
+  if (
+    typeof body.orderId !== 'string' ||
+    body.orderId.length === 0 ||
+    typeof body.bookingCode !== 'string' ||
+    body.bookingCode.length === 0
+  ) {
+    jsonResponse(response, 400, { ok: false, error: 'orderMapping.missingFields' });
+    return;
+  }
+  // Booking codes are short, URL-safe, alphanumeric (with optional dashes).
+  // Reject anything that could be a forged redirect target.
+  if (!/^[A-Za-z0-9-]{1,64}$/.test(body.bookingCode)) {
+    jsonResponse(response, 400, { ok: false, error: 'orderMapping.invalidBookingCode' });
+    return;
+  }
+  if (body.clear === true) {
+    orderBookingCodeMapping.delete(body.orderId);
+  } else {
+    orderBookingCodeMapping.set(body.orderId, body.bookingCode);
+  }
+  jsonResponse(response, 200, { ok: true, orderId: body.orderId, bookingCode: body.bookingCode });
+}
+
 async function router(request, response) {
   if (!hostMatchesLoopback(request)) {
     response.statusCode = 400;
@@ -589,6 +645,10 @@ async function router(request, response) {
   try {
     if (pathname === '/__health' && request.method === 'GET') {
       handleHealth(response);
+      return;
+    }
+    if (pathname === '/__sim/order-mapping' && request.method === 'POST') {
+      await handleOrderMapping(request, response);
       return;
     }
     if (pathname === '/__control/momo' && request.method === 'POST') {

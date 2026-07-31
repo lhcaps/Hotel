@@ -12,6 +12,7 @@ import { DatabaseProvider } from '../../database/database.provider.js';
 import { PaymentInitiationError } from '../payment.errors.js';
 import { VnpayAdapter } from '../providers/vnpay/vnpay.adapter.js';
 import { PaymentProviderSettingsService } from './payment-provider-settings.service.js';
+import { publishSimulatorBookingCodeMapping } from './payment-simulator-mapping.service.js';
 
 export class VnpayPaymentInitiationService {
   public constructor(
@@ -59,6 +60,18 @@ export class VnpayPaymentInitiationService {
         webhookUrl: '',
         description: `Room booking ${booking.bookingCode}`,
         expiresAt: booking.holdExpiresAt ?? new Date(),
+      });
+      // Side-effect: in development, tell the local simulator which booking
+      // code corresponds to the provider's orderId so the simulator's
+      // browser-side redirect lands on the persistent booking page without
+      // any test control-plane backRedirectUrl setup. VNPAY happens to use
+      // the booking code as vnp_TxnRef so the legacy fallback also works;
+      // pushing the explicit mapping makes that an implementation detail
+      // rather than a contract.
+      await publishSimulatorBookingCodeMapping({
+        provider: 'vnpay',
+        orderId: attempt.providerOrderId,
+        bookingCode: booking.bookingCode,
       });
       return {
         paymentId: payment.id,
