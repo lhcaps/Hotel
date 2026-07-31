@@ -583,7 +583,7 @@ test.describe('Phase 2 customer browser vertical', () => {
 
     // 13. Enter booking code and email in the OTP request panel.
     await page.getByLabel('Mã đặt phòng').fill(bookingCode);
-    await page.getByLabel('Email đã dùng khi đặt phòng').fill(recipientEmail);
+    await page.getByLabel('Email').fill(recipientEmail);
     await page.getByRole('button', { name: 'Gửi mã xác nhận' }).click();
 
     // 14. Read OTP from Mailpit through the test helper only.
