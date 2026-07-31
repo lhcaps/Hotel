@@ -604,7 +604,7 @@ test.describe('Phase 2 customer browser vertical', () => {
     expect(otp).toMatch(/^\d{6}$/);
 
     // 15. Enter OTP in the browser.
-    await page.getByLabel('Mã xác nhận').fill(otp);
+    await page.getByRole('textbox', { name: 'Mã xác nhận' }).fill(otp);
     await page.getByRole('button', { name: 'Xác nhận' }).click();
 
     // 16. The browser reaches the persistent booking-code route.
