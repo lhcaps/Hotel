@@ -9,14 +9,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import userEvent from '@testing-library/user-event';
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConfirmedSuccessPanel } from '../src/components/confirmed-success-panel';
 import { HoldSuccessPanel } from '../src/components/hold-success-panel';
@@ -220,9 +213,7 @@ describe('Phase 2.1 customer booking accessibility evidence', () => {
         </section>
       </LocaleProvider>,
     );
-    expect(
-      screen.getByRole('heading', { name: 'Kiểm tra tình trạng phòng' }),
-    ).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Kiểm tra tình trạng phòng' })).toBeVisible();
     await expectNoSeriousOrCritical(container);
   });
 
@@ -251,9 +242,7 @@ describe('Phase 2.1 customer booking accessibility evidence', () => {
         />
       </LocaleProvider>,
     );
-    expect(
-      screen.getByRole('heading', { name: 'Giữ chỗ thành công' }),
-    ).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Giữ chỗ thành công' })).toBeVisible();
     await expectNoSeriousOrCritical(container);
   });
 
@@ -349,9 +338,7 @@ describe('Phase 2.1 customer booking accessibility evidence', () => {
     await waitFor(() => {
       expect(screen.getByTestId('payment-status-load-error')).toBeVisible();
     });
-    expect(
-      screen.getByRole('button', { name: 'Tải lại' }),
-    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Tải lại' })).toBeVisible();
     await expectNoSeriousOrCritical(container);
   });
 
@@ -361,9 +348,7 @@ describe('Phase 2.1 customer booking accessibility evidence', () => {
         <ConfirmedSuccessPanel booking={BOOKING} payment={PAYMENT} />
       </LocaleProvider>,
     );
-    expect(
-      screen.getByRole('heading', { name: 'Đặt phòng thành công' }),
-    ).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Đặt phòng thành công' })).toBeVisible();
     await expectNoSeriousOrCritical(container);
   });
 

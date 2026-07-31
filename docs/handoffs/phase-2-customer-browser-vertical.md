@@ -36,21 +36,21 @@ review), and Phase 6 (release/CI gates) remain.
 
 ## Repository state (formal SHA vocabulary)
 
-| Item                                | Value                                                                                                          |
-| ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Branch                              | `phase2-customer-browser-vertical`                                                                              |
-| Phase 1 final HEAD                  | `e5e095e85ebc3415b75367779ac9cead2d893c5f`                                                                     |
-| `PHASE_2_START_SHA`                 | `e5e095e85ebc3415b75367779ac9cead2d893c5f` (Phase 2 branched directly from Phase 1 final HEAD)                   |
-| `PHASE_2_FUNCTIONAL_HEAD`           | `61e80d947834b6ee084f44206066a1a7a366a780` (last commit that contains production code for Phase 2)              |
-| `PHASE_2_HANDOFF_PARENT_SHA`        | `61e80d947834b6ee084f44206066a1a7a366a780` (this handoff commit sits on top)                                  |
-| `PHASE_2_DOCUMENTED_HEAD`           | `083ef2ff5ca33c9ed695574362766ce720582857` (Phase 2 doc-only commit — NOT a functional head)                    |
-| `PHASE_2_1_FUNCTIONAL_HEAD`         | latest commit on `phase2-customer-browser-vertical` containing Phase 2.1 production or test code              |
-| `PHASE_2_1_HANDOFF_PARENT_SHA`      | the commit that the Phase 2.1 handoff commit sits on top of                                                   |
-| `ACTUAL_FINAL_SHA`                  | reported in the final chat response after the handoff commit, not pinned in this document                      |
-| Working tree at end of phase        | clean (Next.js dev tooling rewrites `apps/web/next-env.d.ts` during Playwright runs; restored on each closure) |
-| Phase 2 production changes          | YES (see Rollback boundary for the exact source files)                                                         |
-| Released migration SQL changes      | 0                                                                                                              |
-| Package version changes             | 0                                                                                                              |
+| Item                           | Value                                                                                                          |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Branch                         | `phase2-customer-browser-vertical`                                                                             |
+| Phase 1 final HEAD             | `e5e095e85ebc3415b75367779ac9cead2d893c5f`                                                                     |
+| `PHASE_2_START_SHA`            | `e5e095e85ebc3415b75367779ac9cead2d893c5f` (Phase 2 branched directly from Phase 1 final HEAD)                 |
+| `PHASE_2_FUNCTIONAL_HEAD`      | `61e80d947834b6ee084f44206066a1a7a366a780` (last commit that contains production code for Phase 2)             |
+| `PHASE_2_HANDOFF_PARENT_SHA`   | `61e80d947834b6ee084f44206066a1a7a366a780` (this handoff commit sits on top)                                   |
+| `PHASE_2_DOCUMENTED_HEAD`      | `083ef2ff5ca33c9ed695574362766ce720582857` (Phase 2 doc-only commit — NOT a functional head)                   |
+| `PHASE_2_1_FUNCTIONAL_HEAD`    | latest commit on `phase2-customer-browser-vertical` containing Phase 2.1 production or test code               |
+| `PHASE_2_1_HANDOFF_PARENT_SHA` | the commit that the Phase 2.1 handoff commit sits on top of                                                    |
+| `ACTUAL_FINAL_SHA`             | reported in the final chat response after the handoff commit, not pinned in this document                      |
+| Working tree at end of phase   | clean (Next.js dev tooling rewrites `apps/web/next-env.d.ts` during Playwright runs; restored on each closure) |
+| Phase 2 production changes     | YES (see Rollback boundary for the exact source files)                                                         |
+| Released migration SQL changes | 0                                                                                                              |
+| Package version changes        | 0                                                                                                              |
 
 > The Phase 2 documentation commit `083ef2f` is a docs-only commit and
 > is **not** the functional head. The functional head remains
@@ -103,7 +103,7 @@ fabricate room entities. Implementation:
   `fallbackRooms` array is constructed anywhere.
 - `READY` shows the DB room cards with the existing deterministic
   static image fallback. `EMPTY` shows the localized
-  *Chưa có hạng phòng đang được mở bán* notice. `UNAVAILABLE` shows
+  _Chưa có hạng phòng đang được mở bán_ notice. `UNAVAILABLE` shows
   the localized temporary error with a retry link.
 - New web unit tests
   `apps/web/test/public-catalog-state.test.ts` and an updated
@@ -277,7 +277,7 @@ Section 11 of the prompt required negative payment authority tests.
 Implementation:
 
 - `F. provider return is non-authoritative: forged URL does not
-  confirm` opens a return URL with success-looking query parameters
+confirm` opens a return URL with success-looking query parameters
   but no IPN; the booking stays HOLD and the success surface is not
   rendered.
 - `11.A. forged return URL does not confirm a MoMo HOLD` extends the
@@ -305,8 +305,8 @@ customer payment UI. Implementation:
   typed `LoadState` (`loading` / `failed` / `ready`) instead of
   returning `null` while the initial request is pending.
 - The `LOADING` state renders a visible heading
-  *Trạng thái thanh toán*, the localized copy *Đang tải trạng thái
-  thanh toán*, and an animated skeleton bar (role=status,
+  _Trạng thái thanh toán_, the localized copy _Đang tải trạng thái
+  thanh toán_, and an animated skeleton bar (role=status,
   aria-live=polite, aria-busy=true).
 - The `LOAD_ERROR` state renders a role=alert block with the
   localized copy and a retry button that re-issues the
@@ -320,6 +320,7 @@ customer payment UI. Implementation:
   the next reload.
 
 Evidence:
+
 - Component test
   `apps/web/test/payment-status-summary.test.tsx` covers the
   LOADING placeholder, the loaded summary, the
@@ -370,26 +371,26 @@ overflow must be fixed at the layout source.
 
 ### 11. Static / database gates
 
-| Gate                              | Result |
-| --------------------------------- | ------ |
-| `pnpm format:check`               | PASS   |
-| `pnpm lint`                       | PASS   |
-| `pnpm typecheck`                  | PASS   |
-| `pnpm test:unit`                  | PASS   |
-| `pnpm build`                      | PASS   |
-| `pnpm db:check`                   | PASS   |
-| `pnpm db:test`                    | PASS   |
-| `pnpm test:integration`           | PASS   |
-| `pnpm test:pricing`               | PASS   |
-| `pnpm test:availability`          | PASS   |
-| `pnpm test:quotes`                | PASS   |
-| `pnpm check:openapi`              | PASS   |
-| `pnpm check:endpoints`            | PASS   |
-| `pnpm check:i18n-critical`        | PASS   |
-| `pnpm audit:deps`                 | PASS   |
-| `pnpm demo:preflight`             | PASS   |
-| `pnpm demo:lifecycle-test`        | PASS   |
-| `pnpm demo:smoke`                 | PASS   |
+| Gate                       | Result |
+| -------------------------- | ------ |
+| `pnpm format:check`        | PASS   |
+| `pnpm lint`                | PASS   |
+| `pnpm typecheck`           | PASS   |
+| `pnpm test:unit`           | PASS   |
+| `pnpm build`               | PASS   |
+| `pnpm db:check`            | PASS   |
+| `pnpm db:test`             | PASS   |
+| `pnpm test:integration`    | PASS   |
+| `pnpm test:pricing`        | PASS   |
+| `pnpm test:availability`   | PASS   |
+| `pnpm test:quotes`         | PASS   |
+| `pnpm check:openapi`       | PASS   |
+| `pnpm check:endpoints`     | PASS   |
+| `pnpm check:i18n-critical` | PASS   |
+| `pnpm audit:deps`          | PASS   |
+| `pnpm demo:preflight`      | PASS   |
+| `pnpm demo:lifecycle-test` | PASS   |
+| `pnpm demo:smoke`          | PASS   |
 
 ### 12. Phase 2 E2E runs
 
@@ -431,21 +432,21 @@ $ git status --short
 Phase 2.1 adds full jest-axe coverage of every customer-facing
 surface:
 
-| Surface                              | jest-axe test                                                  |
-| ------------------------------------ | -------------------------------------------------------------- |
-| catalog unavailable                  | `phase2-1-customer-booking-a11y.test.tsx` (role=alert)         |
-| catalog empty                        | `phase2-1-customer-booking-a11y.test.tsx` (heading)            |
-| room-detail CTA                      | `phase2-1-customer-booking-a11y.test.tsx` (browse heading)     |
-| quote / contact form                 | `phase2-1-customer-booking-a11y.test.tsx` (labelled fields)    |
-| HOLD success                         | `phase2-1-customer-booking-a11y.test.tsx` (heading)            |
-| OTP request                          | `phase2-1-customer-booking-a11y.test.tsx` (labelled fields)    |
-| OTP verify                           | `phase2-1-customer-booking-a11y.test.tsx` (labelled field)     |
-| booking detail                       | existing `guest-booking-route.test.tsx`                        |
-| payment provider selector            | `phase2-1-customer-booking-a11y.test.tsx` (accessible names)   |
-| payment LOADING                      | `phase2-1-customer-booking-a11y.test.tsx` + payment-status tests |
-| payment LOAD_ERROR                   | `phase2-1-customer-booking-a11y.test.tsx` (role=alert)         |
-| confirmed success                    | `phase2-1-customer-booking-a11y.test.tsx` (Đặt phòng thành công) |
-| availability search results          | `phase2-1-customer-booking-a11y.test.tsx` (empty state)        |
+| Surface                     | jest-axe test                                                    |
+| --------------------------- | ---------------------------------------------------------------- |
+| catalog unavailable         | `phase2-1-customer-booking-a11y.test.tsx` (role=alert)           |
+| catalog empty               | `phase2-1-customer-booking-a11y.test.tsx` (heading)              |
+| room-detail CTA             | `phase2-1-customer-booking-a11y.test.tsx` (browse heading)       |
+| quote / contact form        | `phase2-1-customer-booking-a11y.test.tsx` (labelled fields)      |
+| HOLD success                | `phase2-1-customer-booking-a11y.test.tsx` (heading)              |
+| OTP request                 | `phase2-1-customer-booking-a11y.test.tsx` (labelled fields)      |
+| OTP verify                  | `phase2-1-customer-booking-a11y.test.tsx` (labelled field)       |
+| booking detail              | existing `guest-booking-route.test.tsx`                          |
+| payment provider selector   | `phase2-1-customer-booking-a11y.test.tsx` (accessible names)     |
+| payment LOADING             | `phase2-1-customer-booking-a11y.test.tsx` + payment-status tests |
+| payment LOAD_ERROR          | `phase2-1-customer-booking-a11y.test.tsx` (role=alert)           |
+| confirmed success           | `phase2-1-customer-booking-a11y.test.tsx` (Đặt phòng thành công) |
+| availability search results | `phase2-1-customer-booking-a11y.test.tsx` (empty state)          |
 
 `AXE_CRITICAL = 0`, `AXE_SERIOUS = 0`.
 
@@ -476,6 +477,7 @@ the LOAD_ERROR.
 ### 16. Static/database gates worktree
 
 Clean at the end of Phase 2:
+
 ```
 $ git status --short
 (no output)

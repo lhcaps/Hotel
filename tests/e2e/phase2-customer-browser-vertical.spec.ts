@@ -549,7 +549,9 @@ test.describe('Phase 2 customer browser vertical', () => {
     // 8. The selected plan code is preserved across coupon requote.
     const requoteUrl = page.url();
     expect(requoteUrl).toContain('selectedPlanCode=');
-    expect(requoteUrl).toMatch(new RegExp(`selectedPlanCode=${encodeURIComponent(selectedPlanCode)}`));
+    expect(requoteUrl).toMatch(
+      new RegExp(`selectedPlanCode=${encodeURIComponent(selectedPlanCode)}`),
+    );
     // The quote id in the URL must change after the requote — same selected
     // plan must persist while the coupon is applied to a fresh quote.
     expect(new URL(requoteUrl).pathname).not.toBe(new URL(quoteUrl).pathname);
@@ -610,9 +612,9 @@ test.describe('Phase 2 customer browser vertical', () => {
     // The simulator derives the back-redirect from
     // PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE — there must be no
     // explicit control-plane backRedirectUrl configuration for this run.
-    const health = await fetch(`${process.env.PAYMENT_SIMULATOR_BASE_URL ?? 'http://127.0.0.1:3090'}/__health`).then(
-      (response) => response.json(),
-    );
+    const health = await fetch(
+      `${process.env.PAYMENT_SIMULATOR_BASE_URL ?? 'http://127.0.0.1:3090'}/__health`,
+    ).then((response) => response.json());
     expect(health.defaultBackRedirectBase).toBeTruthy();
     expect(health.providers.momo.backRedirectUrl).toBe('');
     expect(health.providers.vnpay.backRedirectUrl).toBe('');

@@ -80,7 +80,9 @@ export function PaymentStatusSummary({ bookingCode }: Readonly<{ bookingCode: st
         data-testid="payment-status-load-error"
         role="alert"
       >
-        <h3 className="font-semibold text-amber-900">{translate(locale, 'payment.statusHeading')}</h3>
+        <h3 className="font-semibold text-amber-900">
+          {translate(locale, 'payment.statusHeading')}
+        </h3>
         <p className="mt-2 text-sm text-amber-900" data-testid="payment-status-load-error-text">
           {translate(locale, 'payment.states.loadError')}
         </p>

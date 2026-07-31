@@ -101,9 +101,10 @@ test.describe('Phase 2.1 strict responsive overflow', () => {
       await page.goto('/');
       await clearNextDevChrome(page);
       const overflow = await measureOverflow(page);
-      expect(overflow.doc, `documentElement.scrollWidth=${overflow.doc} vs inner=${overflow.inner}`).toBe(
-        overflow.inner,
-      );
+      expect(
+        overflow.doc,
+        `documentElement.scrollWidth=${overflow.doc} vs inner=${overflow.inner}`,
+      ).toBe(overflow.inner);
       expect(overflow.body, `body.scrollWidth=${overflow.body} vs inner=${overflow.inner}`).toBe(
         overflow.inner,
       );
@@ -132,9 +133,10 @@ test.describe('Phase 2.1 strict responsive overflow', () => {
       await page.goto(`/booking/search?${params.toString()}`);
       await clearNextDevChrome(page);
       const overflow = await measureOverflow(page);
-      expect(overflow.doc, `documentElement.scrollWidth=${overflow.doc} vs inner=${overflow.inner}`).toBe(
-        overflow.inner,
-      );
+      expect(
+        overflow.doc,
+        `documentElement.scrollWidth=${overflow.doc} vs inner=${overflow.inner}`,
+      ).toBe(overflow.inner);
       expect(overflow.body, `body.scrollWidth=${overflow.body} vs inner=${overflow.inner}`).toBe(
         overflow.inner,
       );
@@ -147,10 +149,9 @@ test.describe('Phase 2.1 strict responsive overflow', () => {
         overflow2.doc,
         `documentElement.scrollWidth=${overflow2.doc} vs inner=${overflow2.inner}`,
       ).toBe(overflow2.inner);
-      expect(
-        overflow2.body,
-        `body.scrollWidth=${overflow2.body} vs inner=${overflow2.inner}`,
-      ).toBe(overflow2.inner);
+      expect(overflow2.body, `body.scrollWidth=${overflow2.body} vs inner=${overflow2.inner}`).toBe(
+        overflow2.inner,
+      );
     });
 
     test(`booking manage + payment surfaces have zero horizontal overflow at ${viewport.width}x${viewport.height}`, async ({
@@ -163,9 +164,10 @@ test.describe('Phase 2.1 strict responsive overflow', () => {
       await page.goto('/booking/manage');
       await clearNextDevChrome(page);
       const overflow = await measureOverflow(page);
-      expect(overflow.doc, `documentElement.scrollWidth=${overflow.doc} vs inner=${overflow.inner}`).toBe(
-        overflow.inner,
-      );
+      expect(
+        overflow.doc,
+        `documentElement.scrollWidth=${overflow.doc} vs inner=${overflow.inner}`,
+      ).toBe(overflow.inner);
       expect(overflow.body, `body.scrollWidth=${overflow.body} vs inner=${overflow.inner}`).toBe(
         overflow.inner,
       );
