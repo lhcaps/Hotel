@@ -276,6 +276,10 @@ const messages = {
     'admin.forbiddenHelp': 'Tài khoản hiện tại không có quyền thực hiện thao tác này.',
     'admin.loading': 'Đang tải dữ liệu quản trị…',
     'admin.checkingAccess': 'Đang kiểm tra quyền truy cập quản trị…',
+    'admin.serverAccessDenied': 'Bạn cần đăng nhập quản trị để truy cập trang này.',
+    'admin.serverSessionInvalid': 'Phiên quản trị không hợp lệ. Vui lòng đăng nhập lại.',
+    'admin.serverCustomerDenied':
+      'Tài khoản khách hàng không có quyền truy cập quản trị. Vui lòng đăng xuất và đăng nhập bằng tài khoản quản trị.',
     'admin.loginServerError': 'Không thể kết nối máy chủ đăng nhập.',
     'admin.loginError': 'Không thể đăng nhập. Kiểm tra lại thông tin hoặc quyền truy cập.',
     'admin.loginHeading': 'Đăng nhập quản trị',
@@ -902,6 +906,10 @@ const messages = {
     'admin.forbiddenHelp': 'The current account is not allowed to perform this action.',
     'admin.loading': 'Loading administration data…',
     'admin.checkingAccess': 'Checking administrator access…',
+    'admin.serverAccessDenied': 'Administrator sign-in is required to access this page.',
+    'admin.serverSessionInvalid': 'The administrator session is invalid. Please sign in again.',
+    'admin.serverCustomerDenied':
+      'Customer accounts cannot access the administrator area. Sign out and sign in with an administrator account.',
     'admin.loginServerError': 'The sign-in server could not be reached.',
     'admin.loginError': 'Sign-in failed. Check your details or access permission.',
     'admin.loginHeading': 'Administrator sign in',
