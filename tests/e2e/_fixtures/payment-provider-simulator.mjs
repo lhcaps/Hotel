@@ -55,6 +55,13 @@ const MOMO_IPN_URL =
   process.env.PAYMENT_SIMULATOR_MOMO_IPN_URL ?? 'http://127.0.0.1:3101/api/v1/webhooks/momo';
 const VNPAY_IPN_URL =
   process.env.PAYMENT_SIMULATOR_VNPAY_IPN_URL ?? 'http://127.0.0.1:3101/api/v1/webhooks/vnpay';
+// Optional loopback-only base for the default browser back-redirect. When set
+// and a per-provider `backRedirectUrl` is NOT explicitly configured, the
+// simulator derives `${base}/{orderId}` so the browser returns the customer to
+// the persistent booking page without requiring Playwright to drive the
+// control plane first. The same loopback guard used for `backRedirectUrl`
+// applies; non-loopback bases are rejected.
+const DEFAULT_BACK_REDIRECT_BASE = process.env.PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE ?? '';
 const NODE_ENV = process.env.NODE_ENV ?? 'development';
 const DISABLED_IN_PRODUCTION = NODE_ENV === 'production';
 
@@ -99,6 +106,40 @@ function validateBackRedirectUrl(rawUrl) {
   return parsed.toString();
 }
 
+function validateBackRedirectBase(rawBase) {
+  if (typeof rawBase !== 'string' || rawBase.length === 0) return '';
+  let parsed;
+  try {
+    parsed = new URL(rawBase);
+  } catch {
+    throw new Error('defaultBackRedirectBase.malformedUrl');
+  }
+  const protocol = parsed.protocol.toLowerCase();
+  if (protocol !== 'http:' && protocol !== 'https:') {
+    throw new Error('defaultBackRedirectBase.unsupportedScheme');
+  }
+  if (!isLoopbackHost(parsed.hostname)) {
+    throw new Error('defaultBackRedirectBase.hostNotLoopback');
+  }
+  // Strip trailing slashes so we can safely append '/<orderId>'.
+  let normalized = parsed.pathname.replace(/\/+$/, '');
+  return `${parsed.protocol}//${parsed.host}${normalized}`;
+}
+
+// Sanity-check the optional env var at startup so a misconfiguration fails
+// fast instead of silently disabling the default redirect.
+const RESOLVED_DEFAULT_BACK_REDIRECT_BASE = (() => {
+  if (DEFAULT_BACK_REDIRECT_BASE === '') return '';
+  try {
+    return validateBackRedirectBase(DEFAULT_BACK_REDIRECT_BASE);
+  } catch (error) {
+    process.stderr.write(
+      `[payment-simulator] Refusing to start: PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE is invalid (${error instanceof Error ? error.message : String(error)})\n`,
+    );
+    process.exit(2);
+  }
+})();
+
 const providerState = {
   momo: {
     mode: 'verify',
@@ -120,6 +161,22 @@ const requestCounts = {
   momoIpnAttempts: 0,
   vnpayIpnAttempts: 0,
 };
+
+function resolveBackRedirectUrl(provider, orderId) {
+  const state = providerState[provider];
+  if (state.backRedirectUrl !== '') return state.backRedirectUrl;
+  if (RESOLVED_DEFAULT_BACK_REDIRECT_BASE === '') return '';
+  // The order id is the booking code (server-side mapping is authoritative).
+  // Append the booking code as a single segment. Re-validate to keep the
+  // safety contract: any non-loopback base is rejected.
+  try {
+    return validateBackRedirectUrl(
+      `${RESOLVED_DEFAULT_BACK_REDIRECT_BASE}/${encodeURIComponent(orderId)}`,
+    );
+  } catch {
+    return '';
+  }
+}
 
 function log(message, fields) {
   const timestamp = new Date().toISOString();
@@ -331,7 +388,7 @@ async function postMomoIpn(ipn) {
 async function renderMomoPayPage(response, url) {
   const orderId = url.searchParams.get('orderId') ?? '';
   const amount = Number.parseInt(url.searchParams.get('amount') ?? '0', 10);
-  const { mode, redirectDelayMs, duplicateIpns, backRedirectUrl } = providerState.momo;
+  const { mode, redirectDelayMs, duplicateIpns } = providerState.momo;
   const resultCode = mode === 'cancel' ? 1006 : mode === 'tamper' ? 0 : 0;
   const tamper = mode === 'tamper';
   const ipn = buildMomoIpn({
@@ -354,7 +411,7 @@ async function renderMomoPayPage(response, url) {
     orderId,
     amount,
     mode,
-    backRedirectUrl,
+    backRedirectUrl: resolveBackRedirectUrl('momo', orderId),
   });
   htmlResponse(response, 200, body);
 }
@@ -413,7 +470,7 @@ async function getVnpayIpn(url) {
 async function renderVnpayPayPage(response, url) {
   const orderId = url.searchParams.get('vnp_TxnRef') ?? '';
   const amount = Number.parseInt(url.searchParams.get('vnp_Amount') ?? '0', 10) / 100;
-  const { mode, redirectDelayMs, duplicateIpns, backRedirectUrl } = providerState.vnpay;
+  const { mode, redirectDelayMs, duplicateIpns } = providerState.vnpay;
   const success = mode === 'verify';
   const tamper = mode === 'tamper';
   const ipnUrl = buildVnpayIpnUrl({
@@ -436,7 +493,7 @@ async function renderVnpayPayPage(response, url) {
     orderId,
     amount,
     mode,
-    backRedirectUrl,
+    backRedirectUrl: resolveBackRedirectUrl('vnpay', orderId),
   });
   htmlResponse(response, 200, body);
 }
@@ -517,6 +574,7 @@ function handleHealth(response) {
     ok: true,
     counts: requestCounts,
     providers: providerState,
+    defaultBackRedirectBase: RESOLVED_DEFAULT_BACK_REDIRECT_BASE,
   });
 }
 

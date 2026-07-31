@@ -804,6 +804,14 @@ async function main() {
         NODE_ENV: 'development',
         PAYMENT_SIMULATOR_HOST: DEMO_PAYMENT_SIMULATOR_HOST,
         PAYMENT_SIMULATOR_PORT: String(DEMO_PAYMENT_SIMULATOR_PORT),
+        // Configure a loopback-only default browser back-redirect so a
+        // customer clicking through the simulator ends up back on the
+        // persistent booking page without Playwright / test-helper
+        // control-plane setup. The base URL is restricted to the loopback
+        // web port so production deployments remain unaffected: when the
+        // simulator is started without this env var, no automatic redirect
+        // happens (the original simulator behaviour).
+        PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE: `http://127.0.0.1:${String(DEMO_WEB_PORT)}/booking/manage`,
       },
       stdio: ['ignore', 'inherit', 'inherit'],
       windowsHide: true,

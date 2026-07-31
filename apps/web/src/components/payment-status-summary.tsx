@@ -14,10 +14,15 @@ function isPending(status: PaymentStatusResponse): boolean {
   return false;
 }
 
+type LoadState =
+  | { readonly kind: 'loading' }
+  | { readonly kind: 'failed' }
+  | { readonly kind: 'ready'; readonly status: PaymentStatusResponse };
+
 export function PaymentStatusSummary({ bookingCode }: Readonly<{ bookingCode: string }>) {
   const locale = useLocale();
-  const [status, setStatus] = useState<PaymentStatusResponse>();
-  const [failed, setFailed] = useState(false);
+  const [state, setState] = useState<LoadState>({ kind: 'loading' });
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,13 +31,12 @@ export function PaymentStatusSummary({ bookingCode }: Readonly<{ bookingCode: st
       try {
         const next = await bookingApi.getPaymentStatus(bookingCode);
         if (cancelled) return;
-        setStatus(next);
-        setFailed(false);
+        setState({ kind: 'ready', status: next });
         if (isPending(next) && !terminal.has(next.paymentStatus ?? '')) {
           retry = globalThis.setTimeout(() => void load(), 5_000);
         }
       } catch {
-        if (!cancelled) setFailed(true);
+        if (!cancelled) setState({ kind: 'failed' });
       }
     };
     void load();
@@ -40,11 +44,70 @@ export function PaymentStatusSummary({ bookingCode }: Readonly<{ bookingCode: st
       cancelled = true;
       if (retry !== undefined) globalThis.clearTimeout(retry);
     };
-  }, [bookingCode]);
+  }, [bookingCode, retryNonce]);
 
-  if (failed || status === undefined || status.paymentStatus === null) return null;
+  function onRetry() {
+    setState({ kind: 'loading' });
+    setRetryNonce((current) => current + 1);
+  }
+
+  if (state.kind === 'loading') {
+    return (
+      <section
+        aria-busy="true"
+        aria-live="polite"
+        className="mt-4 rounded-md border border-slate-200 p-4"
+        data-testid="payment-status-loading"
+      >
+        <h3 className="font-semibold">{translate(locale, 'payment.statusHeading')}</h3>
+        <p className="mt-2 text-sm text-slate-600" data-testid="payment-status-loading-text">
+          {translate(locale, 'payment.states.loading')}
+        </p>
+        <div
+          aria-hidden="true"
+          className="mt-3 h-2 w-full animate-pulse rounded bg-slate-200"
+          data-testid="payment-status-loading-skeleton"
+        />
+      </section>
+    );
+  }
+
+  if (state.kind === 'failed') {
+    return (
+      <section
+        aria-live="polite"
+        className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4"
+        data-testid="payment-status-load-error"
+        role="alert"
+      >
+        <h3 className="font-semibold text-amber-900">{translate(locale, 'payment.statusHeading')}</h3>
+        <p className="mt-2 text-sm text-amber-900" data-testid="payment-status-load-error-text">
+          {translate(locale, 'payment.states.loadError')}
+        </p>
+        <p className="mt-1 text-sm text-amber-800">
+          {translate(locale, 'payment.states.loadErrorHelp')}
+        </p>
+        <button
+          aria-label={translate(locale, 'payment.loadErrorRetry')}
+          className="mt-3 inline-flex items-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-100"
+          data-testid="payment-status-load-error-retry"
+          onClick={onRetry}
+          type="button"
+        >
+          {translate(locale, 'payment.loadErrorRetry')}
+        </button>
+      </section>
+    );
+  }
+
+  const status = state.status;
+  if (status.paymentStatus === null) return null;
   return (
-    <section aria-live="polite" className="mt-4 rounded-md border border-slate-200 p-4">
+    <section
+      aria-live="polite"
+      className="mt-4 rounded-md border border-slate-200 p-4"
+      data-testid="payment-status-summary"
+    >
       <h3 className="font-semibold">{translate(locale, 'payment.statusHeading')}</h3>
       <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
         <div>
