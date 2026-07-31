@@ -33,10 +33,7 @@ import {
 import type { ActorContext } from '../auth/actor-context.js';
 
 import { CatalogConflictError, CatalogNotFoundError } from './catalog.errors.js';
-import {
-  CatalogSafetyError,
-  type CatalogSafetyCode,
-} from './catalog.safety.js';
+import { CatalogSafetyError, type CatalogSafetyCode } from './catalog.safety.js';
 
 export interface CatalogPropertyRecord {
   readonly id: string;
@@ -177,11 +174,7 @@ export interface CatalogRepositoryPort {
     propertyId: string,
     id: string,
   ): Promise<CatalogRoomTypeRecord | undefined>;
-  lockRoomType(
-    transaction: unknown,
-    propertyId: string,
-    id: string,
-  ): Promise<void>;
+  lockRoomType(transaction: unknown, propertyId: string, id: string): Promise<void>;
   summarizeRoomTypeDependencies(
     transaction: unknown,
     propertyId: string,
@@ -229,11 +222,7 @@ export interface CatalogRepositoryPort {
     propertyId: string,
     id: string,
   ): Promise<CatalogRoomRecord | undefined>;
-  lockRoom(
-    transaction: unknown,
-    propertyId: string,
-    id: string,
-  ): Promise<void>;
+  lockRoom(transaction: unknown, propertyId: string, id: string): Promise<void>;
   summarizeRoomCommitments(
     transaction: unknown,
     propertyId: string,
@@ -329,10 +318,14 @@ function roomSafetyCode(
     return mode === 'archive' ? 'ROOM_ARCHIVE_FUTURE_BOOKING' : 'ROOM_RETYPE_FUTURE_BOOKING';
   }
   if (summary.activeMaintenanceCount > 0) {
-    return mode === 'archive' ? 'ROOM_ARCHIVE_ACTIVE_MAINTENANCE' : 'ROOM_RETYPE_ACTIVE_MAINTENANCE';
+    return mode === 'archive'
+      ? 'ROOM_ARCHIVE_ACTIVE_MAINTENANCE'
+      : 'ROOM_RETYPE_ACTIVE_MAINTENANCE';
   }
   if (summary.futureMaintenanceCount > 0) {
-    return mode === 'archive' ? 'ROOM_ARCHIVE_FUTURE_MAINTENANCE' : 'ROOM_RETYPE_FUTURE_MAINTENANCE';
+    return mode === 'archive'
+      ? 'ROOM_ARCHIVE_FUTURE_MAINTENANCE'
+      : 'ROOM_RETYPE_FUTURE_MAINTENANCE';
   }
   if (summary.activeInventoryBlockCount > 0 && mode === 'archive') {
     return 'ROOM_ARCHIVE_ACTIVE_INVENTORY_BLOCK';
@@ -763,11 +756,7 @@ export class CatalogService {
       const property = await this.repository.getCurrentProperty(transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       await this.repository.lockRoom(transaction, property.id, id);
-      const summary = await this.repository.summarizeRoomCommitments(
-        transaction,
-        property.id,
-        id,
-      );
+      const summary = await this.repository.summarizeRoomCommitments(transaction, property.id, id);
       const code = roomSafetyCode(summary, 'archive');
       if (code !== undefined) {
         throw new CatalogSafetyError(

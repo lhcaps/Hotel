@@ -19,12 +19,12 @@
 
 ## 1. Starting SHA and commit chain
 
-| SHA       | Subject                                                          |
-| --------- | ---------------------------------------------------------------- |
-| `1d21c42` | starting baseline (Phase 3A admin-authority handoff)             |
-| `dcb48f3` | test(catalog): reproduce archive and retype safety gaps          |
+| SHA       | Subject                                                                  |
+| --------- | ------------------------------------------------------------------------ |
+| `1d21c42` | starting baseline (Phase 3A admin-authority handoff)                     |
+| `dcb48f3` | test(catalog): reproduce archive and retype safety gaps                  |
 | `0b0fbee` | fix(catalog): enforce archive and retype safety for rooms and room types |
-| `1e193ab` | fix(admin): surface structured catalog safety errors             |
+| `1e193ab` | fix(admin): surface structured catalog safety errors                     |
 
 Author and committer are both `lhcaps <huyle210525@gmail.com>` on
 every commit. Zero `Co-authored-by` trailers.
@@ -41,22 +41,22 @@ The catalog authority sits behind that gate at
 `apps/api/src/catalog/catalog.service.ts`. The relevant files for
 Phase 3B1 are:
 
-| Concern                    | Path                                                        |
-| -------------------------- | ----------------------------------------------------------- |
-| Catalog service            | `apps/api/src/catalog/catalog.service.ts`                   |
-| Catalog persistence        | `apps/api/src/catalog/catalog.repository.ts`                |
-| Catalog HTTP controller    | `apps/api/src/catalog/catalog.controller.ts`                |
-| Catalog HTTP module        | `apps/api/src/catalog/catalog.module.ts`                    |
-| Catalog errors             | `apps/api/src/catalog/catalog.errors.ts`                    |
-| Catalog safety (new)       | `apps/api/src/catalog/catalog.safety.ts`                    |
-| Catalog audit              | `apps/api/src/catalog/audit.repository.ts`                  |
-| Problem details filter     | `apps/api/src/errors/problem-details.filter.ts`             |
-| ADMIN rooms page           | `apps/web/src/app/admin/(protected)/rooms/page.tsx`         |
-| ADMIN room-type manager    | `apps/web/src/components/room-type-manager.tsx`             |
-| Catalog safety i18n helper | `apps/web/src/lib/catalog-safety.ts`                        |
-| i18n dictionary            | `apps/web/src/lib/i18n/messages.ts`                         |
-| ADMIN api client           | `apps/web/src/lib/admin-api.ts`                             |
-| Authentication             | `apps/api/src/auth/admin-session.service.ts`                |
+| Concern                    | Path                                                |
+| -------------------------- | --------------------------------------------------- |
+| Catalog service            | `apps/api/src/catalog/catalog.service.ts`           |
+| Catalog persistence        | `apps/api/src/catalog/catalog.repository.ts`        |
+| Catalog HTTP controller    | `apps/api/src/catalog/catalog.controller.ts`        |
+| Catalog HTTP module        | `apps/api/src/catalog/catalog.module.ts`            |
+| Catalog errors             | `apps/api/src/catalog/catalog.errors.ts`            |
+| Catalog safety (new)       | `apps/api/src/catalog/catalog.safety.ts`            |
+| Catalog audit              | `apps/api/src/catalog/audit.repository.ts`          |
+| Problem details filter     | `apps/api/src/errors/problem-details.filter.ts`     |
+| ADMIN rooms page           | `apps/web/src/app/admin/(protected)/rooms/page.tsx` |
+| ADMIN room-type manager    | `apps/web/src/components/room-type-manager.tsx`     |
+| Catalog safety i18n helper | `apps/web/src/lib/catalog-safety.ts`                |
+| i18n dictionary            | `apps/web/src/lib/i18n/messages.ts`                 |
+| ADMIN api client           | `apps/web/src/lib/admin-api.ts`                     |
+| Authentication             | `apps/api/src/auth/admin-session.service.ts`        |
 
 The protected ADMIN routes live under
 `apps/web/src/app/admin/(protected)/**` and reuse the existing
@@ -67,14 +67,14 @@ and no second admin client is introduced.
 
 ## 3. Catalog entity matrix
 
-| Entity             | API controller          | Service method                  | DB tables                                              | Admin page                 | Contract (packages/contracts)              | Existing tests                          | Safety gap (Phase 3B1)                                       |
-| ------------------ | ----------------------- | ------------------------------- | ------------------------------------------------------ | -------------------------- | ------------------------------------------ | --------------------------------------- | ----------------------------------------------------------- |
-| Property           | `catalog.controller.ts` | `getProperty`, `updateProperty` | `properties`                                           | `/admin` (read-only)        | `propertyCommandSchema`, `propertySchema`   | `catalog.service.test.ts`               | None for Phase 3B1                                          |
-| Price tier         | `catalog.controller.ts` | list/create/update/archive      | `price_tiers`                                          | room-type manager          | `priceTierCommandSchema`, `priceTierSchema` | `catalog.service.test.ts`               | None for Phase 3B1                                          |
-| Room type          | `catalog.controller.ts` | list/update/archive              | `room_types`                                           | room-type manager          | `roomTypeCommandSchema`, `roomTypeSchema`   | `catalog.service.test.ts`               | **Filled**: archive refuses active rooms + future bookings  |
-| Room               | `catalog.controller.ts` | list/update/archive              | `rooms`, `room_inventory_blocks`, `bookings`           | rooms page                 | `roomCommandSchema`, `roomSchema`           | `catalog.service.test.ts`               | **Filled**: archive/retype refuses bookings/blocks/maintenance |
-| Amenity            | `catalog.controller.ts` | list/create/update/archive/assign | `amenities`, `room_type_amenities`                    | room-type manager          | `amenityCommandSchema`, `amenitySchema`     | `catalog.service.test.ts`               | None for Phase 3B1                                          |
-| Maintenance block  | `catalog.controller.ts` | create/list/cancel               | `maintenance_blocks`, `room_inventory_blocks`          | maintenance card            | `maintenanceBlockCommandSchema`             | `catalog.service.test.ts`               | None for Phase 3B1                                          |
+| Entity            | API controller          | Service method                    | DB tables                                     | Admin page           | Contract (packages/contracts)               | Existing tests            | Safety gap (Phase 3B1)                                         |
+| ----------------- | ----------------------- | --------------------------------- | --------------------------------------------- | -------------------- | ------------------------------------------- | ------------------------- | -------------------------------------------------------------- |
+| Property          | `catalog.controller.ts` | `getProperty`, `updateProperty`   | `properties`                                  | `/admin` (read-only) | `propertyCommandSchema`, `propertySchema`   | `catalog.service.test.ts` | None for Phase 3B1                                             |
+| Price tier        | `catalog.controller.ts` | list/create/update/archive        | `price_tiers`                                 | room-type manager    | `priceTierCommandSchema`, `priceTierSchema` | `catalog.service.test.ts` | None for Phase 3B1                                             |
+| Room type         | `catalog.controller.ts` | list/update/archive               | `room_types`                                  | room-type manager    | `roomTypeCommandSchema`, `roomTypeSchema`   | `catalog.service.test.ts` | **Filled**: archive refuses active rooms + future bookings     |
+| Room              | `catalog.controller.ts` | list/update/archive               | `rooms`, `room_inventory_blocks`, `bookings`  | rooms page           | `roomCommandSchema`, `roomSchema`           | `catalog.service.test.ts` | **Filled**: archive/retype refuses bookings/blocks/maintenance |
+| Amenity           | `catalog.controller.ts` | list/create/update/archive/assign | `amenities`, `room_type_amenities`            | room-type manager    | `amenityCommandSchema`, `amenitySchema`     | `catalog.service.test.ts` | None for Phase 3B1                                             |
+| Maintenance block | `catalog.controller.ts` | create/list/cancel                | `maintenance_blocks`, `room_inventory_blocks` | maintenance card     | `maintenanceBlockCommandSchema`             | `catalog.service.test.ts` | None for Phase 3B1                                             |
 
 ---
 
@@ -155,7 +155,7 @@ Reject with the first matching code in priority order:
 
 - `CatalogRepository.lockRoom` and `CatalogRepository.lockRoomType`
   execute `SELECT id FROM … WHERE property_id = $1 AND id = $2
-  FOR UPDATE` on the same transaction-owned connection.
+FOR UPDATE` on the same transaction-owned connection.
 - The `archiveRoom` and `archiveRoomType` UPDATE statements now
   contain `status = 'ACTIVE'` in the WHERE clause. A second
   concurrent call sees the lock, waits, then sees the row already
@@ -178,23 +178,23 @@ embedded in the response body. The runtime contract is exposed via
 catalog controller) and consumed by the new web helper
 `apps/web/src/lib/catalog-safety.ts`.
 
-| Code                                | i18n key (vi / en)                                              |
-| ----------------------------------- | -------------------------------------------------------------- |
-| `ROOM_ARCHIVE_ACTIVE_BOOKING`       | `Vi / En` messages keyed `catalog.safety.roomArchiveActiveBooking` |
-| `ROOM_ARCHIVE_FUTURE_BOOKING`       | `catalog.safety.roomArchiveFutureBooking`                      |
-| `ROOM_ARCHIVE_ACTIVE_MAINTENANCE`   | `catalog.safety.roomArchiveActiveMaintenance`                  |
-| `ROOM_ARCHIVE_FUTURE_MAINTENANCE`   | `catalog.safety.roomArchiveFutureMaintenance`                  |
-| `ROOM_ARCHIVE_ACTIVE_INVENTORY_BLOCK` | `catalog.safety.roomArchiveActiveInventoryBlock`             |
-| `ROOM_ARCHIVE_FUTURE_INVENTORY_BLOCK` | `catalog.safety.roomArchiveFutureInventoryBlock`             |
-| `ROOM_RETYPE_ACTIVE_BOOKING`        | `catalog.safety.roomRetypeActiveBooking`                       |
-| `ROOM_RETYPE_FUTURE_BOOKING`        | `catalog.safety.roomRetypeFutureBooking`                       |
-| `ROOM_RETYPE_ACTIVE_MAINTENANCE`    | `catalog.safety.roomRetypeActiveMaintenance`                   |
-| `ROOM_RETYPE_FUTURE_MAINTENANCE`    | `catalog.safety.roomRetypeFutureMaintenance`                   |
-| `ROOM_TYPE_ARCHIVE_ACTIVE_ROOMS`    | `catalog.safety.roomTypeArchiveActiveRooms`                    |
-| `ROOM_TYPE_ARCHIVE_FUTURE_BOOKING`  | `catalog.safety.roomTypeArchiveFutureBooking`                  |
-| `ROOM_TYPE_ARCHIVE_ACTIVE_MAINTENANCE` | `catalog.safety.roomTypeArchiveActiveMaintenance`           |
-| `ROOM_TYPE_ARCHIVE_FUTURE_MAINTENANCE` | `catalog.safety.roomTypeArchiveFutureMaintenance`           |
-| `ROOM_TYPE_ARCHIVE_ACTIVE_RATE_PLAN` | `catalog.safety.roomTypeArchiveActiveRatePlan`                |
+| Code                                   | i18n key (vi / en)                                                 |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| `ROOM_ARCHIVE_ACTIVE_BOOKING`          | `Vi / En` messages keyed `catalog.safety.roomArchiveActiveBooking` |
+| `ROOM_ARCHIVE_FUTURE_BOOKING`          | `catalog.safety.roomArchiveFutureBooking`                          |
+| `ROOM_ARCHIVE_ACTIVE_MAINTENANCE`      | `catalog.safety.roomArchiveActiveMaintenance`                      |
+| `ROOM_ARCHIVE_FUTURE_MAINTENANCE`      | `catalog.safety.roomArchiveFutureMaintenance`                      |
+| `ROOM_ARCHIVE_ACTIVE_INVENTORY_BLOCK`  | `catalog.safety.roomArchiveActiveInventoryBlock`                   |
+| `ROOM_ARCHIVE_FUTURE_INVENTORY_BLOCK`  | `catalog.safety.roomArchiveFutureInventoryBlock`                   |
+| `ROOM_RETYPE_ACTIVE_BOOKING`           | `catalog.safety.roomRetypeActiveBooking`                           |
+| `ROOM_RETYPE_FUTURE_BOOKING`           | `catalog.safety.roomRetypeFutureBooking`                           |
+| `ROOM_RETYPE_ACTIVE_MAINTENANCE`       | `catalog.safety.roomRetypeActiveMaintenance`                       |
+| `ROOM_RETYPE_FUTURE_MAINTENANCE`       | `catalog.safety.roomRetypeFutureMaintenance`                       |
+| `ROOM_TYPE_ARCHIVE_ACTIVE_ROOMS`       | `catalog.safety.roomTypeArchiveActiveRooms`                        |
+| `ROOM_TYPE_ARCHIVE_FUTURE_BOOKING`     | `catalog.safety.roomTypeArchiveFutureBooking`                      |
+| `ROOM_TYPE_ARCHIVE_ACTIVE_MAINTENANCE` | `catalog.safety.roomTypeArchiveActiveMaintenance`                  |
+| `ROOM_TYPE_ARCHIVE_FUTURE_MAINTENANCE` | `catalog.safety.roomTypeArchiveFutureMaintenance`                  |
+| `ROOM_TYPE_ARCHIVE_ACTIVE_RATE_PLAN`   | `catalog.safety.roomTypeArchiveActiveRatePlan`                     |
 
 ---
 
@@ -262,14 +262,14 @@ mock the new `summarizeRoomCommitments` /
 
 ## 11. Exact test totals
 
-| Test path                                                                                          | Tests |
-| -------------------------------------------------------------------------------------------------- | ----- |
-| `apps/api/test/catalog-archive-safety.test.ts`                                                     | 30    |
-| `apps/api/test/catalog.service.test.ts`                                                            | 9     |
-| `apps/api/test/integration/catalog-archive-safety.integration.test.ts`                             | 16    |
-| `apps/web/test/catalog-safety.test.ts`                                                             | 6     |
-| `apps/api` (full unit suite)                                                                       | 485   |
-| `apps/api` (full integration suite)                                                                | 148   |
+| Test path                                                              | Tests |
+| ---------------------------------------------------------------------- | ----- |
+| `apps/api/test/catalog-archive-safety.test.ts`                         | 30    |
+| `apps/api/test/catalog.service.test.ts`                                | 9     |
+| `apps/api/test/integration/catalog-archive-safety.integration.test.ts` | 16    |
+| `apps/web/test/catalog-safety.test.ts`                                 | 6     |
+| `apps/api` (full unit suite)                                           | 485   |
+| `apps/api` (full integration suite)                                    | 148   |
 
 Focused catalog tests run separately with `pnpm --filter @room/api
 exec vitest run test/catalog-archive-safety.test.ts
@@ -280,18 +280,18 @@ and report `Test Files 3 passed (3) / Tests 55 passed (55)`.
 
 ## 12. Commands actually run
 
-| Command                                                                            | Result                                                                 |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `git branch --show-current`                                                        | `phase3-admin-operational-vertical`                                     |
-| `git rev-parse HEAD` (baseline)                                                    | `1d21c42b5f01a429e76e3d195fee538821aecf7b`                            |
-| `git config user.name` / `git config user.email`                                   | `lhcaps` / `huyle210525@gmail.com`                                      |
-| `pnpm --filter @room/api exec vitest run test/integration/catalog-archive-safety.integration.test.ts test/catalog-archive-safety.test.ts test/catalog.service.test.ts` | 3 files, 55 tests, 0 failures |
-| `pnpm --filter @room/api exec vitest run`                                          | 82 files, 485 tests, 0 failures                                        |
-| `pnpm --filter @room/api exec vitest run test/integration`                         | 25 files, 148 tests, 0 failures                                        |
-| `pnpm --filter @room/api typecheck`                                                | passed                                                                 |
-| `pnpm --filter @room/api lint`                                                     | passed                                                                 |
-| `pnpm --filter @room/web typecheck`                                                | passed                                                                 |
-| `pnpm --filter @room/web lint`                                                     | passed                                                                 |
+| Command                                                                                                                                                                | Result                                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `git branch --show-current`                                                                                                                                            | `phase3-admin-operational-vertical`        |
+| `git rev-parse HEAD` (baseline)                                                                                                                                        | `1d21c42b5f01a429e76e3d195fee538821aecf7b` |
+| `git config user.name` / `git config user.email`                                                                                                                       | `lhcaps` / `huyle210525@gmail.com`         |
+| `pnpm --filter @room/api exec vitest run test/integration/catalog-archive-safety.integration.test.ts test/catalog-archive-safety.test.ts test/catalog.service.test.ts` | 3 files, 55 tests, 0 failures              |
+| `pnpm --filter @room/api exec vitest run`                                                                                                                              | 82 files, 485 tests, 0 failures            |
+| `pnpm --filter @room/api exec vitest run test/integration`                                                                                                             | 25 files, 148 tests, 0 failures            |
+| `pnpm --filter @room/api typecheck`                                                                                                                                    | passed                                     |
+| `pnpm --filter @room/api lint`                                                                                                                                         | passed                                     |
+| `pnpm --filter @room/web typecheck`                                                                                                                                    | passed                                     |
+| `pnpm --filter @room/web lint`                                                                                                                                         | passed                                     |
 
 `pnpm format:check`, `pnpm build`, `pnpm db:check`, `pnpm db:test`,
 `pnpm check:openapi`, `pnpm check:endpoints`, `pnpm check:i18n-critical`
@@ -327,21 +327,21 @@ phase does not chase it.
 
 ## 15. Files changed (uncommitted/new at handoff)
 
-| File                                                                            | Status |
-| ------------------------------------------------------------------------------- | ------ |
-| `apps/api/src/catalog/catalog.safety.ts`                                        | new    |
-| `apps/api/src/catalog/catalog.service.ts`                                       | modified |
-| `apps/api/src/catalog/catalog.repository.ts`                                    | modified |
-| `apps/api/src/errors/problem-details.filter.ts`                                 | modified |
-| `apps/api/test/catalog-archive-safety.test.ts`                                  | new    |
-| `apps/api/test/catalog.service.test.ts`                                         | modified |
-| `apps/api/test/integration/catalog-archive-safety.integration.test.ts`          | new    |
-| `apps/web/src/lib/catalog-safety.ts`                                            | new    |
-| `apps/web/src/lib/i18n/messages.ts`                                             | modified |
-| `apps/web/src/app/admin/(protected)/rooms/page.tsx`                             | modified |
-| `apps/web/src/components/room-type-manager.tsx`                                 | modified |
-| `apps/web/test/catalog-safety.test.ts`                                          | new    |
-| `docs/handoffs/phase-3b1-catalog-archive-safety.md`                             | new    |
+| File                                                                   | Status   |
+| ---------------------------------------------------------------------- | -------- |
+| `apps/api/src/catalog/catalog.safety.ts`                               | new      |
+| `apps/api/src/catalog/catalog.service.ts`                              | modified |
+| `apps/api/src/catalog/catalog.repository.ts`                           | modified |
+| `apps/api/src/errors/problem-details.filter.ts`                        | modified |
+| `apps/api/test/catalog-archive-safety.test.ts`                         | new      |
+| `apps/api/test/catalog.service.test.ts`                                | modified |
+| `apps/api/test/integration/catalog-archive-safety.integration.test.ts` | new      |
+| `apps/web/src/lib/catalog-safety.ts`                                   | new      |
+| `apps/web/src/lib/i18n/messages.ts`                                    | modified |
+| `apps/web/src/app/admin/(protected)/rooms/page.tsx`                    | modified |
+| `apps/web/src/components/room-type-manager.tsx`                        | modified |
+| `apps/web/test/catalog-safety.test.ts`                                 | new      |
+| `docs/handoffs/phase-3b1-catalog-archive-safety.md`                    | new      |
 
 No released migrations were modified. No new migration was added
 because the existing schema (`bookings`, `maintenance_blocks`,

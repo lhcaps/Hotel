@@ -257,11 +257,7 @@ export class CatalogRepository implements CatalogRepositoryPort {
       .returning();
     return updated;
   }
-  public async lockRoomType(
-    transaction: unknown,
-    propertyId: string,
-    id: string,
-  ): Promise<void> {
+  public async lockRoomType(transaction: unknown, propertyId: string, id: string): Promise<void> {
     const database = asCatalogDatabase(transaction, this.database);
     await database.execute(
       sql`SELECT id FROM room_types WHERE property_id = ${propertyId} AND id = ${id} FOR UPDATE`,
@@ -364,21 +360,11 @@ export class CatalogRepository implements CatalogRepositoryPort {
     const [updated] = await database
       .update(rooms)
       .set({ status: 'INACTIVE', updatedAt: new Date() })
-      .where(
-        and(
-          eq(rooms.id, id),
-          eq(rooms.propertyId, propertyId),
-          eq(rooms.status, 'ACTIVE'),
-        ),
-      )
+      .where(and(eq(rooms.id, id), eq(rooms.propertyId, propertyId), eq(rooms.status, 'ACTIVE')))
       .returning();
     return updated;
   }
-  public async lockRoom(
-    transaction: unknown,
-    propertyId: string,
-    id: string,
-  ): Promise<void> {
+  public async lockRoom(transaction: unknown, propertyId: string, id: string): Promise<void> {
     const database = asCatalogDatabase(transaction, this.database);
     await database.execute(
       sql`SELECT id FROM rooms WHERE property_id = ${propertyId} AND id = ${id} FOR UPDATE`,
@@ -500,7 +486,14 @@ export class CatalogRepository implements CatalogRepositoryPort {
       }
     }
     const inventoryBlocks = await database.query.roomInventoryBlocks.findMany({
-      columns: { id: true, status: true, startsAt: true, endsAt: true, bookingId: true, maintenanceBlockId: true },
+      columns: {
+        id: true,
+        status: true,
+        startsAt: true,
+        endsAt: true,
+        bookingId: true,
+        maintenanceBlockId: true,
+      },
       where: (block, operators) =>
         operators.and(
           operators.eq(block.propertyId, propertyId),

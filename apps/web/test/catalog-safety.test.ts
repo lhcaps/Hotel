@@ -9,11 +9,7 @@ describe('localizedCatalogSafetyReason', () => {
   });
 
   it('maps ROOM_TYPE_ARCHIVE_ACTIVE_ROOMS to the English localized message', () => {
-    const text = localizedCatalogSafetyReason(
-      'en',
-      'ROOM_TYPE_ARCHIVE_ACTIVE_ROOMS',
-      undefined,
-    );
+    const text = localizedCatalogSafetyReason('en', 'ROOM_TYPE_ARCHIVE_ACTIVE_ROOMS', undefined);
     expect(text).toMatch(/active physical rooms/);
   });
 

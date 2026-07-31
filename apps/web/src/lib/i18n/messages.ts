@@ -514,7 +514,8 @@ const messages = {
       'Loại phòng này có bảo trì tương lai, không thể lưu trữ.',
     'catalog.safety.roomType.archiveActiveRatePlan':
       'Loại phòng này vẫn còn được sử dụng bởi gói giá đang hoạt động, không thể lưu trữ.',
-    'catalog.safety.unknown': 'Không thể lưu trữ tài nguyên danh mục này vì vi phạm ràng buộc dữ liệu.',
+    'catalog.safety.unknown':
+      'Không thể lưu trữ tài nguyên danh mục này vì vi phạm ràng buộc dữ liệu.',
     'room.createHeading': 'Thêm phòng',
     'room.createHelp': 'Chọn loại phòng, nhập số phòng và lưu thay đổi.',
     'room.number': 'Số phòng',
@@ -1178,7 +1179,8 @@ const messages = {
       'This room type has future maintenance and cannot be archived.',
     'catalog.safety.roomType.archiveActiveRatePlan':
       'This room type is still referenced by an active rate plan and cannot be archived.',
-    'catalog.safety.unknown': 'This catalog resource cannot be archived because it would violate a data invariant.',
+    'catalog.safety.unknown':
+      'This catalog resource cannot be archived because it would violate a data invariant.',
     'room.createHeading': 'Add room',
     'room.createHelp': 'Choose a room type, enter the room number, and save changes.',
     'room.number': 'Room number',

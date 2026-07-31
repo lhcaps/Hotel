@@ -238,8 +238,7 @@ export default function Rooms() {
                         {translate(locale, 'catalog.archive')}
                       </Button>
                     )}
-                    {archiveErrors[room.id] !== undefined &&
-                    archiveErrors[room.id] !== '' ? (
+                    {archiveErrors[room.id] !== undefined && archiveErrors[room.id] !== '' ? (
                       <Alert variant="destructive">
                         <AlertTitle>{translate(locale, 'room.archiveError')}</AlertTitle>
                         <AlertDescription>{archiveErrors[room.id]}</AlertDescription>

@@ -11,11 +11,7 @@ import { randomUUID } from 'node:crypto';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import {
-  createDatabaseClient,
-  migrateDatabase,
-  type DatabaseClient,
-} from '@room/database';
+import { createDatabaseClient, migrateDatabase, type DatabaseClient } from '@room/database';
 import {
   createPreparedGuardedTestDatabase,
   type GuardedTestDatabase,
@@ -210,9 +206,9 @@ describe('Phase 3B1 catalog archive and retype safety', () => {
       checkIn,
       checkOut,
     });
-    await expect(
-      catalog.archiveRoom(actor, roomId, { archive: true }),
-    ).rejects.toMatchObject({ code: 'ROOM_ARCHIVE_ACTIVE_BOOKING' });
+    await expect(catalog.archiveRoom(actor, roomId, { archive: true })).rejects.toMatchObject({
+      code: 'ROOM_ARCHIVE_ACTIVE_BOOKING',
+    });
     expect(await roomStatus(roomId)).toBe('ACTIVE');
     expect(await auditCount(roomId, 'ROOM_ARCHIVED')).toBe(0);
   });
@@ -229,9 +225,9 @@ describe('Phase 3B1 catalog archive and retype safety', () => {
       checkIn,
       checkOut,
     });
-    await expect(
-      catalog.archiveRoom(actor, roomId, { archive: true }),
-    ).rejects.toMatchObject({ code: 'ROOM_ARCHIVE_FUTURE_BOOKING' });
+    await expect(catalog.archiveRoom(actor, roomId, { archive: true })).rejects.toMatchObject({
+      code: 'ROOM_ARCHIVE_FUTURE_BOOKING',
+    });
     expect(await roomStatus(roomId)).toBe('ACTIVE');
   });
 
@@ -247,9 +243,9 @@ describe('Phase 3B1 catalog archive and retype safety', () => {
       checkIn,
       checkOut,
     });
-    await expect(
-      catalog.archiveRoom(actor, roomId, { archive: true }),
-    ).rejects.toMatchObject({ code: 'ROOM_ARCHIVE_FUTURE_BOOKING' });
+    await expect(catalog.archiveRoom(actor, roomId, { archive: true })).rejects.toMatchObject({
+      code: 'ROOM_ARCHIVE_FUTURE_BOOKING',
+    });
     expect(await roomStatus(roomId)).toBe('ACTIVE');
   });
 
@@ -262,9 +258,9 @@ describe('Phase 3B1 catalog archive and retype safety', () => {
       startsAt: quarterHourMinutes(-15),
       endsAt: quarterHourMinutes(45),
     });
-    await expect(
-      catalog.archiveRoom(actor, roomId, { archive: true }),
-    ).rejects.toMatchObject({ code: 'ROOM_ARCHIVE_ACTIVE_MAINTENANCE' });
+    await expect(catalog.archiveRoom(actor, roomId, { archive: true })).rejects.toMatchObject({
+      code: 'ROOM_ARCHIVE_ACTIVE_MAINTENANCE',
+    });
     expect(await roomStatus(roomId)).toBe('ACTIVE');
   });
 
@@ -277,9 +273,9 @@ describe('Phase 3B1 catalog archive and retype safety', () => {
       startsAt: quarterHourMinutes(60),
       endsAt: quarterHourMinutes(180),
     });
-    await expect(
-      catalog.archiveRoom(actor, roomId, { archive: true }),
-    ).rejects.toMatchObject({ code: 'ROOM_ARCHIVE_FUTURE_MAINTENANCE' });
+    await expect(catalog.archiveRoom(actor, roomId, { archive: true })).rejects.toMatchObject({
+      code: 'ROOM_ARCHIVE_FUTURE_MAINTENANCE',
+    });
   });
 
   it('retype succeeds when an unused room is moved to another room type in the same property', async () => {
@@ -444,9 +440,9 @@ describe('Phase 3B1 catalog archive and retype safety', () => {
       checkIn: quarterHourMinutes(-30),
       checkOut: quarterHourMinutes(120),
     });
-    await expect(
-      catalog.archiveRoom(actor, roomId, { archive: true }),
-    ).rejects.toMatchObject({ code: 'ROOM_ARCHIVE_ACTIVE_BOOKING' });
+    await expect(catalog.archiveRoom(actor, roomId, { archive: true })).rejects.toMatchObject({
+      code: 'ROOM_ARCHIVE_ACTIVE_BOOKING',
+    });
     expect(await auditCount(roomId, 'ROOM_ARCHIVED')).toBe(0);
   });
 

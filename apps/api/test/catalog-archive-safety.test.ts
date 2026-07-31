@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ActorContext } from '../src/auth/actor-context.js';
-import { CatalogService, type AuditRepositoryPort, type CatalogRepositoryPort, type TransactionManager } from '../src/catalog/catalog.service.js';
+import {
+  CatalogService,
+  type AuditRepositoryPort,
+  type CatalogRepositoryPort,
+  type TransactionManager,
+} from '../src/catalog/catalog.service.js';
 import { CatalogSafetyError, type CatalogSafetyCode } from '../src/catalog/catalog.safety.js';
 
 const actor: ActorContext = {
@@ -222,7 +227,13 @@ describe('CatalogService physical-room retype safety', () => {
     ['ROOM_RETYPE_FUTURE_MAINTENANCE', false, false, false, true],
   ] as const)(
     'rejects room retype with code %s when commitments exist',
-    async (expectedCode, hasActiveBooking, hasFutureBooking, hasActiveMaintenance, hasFutureMaintenance) => {
+    async (
+      expectedCode,
+      hasActiveBooking,
+      hasFutureBooking,
+      hasActiveMaintenance,
+      hasFutureMaintenance,
+    ) => {
       const repository = makeRepository({
         summarizeRoomCommitments: vi.fn().mockResolvedValue({
           activeBookingCount: hasActiveBooking ? 1 : 0,
@@ -268,7 +279,9 @@ describe('CatalogService physical-room retype safety', () => {
     });
     const service = new CatalogService(makeDatabase(), repository, { write: writeAudit });
 
-    const result = await service.updateRoom(actor, existingRoom.id, { roomTypeId: targetRoomTypeId });
+    const result = await service.updateRoom(actor, existingRoom.id, {
+      roomTypeId: targetRoomTypeId,
+    });
     expect(result.roomTypeId).toBe(targetRoomTypeId);
     expect(repository.updateRoom).toHaveBeenCalledTimes(1);
     expect(writeAudit).toHaveBeenCalledTimes(1);
