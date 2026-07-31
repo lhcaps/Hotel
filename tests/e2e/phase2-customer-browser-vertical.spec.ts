@@ -15,6 +15,7 @@ import { promisify } from 'node:util';
 
 import { expect, test } from '@playwright/test';
 
+import { waitForVerificationOtp } from './_fixtures/booking-otp.mjs';
 import {
   createBookingHold,
   initiateMomoPayment,
@@ -58,6 +59,13 @@ async function countMailpitMessages(
       subjectRegex.test(message.Subject),
   ).length;
   return { total: messages.length, matching };
+}
+
+function formatDateOnly(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 interface TrackingListener {
@@ -466,5 +474,186 @@ test.describe('Phase 2 customer browser vertical', () => {
     const status = await readPaymentStatus(booking.bookingCode, booking.guestSessionCookie);
     expect(status.body.paymentStatus).toBe('SUCCEEDED');
     expect(status.body.bookingStatus).toBe('CONFIRMED');
+  });
+
+  test('12. FULL CUSTOMER BROWSER — landing to confirmed without API helper bypass', async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(240_000);
+    await setSimulatorMode('momo', 'verify', { reset: true });
+
+    // 1. Open landing page.
+    await page.goto('/');
+    await expect(page.getByTestId('landing-featured-rooms')).toBeVisible({ timeout: 15_000 });
+    // Real DB room cards must be present (the landing uses the truthful catalog).
+    const featured = page.getByTestId('landing-featured-rooms');
+    await expect(featured.locator('article')).not.toHaveCount(0);
+
+    // 2. Fill the availability form on the landing page (overnight mode is
+    // the default in the form). Use a future date 24h+ from now so the
+    // bookable window stays well inside the simulator's reach.
+    const checkInDate = new Date(Date.now() + 7 * 24 * 60 * 60_000);
+    const checkOutDate = new Date(checkInDate.getTime() + 24 * 60 * 60_000);
+    const checkInLocal = `${formatDateOnly(checkInDate)}T14:00`;
+    const checkOutLocal = `${formatDateOnly(checkOutDate)}T12:00`;
+    await page.getByLabel('Nhận phòng').fill(checkInLocal);
+    await page.getByLabel('Trả phòng').fill(checkOutLocal);
+    await page.getByLabel('Người lớn').fill('2');
+    await page.getByLabel('Trẻ em').fill('0');
+    // 3. Submit exact search.
+    await page.getByRole('button', { name: 'Tìm phòng' }).click();
+    await expect(page.getByTestId('availability-room-' + ROOM_TYPE_ID)).toBeVisible({
+      timeout: 30_000,
+    });
+
+    // 4. Open the real DB room result through the UI.
+    const roomLink = page
+      .getByTestId('availability-room-' + ROOM_TYPE_ID)
+      .getByRole('link', { name: 'Xem phòng & giá' });
+    await Promise.all([page.waitForURL(/\/rooms\//), roomLink.click()]);
+
+    // 5. Choose an eligible rate plan visible on the detail page.
+    await expect(page.getByRole('button', { name: 'Xem giá chính thức' })).toBeVisible({
+      timeout: 30_000,
+    });
+    const planButtons = page.getByTestId('room-detail-plan');
+    await expect(planButtons.first()).toBeVisible();
+    const selectedPlanCode = await planButtons.first().getAttribute('data-plan-code');
+    expect(selectedPlanCode).toBeTruthy();
+    await planButtons.first().click();
+
+    // 6. Create a quote through the browser.
+    await Promise.all([
+      page.waitForURL(/\/booking\/quote\//, { timeout: 30_000 }),
+      page.getByRole('button', { name: 'Xem giá chính thức' }).click(),
+    ]);
+    await expect(page.getByRole('heading', { name: 'Hoàn tất giữ chỗ' })).toBeVisible();
+    const quoteUrl = page.url();
+
+    // 7. Apply the deterministic demo coupon via the browser.
+    const couponInput = page.getByRole('textbox', { name: 'Mã giảm giá' });
+    await couponInput.fill('DEMO-FIXED');
+    const applyPromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/v1/quotes') && response.request().method() === 'POST',
+    );
+    await page.getByRole('button', { name: 'Áp dụng' }).click();
+    const applyResponse = await applyPromise;
+    expect(applyResponse.ok(), `Apply failed: ${applyResponse.status()}`).toBe(true);
+    await page.waitForURL(/\/booking\/quote\//);
+    const couponSummary = page.getByTestId('coupon-summary');
+    await expect(couponSummary).toBeVisible();
+    await expect(couponSummary).toContainText('DEMO-FIXED');
+
+    // 8. The selected plan code is preserved across coupon requote.
+    const requoteUrl = page.url();
+    expect(requoteUrl).toContain('selectedPlanCode=');
+    expect(requoteUrl).toMatch(new RegExp(`selectedPlanCode=${encodeURIComponent(selectedPlanCode)}`));
+    // The quote id in the URL must change after the requote — same selected
+    // plan must persist while the coupon is applied to a fresh quote.
+    expect(new URL(requoteUrl).pathname).not.toBe(new URL(quoteUrl).pathname);
+
+    // 9. Enter synthetic customer contact through the browser.
+    const recipientEmail = `phase21-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}@example.test`.toLowerCase();
+    await page.getByLabel('Họ và tên').fill('Phase 2.1 Browser Customer');
+    await page.getByLabel('Email').fill(recipientEmail);
+    await page.getByLabel('Số điện thoại (E.164)').fill('+84909000021');
+
+    // 10. Click HOLD.
+    await page.getByRole('button', { name: 'Giữ chỗ' }).click();
+    await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
+
+    // 11. Read the booking code from the browser-rendered HOLD panel.
+    const bookingCode = (await page.getByTestId('hold-booking-code').innerText()).trim();
+    expect(bookingCode).toMatch(/^[A-Z0-9-]{8,32}$/);
+    // URL must not contain the booking code or recipient email.
+    const holdUrl = page.url();
+    expect(holdUrl).not.toContain(bookingCode);
+    expect(holdUrl).not.toContain(recipientEmail);
+
+    // 12. Navigate to booking management through the UI button.
+    const manageBookingCta = page.getByRole('button', { name: 'Quản lý đặt phòng' });
+    await manageBookingCta.click();
+    await expect(page).toHaveURL(/\/booking\/manage(\?|$)/);
+
+    // 13. Enter booking code and email in the OTP request panel.
+    await page.getByLabel('Mã đặt phòng').fill(bookingCode);
+    await page.getByLabel('Email đã dùng khi đặt phòng').fill(recipientEmail);
+    await page.getByRole('button', { name: 'Gửi mã xác nhận' }).click();
+
+    // 14. Read OTP from Mailpit through the test helper only.
+    const otp = await waitForVerificationOtp(recipientEmail);
+    expect(otp).toMatch(/^\d{6}$/);
+
+    // 15. Enter OTP in the browser.
+    await page.getByLabel('Mã xác nhận').fill(otp);
+    await page.getByRole('button', { name: 'Xác nhận' }).click();
+
+    // 16. The browser reaches the persistent booking-code route.
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
+    // The URL must not contain the OTP code, the recipient email, or any
+    // challenge / session identifier.
+    const otpUrl = page.url();
+    expect(otpUrl).not.toContain(otp);
+    expect(otpUrl).not.toContain(recipientEmail);
+    expect(otpUrl).not.toContain('challengeRef');
+    expect(otpUrl).not.toContain('rm_guest_session_v1');
+
+    // 17. Click MoMo through the browser.
+    const momoButton = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
+    await expect(momoButton).toBeVisible({ timeout: 30_000 });
+
+    // The simulator derives the back-redirect from
+    // PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE — there must be no
+    // explicit control-plane backRedirectUrl configuration for this run.
+    const health = await fetch(`${process.env.PAYMENT_SIMULATOR_BASE_URL ?? 'http://127.0.0.1:3090'}/__health`).then(
+      (response) => response.json(),
+    );
+    expect(health.defaultBackRedirectBase).toBeTruthy();
+    expect(health.providers.momo.backRedirectUrl).toBe('');
+    expect(health.providers.vnpay.backRedirectUrl).toBe('');
+
+    const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
+    await Promise.all([
+      page.waitForURL((current) => current.host === '127.0.0.1:3090', { timeout: 30_000 }),
+      momoButton.click(),
+    ]);
+
+    // 18. Wait until the simulator has posted at least one IPN, then
+    // observe the automatic browser back-redirect to the persistent
+    // booking page.
+    await waitFor(
+      async () => {
+        const counts = await readSimulatorCounts();
+        return counts.counts.momoIpnAttempts > initialIpnCount;
+      },
+      { timeoutMs: 15_000 },
+    );
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+
+    // 19. Observe the loading state, then the confirmed success surface.
+    await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
+
+    // 20. Refresh — success must persist from authoritative server data.
+    await page.reload();
+    await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
+
+    // 21. Exactly one confirmation email lands in Mailpit.
+    await waitFor(
+      async () => {
+        const counts = await countMailpitMessages(
+          recipientEmail,
+          new RegExp(`Booking confirmed: ${bookingCode}`),
+        );
+        return counts.matching === 1;
+      },
+      { timeoutMs: 15_000 },
+    );
   });
 });

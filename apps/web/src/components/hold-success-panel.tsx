@@ -136,7 +136,11 @@ export function HoldSuccessPanel({
   }, [expired, clockSynced, bookingCode, email, serverExpiresAt, locale]);
 
   return (
-    <section aria-labelledby="hold-success-heading" className="hold-success-panel">
+    <section
+      aria-labelledby="hold-success-heading"
+      className="hold-success-panel"
+      data-testid="hold-success-panel"
+    >
       <h2 id="hold-success-heading" className="text-xl font-semibold text-sky-800">
         {translate(locale, 'hold.created')}
       </h2>
@@ -144,7 +148,12 @@ export function HoldSuccessPanel({
       <dl className="mt-4 grid gap-3 sm:grid-cols-2">
         <div>
           <dt className="text-sm text-slate-500">{translate(locale, 'hold.bookingCode')}</dt>
-          <dd className="font-mono text-lg font-semibold tracking-wide">{bookingCode}</dd>
+          <dd
+            className="break-all font-mono text-base font-semibold tracking-wide"
+            data-testid="hold-booking-code"
+          >
+            {bookingCode}
+          </dd>
         </div>
         <div>
           <dt className="text-sm text-slate-500">{translate(locale, 'hold.status')}</dt>

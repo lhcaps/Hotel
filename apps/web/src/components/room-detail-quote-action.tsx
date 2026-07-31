@@ -88,6 +88,8 @@ export function RoomDetailQuoteAction({
         <button
           aria-pressed={selectedPlanCode === offer.planCode}
           className="rounded-md border p-4 text-left"
+          data-plan-code={offer.planCode}
+          data-testid="room-detail-plan"
           key={offer.planCode}
           onClick={() => setSelectedPlanCode(offer.planCode)}
           type="button"
