@@ -622,6 +622,9 @@ test.describe('Phase 2 customer browser vertical', () => {
     const momoButton = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
     await expect(momoButton).toBeVisible({ timeout: 30_000 });
 
+    // Reset simulator state so the health assertions are deterministic.
+    await setSimulatorMode('vnpay', 'verify', { reset: true });
+
     // The simulator derives the back-redirect from
     // PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE — there must be no
     // explicit control-plane backRedirectUrl configuration for this run.
