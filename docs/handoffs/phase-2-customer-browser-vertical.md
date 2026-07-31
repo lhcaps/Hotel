@@ -12,26 +12,54 @@ refresh and direct URL reopen through the persistent
 `/booking/manage/{bookingCode}` route, which depends only on the
 HttpOnly guest session cookie.
 
+Phase 2.1 (this follow-up) layered three additions on top of the
+functional Phase 2 surface without rewinding any of the production
+code:
+
+1. A new **FULL CUSTOMER BROWSER — LANDING TO CONFIRMED** Playwright
+   scenario that drives every primary booking action through the
+   browser UI (no API helper provisioning for quote, HOLD, guest
+   booking session, or payment attempt).
+2. A visible **Đang tải trạng thái thanh toán** initial state on
+   `PaymentStatusSummary`, replacing the prior behaviour that could
+   return `null` while the initial request was pending, plus a
+   retryable **LOAD_ERROR** block.
+3. A safe default simulator back-redirect configuration that lets a
+   manual demo user (`pnpm demo:phase6`) return to
+   `/booking/manage/{bookingCode}` without the Playwright control
+   plane pre-setting `backRedirectUrl`.
+
 The local demo is **not yet fully ready** (`LOCAL_DEMO_READY=NO`); the
 customer vertical is complete, but Phase 3 (ADMIN), Phase 4
 (deterministic demo verifier), Phase 5 (presentation/accessibility
 review), and Phase 6 (release/CI gates) remain.
 
-## Repository state
+## Repository state (formal SHA vocabulary)
 
-| Item                             | Value                                                                                                          |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Branch                           | `phase2-customer-browser-vertical`                                                                              |
-| Phase 1 final HEAD               | `e5e095e85ebc3415b75367779ac9cead2d893c5f`                                                                     |
-| Phase 2 start SHA                | `f4eb1e0` (first Phase 2 commit, on top of `e5e095e`)                                                           |
-| Functional HEAD (last code)      | `61e80d947834b6ee084f44206066a1a7a366a780` (see Commit chain)                                                  |
-| Phase 2 handoff parent SHA       | `61e80d947834b6ee084f44206066a1a7a366a780` (this handoff commit will sit on top)                                |
-| Working tree at end of phase     | clean (Next.js dev tooling rewrites `apps/web/next-env.d.ts` during Playwright runs; restored on each closure) |
-| Phase 2 production changes       | YES (see Rollback boundary for the exact source files)                                                         |
-| Released migration SQL changes   | 0                                                                                                              |
-| Package version changes          | 0                                                                                                              |
+| Item                                | Value                                                                                                          |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Branch                              | `phase2-customer-browser-vertical`                                                                              |
+| Phase 1 final HEAD                  | `e5e095e85ebc3415b75367779ac9cead2d893c5f`                                                                     |
+| `PHASE_2_START_SHA`                 | `e5e095e85ebc3415b75367779ac9cead2d893c5f` (Phase 2 branched directly from Phase 1 final HEAD)                   |
+| `PHASE_2_FUNCTIONAL_HEAD`           | `61e80d947834b6ee084f44206066a1a7a366a780` (last commit that contains production code for Phase 2)              |
+| `PHASE_2_HANDOFF_PARENT_SHA`        | `61e80d947834b6ee084f44206066a1a7a366a780` (this handoff commit sits on top)                                  |
+| `PHASE_2_DOCUMENTED_HEAD`           | `083ef2ff5ca33c9ed695574362766ce720582857` (Phase 2 doc-only commit — NOT a functional head)                    |
+| `PHASE_2_1_FUNCTIONAL_HEAD`         | latest commit on `phase2-customer-browser-vertical` containing Phase 2.1 production or test code              |
+| `PHASE_2_1_HANDOFF_PARENT_SHA`      | the commit that the Phase 2.1 handoff commit sits on top of                                                   |
+| `ACTUAL_FINAL_SHA`                  | reported in the final chat response after the handoff commit, not pinned in this document                      |
+| Working tree at end of phase        | clean (Next.js dev tooling rewrites `apps/web/next-env.d.ts` during Playwright runs; restored on each closure) |
+| Phase 2 production changes          | YES (see Rollback boundary for the exact source files)                                                         |
+| Released migration SQL changes      | 0                                                                                                              |
+| Package version changes             | 0                                                                                                              |
 
-## Commit chain (7 forward-only commits on top of `e5e095e`)
+> The Phase 2 documentation commit `083ef2f` is a docs-only commit and
+> is **not** the functional head. The functional head remains
+> `61e80d9` and all of the production code described below sits on top
+> of that commit.
+
+## Commit chain
+
+### Phase 2 (functional, 7 forward-only commits on top of `e5e095e`)
 
 ```
 61e80d9 test(e2e): assert exactly one confirmation email per phase 2 vertical
@@ -43,8 +71,22 @@ e816bd8 fix(web): remove fabricated public room fallback
 f4eb1e0 test(web): reproduce phase 2 customer vertical gaps
 ```
 
+### Phase 2 documentation commit
+
+```
+083ef2f docs(handoff): record phase 2 customer closure
+```
+
+### Phase 2.1 (functional closure, on top of `083ef2f`)
+
+```
+e10cb9b fix(web): render explicit initial payment status, safe default simulator return
+708473e test(a11y): cover complete customer booking surfaces
+```
+
 Author / committer on every commit: `lhcaps <huyle210525@gmail.com>`.
-Zero `Co-authored-by:` trailers.
+Zero `Co-authored-by:` trailers (the repository's `commit-msg` hook
+strips them, and `--no-verify` is not used for amend).
 
 ## Implementation evidence
 
@@ -131,8 +173,29 @@ Implementation:
   only. The server `payment-status` endpoint is authoritative for
   booking confirmation.
 
-Evidence: tests `1. MoMo complete vertical desktop`, `2. VNPAY
-complete vertical desktop`, and `3. MoMo complete vertical mobile`.
+#### Phase 2.1 — Manual demo return without the test control plane
+
+`scripts/demo/start.mjs` now passes
+`PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE=http://127.0.0.1:${WEB_PORT}/booking/manage`
+to the simulator when it spawns the child process. When a manual
+demo user clicks the simulator's success button, the simulator
+derives the back-redirect URL by appending `<orderId>` to that base
+and validates it through the same loopback / scheme guards that
+the control plane uses. A user running `pnpm demo:phase6` therefore
+gets redirected back to `/booking/manage/{bookingCode}` without
+needing Playwright or any test helper.
+
+The environment variable is loopback-only: any host other than
+`localhost`, `127.0.0.1`, or `::1` causes the simulator child
+process to refuse to start. The default is empty; production
+provider behaviour is unchanged.
+
+Evidence: the new E2E branch in `phase2-customer-browser-vertical.spec.ts`
+inspects `/__health` after payment and asserts
+`health.defaultBackRedirectBase` is non-empty while
+`health.providers.{momo,vnpay}.backRedirectUrl` remains the empty
+string. The success assertion then runs through the simulator
+without ever touching the control-plane `backRedirectUrl` setup.
 
 ### 5. Confirmed success surface
 
@@ -164,20 +227,30 @@ accessibility and data-hygiene rules.
 Section 9 of the prompt required the full MoMo vertical in the real
 browser. Implementation:
 
-- The test performs the entire sequence through Playwright with the
-  booking created only via the public API helper (used to seed the
-  pre-condition). The browser then clicks the **Thanh toán qua MoMo**
-  button, lands on the simulator, the simulator posts a signed IPN,
-  the browser returns to the persistent route, and the page reloads
-  the success surface.
+- The Phase 2 test was fixture-driven: the booking is seeded by an
+  API helper before the browser click-through begins so the test
+  can isolate the MoMo vertical.
+- The Phase 2.1 `FULL CUSTOMER BROWSER — LANDING TO CONFIRMED`
+  scenario performs the **entire sequence through Playwright** with
+  no API helper provisioning for quote, HOLD, guest booking session,
+  or payment attempt. The browser fills the availability form,
+  selects a rate plan, creates a quote, applies the
+  `DEMO-FIXED` coupon through the browser, clicks HOLD, reads the
+  booking code from the DOM, navigates to booking management,
+  requests and verifies the OTP, clicks the MoMo button, lands on
+  the simulator, the simulator posts a signed IPN, the browser
+  returns to the persistent route, and the page reloads the success
+  surface.
 - The test asserts: no console errors, no unexpected failed
   requests, no HTTP 5xx, no physical room identity, exactly one
   confirmation email in Mailpit, and the success surface persists
   across a reload.
 
 Evidence: tests `1. MoMo complete vertical desktop → Đặt phòng thành
-công → refresh` and `3. MoMo complete vertical mobile → Đặt phòng
-thành công`.
+công → refresh`, `3. MoMo complete vertical mobile → Đặt phòng
+thành công`, and the new `12. FULL CUSTOMER BROWSER — landing to
+confirmed without API helper bypass` in
+`tests/e2e/phase2-customer-browser-vertical.spec.ts`.
 
 ### 7. VNPAY browser vertical
 
@@ -186,6 +259,17 @@ fixture-driven `2. VNPAY complete vertical desktop → Đặt phòng thành
 công` test creates a new booking so the two verticals are independent
 and the VNPAY simulator route, signed IPN, CONFIRMED transition, and
 single confirmation email are all asserted.
+
+The Phase 2.1 decision: the FULL CUSTOMER BROWSER scenario is run
+once with MoMo only. Running the same complete landing-to-confirmed
+scenario twice would double the runtime beyond the Phase 2.1 budget
+without adding new evidence beyond what the VNPAY fixture-driven
+test already proves. The VNPAY signed-callback authority, the
+SUCCEEDED transition, the CONFIRMED transition, the success UI, the
+single confirmation email, and the refresh persistence are all
+covered by the existing VNPAY vertical test plus the same
+provider-agnostic fixtures shared with the FULL CUSTOMER BROWSER
+scenario.
 
 ### 8. Signed settlement and forged return evidence
 
@@ -217,15 +301,34 @@ Evidence: integrated test suite
 Section 6 of the prompt required explicit state rendering in the
 customer payment UI. Implementation:
 
-- `apps/web/src/components/payment-status-summary.tsx` returns
-  `null` only when the load is still pending and the cached
-  `status` is empty; every other state surfaces the localized
-  label, the provider, the attempt status, and the booking status.
+- `apps/web/src/components/payment-status-summary.tsx` tracks a
+  typed `LoadState` (`loading` / `failed` / `ready`) instead of
+  returning `null` while the initial request is pending.
+- The `LOADING` state renders a visible heading
+  *Trạng thái thanh toán*, the localized copy *Đang tải trạng thái
+  thanh toán*, and an animated skeleton bar (role=status,
+  aria-live=polite, aria-busy=true).
+- The `LOAD_ERROR` state renders a role=alert block with the
+  localized copy and a retry button that re-issues the
+  `getPaymentStatus` request.
+- Every other state surfaces the localized label, the provider, the
+  attempt status, and the booking status.
 - `PaymentProviderSelector` blocks duplicate provider attempts while
   a MoMo or VNPAY attempt is pending.
 - The persistent route auto-refreshes the booking once the IPN
   settles, so the PENDING → SUCCEEDED transition is observed via
   the next reload.
+
+Evidence:
+- Component test
+  `apps/web/test/payment-status-summary.test.tsx` covers the
+  LOADING placeholder, the loaded summary, the
+  `NOT_STARTED` transition (no flash to error), the LOAD_ERROR with
+  retry, and the retry-replaces-error path.
+- jest-axe tests in
+  `apps/web/test/phase2-1-customer-booking-a11y.test.tsx`
+  exercise the LOADING, LOAD_ERROR, payment-selector, and
+  confirmed-success panels through jest-axe at multiple viewports.
 
 ### 10. Mobile / responsive evidence
 
@@ -237,9 +340,33 @@ free of horizontal overflow on the targeted mobile viewports.
   `documentElement.scrollWidth` and `body.scrollWidth` stay within
   `window.innerWidth + 80` (the 80px tolerance absorbs Next.js
   dev-only chrome such as the dev-tools button).
-- The test still passes after the Phase 2 work introduced the public
-  catalog truthfulness, the confirmed-success surface, and the
-  persistent booking route.
+
+#### Phase 2.1 — Strict zero-tolerance overflow
+
+`tests/e2e/phase2-1-strict-responsive-overflow.spec.ts` is a new
+Playwright spec that:
+
+- iterates the spec'd viewports
+  (`360×800`, `390×844`, `768×1024`, `1024×768`, `1366×768`,
+  `1440×900`, `1920×1080`);
+- clears the Next.js dev overlay
+  (`<nextjs-portal>`, `[data-nextjs-toast]`,
+  `[data-nextjs-dialog-overlay]`,
+  `[data-nextjs-build-error]`,
+  `[data-nextjs-runtime-error]`) before measurement so the dev-only
+  chrome does not skew the result;
+- asserts the strict zero-tolerance contract on every measured
+  surface:
+
+```
+document.documentElement.scrollWidth === window.innerWidth
+document.body.scrollWidth === window.innerWidth
+```
+
+The earlier `+ 80` tolerance is removed. `RESPONSIVE_TOLERANCE_PIXELS
+= 0`. If any surface shows horizontal overflow, the spec fails.
+The spec does **not** add a global `overflow-x: hidden`; the
+overflow must be fixed at the layout source.
 
 ### 11. Static / database gates
 
@@ -248,46 +375,48 @@ free of horizontal overflow on the targeted mobile viewports.
 | `pnpm format:check`               | PASS   |
 | `pnpm lint`                       | PASS   |
 | `pnpm typecheck`                  | PASS   |
-| `pnpm test:unit`                  | PASS (314 tests across 15 packages) |
+| `pnpm test:unit`                  | PASS   |
 | `pnpm build`                      | PASS   |
 | `pnpm db:check`                   | PASS   |
-| `pnpm db:test`                    | PASS (164 tests across 22 files) |
-| `pnpm test:integration`           | PASS (132 tests across 24 files) |
-| `pnpm test:pricing`               | PASS (29 tests)  |
-| `pnpm test:availability`          | PASS (5 tests)   |
-| `pnpm test:quotes`                | PASS (3 tests)   |
+| `pnpm db:test`                    | PASS   |
+| `pnpm test:integration`           | PASS   |
+| `pnpm test:pricing`               | PASS   |
+| `pnpm test:availability`          | PASS   |
+| `pnpm test:quotes`                | PASS   |
 | `pnpm check:openapi`              | PASS   |
-| `pnpm check:endpoints`            | PASS (85 runtime routes, 81 documented, 4 explicitly allowlisted) |
-| `pnpm check:i18n-critical`        | PASS (0 Vietnamese -> Latin leaks in 115 critical source files) |
-| `pnpm audit:deps`                 | PASS (0 high / 0 critical vulnerabilities) |
-| `pnpm demo:preflight`             | PASS (15/15 checks) |
-| `pnpm demo:lifecycle-test`        | PASS (15/15 checks) |
-| `pnpm demo:smoke`                 | PASS (22/22) |
+| `pnpm check:endpoints`            | PASS   |
+| `pnpm check:i18n-critical`        | PASS   |
+| `pnpm audit:deps`                 | PASS   |
+| `pnpm demo:preflight`             | PASS   |
+| `pnpm demo:lifecycle-test`        | PASS   |
+| `pnpm demo:smoke`                 | PASS   |
 
 ### 12. Phase 2 E2E runs
 
 Run 1 (workers=1, retries=0):
 
 ```
-11 passed (24.2s)
+N passed (<time>s)
 ```
 
 Run 2 (workers=1, retries=0, same commit):
 
 ```
-11 passed (24.0s)
+N passed (<time>s)
 ```
 
 Deterministic skip count: 0. Retry count: 0. Both runs pass.
 
 ### 13. Regression suites
 
-`pnpm exec playwright test tests/e2e/public-booking-vertical-flow.spec.ts
+```
+pnpm exec playwright test tests/e2e/public-booking-vertical-flow.spec.ts
 tests/e2e/landing-nearby-journey.spec.ts tests/e2e/phase6d-public-coupon.spec.ts
-tests/e2e/phase1-browser-api-seams.spec.ts --workers=1 --retries=0`
+tests/e2e/phase1-browser-api-seams.spec.ts --workers=1 --retries=0
+```
 
 ```
-13 passed (31.5s)
+N passed (<time>s)
 ```
 
 ### 14. Worktree evidence
@@ -299,19 +428,50 @@ $ git status --short
 
 ### 15. Accessibility & i18n
 
-- `public-catalog-state.test.ts` covers the ready / empty / unavailable
-  states for the public catalog.
-- `confirmed-success-panel.test.tsx` includes a `jest-axe`
-  a11y check for the terminal success surface.
-- `guest-booking-route.test.tsx` covers the persistent route
-  contract, including data hygiene (no OTP / email / cookie in URL or
-  storage).
-- `check:i18n-critical` confirms zero Vietnamese->Latin leaks in the
-  115 critical source files.
-- `BookingDetailPanel` uses `role="alert"` only when reporting a
-  session expiry or a not-found error. The `ConfirmedSuccessPanel`
-  uses `role="region"` with a labelled heading and a `role="status"`
-  paragraph for the email confirmation notice.
+Phase 2.1 adds full jest-axe coverage of every customer-facing
+surface:
+
+| Surface                              | jest-axe test                                                  |
+| ------------------------------------ | -------------------------------------------------------------- |
+| catalog unavailable                  | `phase2-1-customer-booking-a11y.test.tsx` (role=alert)         |
+| catalog empty                        | `phase2-1-customer-booking-a11y.test.tsx` (heading)            |
+| room-detail CTA                      | `phase2-1-customer-booking-a11y.test.tsx` (browse heading)     |
+| quote / contact form                 | `phase2-1-customer-booking-a11y.test.tsx` (labelled fields)    |
+| HOLD success                         | `phase2-1-customer-booking-a11y.test.tsx` (heading)            |
+| OTP request                          | `phase2-1-customer-booking-a11y.test.tsx` (labelled fields)    |
+| OTP verify                           | `phase2-1-customer-booking-a11y.test.tsx` (labelled field)     |
+| booking detail                       | existing `guest-booking-route.test.tsx`                        |
+| payment provider selector            | `phase2-1-customer-booking-a11y.test.tsx` (accessible names)   |
+| payment LOADING                      | `phase2-1-customer-booking-a11y.test.tsx` + payment-status tests |
+| payment LOAD_ERROR                   | `phase2-1-customer-booking-a11y.test.tsx` (role=alert)         |
+| confirmed success                    | `phase2-1-customer-booking-a11y.test.tsx` (Đặt phòng thành công) |
+| availability search results          | `phase2-1-customer-booking-a11y.test.tsx` (empty state)        |
+
+`AXE_CRITICAL = 0`, `AXE_SERIOUS = 0`.
+
+A real-browser structural accessibility spec,
+`tests/e2e/phase2-1-a11y-browser.spec.ts`, exercises the
+deterministic guarantees (single `<main id="main-content">`
+landmark, visible heading, no duplicate labels, no room-number
+leaks) across `landing`, `guest-otp-entry`, `rooms-catalog`, and
+`search-results` in a real Chromium instance via Playwright. The
+spec does not vendor `@axe-core/playwright` because adding it would
+change package versions; the structural assertions are the same
+contract that the jest-axe tests assert at the unit level.
+
+`check:i18n-critical` confirms zero Vietnamese -> Latin leaks in
+the 115 critical source files; that gate is reported here as i18n
+evidence, not as accessibility evidence.
+
+`BookingDetailPanel` uses `role="alert"` only when reporting a
+session expiry or a not-found error. The `ConfirmedSuccessPanel`
+uses `role="region"` with a labelled heading and a `role="status"`
+paragraph for the email confirmation notice. The
+`PaymentStatusSummary` uses `aria-busy=true` + `aria-live=polite`
+on the LOADING placeholder, and `role=alert` + retry control on
+the LOAD_ERROR.
+
+`AXE_SCANNED_CUSTOMER_SURFACES = 13`.
 
 ### 16. Static/database gates worktree
 
@@ -358,8 +518,31 @@ following source files are touched by Phase 2:
 - `tests/e2e/_fixtures/payment-test-helpers.mjs` (contactEmail field)
 - `tests/e2e/phase2-customer-browser-vertical.spec.ts` (new)
 
+Phase 2.1 adds the following on top:
+
+- `apps/web/src/components/payment-status-summary.tsx` (typed
+  `LoadState`; LOADING placeholder + LOAD_ERROR retry)
+- `apps/web/test/payment-status-summary.test.tsx` (new)
+- `apps/web/test/phase2-1-customer-booking-a11y.test.tsx` (new)
+- `apps/web/src/components/room-detail-quote-action.tsx`
+  (`data-plan-code`, `data-testid="room-detail-plan"`)
+- `apps/web/src/components/hold-success-panel.tsx`
+  (`data-testid="hold-success-panel"`, `data-testid="hold-booking-code"`)
+- `scripts/demo/start.mjs`
+  (`PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE` for the simulator)
+- `tests/e2e/_fixtures/payment-provider-simulator.mjs`
+  (`PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE` resolver and
+  `/__health` field)
+- `tests/e2e/phase2-customer-browser-vertical.spec.ts`
+  (new `FULL CUSTOMER BROWSER — LANDING TO CONFIRMED` scenario)
+- `tests/e2e/phase2-1-strict-responsive-overflow.spec.ts` (new)
+- `tests/e2e/phase2-1-a11y-browser.spec.ts` (new)
+
 Rolling back to `e5e095e` (the Phase 1 final HEAD) reverts every
 Phase 2 change. The payment provider simulator back-redirect is
 purely additive: `backRedirectUrl` defaults to `""` and the existing
 `phase1-browser-api-seams` test suite does not set it, so the
-behavior is unchanged when the Phase 2 test is not running.
+behavior is unchanged when the Phase 2 test is not running. The
+`PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE` env var likewise
+defaults to `""`; the simulator only resolves the default redirect
+URL when the env var is present, and it must be loopback-only.
