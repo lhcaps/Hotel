@@ -3,6 +3,7 @@ import { z } from '@room/contracts';
 import { createLogger } from '@room/observability';
 
 import { CatalogConflictError, CatalogNotFoundError } from '../catalog/catalog.errors.js';
+import { CatalogSafetyError } from '../catalog/catalog.safety.js';
 import {
   QuoteExpiredError,
   QuoteNotFoundError,
@@ -104,6 +105,16 @@ export class ProblemDetailsFilter implements ExceptionFilter {
         status,
         code: error.code,
         detail: 'The requested catalog resource was not found.',
+        ...base,
+      };
+    } else if (error instanceof CatalogSafetyError) {
+      status = 409;
+      body = {
+        type: 'catalog-safety-violation',
+        title: 'Catalog archive/retype safety violation',
+        status,
+        code: error.code,
+        detail: error.message,
         ...base,
       };
     } else if (error instanceof QuoteUnavailableError) {

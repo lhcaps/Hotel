@@ -33,6 +33,10 @@ import {
 import type { ActorContext } from '../auth/actor-context.js';
 
 import { CatalogConflictError, CatalogNotFoundError } from './catalog.errors.js';
+import {
+  CatalogSafetyError,
+  type CatalogSafetyCode,
+} from './catalog.safety.js';
 
 export interface CatalogPropertyRecord {
   readonly id: string;
@@ -173,6 +177,16 @@ export interface CatalogRepositoryPort {
     propertyId: string,
     id: string,
   ): Promise<CatalogRoomTypeRecord | undefined>;
+  lockRoomType(
+    transaction: unknown,
+    propertyId: string,
+    id: string,
+  ): Promise<void>;
+  summarizeRoomTypeDependencies(
+    transaction: unknown,
+    propertyId: string,
+    roomTypeId: string,
+  ): Promise<RoomTypeDependencySummary>;
   createAmenity(
     transaction: unknown,
     propertyId: string,
@@ -215,6 +229,16 @@ export interface CatalogRepositoryPort {
     propertyId: string,
     id: string,
   ): Promise<CatalogRoomRecord | undefined>;
+  lockRoom(
+    transaction: unknown,
+    propertyId: string,
+    id: string,
+  ): Promise<void>;
+  summarizeRoomCommitments(
+    transaction: unknown,
+    propertyId: string,
+    roomId: string,
+  ): Promise<RoomCommitmentSummary>;
   findRoom(
     transaction: unknown,
     propertyId: string,
@@ -263,6 +287,69 @@ export interface CatalogRepositoryPort {
     propertyId: string,
     id: string,
   ): Promise<CancelMaintenanceResult>;
+}
+
+/**
+ * Aggregate counts of every blocking commitment or dependency the catalog
+ * service must evaluate before mutating a physical room. Counts are
+ * computed inside the same transaction that performs the archive or
+ * retype so that a concurrent CREATE HOLD cannot bypass the check.
+ */
+export interface RoomCommitmentSummary {
+  readonly activeBookingCount: number;
+  readonly futureBookingCount: number;
+  readonly activeMaintenanceCount: number;
+  readonly futureMaintenanceCount: number;
+  readonly activeInventoryBlockCount: number;
+  readonly futureInventoryBlockCount: number;
+}
+
+/**
+ * Aggregate counts of the catalog dependencies the service must evaluate
+ * before archiving a room type. The `activeRatePlanCount` includes any
+ * rate plan that still references the room type and is not
+ * `INACTIVE`/`ARCHIVED`.
+ */
+export interface RoomTypeDependencySummary {
+  readonly activeRoomCount: number;
+  readonly futureBookingCount: number;
+  readonly activeMaintenanceCount: number;
+  readonly futureMaintenanceCount: number;
+  readonly activeRatePlanCount: number;
+}
+
+function roomSafetyCode(
+  summary: RoomCommitmentSummary,
+  mode: 'archive' | 'retype',
+): CatalogSafetyCode | undefined {
+  if (summary.activeBookingCount > 0) {
+    return mode === 'archive' ? 'ROOM_ARCHIVE_ACTIVE_BOOKING' : 'ROOM_RETYPE_ACTIVE_BOOKING';
+  }
+  if (summary.futureBookingCount > 0) {
+    return mode === 'archive' ? 'ROOM_ARCHIVE_FUTURE_BOOKING' : 'ROOM_RETYPE_FUTURE_BOOKING';
+  }
+  if (summary.activeMaintenanceCount > 0) {
+    return mode === 'archive' ? 'ROOM_ARCHIVE_ACTIVE_MAINTENANCE' : 'ROOM_RETYPE_ACTIVE_MAINTENANCE';
+  }
+  if (summary.futureMaintenanceCount > 0) {
+    return mode === 'archive' ? 'ROOM_ARCHIVE_FUTURE_MAINTENANCE' : 'ROOM_RETYPE_FUTURE_MAINTENANCE';
+  }
+  if (summary.activeInventoryBlockCount > 0 && mode === 'archive') {
+    return 'ROOM_ARCHIVE_ACTIVE_INVENTORY_BLOCK';
+  }
+  if (summary.futureInventoryBlockCount > 0 && mode === 'archive') {
+    return 'ROOM_ARCHIVE_FUTURE_INVENTORY_BLOCK';
+  }
+  return undefined;
+}
+
+function roomTypeSafetyCode(summary: RoomTypeDependencySummary): CatalogSafetyCode | undefined {
+  if (summary.activeRoomCount > 0) return 'ROOM_TYPE_ARCHIVE_ACTIVE_ROOMS';
+  if (summary.futureBookingCount > 0) return 'ROOM_TYPE_ARCHIVE_FUTURE_BOOKING';
+  if (summary.activeMaintenanceCount > 0) return 'ROOM_TYPE_ARCHIVE_ACTIVE_MAINTENANCE';
+  if (summary.futureMaintenanceCount > 0) return 'ROOM_TYPE_ARCHIVE_FUTURE_MAINTENANCE';
+  if (summary.activeRatePlanCount > 0) return 'ROOM_TYPE_ARCHIVE_ACTIVE_RATE_PLAN';
+  return undefined;
 }
 
 export interface AuditRepositoryPort {
@@ -546,6 +633,19 @@ export class CatalogService {
     return this.database.transaction(async (transaction) => {
       const property = await this.repository.getCurrentProperty(transaction);
       if (property === undefined) throw new CatalogNotFoundError();
+      await this.repository.lockRoomType(transaction, property.id, id);
+      const summary = await this.repository.summarizeRoomTypeDependencies(
+        transaction,
+        property.id,
+        id,
+      );
+      const code = roomTypeSafetyCode(summary);
+      if (code !== undefined) {
+        throw new CatalogSafetyError(
+          code,
+          'Room type cannot be archived while active rooms, bookings, maintenance, or rate plans depend on it.',
+        );
+      }
       const roomType = await this.repository.archiveRoomType(transaction, property.id, id);
       if (roomType === undefined) throw new CatalogNotFoundError();
       await this.audit.write(transaction, {
@@ -662,6 +762,19 @@ export class CatalogService {
     return this.database.transaction(async (transaction) => {
       const property = await this.repository.getCurrentProperty(transaction);
       if (property === undefined) throw new CatalogNotFoundError();
+      await this.repository.lockRoom(transaction, property.id, id);
+      const summary = await this.repository.summarizeRoomCommitments(
+        transaction,
+        property.id,
+        id,
+      );
+      const code = roomSafetyCode(summary, 'archive');
+      if (code !== undefined) {
+        throw new CatalogSafetyError(
+          code,
+          'Room cannot be archived while bookings, maintenance, or inventory blocks are active or future.',
+        );
+      }
       const room = await this.repository.archiveRoom(transaction, property.id, id);
       if (room === undefined) throw new CatalogNotFoundError();
       await this.audit.write(transaction, {
@@ -731,15 +844,17 @@ export class CatalogService {
             'Target room type does not belong to the current property.',
           );
         }
-        const blocked = await this.repository.roomHasFutureOrActiveBlocks(
+        await this.repository.lockRoom(transaction, property.id, existing.id);
+        const summary = await this.repository.summarizeRoomCommitments(
           transaction,
           property.id,
           existing.id,
         );
-        if (blocked) {
-          throw new CatalogConflictError(
-            'room-has-active-blocks',
-            'Room is currently held by an active booking or maintenance block; retyping is unsafe.',
+        const code = roomSafetyCode(summary, 'retype');
+        if (code !== undefined) {
+          throw new CatalogSafetyError(
+            code,
+            'Room cannot be retyped while bookings, maintenance, or inventory blocks are active or future.',
           );
         }
       }

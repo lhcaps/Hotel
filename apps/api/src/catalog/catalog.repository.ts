@@ -4,13 +4,16 @@ import {
   asc,
   eq,
   type DatabaseClient,
+  maintenanceBlocks,
   priceTiers,
   properties,
+  ratePlanPrices,
+  ratePlans,
   roomInventoryBlocks,
   roomTypeAmenities,
   roomTypes,
   rooms,
-  maintenanceBlocks,
+  sql,
 } from '@room/database';
 import type {
   AmenityCommand,
@@ -34,9 +37,11 @@ import type {
   CatalogRoomTypeRecord,
   CatalogRoomRecord,
   CatalogMaintenanceRecord,
+  RoomCommitmentSummary,
+  RoomTypeDependencySummary,
 } from './catalog.service.js';
 
-type CatalogDatabase = Pick<DatabaseClient, 'delete' | 'insert' | 'query' | 'update'>;
+type CatalogDatabase = DatabaseClient;
 
 function asCatalogDatabase(transaction: unknown, fallback: CatalogDatabase): CatalogDatabase {
   return transaction === undefined ? fallback : (transaction as CatalogDatabase);
@@ -242,9 +247,25 @@ export class CatalogRepository implements CatalogRepositoryPort {
     const [updated] = await database
       .update(roomTypes)
       .set({ status: 'INACTIVE', updatedAt: new Date() })
-      .where(and(eq(roomTypes.id, id), eq(roomTypes.propertyId, propertyId)))
+      .where(
+        and(
+          eq(roomTypes.id, id),
+          eq(roomTypes.propertyId, propertyId),
+          eq(roomTypes.status, 'ACTIVE'),
+        ),
+      )
       .returning();
     return updated;
+  }
+  public async lockRoomType(
+    transaction: unknown,
+    propertyId: string,
+    id: string,
+  ): Promise<void> {
+    const database = asCatalogDatabase(transaction, this.database);
+    await database.execute(
+      sql`SELECT id FROM room_types WHERE property_id = ${propertyId} AND id = ${id} FOR UPDATE`,
+    );
   }
   public async createAmenity(
     transaction: unknown,
@@ -343,9 +364,25 @@ export class CatalogRepository implements CatalogRepositoryPort {
     const [updated] = await database
       .update(rooms)
       .set({ status: 'INACTIVE', updatedAt: new Date() })
-      .where(and(eq(rooms.id, id), eq(rooms.propertyId, propertyId)))
+      .where(
+        and(
+          eq(rooms.id, id),
+          eq(rooms.propertyId, propertyId),
+          eq(rooms.status, 'ACTIVE'),
+        ),
+      )
       .returning();
     return updated;
+  }
+  public async lockRoom(
+    transaction: unknown,
+    propertyId: string,
+    id: string,
+  ): Promise<void> {
+    const database = asCatalogDatabase(transaction, this.database);
+    await database.execute(
+      sql`SELECT id FROM rooms WHERE property_id = ${propertyId} AND id = ${id} FOR UPDATE`,
+    );
   }
   public async updateRoomHousekeeping(
     transaction: unknown,
@@ -417,6 +454,164 @@ export class CatalogRepository implements CatalogRepositoryPort {
         ),
     });
     return row !== undefined;
+  }
+  public async summarizeRoomCommitments(
+    transaction: unknown,
+    propertyId: string,
+    roomId: string,
+  ): Promise<RoomCommitmentSummary> {
+    const database = asCatalogDatabase(transaction, this.database);
+    const now = new Date();
+    const active = await database.query.bookings.findMany({
+      columns: { id: true, status: true, checkIn: true, checkOut: true },
+      where: (booking, operators) =>
+        operators.and(
+          operators.eq(booking.propertyId, propertyId),
+          operators.eq(booking.roomId, roomId),
+          operators.inArray(booking.status, ['HOLD', 'CONFIRMED', 'CHECKED_IN']),
+        ),
+    });
+    let activeBookingCount = 0;
+    let futureBookingCount = 0;
+    for (const booking of active) {
+      if (booking.status === 'CHECKED_IN' || booking.checkIn <= now) {
+        activeBookingCount += 1;
+      } else if (booking.checkIn > now) {
+        futureBookingCount += 1;
+      }
+    }
+    const maintenanceRows = await database.query.maintenanceBlocks.findMany({
+      columns: { id: true, status: true, startsAt: true, endsAt: true },
+      where: (block, operators) =>
+        operators.and(
+          operators.eq(block.propertyId, propertyId),
+          operators.eq(block.roomId, roomId),
+          operators.eq(block.status, 'ACTIVE'),
+        ),
+    });
+    let activeMaintenanceCount = 0;
+    let futureMaintenanceCount = 0;
+    for (const block of maintenanceRows) {
+      if (block.endsAt <= now) continue;
+      if (block.startsAt <= now) {
+        activeMaintenanceCount += 1;
+      } else {
+        futureMaintenanceCount += 1;
+      }
+    }
+    const inventoryBlocks = await database.query.roomInventoryBlocks.findMany({
+      columns: { id: true, status: true, startsAt: true, endsAt: true, bookingId: true, maintenanceBlockId: true },
+      where: (block, operators) =>
+        operators.and(
+          operators.eq(block.propertyId, propertyId),
+          operators.eq(block.roomId, roomId),
+          operators.eq(block.status, 'ACTIVE'),
+        ),
+    });
+    let activeInventoryBlockCount = 0;
+    let futureInventoryBlockCount = 0;
+    for (const block of inventoryBlocks) {
+      if (block.endsAt <= now) continue;
+      if (block.startsAt <= now) {
+        activeInventoryBlockCount += 1;
+      } else {
+        futureInventoryBlockCount += 1;
+      }
+    }
+    return {
+      activeBookingCount,
+      futureBookingCount,
+      activeMaintenanceCount,
+      futureMaintenanceCount,
+      activeInventoryBlockCount,
+      futureInventoryBlockCount,
+    };
+  }
+  public async summarizeRoomTypeDependencies(
+    transaction: unknown,
+    propertyId: string,
+    roomTypeId: string,
+  ): Promise<RoomTypeDependencySummary> {
+    const database = asCatalogDatabase(transaction, this.database);
+    const activeRoomRow = await database
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(rooms)
+      .where(
+        and(
+          eq(rooms.propertyId, propertyId),
+          eq(rooms.roomTypeId, roomTypeId),
+          eq(rooms.status, 'ACTIVE'),
+        ),
+      );
+    const activeRoomCount = Number(activeRoomRow[0]?.count ?? 0);
+    const now = new Date();
+    const futureBookingRows = await database.query.bookings.findMany({
+      columns: { id: true, checkIn: true },
+      where: (booking, operators) =>
+        operators.and(
+          operators.eq(booking.propertyId, propertyId),
+          operators.eq(booking.roomTypeId, roomTypeId),
+          operators.inArray(booking.status, ['HOLD', 'CONFIRMED', 'CHECKED_IN']),
+          operators.gt(booking.checkIn, now),
+        ),
+    });
+    const futureBookingCount = futureBookingRows.length;
+    const activeMaintenanceRows = await database
+      .select({
+        id: maintenanceBlocks.id,
+        startsAt: maintenanceBlocks.startsAt,
+        endsAt: maintenanceBlocks.endsAt,
+        roomTypeId: rooms.roomTypeId,
+      })
+      .from(maintenanceBlocks)
+      .innerJoin(rooms, eq(rooms.id, maintenanceBlocks.roomId))
+      .where(
+        and(
+          eq(maintenanceBlocks.propertyId, propertyId),
+          eq(maintenanceBlocks.status, 'ACTIVE'),
+          eq(rooms.roomTypeId, roomTypeId),
+        ),
+      );
+    let activeMaintenanceCount = 0;
+    let futureMaintenanceCount = 0;
+    for (const block of activeMaintenanceRows) {
+      if (block.endsAt <= now) continue;
+      if (block.startsAt <= now) {
+        activeMaintenanceCount += 1;
+      } else {
+        futureMaintenanceCount += 1;
+      }
+    }
+    const roomTypeRow = await database.query.roomTypes.findFirst({
+      columns: { priceTierId: true },
+      where: (roomType, operators) =>
+        operators.and(
+          operators.eq(roomType.id, roomTypeId),
+          operators.eq(roomType.propertyId, propertyId),
+        ),
+    });
+    let activeRatePlanCount = 0;
+    if (roomTypeRow !== undefined) {
+      const ratePlanPriceRows = await database
+        .select({ count: sql<number>`COUNT(*)::int` })
+        .from(ratePlanPrices)
+        .innerJoin(ratePlans, eq(ratePlanPrices.ratePlanId, ratePlans.id))
+        .where(
+          and(
+            eq(ratePlanPrices.propertyId, propertyId),
+            eq(ratePlanPrices.priceTierId, roomTypeRow.priceTierId),
+            eq(ratePlans.status, 'ACTIVE'),
+          ),
+        );
+      activeRatePlanCount = Number(ratePlanPriceRows[0]?.count ?? 0);
+    }
+    return {
+      activeRoomCount,
+      futureBookingCount,
+      activeMaintenanceCount,
+      futureMaintenanceCount,
+      activeRatePlanCount,
+    };
   }
   public async updateRoom(
     transaction: unknown,

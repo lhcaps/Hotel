@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { ActorContext } from '../src/auth/actor-context.js';
 import { CatalogConflictError, CatalogNotFoundError } from '../src/catalog/catalog.errors.js';
+import { CatalogSafetyError } from '../src/catalog/catalog.safety.js';
 import {
   type AuditRepositoryPort,
   type CatalogRepositoryPort,
@@ -44,6 +45,7 @@ describe('CatalogService', () => {
       createRoomType: vi.fn(),
       listRoomTypes: vi.fn(),
       archiveRoomType: vi.fn(),
+      lockRoomType: vi.fn().mockResolvedValue(undefined),
       updateRoomType: vi.fn(),
       findRoomType: vi.fn(),
       findRoomTypeAmenityMembership: vi.fn(),
@@ -60,11 +62,27 @@ describe('CatalogService', () => {
       assignAmenity: vi.fn(),
       createRoom: vi.fn(),
       archiveRoom: vi.fn(),
+      lockRoom: vi.fn().mockResolvedValue(undefined),
       updateRoomHousekeeping: vi.fn(),
       listRooms: vi.fn(),
       createMaintenance: vi.fn(),
       listMaintenanceBlocks: vi.fn(),
       cancelMaintenance: vi.fn(),
+      summarizeRoomCommitments: vi.fn().mockResolvedValue({
+        activeBookingCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeInventoryBlockCount: 0,
+        futureInventoryBlockCount: 0,
+      }),
+      summarizeRoomTypeDependencies: vi.fn().mockResolvedValue({
+        activeRoomCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeRatePlanCount: 0,
+      }),
     };
     const writeAudit = vi.fn().mockResolvedValue(undefined);
     const audit: AuditRepositoryPort = { write: writeAudit };
@@ -105,6 +123,7 @@ describe('CatalogService', () => {
       createRoomType: vi.fn(),
       listRoomTypes: vi.fn(),
       archiveRoomType: vi.fn(),
+      lockRoomType: vi.fn().mockResolvedValue(undefined),
       updateRoomType: vi.fn(),
       findRoomType: vi.fn(),
       findRoomTypeAmenityMembership: vi.fn(),
@@ -121,11 +140,27 @@ describe('CatalogService', () => {
       assignAmenity: vi.fn(),
       createRoom: vi.fn(),
       archiveRoom: vi.fn(),
+      lockRoom: vi.fn().mockResolvedValue(undefined),
       updateRoomHousekeeping: vi.fn(),
       listRooms: vi.fn(),
       createMaintenance: vi.fn(),
       listMaintenanceBlocks: vi.fn(),
       cancelMaintenance: vi.fn(),
+      summarizeRoomCommitments: vi.fn().mockResolvedValue({
+        activeBookingCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeInventoryBlockCount: 0,
+        futureInventoryBlockCount: 0,
+      }),
+      summarizeRoomTypeDependencies: vi.fn().mockResolvedValue({
+        activeRoomCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeRatePlanCount: 0,
+      }),
     };
     const service = new CatalogService(
       { transaction: vi.fn() } as unknown as TransactionManager,
@@ -149,6 +184,7 @@ describe('CatalogService', () => {
       createRoomType: vi.fn(),
       listRoomTypes: vi.fn(),
       archiveRoomType: vi.fn(),
+      lockRoomType: vi.fn().mockResolvedValue(undefined),
       updateRoomType: vi.fn(),
       findRoomType: vi.fn(),
       findRoomTypeAmenityMembership: vi.fn(),
@@ -165,11 +201,27 @@ describe('CatalogService', () => {
       assignAmenity: vi.fn(),
       createRoom: vi.fn(),
       archiveRoom: vi.fn(),
+      lockRoom: vi.fn().mockResolvedValue(undefined),
       updateRoomHousekeeping: vi.fn(),
       listRooms: vi.fn(),
       createMaintenance: vi.fn(),
       listMaintenanceBlocks: vi.fn(),
       cancelMaintenance: vi.fn(),
+      summarizeRoomCommitments: vi.fn().mockResolvedValue({
+        activeBookingCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeInventoryBlockCount: 0,
+        futureInventoryBlockCount: 0,
+      }),
+      summarizeRoomTypeDependencies: vi.fn().mockResolvedValue({
+        activeRoomCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeRatePlanCount: 0,
+      }),
     };
     const service = new CatalogService(
       {
@@ -210,6 +262,7 @@ describe('CatalogService', () => {
       createRoomType: vi.fn(),
       listRoomTypes: vi.fn(),
       archiveRoomType: vi.fn(),
+      lockRoomType: vi.fn().mockResolvedValue(undefined),
       updateRoomType: vi.fn().mockResolvedValue({
         ...existingRoomType,
         name: 'Deluxe Sea View',
@@ -233,11 +286,27 @@ describe('CatalogService', () => {
       assignAmenity: vi.fn(),
       createRoom: vi.fn(),
       archiveRoom: vi.fn(),
+      lockRoom: vi.fn().mockResolvedValue(undefined),
       updateRoomHousekeeping: vi.fn(),
       listRooms: vi.fn(),
       createMaintenance: vi.fn(),
       listMaintenanceBlocks: vi.fn(),
       cancelMaintenance: vi.fn(),
+      summarizeRoomCommitments: vi.fn().mockResolvedValue({
+        activeBookingCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeInventoryBlockCount: 0,
+        futureInventoryBlockCount: 0,
+      }),
+      summarizeRoomTypeDependencies: vi.fn().mockResolvedValue({
+        activeRoomCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeRatePlanCount: 0,
+      }),
     };
     const writeAudit = vi.fn().mockResolvedValue(undefined);
     const audit: AuditRepositoryPort = { write: writeAudit };
@@ -283,6 +352,7 @@ describe('CatalogService', () => {
       createRoomType: vi.fn(),
       listRoomTypes: vi.fn(),
       archiveRoomType: vi.fn(),
+      lockRoomType: vi.fn().mockResolvedValue(undefined),
       updateRoomType: vi.fn(),
       findRoomType: vi.fn().mockResolvedValue({ id: 'r1', propertyId: property.id } as never),
       findRoomTypeAmenityMembership: vi.fn(),
@@ -299,11 +369,27 @@ describe('CatalogService', () => {
       assignAmenity: vi.fn(),
       createRoom: vi.fn(),
       archiveRoom: vi.fn(),
+      lockRoom: vi.fn().mockResolvedValue(undefined),
       updateRoomHousekeeping: vi.fn(),
       listRooms: vi.fn(),
       createMaintenance: vi.fn(),
       listMaintenanceBlocks: vi.fn(),
       cancelMaintenance: vi.fn(),
+      summarizeRoomCommitments: vi.fn().mockResolvedValue({
+        activeBookingCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeInventoryBlockCount: 0,
+        futureInventoryBlockCount: 0,
+      }),
+      summarizeRoomTypeDependencies: vi.fn().mockResolvedValue({
+        activeRoomCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeRatePlanCount: 0,
+      }),
     };
     const service = new CatalogService(
       { transaction: vi.fn() } as unknown as TransactionManager,
@@ -330,6 +416,7 @@ describe('CatalogService', () => {
       createRoomType: vi.fn(),
       listRoomTypes: vi.fn(),
       archiveRoomType: vi.fn(),
+      lockRoomType: vi.fn().mockResolvedValue(undefined),
       updateRoomType: vi.fn(),
       findRoomType: vi.fn().mockResolvedValue({ id: 'r1', propertyId: property.id } as never),
       findRoomTypeAmenityMembership: vi.fn().mockResolvedValue({ id: 'a1' }),
@@ -346,11 +433,27 @@ describe('CatalogService', () => {
       assignAmenity: vi.fn(),
       createRoom: vi.fn(),
       archiveRoom: vi.fn(),
+      lockRoom: vi.fn().mockResolvedValue(undefined),
       updateRoomHousekeeping: vi.fn(),
       listRooms: vi.fn(),
       createMaintenance: vi.fn(),
       listMaintenanceBlocks: vi.fn(),
       cancelMaintenance: vi.fn(),
+      summarizeRoomCommitments: vi.fn().mockResolvedValue({
+        activeBookingCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeInventoryBlockCount: 0,
+        futureInventoryBlockCount: 0,
+      }),
+      summarizeRoomTypeDependencies: vi.fn().mockResolvedValue({
+        activeRoomCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeRatePlanCount: 0,
+      }),
     };
     const removeRoomTypeAmenityService = new CatalogService(
       {
@@ -381,6 +484,7 @@ describe('CatalogService', () => {
       createRoomType: vi.fn(),
       listRoomTypes: vi.fn(),
       archiveRoomType: vi.fn(),
+      lockRoomType: vi.fn().mockResolvedValue(undefined),
       updateRoomType: vi.fn(),
       findRoomType: vi.fn().mockResolvedValue({
         id: '550e8400-e29b-41d4-a716-446655440099',
@@ -405,11 +509,27 @@ describe('CatalogService', () => {
       assignAmenity: vi.fn(),
       createRoom: vi.fn(),
       archiveRoom: vi.fn(),
+      lockRoom: vi.fn().mockResolvedValue(undefined),
       updateRoomHousekeeping: vi.fn(),
       listRooms: vi.fn(),
       createMaintenance: vi.fn(),
       listMaintenanceBlocks: vi.fn(),
       cancelMaintenance: vi.fn(),
+      summarizeRoomCommitments: vi.fn().mockResolvedValue({
+        activeBookingCount: 1,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeInventoryBlockCount: 0,
+        futureInventoryBlockCount: 0,
+      }),
+      summarizeRoomTypeDependencies: vi.fn().mockResolvedValue({
+        activeRoomCount: 0,
+        futureBookingCount: 0,
+        activeMaintenanceCount: 0,
+        futureMaintenanceCount: 0,
+        activeRatePlanCount: 0,
+      }),
     };
     const updateRoomService = new CatalogService(
       {
@@ -423,6 +543,6 @@ describe('CatalogService', () => {
       updateRoomService.updateRoom(actor, '550e8400-e29b-41d4-a716-446655440001', {
         roomTypeId: '550e8400-e29b-41d4-a716-446655440099',
       }),
-    ).rejects.toBeInstanceOf(CatalogConflictError);
+    ).rejects.toBeInstanceOf(CatalogSafetyError);
   });
 });
