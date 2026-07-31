@@ -1,13 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import CustomerBookingsPage from '../src/app/account/bookings/page';
-
-vi.mock('next/headers', () => ({
-  cookies: vi.fn(async () => ({ get: () => ({ value: 'en' }) })),
-  headers: vi.fn(async () => ({ get: () => '' })),
-}));
+import { LocaleProvider } from '../src/components/locale-provider';
 
 const viewports = [390, 1366] as const;
 
@@ -43,9 +39,17 @@ afterEach(() => {
 describe('CUSTOMER booking list accessibility', () => {
   it.each(viewports)('measures the authenticated booking list at %ipx', async (width) => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
-    const { container } = render(await CustomerBookingsPage());
+    const { container } = render(
+      <LocaleProvider locale="en">
+        <CustomerBookingsPage />
+      </LocaleProvider>,
+    );
 
-    expect(screen.getByRole('heading', { name: 'My bookings' })).toBeVisible();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: 'My bookings' }),
+      ).toBeVisible(),
+    );
     expect(screen.getByRole('link', { name: /UAT-CONFIRMED-20270711/i })).toBeVisible();
     const result = await axe(container);
     expect(
