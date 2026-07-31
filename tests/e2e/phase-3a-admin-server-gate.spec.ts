@@ -51,7 +51,9 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
 
       // The response that delivered the final HTML must NOT be a 200 with
       // the protected shell; the server should have redirected (307/308).
-      expect(response?.status(), `expected redirect status from ${path}`).toBeGreaterThanOrEqual(300);
+      expect(response?.status(), `expected redirect status from ${path}`).toBeGreaterThanOrEqual(
+        300,
+      );
       expect(response?.status(), `expected redirect status from ${path}`).toBeLessThan(400);
 
       // The protected sidebar/nav must never render in unauthenticated HTML.
@@ -123,9 +125,7 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
 
     // Defensive: the cleared context must not retain an admin cookie.
     const cookies = await context.cookies();
-    const adminCookies = cookies.filter((cookie) =>
-      cookie.name.toLowerCase().includes('session'),
-    );
+    const adminCookies = cookies.filter((cookie) => cookie.name.toLowerCase().includes('session'));
     expect(adminCookies, 'admin session cookie cleared after logout').toHaveLength(0);
   });
 
@@ -134,10 +134,14 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
     // deliberately avoid the ADMIN login form: this test asserts the
     // server-side gate keeps a CUSTOMER-only cookie out of `/admin/**`.
     await page.goto('/login');
-    await page.getByRole('button', { name: /customer/i }).first().click({ trial: false }).catch(() => {
-      // The customer OTP flow opens a challenge panel; if the button is
-      // missing the test fails for unrelated reasons.
-    });
+    await page
+      .getByRole('button', { name: /customer/i })
+      .first()
+      .click({ trial: false })
+      .catch(() => {
+        // The customer OTP flow opens a challenge panel; if the button is
+        // missing the test fails for unrelated reasons.
+      });
     // The actual customer onboarding flow is exercised in the customer
     // browser vertical; here we only need the cookie to be present.
     await page.goto('/admin');
@@ -153,9 +157,7 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
     // conditional on this flag).
     const flagged = /customer=1/.test(finalUrl);
     if (flagged) {
-      await expect(
-        page.getByRole('alert').filter({ hasText: /customer/i }),
-      ).toBeVisible();
+      await expect(page.getByRole('alert').filter({ hasText: /customer/i })).toBeVisible();
     }
 
     await expect(page.locator('aside.admin-nav')).toHaveCount(0);
@@ -178,9 +180,10 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
     ]);
     // Make the request and verify the gate.
     const response = await page.goto('/admin/bookings');
-    expect(response?.status(), 'manipulated role request must not yield a 200 protected page').not.toBe(
-      200,
-    );
+    expect(
+      response?.status(),
+      'manipulated role request must not yield a 200 protected page',
+    ).not.toBe(200);
     await page.waitForURL(/\/admin\/login/);
     await expect(page.locator('aside.admin-nav')).toHaveCount(0);
   });

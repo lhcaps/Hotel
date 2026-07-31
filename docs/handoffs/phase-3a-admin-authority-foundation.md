@@ -16,11 +16,11 @@
 
 ## 1. Starting SHA and commit chain
 
-| SHA       | Subject |
-|-----------|---------|
-| `93b0564` | starting baseline (Phase 2.1 closure handoff) |
-| `928fa58` | test(admin): reproduce admin authority boundary gaps |
-| `2a9f1f0` | feat(admin): server-gate protected admin routes |
+| SHA       | Subject                                                 |
+| --------- | ------------------------------------------------------- |
+| `93b0564` | starting baseline (Phase 2.1 closure handoff)           |
+| `928fa58` | test(admin): reproduce admin authority boundary gaps    |
+| `2a9f1f0` | feat(admin): server-gate protected admin routes         |
 | `bf4d4b8` | fix(admin): validate admin session responses at runtime |
 
 (Final SHAs printed by `git log --oneline --decorate -n 10`.)
@@ -101,15 +101,15 @@ needed for Phase 3A.
 
 ## 4. FEATURE | API | DB | WEB | TEST | GAP matrix (Phase 3A scope)
 
-| FEATURE | API | DB | WEB | TEST | GAP (before Phase 3A) |
-|---------|-----|----|----|------|------------------------|
-| `/admin/login` chrome-free shell | `auth.controller` POST `/api/auth/sign-in/email` | `users`, `sessions` | `apps/web/src/app/admin/login/page.tsx` | `tests/e2e/admin-auth.spec.ts` | none |
-| Protected `/admin/**` server gate | `GET /api/v1/admin/me` returns AdminMe parsed against `adminMeSchema` | none | `apps/web/src/app/admin/(protected)/layout.tsx` (new) | `tests/e2e/phase-3a-admin-server-gate.spec.ts` (new) | client-side `AdminAccessGuard` ran after the protected shell had streamed; server did not perform the redirect |
-| Runtime validation of `/admin/me` | already returns a value matching `adminMeSchema` | none | `apps/web/src/lib/admin-session-server.ts` (new) | `apps/web/src/lib/admin-session-server.test.ts` (new) | no web-side validator; the client guard accepted any 2xx with the right fields |
-| CUSTOMER session denial | `GET /api/v1/customer/profile/session` returns `{ authenticated }` | none | server gate redirects with `?customer=1` | `tests/e2e/phase-3a-admin-server-gate.spec.ts` | client guard only checked the customer session on the browser side |
-| Public CUSTOMER header absence | n/a | n/a | `apps/web/src/app/layout.tsx` already omits public header on `/admin/**` | `phase-3a-admin-server-gate.spec.ts` asserts | none |
-| Logout invalidates protected access | `POST /api/auth/sign-out` clears Better Auth cookie | `sessions` row deleted | `AdminLogoutButton` triggers `router.replace('/admin/login')` | `admin-auth.spec.ts` asserts `/admin/me` returns 401 | none |
-| Manipulated role flag | none — the schema constrains `role: z.literal('ADMIN')` | none | resolver treats any non-ADMIN response as malformed | `admin-session-server.test.ts` proves the validator rejects | none |
+| FEATURE                             | API                                                                   | DB                     | WEB                                                                      | TEST                                                        | GAP (before Phase 3A)                                                                                          |
+| ----------------------------------- | --------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `/admin/login` chrome-free shell    | `auth.controller` POST `/api/auth/sign-in/email`                      | `users`, `sessions`    | `apps/web/src/app/admin/login/page.tsx`                                  | `tests/e2e/admin-auth.spec.ts`                              | none                                                                                                           |
+| Protected `/admin/**` server gate   | `GET /api/v1/admin/me` returns AdminMe parsed against `adminMeSchema` | none                   | `apps/web/src/app/admin/(protected)/layout.tsx` (new)                    | `tests/e2e/phase-3a-admin-server-gate.spec.ts` (new)        | client-side `AdminAccessGuard` ran after the protected shell had streamed; server did not perform the redirect |
+| Runtime validation of `/admin/me`   | already returns a value matching `adminMeSchema`                      | none                   | `apps/web/src/lib/admin-session-server.ts` (new)                         | `apps/web/src/lib/admin-session-server.test.ts` (new)       | no web-side validator; the client guard accepted any 2xx with the right fields                                 |
+| CUSTOMER session denial             | `GET /api/v1/customer/profile/session` returns `{ authenticated }`    | none                   | server gate redirects with `?customer=1`                                 | `tests/e2e/phase-3a-admin-server-gate.spec.ts`              | client guard only checked the customer session on the browser side                                             |
+| Public CUSTOMER header absence      | n/a                                                                   | n/a                    | `apps/web/src/app/layout.tsx` already omits public header on `/admin/**` | `phase-3a-admin-server-gate.spec.ts` asserts                | none                                                                                                           |
+| Logout invalidates protected access | `POST /api/auth/sign-out` clears Better Auth cookie                   | `sessions` row deleted | `AdminLogoutButton` triggers `router.replace('/admin/login')`            | `admin-auth.spec.ts` asserts `/admin/me` returns 401        | none                                                                                                           |
+| Manipulated role flag               | none — the schema constrains `role: z.literal('ADMIN')`               | none                   | resolver treats any non-ADMIN response as malformed                      | `admin-session-server.test.ts` proves the validator rejects | none                                                                                                           |
 
 ---
 
@@ -212,21 +212,21 @@ returns `{ authenticated: true }`, and the resolver returns
 
 ## 9. Files changed
 
-| File | Change |
-|------|--------|
-| `apps/web/src/app/admin/layout.tsx` | shrunk to chrome-free login wrapper |
-| `apps/web/src/app/admin/(protected)/layout.tsx` | NEW — server-side admin authority gate |
-| `apps/web/src/app/admin/(protected)/**` | moved 20 protected pages into the route group; relative imports re-aligned |
-| `apps/web/src/components/admin-access-guard.tsx` | DELETED — replaced by server layout |
-| `apps/web/src/lib/admin-session-server.ts` | NEW — runtime validator |
-| `apps/web/src/lib/admin-session-server.test.ts` | NEW — 9 focused unit tests |
-| `apps/web/src/lib/i18n/messages.ts` | added `admin.serverAccessDenied`, `admin.serverSessionInvalid`, `admin.serverCustomerDenied` (vi + en) |
-| `apps/web/test/phase8i-critical-surfaces.a11y.test.tsx` | updated admin path import |
-| `apps/web/test/admin-payment-detail-page.test.tsx` | updated admin path import |
-| `apps/web/test/admin-payments-page.test.tsx` | updated admin path import |
-| `packages/contracts/package.json` | added `./admin` subpath export |
-| `tests/e2e/phase-3a-admin-server-gate.spec.ts` | NEW — focused Playwright suite |
-| `scripts/fix-protected-imports.mjs` | NEW — helper used by the move commit (kept under `scripts/` for traceability) |
+| File                                                    | Change                                                                                                 |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `apps/web/src/app/admin/layout.tsx`                     | shrunk to chrome-free login wrapper                                                                    |
+| `apps/web/src/app/admin/(protected)/layout.tsx`         | NEW — server-side admin authority gate                                                                 |
+| `apps/web/src/app/admin/(protected)/**`                 | moved 20 protected pages into the route group; relative imports re-aligned                             |
+| `apps/web/src/components/admin-access-guard.tsx`        | DELETED — replaced by server layout                                                                    |
+| `apps/web/src/lib/admin-session-server.ts`              | NEW — runtime validator                                                                                |
+| `apps/web/src/lib/admin-session-server.test.ts`         | NEW — 9 focused unit tests                                                                             |
+| `apps/web/src/lib/i18n/messages.ts`                     | added `admin.serverAccessDenied`, `admin.serverSessionInvalid`, `admin.serverCustomerDenied` (vi + en) |
+| `apps/web/test/phase8i-critical-surfaces.a11y.test.tsx` | updated admin path import                                                                              |
+| `apps/web/test/admin-payment-detail-page.test.tsx`      | updated admin path import                                                                              |
+| `apps/web/test/admin-payments-page.test.tsx`            | updated admin path import                                                                              |
+| `packages/contracts/package.json`                       | added `./admin` subpath export                                                                         |
+| `tests/e2e/phase-3a-admin-server-gate.spec.ts`          | NEW — focused Playwright suite                                                                         |
+| `scripts/fix-protected-imports.mjs`                     | NEW — helper used by the move commit (kept under `scripts/` for traceability)                          |
 
 ---
 
@@ -301,12 +301,12 @@ final authority. It will run on a clean environment.
 
 ## 13. Failures / deferred items
 
-| Item | Status |
-|------|--------|
-| Focused Playwright auth run | DEFERRED (port 1025 occupied by external process) |
-| Existing `admin-auth.spec.ts` | unchanged, still tests ADMIN sign-in + 401 after logout |
-| `@room/contracts` openapi reproducibility test | pre-existing failure, not in scope |
-| Database / integration gates | not run (Phase 3A changes no DB code) |
+| Item                                           | Status                                                  |
+| ---------------------------------------------- | ------------------------------------------------------- |
+| Focused Playwright auth run                    | DEFERRED (port 1025 occupied by external process)       |
+| Existing `admin-auth.spec.ts`                  | unchanged, still tests ADMIN sign-in + 401 after logout |
+| `@room/contracts` openapi reproducibility test | pre-existing failure, not in scope                      |
+| Database / integration gates                   | not run (Phase 3A changes no DB code)                   |
 
 ---
 
