@@ -64,8 +64,8 @@ function futureLunchIso(offsetMinutes = 0) {
   };
 }
 
-export async function waitForVerificationOtp(recipientEmail) {
-  const deadline = Date.now() + 30_000;
+export async function waitForVerificationOtp(recipientEmail, timeoutMs = 30_000) {
+  const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const messagesResponse = await fetch(`${MAILPIT_API}/api/v1/messages`);
     if (messagesResponse.ok) {

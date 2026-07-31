@@ -580,14 +580,27 @@ test.describe('Phase 2 customer browser vertical', () => {
     const manageBookingCta = page.getByRole('button', { name: 'Quản lý đặt phòng' });
     await manageBookingCta.click();
     await expect(page).toHaveURL(/\/booking\/manage(\?|$)/);
+    await page.waitForLoadState('networkidle');
 
     // 13. Enter booking code and email in the OTP request panel.
     await page.getByLabel('Mã đặt phòng').fill(bookingCode);
     await page.getByLabel('Email').fill(recipientEmail);
+    const otpRequestResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v1/public/guest-access/otp/request') &&
+        response.request().method() === 'POST',
+      { timeout: 15_000 },
+    );
     await page.getByRole('button', { name: 'Gửi mã xác nhận' }).click();
+    const otpResponse = await otpRequestResponse;
+    expect(
+      otpResponse.ok(),
+      `OTP request failed: ${otpResponse.status()} ${otpResponse.statusText()}`,
+    ).toBe(true);
 
     // 14. Read OTP from Mailpit through the test helper only.
-    const otp = await waitForVerificationOtp(recipientEmail);
+    // The worker outbox runs at 250ms intervals; 45s gives enough headroom.
+    const otp = await waitForVerificationOtp(recipientEmail, 45_000);
     expect(otp).toMatch(/^\d{6}$/);
 
     // 15. Enter OTP in the browser.
