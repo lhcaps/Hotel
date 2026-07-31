@@ -42,19 +42,27 @@ export default function BookingManagePage() {
   }
 
   function handleVerified(response: GuestAccessOtpVerifyResponse) {
+    // Capture the current email BEFORE setState so we don't depend on stale
+    // state inside the updater. The redirect runs after the state update to
+    // avoid triggering React's "Cannot update a component while rendering a
+    // different component" warning.
+    let currentEmail: string | null = null;
     setState((current) => {
       if (current.kind !== 'verifying-otp') return current;
-      // Replace the OTP entry route with the persistent booking-code route so
-      // refresh and direct URL reuse rely only on the HttpOnly session cookie.
-      // The destination never contains the OTP code, email, challengeRef, or
-      // any other secret.
-      router.replace(`/booking/manage/${response.bookingCode}`);
+      currentEmail = current.email;
       return {
         kind: 'authenticated',
         bookingCode: response.bookingCode,
         email: current.email,
       };
     });
+    // Replace the OTP entry route with the persistent booking-code route so
+    // refresh and direct URL reuse rely only on the HttpOnly session cookie.
+    // The destination never contains the OTP code, email, challengeRef, or
+    // any other secret.
+    if (currentEmail !== null) {
+      router.replace(`/booking/manage/${response.bookingCode}`);
+    }
   }
 
   function resetToRequest() {

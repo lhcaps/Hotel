@@ -129,7 +129,7 @@ export function BookingDetailPanel({ bookingCode, email, onLogout }: BookingDeta
       <dl className="mt-4 grid gap-3 sm:grid-cols-2">
         <div>
           <dt className="text-sm text-slate-500">{translate(locale, 'hold.bookingCode')}</dt>
-          <dd className="font-mono text-lg font-semibold tracking-wide">{booking.bookingCode}</dd>
+          <dd className="break-all font-mono text-base font-semibold tracking-wide">{booking.bookingCode}</dd>
         </div>
         <div>
           <dt className="text-sm text-slate-500">{translate(locale, 'hold.status')}</dt>
@@ -182,9 +182,14 @@ export function BookingDetailPanel({ bookingCode, email, onLogout }: BookingDeta
         </div>
       </dl>
 
-      <p className="mt-2 text-xs text-slate-500" data-testid="booking-email">
-        {translate(locale, 'guest.queryingEmail', { email })}
-      </p>
+      {email.includes('*') ? null : (
+        <p
+          className="mt-2 text-xs text-slate-500"
+          data-testid="booking-email"
+        >
+          {translate(locale, 'guest.queryingEmail', { email })}
+        </p>
+      )}
 
       {booking.coupon !== undefined ? (
         <div className="mt-4">

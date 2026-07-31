@@ -164,11 +164,13 @@ export function GuestBookingRouteClient() {
         {isConfirmed && payment !== null ? (
           <ConfirmedSuccessPanel booking={state.booking} payment={payment} />
         ) : null}
-        <BookingDetailPanel
-          bookingCode={state.booking.bookingCode}
-          email={state.booking.contact.emailMasked.replace(/^\*+/, '')}
-          onLogout={onLogout}
-        />
+        <div data-testid="guest-booking-detail">
+          <BookingDetailPanel
+            bookingCode={state.booking.bookingCode}
+            email={state.booking.contact.emailMasked.replace(/^\*+/, '')}
+            onLogout={onLogout}
+          />
+        </div>
         <PaymentStatusSummary bookingCode={state.booking.bookingCode} />
       </div>
     </main>

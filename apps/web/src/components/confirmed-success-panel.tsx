@@ -31,7 +31,7 @@ export function ConfirmedSuccessPanel({ booking, payment }: ConfirmedSuccessPane
     >
       <h2
         id={headingId}
-        className="text-2xl font-semibold text-emerald-900"
+        className="break-words text-2xl font-semibold text-emerald-900"
         data-testid="confirmed-success-heading"
         tabIndex={-1}
       >
@@ -42,7 +42,9 @@ export function ConfirmedSuccessPanel({ booking, payment }: ConfirmedSuccessPane
       <dl className="mt-4 grid gap-3 sm:grid-cols-2">
         <div>
           <dt className="text-sm text-emerald-800">{translate(locale, 'hold.bookingCode')}</dt>
-          <dd className="font-mono text-lg font-semibold tracking-wide">{booking.bookingCode}</dd>
+          <dd className="break-all font-mono text-base font-semibold tracking-wide">
+            {booking.bookingCode}
+          </dd>
         </div>
         <div>
           <dt className="text-sm text-emerald-800">{translate(locale, 'guest.property')}</dt>
