@@ -320,7 +320,7 @@ test.describe('Phase 2 customer browser vertical', () => {
     const recipientEmail = `vn-e2e+${Date.now()}@mailpit.test`;
     await page.getByLabel('Họ và tên').fill('VN Browser OTP');
     await page.getByLabel('Email').fill(recipientEmail);
-    await page.getByLabel('Số điện thoại').fill('0900000099');
+    await page.getByLabel('Số điện thoại').fill('+84900000099');
     await page.getByRole('button', { name: 'Giữ chỗ' }).click();
     await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
     const bookingCode = (await page.getByTestId('hold-booking-code').innerText()).trim();
