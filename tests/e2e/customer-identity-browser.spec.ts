@@ -52,8 +52,10 @@ async function queueOidcUser(page: Page, options: SignInOptions): Promise<void> 
 
 async function performSignIn(page: Page): Promise<void> {
   await page.goto(`${WEB_BASE_URL}/login`);
-  await page.getByTestId('test-identity-button').click();
-  await page.waitForURL(/\/account\/bookings$/, { timeout: 30_000 });
+  await Promise.all([
+    page.waitForURL(/\/account\/bookings$/, { timeout: 30_000 }),
+    page.getByTestId('test-identity-button').click(),
+  ]);
 }
 
 async function signOut(page: Page): Promise<void> {
