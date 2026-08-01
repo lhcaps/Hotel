@@ -177,7 +177,7 @@ export function BookingDetailPanel({ bookingCode, email, onLogout }: BookingDeta
           <dd className="font-medium">
             {booking.contact.fullName}
             <br />
-            <span className="text-sm text-slate-600">{booking.contact.emailMasked}</span>
+            <span className="break-all text-sm text-slate-600">{booking.contact.emailMasked}</span>
             <br />
             <span className="text-sm text-slate-600">{booking.contact.phoneMasked}</span>
           </dd>
