@@ -18,6 +18,7 @@ RUN pnpm --filter @room/api build \
  && mkdir -p /runtime-artifacts \
  && cp -a apps/api/dist /runtime-artifacts/api-dist \
  && cp -a packages/database/dist /runtime-artifacts/database-dist \
+ && cp -a packages/database/drizzle /runtime-artifacts/database-drizzle \
  && cp -a apps/worker/dist /runtime-artifacts/worker-dist \
  && cp -a apps/web/.next/standalone /runtime-artifacts/web-standalone \
  && rm -rf node_modules apps/*/node_modules packages/*/node_modules \
@@ -26,6 +27,7 @@ RUN pnpm --filter @room/api build \
  && mkdir -p apps/web/.next \
  && cp -a /runtime-artifacts/api-dist apps/api/dist \
  && cp -a /runtime-artifacts/database-dist packages/database/dist \
+ && cp -a /runtime-artifacts/database-drizzle packages/database/dist/database/drizzle \
  && cp -a /runtime-artifacts/worker-dist apps/worker/dist \
  && cp -a /runtime-artifacts/web-standalone apps/web/.next/standalone \
  && rm -rf /runtime-artifacts

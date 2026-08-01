@@ -116,6 +116,15 @@ try {
     'packages/database',
     "await import('./dist/database/src/migrations.js'); console.log('MIGRATION_IMPORT_OK');",
   );
+  run('compiled migration journal exists', 'docker', [
+    'run',
+    '--rm',
+    '--entrypoint',
+    'test',
+    image,
+    '-f',
+    'packages/database/dist/database/drizzle/meta/_journal.json',
+  ]);
   runNode(
     'drizzle-orm resolves from database workspace',
     'packages/database',
