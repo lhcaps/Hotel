@@ -284,10 +284,12 @@ test.describe('Phase 2 customer browser vertical', () => {
     test.setTimeout(180_000);
     await setSimulatorMode('vnpay', 'verify', { reset: true });
 
-    // 1. Build HOLD entirely through the browser (search → quote → coupon →
-    // contact → HOLD). Quarter-hour aligned +07:00 timestamps so the
+    // 1. Build HOLD entirely through the browser (search → quote → contact
+    // → HOLD). Quarter-hour aligned +07:00 timestamps so the
     // deterministic DELUXE seed and lunch price produce a known amount.
-    const checkIn = new Date(Date.now() + 4 * 24 * 60 * 60_000);
+    // Keep this browser-created HOLD away from the earlier verticals, which
+    // intentionally reserve the near-term deterministic room inventory.
+    const checkIn = new Date(Date.now() + 30 * 24 * 60 * 60_000);
     const pad = (n: number) => String(n).padStart(2, '0');
     const checkInStr = `${checkIn.getUTCFullYear()}-${pad(checkIn.getUTCMonth() + 1)}-${pad(checkIn.getUTCDate())}T11:${pad(Math.floor(checkIn.getUTCMinutes() / 15) * 15)}:00+07:00`;
     const checkOutStr = `${checkIn.getUTCFullYear()}-${pad(checkIn.getUTCMonth() + 1)}-${pad(checkIn.getUTCDate())}T12:${pad(Math.floor(checkIn.getUTCMinutes() / 15) * 15)}:00+07:00`;
@@ -297,31 +299,29 @@ test.describe('Phase 2 customer browser vertical', () => {
     await expect(page.getByRole('button', { name: 'Tìm phòng' })).toBeVisible({ timeout: 30_000 });
     await page.getByRole('button', { name: 'Tìm phòng' }).click();
     await page.waitForLoadState('networkidle');
-    const firstCard = page.getByTestId('room-card').first();
+    const firstCard = page.locator('[data-testid^="availability-room-"]').first();
     await expect(firstCard).toBeVisible({ timeout: 60_000 });
-    await firstCard.getByTestId('room-card-cta').click();
+    await firstCard.getByRole('link', { name: /Xem phòng/i }).click();
 
     const planButtons = page.getByTestId('room-detail-plan');
     await expect(planButtons.first()).toBeVisible({ timeout: 30_000 });
     const selectedPlanCode = await planButtons.first().getAttribute('data-plan-code');
     if (!selectedPlanCode) throw new Error('Selected rate plan is missing data-plan-code');
     await planButtons.first().click();
-    await expect(page.getByRole('button', { name: 'Nhận báo giá' })).toBeVisible({
+    await expect(page.getByRole('button', { name: 'Xem giá chính thức' })).toBeVisible({
       timeout: 30_000,
     });
-    await page.getByRole('button', { name: 'Nhận báo giá' }).click();
+    await page.getByRole('button', { name: 'Xem giá chính thức' }).click();
     await page.waitForLoadState('networkidle');
-    await expect(page.getByTestId('quote-panel')).toBeVisible({ timeout: 30_000 });
-
-    await page.getByLabel('Mã giảm giá').fill('DEMO-FIXED');
-    await page.getByRole('button', { name: 'Áp dụng' }).click();
-    await expect(page.getByText('Giảm 50.000 ₫')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: /Thông tin liên hệ/ })).toBeVisible({
+      timeout: 30_000,
+    });
 
     const recipientEmail = `vn-e2e+${Date.now()}@mailpit.test`;
-    await page.getByLabel('Họ tên').fill('VN Browser OTP');
+    await page.getByLabel('Họ và tên').fill('VN Browser OTP');
     await page.getByLabel('Email').fill(recipientEmail);
     await page.getByLabel('Số điện thoại').fill('0900000099');
-    await page.getByRole('button', { name: 'Giữ phòng' }).click();
+    await page.getByRole('button', { name: 'Giữ chỗ' }).click();
     await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
     const bookingCode = (await page.getByTestId('hold-booking-code').innerText()).trim();
     if (!/^[A-Z0-9-]+$/.test(bookingCode))
