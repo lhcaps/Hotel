@@ -31,6 +31,7 @@ const environment = {
   TRUSTED_PROXY_CIDRS: '',
   MOMO_ENABLED: false,
   MOMO_ENVIRONMENT: 'sandbox' as const,
+  PAYMENT_DEMO_ENABLED: false,
   MOMO_REQUEST_TYPE: 'captureWallet' as const,
   MOMO_REQUEST_TIMEOUT_MS: 30_000,
   VNPAY_ENABLED: false,

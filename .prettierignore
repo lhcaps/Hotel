@@ -19,3 +19,12 @@ packages/database/drizzle/migration-provenance.json
 docs/audit/**/artifacts/
 docs/audit/api-source-map-*.md
 output/
+# Customer-delivery orchestration: PS1 wrappers, dotfile ignore lists,
+# and the runner manifest directory are intentionally not formatted by
+# Prettier.
+*.ps1
+.demo/
+.gitignore
+.prettierignore
+# pnpm owns the lockfile serialization; do not rewrite it with Prettier.
+pnpm-lock.yaml

@@ -97,6 +97,43 @@ describe('API environment', () => {
     expect(result.success).toBe(false);
   });
 
+  it('allows only an explicit production payment-demo boundary', () => {
+    const productionDemo = {
+      ...valid,
+      NODE_ENV: 'production',
+      WEB_ORIGIN: 'https://peacenest.vn',
+      AUTH_BASE_URL: 'https://peacenest.vn',
+      DATABASE_URL: 'postgresql://room:room@postgres:5432/room_management',
+      REDIS_URL: 'redis://redis:6379',
+      MOMO_ENABLED: 'true',
+      MOMO_ENVIRONMENT: 'production',
+      MOMO_PARTNER_CODE: 'PEACENEST_DEMO_MOMO',
+      MOMO_ACCESS_KEY: 'peacenest-demo-momo-access',
+      MOMO_SECRET_KEY: 'peacenest-demo-momo-secret-key-for-no-money-showcase',
+      MOMO_API_BASE_URL: 'https://payments.peacenest.vn',
+      MOMO_RETURN_URL: 'https://peacenest.vn/api/v1/payments/providers/momo/return',
+      MOMO_IPN_URL: 'https://peacenest.vn/api/v1/webhooks/momo',
+      VNPAY_ENABLED: 'true',
+      VNPAY_ENVIRONMENT: 'production',
+      VNPAY_TMN_CODE: 'PEACENESTDEMO',
+      VNPAY_HASH_SECRET: 'peacenest-demo-vnpay-secret-key-for-no-money-showcase',
+      VNPAY_API_BASE_URL: 'https://payments.peacenest.vn/vnpay-test/pay',
+      VNPAY_RETURN_URL: 'https://peacenest.vn/api/v1/payments/providers/vnpay/return',
+      VNPAY_IPN_URL: 'https://peacenest.vn/api/v1/webhooks/vnpay',
+      PAYMENT_DEMO_ENABLED: 'true',
+      PAYMENT_DEMO_PUBLIC_ORIGIN: 'https://payments.peacenest.vn',
+      PAYMENT_DEMO_INTERNAL_BASE_URL: 'http://payment-demo:3090',
+      PAYMENT_DEMO_CONTROL_TOKEN: 'peacenest-demo-control-token-at-least-thirty-two-characters',
+    };
+    expect(parseApiEnvironment(productionDemo)).toMatchObject({ success: true });
+    const invalid = parseApiEnvironment({
+      ...productionDemo,
+      VNPAY_API_BASE_URL: 'https://untrusted.example.test/vnpay-test/pay',
+    });
+    expect(invalid.success).toBe(false);
+    if (!invalid.success) expect(invalid.error.message).toContain('VNPAY_API_BASE_URL');
+  });
+
   it('rejects placeholder secrets for production API and worker configuration without printing them', () => {
     const api = parseApiEnvironment({
       ...valid,
@@ -691,6 +728,7 @@ describe('Web environment browser OAuth test mode', () => {
     LOG_LEVEL: 'silent',
     WEB_PORT: '3100',
     NEXT_PUBLIC_API_BASE_URL: 'http://127.0.0.1:3101/api/v1',
+    INTERNAL_API_BASE_URL: 'http://127.0.0.1:3101/api/v1',
     NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: 'false',
   };
 
@@ -699,6 +737,14 @@ describe('Web environment browser OAuth test mode', () => {
     expect(result).toMatchObject({ success: true });
     if (result.success) {
       expect(result.data.ROOM_TEST_OAUTH_BROWSER_ENABLED).toBe(false);
+    }
+  });
+
+  it('requires an explicit server-only API base', () => {
+    const result = parseWebEnvironment({ ...webValid, INTERNAL_API_BASE_URL: undefined });
+    expect(result).toMatchObject({ success: false });
+    if (!result.success) {
+      expect(result.error.message).toContain('INTERNAL_API_BASE_URL');
     }
   });
 

@@ -8,7 +8,10 @@ import { Redis } from 'ioredis';
 import { expireStaleHolds } from './jobs/expire-stale-holds.js';
 import { processOutbox } from './jobs/process-outbox.js';
 import { createReconciliationJob } from './jobs/process-reconciliation.js';
-import { createUnavailableReconciliationQueryProvider } from './reconciliation/query-provider.js';
+import {
+  createPaymentDemoReconciliationQueryProvider,
+  createUnavailableReconciliationQueryProvider,
+} from './reconciliation/query-provider.js';
 import { createSMTPTransport } from './email/smtp-transport.js';
 import { WorkerLifecycle } from './lifecycle.js';
 import { runWorkerContinuously, runWorkerOnce } from './scheduler/worker-runner.js';
@@ -85,7 +88,15 @@ async function bootstrap(): Promise<number> {
 
   const reconciliationJob = createReconciliationJob({
     pool,
-    queryProvider: createUnavailableReconciliationQueryProvider(),
+    queryProvider:
+      environment.PAYMENT_DEMO_ENABLED &&
+      environment.PAYMENT_DEMO_INTERNAL_BASE_URL !== undefined &&
+      environment.PAYMENT_DEMO_CONTROL_TOKEN !== undefined
+        ? createPaymentDemoReconciliationQueryProvider({
+            baseUrl: environment.PAYMENT_DEMO_INTERNAL_BASE_URL,
+            controlToken: environment.PAYMENT_DEMO_CONTROL_TOKEN,
+          })
+        : createUnavailableReconciliationQueryProvider(),
     batchSize: operationalConfig.WORKER_RECONCILIATION_BATCH_SIZE,
     leaseTtlMs: operationalConfig.WORKER_RECONCILIATION_LEASE_TTL_MS,
     concurrency: operationalConfig.WORKER_RECONCILIATION_CONCURRENCY,

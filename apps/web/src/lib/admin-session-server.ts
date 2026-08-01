@@ -1,4 +1,5 @@
 import { adminMeSchema, type AdminMe } from '@room/contracts/admin';
+import { resolveInternalApiBaseUrl } from './internal-api';
 
 /**
  * Result of a server-side check of the administrator session. The protected
@@ -48,7 +49,7 @@ export async function resolveAdminSessionFromHeaders(
   headers: AdminSessionHeaders,
   options: AdminSessionOptions = {},
 ): Promise<AdminSessionResolution> {
-  const baseUrl = options.baseUrl ?? process.env.NEXT_PUBLIC_API_BASE_URL;
+  const baseUrl = options.baseUrl ?? resolveInternalApiBaseUrl();
   if (baseUrl === undefined || baseUrl.length === 0) {
     return { kind: 'unauthenticated' };
   }

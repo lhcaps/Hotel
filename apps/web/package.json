@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node ../../scripts/with-local-env.mjs next dev --port 3000",
     "build": "next build",
+    "start": "next start",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:unit": "vitest run --exclude dist/** --passWithNoTests",

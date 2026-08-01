@@ -254,6 +254,13 @@ const apiEnvironmentSchema = sharedEnvironmentSchema
     // simulator-backed loopback redirects. Production never sets this
     // variable so the allowlist is a no-op in production.
     PAYMENT_SIMULATOR_BASE_URL: z.string().url().optional(),
+    // Explicit production-only boundary for the dedicated no-money payment
+    // demo service. This is separate from PAYMENT_SIMULATOR_BASE_URL, which
+    // remains loopback-only test infrastructure.
+    PAYMENT_DEMO_ENABLED: enabledSchema,
+    PAYMENT_DEMO_PUBLIC_ORIGIN: z.string().url().optional(),
+    PAYMENT_DEMO_INTERNAL_BASE_URL: z.string().url().optional(),
+    PAYMENT_DEMO_CONTROL_TOKEN: z.string().min(32).max(512).optional(),
     VNPAY_ENABLED: enabledSchema,
     VNPAY_ENVIRONMENT: vnpayEnvironmentSchema,
     VNPAY_TMN_CODE: z.string().min(1).max(32).optional(),
@@ -340,6 +347,92 @@ const apiEnvironmentSchema = sharedEnvironmentSchema
           value[key] === 'test-ip-digest-secret-32-chars-aaaaa'
         ) {
           addIssue(context, key, `Production ${key} must not use the test placeholder value`);
+        }
+      }
+    }
+
+    if (value.PAYMENT_DEMO_ENABLED) {
+      for (const key of [
+        'PAYMENT_DEMO_PUBLIC_ORIGIN',
+        'PAYMENT_DEMO_INTERNAL_BASE_URL',
+        'PAYMENT_DEMO_CONTROL_TOKEN',
+      ] as const) {
+        if (value[key] === undefined) {
+          addIssue(context, key, 'is required when PAYMENT_DEMO_ENABLED=true');
+        }
+      }
+      if (value.NODE_ENV !== 'production') {
+        addIssue(
+          context,
+          'PAYMENT_DEMO_ENABLED',
+          'is only allowed in production; use the loopback test simulator locally',
+        );
+      }
+      if (value.PAYMENT_SIMULATOR_BASE_URL !== undefined) {
+        addIssue(
+          context,
+          'PAYMENT_SIMULATOR_BASE_URL',
+          'must be absent when PAYMENT_DEMO_ENABLED=true',
+        );
+      }
+      if (
+        value.PAYMENT_DEMO_PUBLIC_ORIGIN !== undefined &&
+        value.PAYMENT_DEMO_INTERNAL_BASE_URL !== undefined
+      ) {
+        const publicOrigin = new URL(value.PAYMENT_DEMO_PUBLIC_ORIGIN);
+        const internal = new URL(value.PAYMENT_DEMO_INTERNAL_BASE_URL);
+        if (publicOrigin.protocol !== 'https:' || isLoopbackUrl(publicOrigin.toString())) {
+          addIssue(
+            context,
+            'PAYMENT_DEMO_PUBLIC_ORIGIN',
+            'must use a non-loopback HTTPS origin in production',
+          );
+        }
+        if (internal.protocol !== 'http:' && internal.protocol !== 'https:') {
+          addIssue(context, 'PAYMENT_DEMO_INTERNAL_BASE_URL', 'must use HTTP or HTTPS');
+        }
+        if (internal.hostname === publicOrigin.hostname) {
+          addIssue(
+            context,
+            'PAYMENT_DEMO_INTERNAL_BASE_URL',
+            'must use the private service origin, not the public payment origin',
+          );
+        }
+      }
+      if (!value.MOMO_ENABLED || !value.VNPAY_ENABLED) {
+        addIssue(
+          context,
+          'PAYMENT_DEMO_ENABLED',
+          'requires both MOMO_ENABLED and VNPAY_ENABLED to be true',
+        );
+      }
+      if (
+        value.PAYMENT_DEMO_PUBLIC_ORIGIN !== undefined &&
+        value.MOMO_API_BASE_URL !== undefined &&
+        new URL(value.PAYMENT_DEMO_PUBLIC_ORIGIN).origin !== new URL(value.MOMO_API_BASE_URL).origin
+      ) {
+        addIssue(context, 'MOMO_API_BASE_URL', 'must use PAYMENT_DEMO_PUBLIC_ORIGIN');
+      }
+      if (
+        value.PAYMENT_DEMO_PUBLIC_ORIGIN !== undefined &&
+        value.VNPAY_API_BASE_URL !== undefined &&
+        new URL(value.PAYMENT_DEMO_PUBLIC_ORIGIN).origin !==
+          new URL(value.VNPAY_API_BASE_URL).origin
+      ) {
+        addIssue(context, 'VNPAY_API_BASE_URL', 'must use PAYMENT_DEMO_PUBLIC_ORIGIN');
+      }
+      for (const key of [
+        'MOMO_RETURN_URL',
+        'MOMO_IPN_URL',
+        'VNPAY_RETURN_URL',
+        'VNPAY_IPN_URL',
+      ] as const) {
+        const candidate = value[key];
+        if (
+          candidate !== undefined &&
+          new URL(candidate).origin !== new URL(value.WEB_ORIGIN).origin
+        ) {
+          addIssue(context, key, 'must use the public WEB_ORIGIN callback host');
         }
       }
     }
@@ -697,6 +790,7 @@ const webEnvironmentSchema = sharedEnvironmentSchema
   .extend({
     WEB_PORT: positivePort,
     NEXT_PUBLIC_API_BASE_URL: urlSchema,
+    INTERNAL_API_BASE_URL: urlSchema,
     NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: z
       .enum(['true', 'false'])
       .default('false')
@@ -747,6 +841,9 @@ const workerEnvironmentSchema = sharedEnvironmentSchema
     GUEST_CHALLENGE_REF_SECRET: z.string().min(32),
     GUEST_SESSION_SECRET: z.string().min(32),
     BOOKING_IP_DIGEST_SECRET: z.string().min(32),
+    PAYMENT_DEMO_ENABLED: enabledSchema,
+    PAYMENT_DEMO_INTERNAL_BASE_URL: z.string().url().optional(),
+    PAYMENT_DEMO_CONTROL_TOKEN: z.string().min(32).max(512).optional(),
     // Phase 8B.1 (Gate B) — payment reconciliation settings shared by
     // the API and worker processes. The worker process MUST agree with
     // the API on the same retry schedule and attempt ceiling so the
@@ -763,6 +860,16 @@ const workerEnvironmentSchema = sharedEnvironmentSchema
     WORKER_RECONCILIATION_CONCURRENCY: workerReconciliationConcurrencySchema,
   })
   .superRefine((value, context) => {
+    if (value.PAYMENT_DEMO_ENABLED) {
+      if (value.NODE_ENV !== 'production') {
+        addIssue(context, 'PAYMENT_DEMO_ENABLED', 'is only allowed in production');
+      }
+      for (const key of ['PAYMENT_DEMO_INTERNAL_BASE_URL', 'PAYMENT_DEMO_CONTROL_TOKEN'] as const) {
+        if (value[key] === undefined) {
+          addIssue(context, key, 'is required when PAYMENT_DEMO_ENABLED=true');
+        }
+      }
+    }
     if (value.PAYMENT_RECONCILIATION_MAX_ATTEMPTS > 0) {
       const delays = value.PAYMENT_RECONCILIATION_RETRY_DELAYS_MS;
       if (delays.length > value.PAYMENT_RECONCILIATION_MAX_ATTEMPTS) {

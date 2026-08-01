@@ -11,6 +11,7 @@ dist/
 coverage/
 playwright-report/
 output/playwright/
+output/
 test-results/
 .turbo/
 .env
@@ -26,6 +27,7 @@ infrastructure/docker/data/
 .vscode/
 .idea/
 *.tsbuildinfo
+.demo/
 
 # Generated task log files at the repository root. Created by
 # transient validation runs and never intended for commit.
@@ -34,3 +36,4 @@ infrastructure/docker/data/
 /lint*.log
 /eslint*.log
 /final.log
+/package-demo*.log

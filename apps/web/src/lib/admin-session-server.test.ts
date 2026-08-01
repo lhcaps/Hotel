@@ -18,6 +18,7 @@ const originalFetch = globalThis.fetch;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
+  vi.unstubAllEnvs();
 });
 
 function withBaseUrl<T>(call: () => Promise<T>): Promise<T> {
@@ -29,6 +30,26 @@ function resolve(headers: Parameters<typeof resolveAdminSessionFromHeaders>[0]) 
 }
 
 describe('resolveAdminSessionFromHeaders', () => {
+  it('uses the server-only internal API base instead of the browser public base', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_BASE_URL', 'https://peacenest.vn/api/v1');
+    vi.stubEnv('INTERNAL_API_BASE_URL', 'http://api:3001/api/v1');
+    const fetchMock = vi.fn(async () =>
+      jsonResponse(200, {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        email: 'admin@example.test',
+        displayName: 'Administrator',
+        role: 'ADMIN',
+        permissions: ['catalog.property.read'],
+        sessionExpiresAt: '2027-01-01T00:00:00.000Z',
+      }),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await resolveAdminSessionFromHeaders({}, { probeCustomer: false });
+
+    expect(fetchMock).toHaveBeenCalledWith('http://api:3001/api/v1/admin/me', expect.any(Object));
+  });
+
   it('returns an ADMIN session when /admin/me responds with the canonical shape', async () => {
     globalThis.fetch = vi.fn(async () =>
       jsonResponse(200, {

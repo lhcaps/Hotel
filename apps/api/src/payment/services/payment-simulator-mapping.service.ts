@@ -13,7 +13,36 @@ interface PublishMappingInput {
   readonly bookingCode: string;
 }
 
-function resolveSimulatorBaseUrl(): string | null {
+interface MappingTarget {
+  readonly baseUrl: string;
+  readonly path: string;
+  readonly authorization?: string;
+}
+
+function resolveMappingTarget(): MappingTarget | null {
+  if (process.env.PAYMENT_DEMO_ENABLED === 'true') {
+    const baseUrl = process.env.PAYMENT_DEMO_INTERNAL_BASE_URL;
+    const controlToken = process.env.PAYMENT_DEMO_CONTROL_TOKEN;
+    if (
+      typeof baseUrl !== 'string' ||
+      baseUrl.length === 0 ||
+      typeof controlToken !== 'string' ||
+      controlToken.length < 32
+    ) {
+      return null;
+    }
+    try {
+      const parsed = new URL(baseUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+      return {
+        baseUrl: parsed.toString().replace(/\/+$/, ''),
+        path: '/__internal/order-mapping',
+        authorization: `Bearer ${controlToken}`,
+      };
+    } catch {
+      return null;
+    }
+  }
   const raw = process.env.PAYMENT_SIMULATOR_BASE_URL;
   if (typeof raw !== 'string' || raw.length === 0) return null;
   let parsed: URL;
@@ -24,28 +53,30 @@ function resolveSimulatorBaseUrl(): string | null {
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
   if (!LOOPBACK_HOSTS.has(parsed.hostname.toLowerCase())) return null;
-  return parsed.toString().replace(/\/+$/, '');
+  return { baseUrl: parsed.toString().replace(/\/+$/, ''), path: '/__sim/order-mapping' };
 }
 
 /**
  * Push an `(orderId → bookingCode)` mapping to the locally-running payment
- * simulator so its browser-side redirect can use the authoritative booking
+ * demo payment service so its browser-side redirect can use the authoritative booking
  * code instead of the provider's opaque orderId. This is a non-production
- * side-effect: the simulator only binds to loopback, refuses non-loopback
- * callers, and refuses to start under NODE_ENV=production, so production
- * deployments short-circuit this helper before any HTTP call.
+ * side-effect: local simulator mapping remains loopback-only. The separately
+ * configured public demo service uses a private Docker URL and a bearer token
+ * before it accepts a mapping; it is never controlled from a browser.
  */
 export async function publishSimulatorBookingCodeMapping(
   input: PublishMappingInput,
 ): Promise<void> {
-  if (process.env.NODE_ENV === 'production') return;
   if (input.orderId.length === 0 || input.bookingCode.length === 0) return;
-  const base = resolveSimulatorBaseUrl();
-  if (base === null) return;
+  const target = resolveMappingTarget();
+  if (target === null) return;
   try {
-    const response = await fetch(`${base}/__sim/order-mapping`, {
+    const response = await fetch(`${target.baseUrl}${target.path}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        ...(target.authorization === undefined ? {} : { authorization: target.authorization }),
+      },
       body: JSON.stringify({
         orderId: input.orderId,
         bookingCode: input.bookingCode,

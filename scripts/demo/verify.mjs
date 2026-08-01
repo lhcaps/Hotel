@@ -23,8 +23,13 @@ async function tryFetch(url, opts = {}) {
   try {
     const r = await fetch(url, { ...opts, signal: AbortSignal.timeout(5000) });
     return { ok: r.ok, status: r.status, body: await r.text().catch(() => '') };
-  } catch (e) {
-    return { ok: false, status: 0, body: '', error: e.message };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      body: '',
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
@@ -66,7 +71,9 @@ async function main() {
         names.includes('Standard') &&
         names.includes('Deluxe') &&
         names.includes('Signature');
-    } catch {}
+    } catch {
+      // Invalid response body is a failed verification result.
+    }
   }
   record('customer.public.room-types', rtOk, `count=${rtCount}`);
 
@@ -81,7 +88,9 @@ async function main() {
       const body = JSON.parse(providers.body);
       providerNames = body.map((p) => p.provider);
       providersOk = providerNames.includes('MOMO') && providerNames.includes('VNPAY');
-    } catch {}
+    } catch {
+      // Invalid response body is a failed verification result.
+    }
   }
   record('customer.payment-providers', providersOk, `providers=${providerNames.join(',')}`);
 

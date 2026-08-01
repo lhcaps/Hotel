@@ -3,27 +3,21 @@
 // session cookie.
 
 import { type NextRequest, NextResponse } from 'next/server';
+import { resolveInternalApiOrigin } from '../../../../lib/internal-api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const SESSION_COOKIE_NAME = 'better-auth.session_token';
 
-function apiOrigin(): string | undefined {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (base === undefined || base.length === 0) return undefined;
-  try {
-    return new URL(base).origin;
-  } catch {
-    return undefined;
-  }
-}
-
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const origin = apiOrigin();
+  const origin = resolveInternalApiOrigin();
   if (origin === undefined) {
     return NextResponse.json(
-      { code: 'API_BASE_URL_MISSING', message: 'API base URL is not configured.' },
+      {
+        code: 'INTERNAL_API_BASE_URL_MISSING',
+        message: 'Internal API base URL is not configured.',
+      },
       { status: 500 },
     );
   }
