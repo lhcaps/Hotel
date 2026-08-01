@@ -1,0 +1,13 @@
+{
+  "name": "@room/payment-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node --check main.mjs",
+    "start": "node main.mjs",
+    "lint": "eslint main.mjs test",
+    "typecheck": "node --check main.mjs",
+    "test:unit": "node --test test/*.test.mjs"
+  }
+}

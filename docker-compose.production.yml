@@ -1,0 +1,157 @@
+name: room-management
+
+x-app: &app
+  build:
+    context: .
+    args:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://example.invalid/api/v1}
+      RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
+  restart: unless-stopped
+  env_file:
+    - path: ./deploy/.env.production
+      required: false
+  environment:
+    RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
+  labels:
+    org.opencontainers.image.revision: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
+  networks:
+    - private
+
+services:
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_started
+      api:
+        condition: service_healthy
+      payment-demo:
+        condition: service_started
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-}
+      PAYMENT_DEMO_DOMAIN: ${PAYMENT_DEMO_DOMAIN:-}
+    env_file:
+      - path: ./deploy/.env.production
+        required: false
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - private
+      - edge
+
+  web:
+    <<: *app
+    command: ['node', 'apps/web/.next/standalone/apps/web/server.js']
+    environment:
+      PORT: '3000'
+      HOSTNAME: '0.0.0.0'
+      RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
+    expose:
+      - '3000'
+
+  payment-demo:
+    <<: *app
+    command: ['node', 'apps/payment-demo/main.mjs']
+    environment:
+      PAYMENT_DEMO_HOST: '0.0.0.0'
+      PAYMENT_DEMO_PORT: '3090'
+      RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
+    expose:
+      - '3090'
+
+  api:
+    <<: *app
+    command: ['node', 'apps/api/dist/apps/api/src/main.js']
+    environment:
+      API_HOST: '0.0.0.0'
+      API_PORT: '3001'
+      RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
+    expose:
+      - '3001'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/api/v1/health/ready').then((r) => process.exit(r.status === 200 ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+
+  worker:
+    <<: *app
+    command: ['node', 'apps/worker/dist/src/main.js']
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  migrate:
+    <<: *app
+    command: ['node', 'packages/database/dist/database/scripts/migrate.js']
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18.1-alpine
+    restart: unless-stopped
+    env_file:
+      - path: ./deploy/.env.production
+        required: false
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_DB: ${POSTGRES_DB:-}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    networks:
+      - private
+
+  redis:
+    image: redis:8.4.0-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    networks:
+      - private
+
+networks:
+  edge: {}
+  private:
+    internal: true
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
+  postgres_data: {}
+  redis_data: {}

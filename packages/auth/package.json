@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@room/eslint-config": "workspace:*",
-    "@room/typescript-config": "workspace:*"
+    "@room/typescript-config": "workspace:*",
+    "tsx": "4.21.0"
   }
 }

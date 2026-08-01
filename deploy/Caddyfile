@@ -1,0 +1,20 @@
+{$PUBLIC_DOMAIN} {
+	encode zstd gzip
+
+	@api path /api/v1/*
+	reverse_proxy @api api:3001
+
+	@auth path /api/auth/*
+	reverse_proxy @auth api:3001
+
+	reverse_proxy web:3000
+}
+
+www.{$PUBLIC_DOMAIN} {
+	redir https://{$PUBLIC_DOMAIN}{uri} permanent
+}
+
+{$PAYMENT_DEMO_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy payment-demo:3090
+}

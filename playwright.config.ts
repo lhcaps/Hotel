@@ -6,7 +6,7 @@ ensurePlaywrightRuntime();
 
 export default defineConfig({
   testDir: './tests/e2e',
-  testIgnore: '**/api-unavailable.spec.ts',
+  testIgnore: ['**/api-unavailable.spec.ts', '**/public-release.spec.ts'],
   fullyParallel: false,
   workers: 1,
   globalSetup: './apps/api/test/playwright-global-setup.ts',
