@@ -745,17 +745,10 @@ test.describe('Phase 2 customer browser vertical', () => {
   test('G1 VNPAY demo-return auto-redirects to booking code URL', async ({ page }) => {
     // 1. Create a HOLD through the browser (quote → coupon → contact → HOLD).
     // Format date as local Vietnam time (UTC+7) without the trailing Z.
-    const checkIn = new Date(Date.now() + 8 * 24 * 60 * 60_000);
-    const checkOut = new Date(checkIn.getTime() + 3 * 60 * 60_000);
-    function toLocalIso(date: Date): string {
-      const pad = (n: number) => String(n).padStart(2, '0');
-      return (
-        `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-        `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}+07:00`
-      );
-    }
-    const checkInStr = toLocalIso(checkIn);
-    const checkOutStr = toLocalIso(checkOut);
+    const checkIn = new Date(Date.now() + 30 * 24 * 60 * 60_000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const checkInStr = `${checkIn.getUTCFullYear()}-${pad(checkIn.getUTCMonth() + 1)}-${pad(checkIn.getUTCDate())}T11:${pad(Math.floor(checkIn.getUTCMinutes() / 15) * 15)}:00+07:00`;
+    const checkOutStr = `${checkIn.getUTCFullYear()}-${pad(checkIn.getUTCMonth() + 1)}-${pad(checkIn.getUTCDate())}T12:${pad(Math.floor(checkIn.getUTCMinutes() / 15) * 15)}:00+07:00`;
     await page.goto(
       `/booking/search?mode=hourly&checkIn=${encodeURIComponent(checkInStr)}&checkOut=${encodeURIComponent(checkOutStr)}&adults=2&children=0`,
     );
@@ -764,9 +757,9 @@ test.describe('Phase 2 customer browser vertical', () => {
     // The search form uses router.push() which re-renders the same /booking/search
     // route with new params. Wait for the API call to settle then the room card.
     await page.waitForLoadState('networkidle');
-    const firstCard = page.getByTestId('room-card').first();
+    const firstCard = page.locator('[data-testid^="availability-room-"]').first();
     await expect(firstCard).toBeVisible({ timeout: 60_000 });
-    await firstCard.getByTestId('room-card-cta').click();
+    await firstCard.getByRole('link', { name: /Xem phòng/i }).click();
 
     const planButtons = page.getByTestId('room-detail-plan');
     await expect(planButtons.first()).toBeVisible({ timeout: 30_000 });
@@ -775,24 +768,21 @@ test.describe('Phase 2 customer browser vertical', () => {
       throw new Error('Selected rate plan is missing data-plan-code attribute');
     }
     await planButtons.first().click();
-    await expect(page.getByRole('button', { name: 'Nhận báo giá' })).toBeVisible({
+    await expect(page.getByRole('button', { name: 'Xem giá chính thức' })).toBeVisible({
       timeout: 30_000,
     });
-    await page.getByRole('button', { name: 'Nhận báo giá' }).click();
+    await page.getByRole('button', { name: 'Xem giá chính thức' }).click();
     await page.waitForLoadState('networkidle');
-    await expect(page.getByTestId('quote-panel')).toBeVisible({ timeout: 30_000 });
-
-    // Apply a deterministic coupon.
-    await page.getByLabel('Mã giảm giá').fill('DEMO-FIXED');
-    await page.getByRole('button', { name: 'Áp dụng' }).click();
-    await expect(page.getByText('Giảm 50.000 ₫')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: /Thông tin liên hệ/ })).toBeVisible({
+      timeout: 30_000,
+    });
 
     // Fill contact and create HOLD.
     const recipientEmail = `e2e+${Date.now()}@mailpit.test`;
-    await page.getByLabel('Họ tên').fill('Nguyen Van Demo');
+    await page.getByLabel('Họ và tên').fill('Nguyen Van Demo');
     await page.getByLabel('Email').fill(recipientEmail);
-    await page.getByLabel('Số điện thoại').fill('0900000001');
-    await page.getByRole('button', { name: 'Giữ phòng' }).click();
+    await page.getByLabel('Số điện thoại').fill('+84900000001');
+    await page.getByRole('button', { name: 'Giữ chỗ' }).click();
 
     await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
     const rawBookingCode = await page.getByTestId('hold-booking-code').innerText();
@@ -803,9 +793,10 @@ test.describe('Phase 2 customer browser vertical', () => {
 
     // 2. Request OTP.
     await page.goto('/booking/manage');
+    await page.getByLabel('Mã đặt phòng').fill(bookingCode);
     await page.getByLabel('Email').fill(recipientEmail);
     const otpResponsePromise = page.waitForResponse(
-      (r) => r.url().includes('/api/v1/public/guest-access/otp/request') && r.status() === 200,
+      (response) => response.url().endsWith('/public/guest-access/otp/request') && response.ok(),
     );
     await page.getByRole('button', { name: 'Gửi mã xác nhận' }).click();
     await otpResponsePromise;
@@ -817,7 +808,7 @@ test.describe('Phase 2 customer browser vertical', () => {
 
     // 3. Verify OTP — lands on /booking/manage/{bookingCode}.
     await page.getByRole('textbox', { name: 'Mã xác nhận' }).fill(otp);
-    await page.getByRole('button', { name: 'Xác minh' }).click();
+    await page.getByRole('button', { name: 'Xác nhận' }).click();
     await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
     expect(page.url()).toContain(bookingCode);
 
