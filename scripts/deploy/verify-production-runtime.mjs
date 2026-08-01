@@ -53,7 +53,7 @@ function assertRuntimeDependencies(workspace) {
   return runNode(
     `runtime dependencies resolve from ${workspace}`,
     workspace,
-    "import { readFile } from 'node:fs/promises'; const manifest = JSON.parse(await readFile('package.json', 'utf8')); for (const dependency of Object.keys(manifest.dependencies ?? {})) { const dependencyManifest = JSON.parse(await readFile(`node_modules/${dependency}/package.json`, 'utf8')); const exportsEntry = dependencyManifest.exports; const hasJavaScriptEntry = Boolean(dependencyManifest.main || dependencyManifest.module || typeof exportsEntry === 'string' || exportsEntry?.['.']); if (hasJavaScriptEntry) console.log(`${dependency}=${import.meta.resolve(dependency)}`); else console.log(`${dependency}=STYLE_ONLY_SKIPPED`); }",
+    "import { readFile } from 'node:fs/promises'; const manifest = JSON.parse(await readFile('package.json', 'utf8')); for (const dependency of Object.keys(manifest.dependencies ?? {})) { const dependencyManifest = JSON.parse(await readFile(`node_modules/${dependency}/package.json`, 'utf8')); const exportsEntry = dependencyManifest.exports; const candidates = [dependencyManifest.main, dependencyManifest.module, typeof exportsEntry === 'string' ? exportsEntry : undefined, exportsEntry?.['.']?.import, exportsEntry?.['.']?.default, exportsEntry?.['.']?.require].filter((entry) => typeof entry === 'string'); const hasJavaScriptEntry = candidates.some((entry) => !entry.endsWith('.css')); if (hasJavaScriptEntry) console.log(`${dependency}=${import.meta.resolve(dependency)}`); else console.log(`${dependency}=STYLE_ONLY_SKIPPED`); }",
   );
 }
 
