@@ -341,7 +341,7 @@ test.describe('Phase 2 customer browser vertical', () => {
     if (!/^\d{6}$/.test(otp)) throw new Error(`Invalid OTP delivered for ${recipientEmail}`);
 
     await page.getByRole('textbox', { name: 'Mã xác nhận' }).fill(otp);
-    await page.getByRole('button', { name: 'Xác minh' }).click();
+    await page.getByRole('button', { name: 'Xác nhận' }).click();
     await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
     expect(page.url()).toContain(bookingCode);
     const listener = attachListeners(page);
