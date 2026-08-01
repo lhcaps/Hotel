@@ -120,7 +120,7 @@ export function BookingDetailPanel({ bookingCode, email, onLogout }: BookingDeta
   return (
     <section
       aria-labelledby={`${formId}-heading`}
-      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
     >
       <h2 id={`${formId}-heading`} className="text-xl font-semibold">
         {translate(locale, 'guest.detailHeading')}
