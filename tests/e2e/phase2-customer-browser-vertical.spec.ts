@@ -24,6 +24,7 @@ import {
 } from './_fixtures/payment-test-helpers.mjs';
 
 const WEB_BASE = process.env.PAYMENT_TEST_WEB_BASE ?? 'http://127.0.0.1:3100';
+const API_BASE = process.env.PAYMENT_TEST_API_BASE ?? 'http://127.0.0.1:3101/api/v1';
 const MAILPIT_API = process.env.MAILPIT_API ?? 'http://127.0.0.1:8025';
 const ROOM_TYPE_ID = '10000000-0000-4000-8000-000000000201';
 
@@ -865,42 +866,32 @@ test.describe('Phase 2 customer browser vertical', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // G5 — Public catalog unavailable state.
-  // Intercepts the real /api/v1/public/room-types response to return 500 and
-  // asserts the landing renders the truthful unavailable state with no room
-  // cards. The landing server component reads its data via that endpoint.
+  // G5 — Public catalog is server-rendered; browser-level routing cannot
+  // intercept its server-side fetch. Validate the rendered browser surface
+  // here; null and empty state mapping remains covered by unit tests.
   // ---------------------------------------------------------------------------
-  test('G5 catalog API 500 shows unavailable state, no room cards', async ({ page }) => {
-    await page.route('**/api/v1/public/room-types', (route) =>
-      route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"boom"}' }),
-    );
-    await page.goto('/');
-    await expect(page.getByRole('alert')).toBeVisible({ timeout: 15_000 });
-    await expect(
-      page.getByRole('heading', { name: 'Không thể tải danh sách hạng phòng' }),
-    ).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Thử lại' })).toBeVisible();
+  test('G5 public catalog renders server-backed room types without static room cards', async ({
+    page,
+  }) => {
+    await page.goto('/rooms');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.room-catalog-list__item').first()).toBeVisible();
     await expect(page.getByTestId('room-card')).toHaveCount(0);
   });
 
   // ---------------------------------------------------------------------------
-  // G5 — Public catalog empty state. Intercepts the real catalog API to
-  // return a valid empty payload and asserts the empty heading renders
-  // with zero room cards and no unavailable alert.
+  // G5 — Public catalog API contract is safe for browser consumers.
   // ---------------------------------------------------------------------------
-  test('G5 catalog API empty array shows empty state, no room cards', async ({ page }) => {
-    await page.route('**/api/v1/public/room-types', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: '{"items":[]}',
-      }),
-    );
-    await page.goto('/');
-    await expect(
-      page.getByRole('heading', { name: 'Chưa có hạng phòng đang được mở bán' }),
-    ).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId('room-card')).toHaveCount(0);
+  test('G5 public catalog API omits physical-room operations data', async ({ request }) => {
+    const response = await request.get(`${API_BASE}/public/room-types`);
+    expect(response.ok()).toBe(true);
+    const body = (await response.json()) as { readonly items: readonly Record<string, unknown>[] };
+    expect(body.items.length).toBeGreaterThan(0);
+    for (const room of body.items) {
+      expect(room).not.toHaveProperty('roomNumber');
+      expect(room).not.toHaveProperty('propertyId');
+      expect(room).not.toHaveProperty('housekeepingStatus');
+    }
   });
 
   // ---------------------------------------------------------------------------
