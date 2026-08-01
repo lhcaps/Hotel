@@ -13,6 +13,13 @@ title = "Room Management secret scanning policy"
   ]
 
 [[allowlists]]
+  description = "Literal deployment-template placeholders are not credentials"
+  paths = ["deploy/.env.production.example"]
+  regexes = [
+    '''REPLACE_WITH_32_PLUS_CHAR_(AUTH|OTP|CHALLENGE|SESSION|IP_DIGEST|PAYMENT_DEMO_CONTROL|MOMO|VNPAY)_SECRET''',
+  ]
+
+[[allowlists]]
   description = "Historical non-production bootstrap test password removed from current source"
   commits = ["0be2516cfa244ff5a55f8aea5a91b929c7f97024"]
   paths = ["packages/auth/test/bootstrap.test.ts"]
