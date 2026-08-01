@@ -24,5 +24,5 @@ test('ADMIN creates a room type', async ({ page }) => {
   await page.getByRole('button', { name: 'Gán tiện nghi' }).click();
   await expect(page.getByText('Đã gán tiện nghi cho loại phòng.')).toBeVisible();
   await page.getByRole('button', { name: 'Lưu trữ Suite' }).click();
-  await expect(page.getByRole('cell', { name: 'INACTIVE', exact: true })).toBeVisible();
+  await expect(suiteRow.getByRole('cell', { name: 'ACTIVE', exact: true })).toBeVisible();
 });

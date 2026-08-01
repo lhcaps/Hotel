@@ -500,6 +500,7 @@ export default async function globalSetup(_config: FullConfig): Promise<() => Pr
         MOMO_ACCESS_KEY: 'playwright-momo-access-key',
         MOMO_SECRET_KEY: 'playwright-momo-secret-key-at-least-thirty-two-characters',
         MOMO_API_BASE_URL: paymentSimulator.baseUrl,
+        PAYMENT_SIMULATOR_BASE_URL: paymentSimulator.baseUrl,
         MOMO_RETURN_URL: 'http://127.0.0.1:3101/api/v1/payments/providers/momo/return',
         MOMO_IPN_URL: 'http://127.0.0.1:3101/api/v1/webhooks/momo',
         MOMO_REQUEST_TIMEOUT_MS: '30000',
@@ -523,6 +524,10 @@ export default async function globalSetup(_config: FullConfig): Promise<() => Pr
         // ROOM_TEST_OAUTH_BROWSER_ENABLED and ROOM_TEST_OAUTH_PROVIDER_ID.
         ROOM_TEST_OAUTH_BROWSER_ENABLED: 'true',
         ...PLAYWRIGHT_GUEST_SECRETS,
+        // The suite drives many independent guest OTP verticals from the
+        // same loopback address. Keep production's default anti-abuse limit
+        // intact while preventing one spec from rate-limiting another.
+        GUEST_OTP_IP_LIMIT: '1000',
       },
     );
     servers.push(api);

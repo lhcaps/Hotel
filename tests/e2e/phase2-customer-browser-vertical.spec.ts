@@ -250,7 +250,7 @@ test.describe('Phase 2 customer browser vertical', () => {
       { timeoutMs: 15_000 },
     );
 
-    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Za-z0-9-]+$/, { timeout: 30_000 });
     expect(page.url()).toContain(booking.bookingCode);
     await settlePayment(booking.bookingCode, booking.guestSessionCookie, listener);
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
