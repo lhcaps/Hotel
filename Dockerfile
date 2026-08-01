@@ -20,7 +20,8 @@ RUN pnpm --filter @room/api build \
  && cp -a packages/database/dist /runtime-artifacts/database-dist \
  && cp -a apps/worker/dist /runtime-artifacts/worker-dist \
  && cp -a apps/web/.next/standalone /runtime-artifacts/web-standalone \
- && CI=true pnpm prune --prod \
+ && rm -rf node_modules apps/*/node_modules packages/*/node_modules \
+ && pnpm install --prod --frozen-lockfile \
  && rm -rf apps/api/dist apps/worker/dist apps/web/.next/standalone packages/database/dist \
  && mkdir -p apps/web/.next \
  && cp -a /runtime-artifacts/api-dist apps/api/dist \
