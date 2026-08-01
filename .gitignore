@@ -17,6 +17,7 @@ test-results/
 .env
 .env.*
 !.env.example
+!deploy/.env.production.example
 *.log
 logs/
 .toolcache/
