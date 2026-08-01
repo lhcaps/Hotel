@@ -341,7 +341,7 @@ test.describe('Final local demo acceptance', () => {
     });
     const { bookingCode, recipientEmail } = await buildCustomerBooking(
       page,
-      /Thanh toán qua VNPAY/,
+      /Thanh toán qua VNPay/,
     );
     await expect(page).toHaveURL(new RegExp(`/booking/manage/${bookingCode}$`), {
       timeout: 30_000,
