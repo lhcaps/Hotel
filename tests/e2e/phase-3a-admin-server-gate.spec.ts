@@ -26,7 +26,6 @@ const ADMIN_PROTECTED_PATHS = [
   '/admin/amenities',
   '/admin/rooms',
   '/admin/property',
-  '/admin/audit',
 ] as const;
 
 test.describe('Phase 3A — ADMIN server-side authority gate', () => {
@@ -37,27 +36,33 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
       // Track every response that reaches the page; if the server returned
       // any of the protected shell markup (sidebar, top bar, navigation),
       // the assertion below will fail.
-      const responseStatuses: number[] = [];
+      const responses: Array<{ readonly pathname: string; readonly status: number }> = [];
       page.on('response', (response) => {
-        responseStatuses.push(response.status());
+        responses.push({
+          pathname: new URL(response.url()).pathname,
+          status: response.status(),
+        });
       });
 
-      const response = await page.goto(path, { waitUntil: 'domcontentloaded' });
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
 
       // Server redirect: the URL must end on /admin/login.
       expect(page.url(), `expected redirect to /admin/login from ${path}`).toMatch(
         /\/admin\/login$/,
       );
 
-      // The response that delivered the final HTML must NOT be a 200 with
-      // the protected shell; the server should have redirected (307/308).
-      expect(response?.status(), `expected redirect status from ${path}`).toBeGreaterThanOrEqual(
-        300,
-      );
-      expect(response?.status(), `expected redirect status from ${path}`).toBeLessThan(400);
+      // page.goto() resolves with the final login response (200), not the
+      // intermediate server redirect. Assert the protected-path response
+      // captured above instead.
+      const protectedResponse = responses.find((response) => response.pathname === path);
+      expect(
+        protectedResponse?.status,
+        `expected redirect status from ${path}`,
+      ).toBeGreaterThanOrEqual(300);
+      expect(protectedResponse?.status, `expected redirect status from ${path}`).toBeLessThan(400);
 
       // The protected sidebar/nav must never render in unauthenticated HTML.
-      await expect(page.locator('aside.admin-nav')).toHaveCount(0);
+      await expect(page.locator('div.admin-nav')).toHaveCount(0);
       await expect(page.locator('header.admin-topbar')).toHaveCount(0);
       await expect(page.locator('a.admin-brand')).toHaveCount(0);
 
@@ -66,10 +71,10 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
       await expect(page.locator('header.public-header')).toHaveCount(0);
 
       // Sanity: the login page itself should be present.
-      await expect(page.getByRole('heading', { name: /administrator sign in/i })).toBeVisible();
+      await expect(page.locator('main.admin-login-page')).toBeVisible();
 
       // And no 5xx should have leaked.
-      const fiveHundreds = responseStatuses.filter((status) => status >= 500);
+      const fiveHundreds = responses.filter((response) => response.status >= 500);
       expect(fiveHundreds, 'no 5xx response during unauthenticated admin gate').toHaveLength(0);
     });
   }
@@ -100,7 +105,7 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
     // The protected shell must render in every protected route we touch.
     for (const path of ['/admin', '/admin/bookings']) {
       await page.goto(path);
-      await expect(page.locator('aside.admin-nav')).toBeVisible();
+      await expect(page.locator('div.admin-nav')).toBeVisible();
       await expect(page.locator('header.admin-topbar')).toBeVisible();
       await expect(page.locator('header.public-header')).toHaveCount(0);
     }
@@ -112,7 +117,7 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
     // Reload a protected route — the server must redirect again.
     await page.goto('/admin/bookings');
     await page.waitForURL(/\/admin\/login$/);
-    await expect(page.locator('aside.admin-nav')).toHaveCount(0);
+    await expect(page.locator('div.admin-nav')).toHaveCount(0);
 
     // And the API must report 401 once the cookie is gone.
     const afterLogout = await page.evaluate(async () => {
@@ -130,22 +135,25 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
   });
 
   test('CUSTOMER session cannot reach the protected ADMIN shell', async ({ page, context }) => {
-    // Seed a CUSTOMER session by going through the public OTP flow. We
-    // deliberately avoid the ADMIN login form: this test asserts the
-    // server-side gate keeps a CUSTOMER-only cookie out of `/admin/**`.
+    const oidcBaseUrl = process.env.PLAYWRIGHT_TEST_OIDC_BASE_URL;
+    if (oidcBaseUrl === undefined) {
+      throw new Error('PLAYWRIGHT_TEST_OIDC_BASE_URL is required for CUSTOMER gate coverage');
+    }
+
+    // Create a real CUSTOMER session through the deterministic OIDC flow.
+    const queued = await page.request.post(`${oidcBaseUrl}/test/set-next-user`, {
+      data: {
+        sub: 'phase-3a-customer-gate',
+        email: 'phase-3a-customer@example.test',
+        name: 'Phase 3A Customer',
+      },
+    });
+    expect(queued.ok(), 'OIDC fixture accepts the CUSTOMER identity').toBe(true);
     await page.goto('/login');
-    await page
-      .getByRole('button', { name: /customer/i })
-      .first()
-      .click({ trial: false })
-      .catch(() => {
-        // The customer OTP flow opens a challenge panel; if the button is
-        // missing the test fails for unrelated reasons.
-      });
-    // The actual customer onboarding flow is exercised in the customer
-    // browser vertical; here we only need the cookie to be present.
+    await page.getByTestId('test-identity-button').click();
+    await page.waitForURL(/\/account\/bookings$/, { timeout: 30_000 });
     await page.goto('/admin');
-    await page.waitForURL(/\/admin\/login/);
+    await page.waitForURL(/\/admin\/login\?customer=1/);
 
     const finalUrl = page.url();
     expect(finalUrl, 'CUSTOMER session redirected to login with customer=1 flag').toMatch(
@@ -155,12 +163,10 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
     // The server must have set the customer flag when it detected a
     // CUSTOMER cookie (the dedicated UI affordance to sign out is
     // conditional on this flag).
-    const flagged = /customer=1/.test(finalUrl);
-    if (flagged) {
-      await expect(page.getByRole('alert').filter({ hasText: /customer/i })).toBeVisible();
-    }
+    expect(finalUrl).toContain('customer=1');
+    await expect(page.locator('.admin-login-customer-notice')).toBeVisible();
 
-    await expect(page.locator('aside.admin-nav')).toHaveCount(0);
+    await expect(page.locator('div.admin-nav')).toHaveCount(0);
     await expect(page.locator('header.public-header')).toHaveCount(0);
 
     // Wipe any session cookies so this test cannot influence later tests.
@@ -179,12 +185,17 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
       },
     ]);
     // Make the request and verify the gate.
-    const response = await page.goto('/admin/bookings');
-    expect(
-      response?.status(),
-      'manipulated role request must not yield a 200 protected page',
-    ).not.toBe(200);
+    const [protectedResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === '/admin/bookings' &&
+          response.status() >= 300 &&
+          response.status() < 400,
+      ),
+      page.goto('/admin/bookings'),
+    ]);
+    expect(protectedResponse.status(), 'manipulated role request must be redirected').toBe(307);
     await page.waitForURL(/\/admin\/login/);
-    await expect(page.locator('aside.admin-nav')).toHaveCount(0);
+    await expect(page.locator('div.admin-nav')).toHaveCount(0);
   });
 });

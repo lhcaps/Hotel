@@ -538,6 +538,7 @@ export default async function globalSetup(_config: FullConfig): Promise<() => Pr
         WEB_PORT: '3100',
         NEXT_DIST_DIR: '.next-playwright',
         NEXT_PUBLIC_API_BASE_URL: 'http://127.0.0.1:3101/api/v1',
+        INTERNAL_API_BASE_URL: 'http://127.0.0.1:3101/api/v1',
         // Google is disabled in the browser OAuth vertical; the test
         // provider is the only sign-in entry point exposed by the
         // login server component.
