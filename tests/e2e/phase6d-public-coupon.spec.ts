@@ -387,12 +387,13 @@ async function runOtpAndDetailFlow(
   await page.getByLabel('Email').fill(recipientEmail);
 
   // 13. Request OTP.
+  const otpRequestResponsePromise = page.waitForResponse(
+    (response) => response.url().endsWith('/public/guest-access/otp/request') && response.ok(),
+  );
   await page.getByRole('button', { name: 'Gửi mã xác nhận' }).click();
   await expect(page.getByText(/Nếu thông tin đặt phòng hợp lệ/)).toBeVisible();
 
-  const otpRequestResponse = await page.waitForResponse(
-    (response) => response.url().endsWith('/public/guest-access/otp/request') && response.ok(),
-  );
+  const otpRequestResponse = await otpRequestResponsePromise;
   const otpRequestBody = (await otpRequestResponse.json()) as {
     readonly challengeRef: string;
   };
