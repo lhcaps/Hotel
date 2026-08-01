@@ -329,9 +329,10 @@ test.describe('Phase 2 customer browser vertical', () => {
 
     // 2. Drive OTP entirely through the browser (no direct cookie attach).
     await page.goto('/booking/manage');
+    await page.getByLabel('Mã đặt phòng').fill(bookingCode);
     await page.getByLabel('Email').fill(recipientEmail);
     const otpRequest = page.waitForResponse(
-      (r) => r.url().includes('/api/v1/public/guest-access/otp/request') && r.status() === 200,
+      (response) => response.url().endsWith('/public/guest-access/otp/request') && response.ok(),
     );
     await page.getByRole('button', { name: 'Gửi mã xác nhận' }).click();
     await otpRequest;
