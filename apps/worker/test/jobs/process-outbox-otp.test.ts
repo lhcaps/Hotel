@@ -109,13 +109,15 @@ describe('processOutbox — booking.otp.requested', () => {
     expect(finalRow?.status).toBe('PUBLISHED');
   });
 
-  it('does not include the recipient email in the log payload', async () => {
+  it('does not include the recipient email or derived OTP in the log payload', async () => {
     const { pool } = await useFixture();
     const booking = await seedBookingHold(pool, {
       contact: { normalizedEmail: 'guest@example.test' },
     });
+    const nonce = Buffer.alloc(32, 0x42);
     const challengeId = await seedOtpChallenge(pool, {
       bookingId: booking.bookingId,
+      nonce,
       expiresAt: new Date('2027-01-10T03:50:00.000Z'),
     });
     const eventId = randomUUID();
@@ -138,11 +140,7 @@ describe('processOutbox — booking.otp.requested', () => {
     for (const record of captured) {
       const serialized = JSON.stringify(record);
       expect(serialized).not.toContain('guest@example.test');
-      // booking codes contain 6 hex-ish characters (e.g. "AB23CD45EF67");
-      // OTP is exactly six digits with no surrounding dashes/formatting.
-      // Booking codes / eventIds / messageIds use UUID hex (lowercase or
-      // uppercase), so the boundary is any non-hex character.
-      expect(serialized).not.toMatch(/(^|[^A-Za-z0-9])[0-9]{6}([^0-9]|$)/);
+      expect(serialized).not.toContain(deriveOtpForChallenge(OTP_SECRET, nonce));
     }
   });
 
