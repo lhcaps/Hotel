@@ -2076,6 +2076,9 @@ a:focus {
   display: grid;
   gap: 1.75rem;
 }
+.guest-access-page__inner > * {
+  min-width: 0;
+}
 .guest-access-page__heading {
   max-width: 36rem;
 }
