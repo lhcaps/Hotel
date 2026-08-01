@@ -959,7 +959,7 @@ test.describe('Phase 2 customer browser vertical', () => {
     // both (idempotency) but only send one confirmation email. No
     // control-plane backRedirectUrl: the API server pushed the
     // (orderId → bookingCode) mapping at initiation time.
-    await setSimulatorMode('momo', 'verify', { reset: true, duplicateIpns: true });
+    await setSimulatorMode('momo', 'verify', { duplicateIpns: true });
 
     // Count IPN attempts before the click.
     const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
