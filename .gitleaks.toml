@@ -23,3 +23,33 @@ title = "Room Management secret scanning policy"
   description = "Historical non-production bootstrap test password removed from current source"
   commits = ["0be2516cfa244ff5a55f8aea5a91b929c7f97024"]
   paths = ["packages/auth/test/bootstrap.test.ts"]
+
+[[allowlists]]
+  description = "Current deterministic payment and browser test fixtures"
+  condition = "AND"
+  regexTarget = "line"
+  paths = [
+    "apps/api/test/integration/gate-b9-race-matrix.integration.test.ts",
+    "apps/api/test/payment/admin-payment-reconciliation.service.test.ts",
+    "apps/api/test/payment/gate-b1-cryptographic-conformance.test.ts",
+    "packages/auth/test/auth-factory-security.test.ts",
+    "packages/booking/test/concurrency/gate-b9-cross-provider-race.test.ts",
+    "packages/booking/test/payment/payment-settlement.test.ts",
+    "packages/booking/test/payment/reconciliation.test.ts",
+    "tests/e2e/verify-admin-contract.spec.ts",
+    "tests/e2e/verify-admin-pages.spec.ts",
+    "tests/e2e/verify-enable-providers.spec.ts",
+    "tests/e2e/verify-screenshots.spec.ts",
+  ]
+  regexes = [
+    '''^\\s*(eventKey|idempotencyKey|BETTER_AUTH_SECRET|const vnpaySecret|const PASSWORD|const ADMIN_PASSWORD)\\s*[:=]''',
+  ]
+
+[[allowlists]]
+  description = "Sandbox credential names in the MoMo runbook are documentation, not values"
+  condition = "AND"
+  regexTarget = "line"
+  paths = ["docs/runbooks/momo-sandbox.md"]
+  regexes = [
+    '''^Configure only sandbox credentials in environment:''',
+  ]

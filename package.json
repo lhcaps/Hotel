@@ -48,6 +48,7 @@
     "check:i18n-critical": "pnpm exec tsx scripts/check-i18n-critical.mts",
     "check:google-oauth": "node scripts/check-google-oauth-config.mjs",
     "check:providers": "node scripts/check-providers.mjs",
+    "check:gitleaks-fixtures": "node scripts/check-gitleaks-fixtures.mjs",
     "test:e2e:google-live-local": "node scripts/run-provider-live-acceptance.mjs google",
     "test:e2e:momo-sandbox": "node scripts/run-provider-live-acceptance.mjs momo",
     "test:e2e:vnpay-sandbox": "node scripts/run-provider-live-acceptance.mjs vnpay",
