@@ -2,8 +2,11 @@ import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
+import { resolveCommandInvocation } from '../command-executable.mjs';
+
 const root = resolve(import.meta.dirname, '../..');
 const composeFile = resolve(root, 'docker-compose.production.yml');
+const environmentValidator = resolve(root, 'scripts/deploy/validate-production-environment.mts');
 const required = [
   'RELEASE_SHA',
   'PUBLIC_DOMAIN',
@@ -33,17 +36,33 @@ if (failures.length > 0) {
   process.stderr.write(`Production preflight failed: ${failures.join(', ')}\n`);
   process.exitCode = 1;
 } else {
-  const result = spawnSync('docker', ['compose', '-f', composeFile, 'config', '--quiet'], {
+  const validatorInvocation = resolveCommandInvocation('tsx', [environmentValidator]);
+  const environmentResult = spawnSync(validatorInvocation.executable, validatorInvocation.args, {
     cwd: root,
     encoding: 'utf8',
     env: process.env,
+    windowsHide: true,
   });
-  if (result.status !== 0) {
-    process.stderr.write('Production preflight failed: Docker Compose configuration is invalid.\n');
+  if (environmentResult.status !== 0) {
+    process.stderr.write(
+      'Production preflight failed: deployment environment contract is invalid.\n',
+    );
     process.exitCode = 1;
   } else {
-    process.stdout.write(
-      `Production preflight passed for RELEASE_SHA=${process.env.RELEASE_SHA}\n`,
-    );
+    const result = spawnSync('docker', ['compose', '-f', composeFile, 'config', '--quiet'], {
+      cwd: root,
+      encoding: 'utf8',
+      env: process.env,
+    });
+    if (result.status !== 0) {
+      process.stderr.write(
+        'Production preflight failed: Docker Compose configuration is invalid.\n',
+      );
+      process.exitCode = 1;
+    } else {
+      process.stdout.write(
+        `Production preflight passed for RELEASE_SHA=${process.env.RELEASE_SHA}\n`,
+      );
+    }
   }
 }

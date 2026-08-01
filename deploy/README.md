@@ -43,7 +43,11 @@ catalog traffic at 100 virtual users; it never requests OTP or payment flows.
 server routes from re-entering Caddy and recursively proxying into themselves.
 
 The loopback test payment simulator is intentionally absent. The separate
-`payment-demo` service is the only public payment surface: it displays a
-no-money disclosure, validates provider signatures, accepts mapping only via
-the private bearer-token endpoint, and sends callbacks to the private API URL.
-Never configure live merchant credentials for this service.
+`payment-demo` service is a public demonstration surface, but no real money is
+transferred. Its MoMo and VNPAY provider codes and signing keys are generated
+deployment secrets for this no-money service; never configure real MoMo or
+VNPAY merchant credentials. Provider-facing API URLs use
+`PAYMENT_DEMO_PUBLIC_ORIGIN`, while return and IPN callbacks terminate on the
+main `WEB_ORIGIN`. The payment-demo service validates the browser-facing
+provider signatures, accepts mapping only via its private bearer-token
+endpoint, and sends signed callbacks privately to the API service.
