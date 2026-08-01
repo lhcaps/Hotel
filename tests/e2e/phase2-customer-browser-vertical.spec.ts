@@ -899,7 +899,7 @@ test.describe('Phase 2 customer browser vertical', () => {
   // ---------------------------------------------------------------------------
   test('G7 duplicate signed webhook produces exactly one confirmation email', async ({ page }) => {
     // Build booking through browser (quote → HOLD → OTP → /booking/manage/{code}).
-    const checkIn = new Date(Date.now() + 30 * 24 * 60 * 60_000);
+    const checkIn = new Date(Date.now() + 60 * 24 * 60 * 60_000);
     const pad = (n: number) => String(n).padStart(2, '0');
     const checkInStr = `${checkIn.getUTCFullYear()}-${pad(checkIn.getUTCMonth() + 1)}-${pad(checkIn.getUTCDate())}T11:${pad(Math.floor(checkIn.getUTCMinutes() / 15) * 15)}:00+07:00`;
     const checkOutStr = `${checkIn.getUTCFullYear()}-${pad(checkIn.getUTCMonth() + 1)}-${pad(checkIn.getUTCDate())}T12:${pad(Math.floor(checkIn.getUTCMinutes() / 15) * 15)}:00+07:00`;
