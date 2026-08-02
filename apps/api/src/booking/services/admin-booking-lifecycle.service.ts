@@ -306,6 +306,8 @@ export class AdminBookingLifecycleService {
         [row.id, now, command.reason],
       );
 
+      await cancelFutureArrivalPreparation(client, row.id, now);
+
       await releaseInventoryBlock(client, row.id, now);
 
       if (from === 'HOLD') {
@@ -469,6 +471,7 @@ export class AdminBookingLifecycleService {
           WHERE id = $1`,
         [row.id, now, command.reason],
       );
+      await cancelFutureArrivalPreparation(client, row.id, now);
       await releaseInventoryBlock(client, row.id, now);
       await appendAudit(client, {
         propertyId: row.property_id,
@@ -654,6 +657,22 @@ async function releaseInventoryBlock(
             released_at = $2
       WHERE booking_id = $1
         AND status = 'ACTIVE'`,
+    [bookingId, now],
+  );
+}
+
+async function cancelFutureArrivalPreparation(
+  client: DatabasePoolClient,
+  bookingId: string,
+  now: Date,
+): Promise<void> {
+  await client.query(
+    `UPDATE housekeeping_tasks
+        SET status = 'CANCELLED', updated_at = $2
+      WHERE booking_id = $1
+        AND type = 'ARRIVAL_PREP'
+        AND status IN ('SCHEDULED', 'DUE')
+        AND due_at > $2`,
     [bookingId, now],
   );
 }

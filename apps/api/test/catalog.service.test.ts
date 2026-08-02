@@ -32,6 +32,40 @@ const property = {
 };
 
 describe('CatalogService', () => {
+  it('rejects a direct DIRTY to CLEAN housekeeping transition', async () => {
+    const room = {
+      id: '550e8400-e29b-41d4-a716-446655440111',
+      propertyId: property.id,
+      roomTypeId: '550e8400-e29b-41d4-a716-446655440112',
+      roomNumber: '111',
+      status: 'ACTIVE' as const,
+      housekeepingStatus: 'DIRTY' as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const repository = {
+      getCurrentProperty: vi.fn().mockResolvedValue(property),
+      lockRoom: vi.fn().mockResolvedValue(undefined),
+      findRoom: vi.fn().mockResolvedValue(room),
+      updateRoomHousekeeping: vi.fn(),
+    } as unknown as CatalogRepositoryPort;
+    const service = new CatalogService(
+      {
+        transaction: async <T>(operation: (transaction: unknown) => Promise<T>): Promise<T> =>
+          operation({}),
+      },
+      repository,
+      { write: vi.fn() },
+    );
+
+    await expect(
+      service.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
+    ).rejects.toMatchObject({
+      code: 'ROOM_HOUSEKEEPING_INVALID_TRANSITION',
+    });
+    expect(repository.updateRoomHousekeeping).not.toHaveBeenCalled();
+  });
+
   it('updates the single property and records one scrubbed audit event in its transaction', async () => {
     const repository: CatalogRepositoryPort = {
       getCurrentProperty: vi.fn().mockResolvedValue(property),

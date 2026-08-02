@@ -72,6 +72,7 @@ describe('worker operational config', () => {
       WORKER_MODE: 'continuous',
       WORKER_OUTBOX_INTERVAL_MS: '2000',
       WORKER_EXPIRATION_INTERVAL_MS: '30000',
+      WORKER_HOUSEKEEPING_REMINDER_INTERVAL_MS: '30000',
       WORKER_ERROR_BACKOFF_MS: '1000',
       WORKER_MAX_ERROR_BACKOFF_MS: '60000',
       WORKER_RECONCILIATION_BATCH_SIZE: '25',
@@ -86,6 +87,7 @@ describe('worker operational config', () => {
         WORKER_MODE: 'continuous',
         WORKER_OUTBOX_INTERVAL_MS: 2000,
         WORKER_EXPIRATION_INTERVAL_MS: 30000,
+        WORKER_HOUSEKEEPING_REMINDER_INTERVAL_MS: 30000,
         WORKER_ERROR_BACKOFF_MS: 1000,
         WORKER_MAX_ERROR_BACKOFF_MS: 60000,
         WORKER_RECONCILIATION_BATCH_SIZE: 25,
@@ -106,6 +108,7 @@ describe('worker operational config', () => {
       expect(result.data.WORKER_RECONCILIATION_INTERVAL_MS).toBe(30_000);
       expect(result.data.WORKER_RECONCILIATION_CONCURRENCY).toBe(5);
       expect(result.data.WORKER_RECONCILIATION_MAX_ATTEMPTS).toBe(8);
+      expect(result.data.WORKER_HOUSEKEEPING_REMINDER_INTERVAL_MS).toBe(30_000);
     }
   });
 

@@ -20,6 +20,8 @@ export type CatalogSafetyCode =
   | 'ROOM_RETYPE_FUTURE_BOOKING'
   | 'ROOM_RETYPE_ACTIVE_MAINTENANCE'
   | 'ROOM_RETYPE_FUTURE_MAINTENANCE'
+  // Housekeeping lifecycle rejections
+  | 'ROOM_HOUSEKEEPING_INVALID_TRANSITION'
   // Room-type archive rejections
   | 'ROOM_TYPE_ARCHIVE_ACTIVE_ROOMS'
   | 'ROOM_TYPE_ARCHIVE_FUTURE_BOOKING'

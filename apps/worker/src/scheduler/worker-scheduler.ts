@@ -1,7 +1,7 @@
 import { setTimeout as scheduleTimeout } from 'node:timers/promises';
 
 export type WorkerSchedulerJobName =
-  'HOLD_EXPIRATION' | 'OUTBOX_DELIVERY' | 'PAYMENT_RECONCILIATION';
+  'HOLD_EXPIRATION' | 'OUTBOX_DELIVERY' | 'PAYMENT_RECONCILIATION' | 'HOUSEKEEPING_REMINDERS';
 
 export interface WorkerSchedulerJobOptions {
   readonly name: WorkerSchedulerJobName;
@@ -13,6 +13,7 @@ export interface WorkerSchedulerOptions {
   readonly expiration: WorkerSchedulerJobOptions;
   readonly outbox: WorkerSchedulerJobOptions;
   readonly reconciliation?: WorkerSchedulerJobOptions;
+  readonly reminders?: WorkerSchedulerJobOptions;
   readonly initialBackoffMs: number;
   readonly maxBackoffMs: number;
   readonly now?: () => number;
@@ -75,6 +76,12 @@ export interface WorkerSchedulerSnapshot {
     readonly inFlight: boolean;
     readonly totalAttempts: number;
   };
+  readonly reminders: {
+    readonly nextDueAt: number;
+    readonly consecutiveFailures: number;
+    readonly inFlight: boolean;
+    readonly totalAttempts: number;
+  };
   readonly shutdownRequested: boolean;
 }
 
@@ -116,7 +123,12 @@ interface JobState {
 }
 
 export class WorkerScheduler {
-  private readonly jobs: { expiration: JobState; outbox: JobState; reconciliation: JobState };
+  private readonly jobs: {
+    expiration: JobState;
+    outbox: JobState;
+    reconciliation: JobState;
+    reminders: JobState;
+  };
   private readonly now: () => number;
   private readonly wait: (ms: number, signal: AbortSignal) => Promise<void>;
   private readonly initialBackoffMs: number;
@@ -142,6 +154,12 @@ export class WorkerScheduler {
       reconciliation.intervalMs,
       'reconciliation.intervalMs',
     );
+    const reminders = options.reminders ?? {
+      name: 'HOUSEKEEPING_REMINDERS' as const,
+      intervalMs: 3_600_000,
+      run: async () => undefined,
+    };
+    const remindersIntervalMs = validatePositive(reminders.intervalMs, 'reminders.intervalMs');
     const initialBackoffMs = validatePositive(options.initialBackoffMs, 'initialBackoffMs');
     const maxBackoffMs = validatePositive(options.maxBackoffMs, 'maxBackoffMs');
     if (maxBackoffMs < initialBackoffMs) {
@@ -169,6 +187,13 @@ export class WorkerScheduler {
       },
       reconciliation: {
         options: { ...reconciliation, intervalMs: reconciliationIntervalMs },
+        nextDueAt: startAt,
+        consecutiveFailures: 0,
+        inFlight: false,
+        totalAttempts: 0,
+      },
+      reminders: {
+        options: { ...reminders, intervalMs: remindersIntervalMs },
         nextDueAt: startAt,
         consecutiveFailures: 0,
         inFlight: false,
@@ -218,6 +243,7 @@ export class WorkerScheduler {
       expiration: { ...this.jobs.expiration },
       outbox: { ...this.jobs.outbox },
       reconciliation: { ...this.jobs.reconciliation },
+      reminders: { ...this.jobs.reminders },
       shutdownRequested: this.shutdownRequested,
     };
   }
@@ -239,6 +265,7 @@ export class WorkerScheduler {
       this.jobs.expiration.nextDueAt,
       this.jobs.outbox.nextDueAt,
       this.jobs.reconciliation.nextDueAt,
+      this.jobs.reminders.nextDueAt,
     );
     const delay = Math.max(0, nextDue - now);
     if (delay === 0) {

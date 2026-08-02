@@ -379,9 +379,46 @@ export class CatalogRepository implements CatalogRepositoryPort {
     const database = asCatalogDatabase(transaction, this.database);
     const [updated] = await database
       .update(rooms)
-      .set({ housekeepingStatus: command.status, updatedAt: new Date() })
+      .set({ housekeepingStatus: command.status, updatedAt: sql`CURRENT_TIMESTAMP` })
       .where(and(eq(rooms.id, id), eq(rooms.propertyId, propertyId)))
       .returning();
+    if (updated === undefined) return undefined;
+    if (command.status === 'CLEANING') {
+      await database.execute(sql`
+        WITH next_task AS (
+          SELECT id
+            FROM housekeeping_tasks
+           WHERE property_id = ${propertyId}
+             AND room_id = ${id}
+             AND type = 'TURNOVER'
+             AND status IN ('SCHEDULED', 'DUE')
+           ORDER BY due_at ASC, id ASC
+           FOR UPDATE SKIP LOCKED
+           LIMIT 1
+        )
+        UPDATE housekeeping_tasks
+           SET status = 'IN_PROGRESS', started_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+         WHERE id IN (SELECT id FROM next_task)
+      `);
+    }
+    if (command.status === 'CLEAN') {
+      await database.execute(sql`
+        WITH next_task AS (
+          SELECT id
+            FROM housekeeping_tasks
+           WHERE property_id = ${propertyId}
+             AND room_id = ${id}
+             AND type = 'TURNOVER'
+             AND status = 'IN_PROGRESS'
+           ORDER BY started_at ASC NULLS LAST, due_at ASC, id ASC
+           FOR UPDATE SKIP LOCKED
+           LIMIT 1
+        )
+        UPDATE housekeeping_tasks
+           SET status = 'DONE', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+         WHERE id IN (SELECT id FROM next_task)
+      `);
+    }
     return updated;
   }
   public async listRooms(

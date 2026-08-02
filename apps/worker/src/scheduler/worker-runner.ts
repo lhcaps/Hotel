@@ -6,7 +6,8 @@ import {
 } from './worker-scheduler.js';
 
 export interface WorkerJob {
-  readonly name: 'HOLD_EXPIRATION' | 'OUTBOX_DELIVERY' | 'PAYMENT_RECONCILIATION';
+  readonly name:
+    'HOLD_EXPIRATION' | 'OUTBOX_DELIVERY' | 'PAYMENT_RECONCILIATION' | 'HOUSEKEEPING_REMINDERS';
   readonly run: () => Promise<unknown>;
 }
 
@@ -14,6 +15,7 @@ export interface RunWorkerOnceOptions {
   readonly expirationJob: WorkerJob;
   readonly outboxJob: WorkerJob;
   readonly reconciliationJob?: WorkerJob;
+  readonly remindersJob?: WorkerJob;
   readonly logger?: WorkerSchedulerLogger;
 }
 
@@ -22,6 +24,8 @@ export interface RunWorkerOnceSummary {
   readonly outbox: 'succeeded' | 'failed' | 'skipped';
   readonly expirationError: unknown;
   readonly outboxError: unknown;
+  readonly reminders: 'succeeded' | 'failed' | 'skipped';
+  readonly remindersError: unknown;
 }
 
 export async function runWorkerOnce(options: RunWorkerOnceOptions): Promise<RunWorkerOnceSummary> {
@@ -32,12 +36,18 @@ export async function runWorkerOnce(options: RunWorkerOnceOptions): Promise<RunW
   if (options.reconciliationJob !== undefined) {
     await safeRun(options.reconciliationJob, logger);
   }
+  const remindersResult =
+    options.remindersJob === undefined
+      ? { status: 'skipped' as const, error: undefined }
+      : await safeRun(options.remindersJob, logger);
 
   return {
     expiration: expirationResult.status,
     outbox: outboxResult.status,
     expirationError: expirationResult.error,
     outboxError: outboxResult.error,
+    reminders: remindersResult.status,
+    remindersError: remindersResult.error,
   };
 }
 
@@ -48,6 +58,8 @@ export interface RunWorkerContinuouslyOptions {
   readonly outboxIntervalMs: number;
   readonly reconciliationIntervalMs?: number;
   readonly reconciliationJob?: WorkerJob;
+  readonly remindersIntervalMs?: number;
+  readonly remindersJob?: WorkerJob;
   readonly initialBackoffMs: number;
   readonly maxBackoffMs: number;
   readonly signal?: AbortSignal;
@@ -86,6 +98,18 @@ export async function runWorkerContinuously(
             name: 'PAYMENT_RECONCILIATION',
             intervalMs: options.reconciliationIntervalMs ?? 30_000,
             run: options.reconciliationJob.run,
+          },
+    reminders:
+      options.remindersJob === undefined
+        ? {
+            name: 'HOUSEKEEPING_REMINDERS',
+            intervalMs: options.remindersIntervalMs ?? 3_600_000,
+            run: async () => undefined,
+          }
+        : {
+            name: 'HOUSEKEEPING_REMINDERS',
+            intervalMs: options.remindersIntervalMs ?? 30_000,
+            run: options.remindersJob.run,
           },
     initialBackoffMs: options.initialBackoffMs,
     maxBackoffMs: options.maxBackoffMs,

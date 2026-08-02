@@ -56,4 +56,50 @@ describe('physical room catalog transactions', () => {
       items: [expect.objectContaining({ roomNumber: '101', status: 'INACTIVE' })],
     });
   });
+
+  it('advances the turnover task with the required DIRTY, CLEANING, CLEAN lifecycle', async () => {
+    const room = await catalog.createRoom(actor, {
+      roomTypeId: '550e8400-e29b-41d4-a716-446655440030',
+      roomNumber: '102',
+    });
+    await database.pool.query(`UPDATE rooms SET housekeeping_status = 'DIRTY' WHERE id = $1`, [
+      room.id,
+    ]);
+    await database.pool.query(
+      `INSERT INTO housekeeping_tasks (property_id, room_id, type, status, due_at)
+       VALUES ($2, $1, 'TURNOVER', 'DUE', CURRENT_TIMESTAMP)`,
+      [room.id, room.propertyId],
+    );
+
+    await expect(
+      catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
+    ).rejects.toMatchObject({
+      code: 'ROOM_HOUSEKEEPING_INVALID_TRANSITION',
+    });
+    await expect(
+      catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEANING' }),
+    ).resolves.toMatchObject({ housekeepingStatus: 'CLEANING' });
+    expect(
+      (
+        await database.pool.query<{ status: string; started_at: Date | null }>(
+          `SELECT status, started_at FROM housekeeping_tasks WHERE room_id = $1`,
+          [room.id],
+        )
+      ).rows[0],
+    ).toMatchObject({ status: 'IN_PROGRESS', started_at: expect.any(Date) });
+
+    await expect(
+      catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
+    ).resolves.toMatchObject({
+      housekeepingStatus: 'CLEAN',
+    });
+    expect(
+      (
+        await database.pool.query<{ status: string; completed_at: Date | null }>(
+          `SELECT status, completed_at FROM housekeeping_tasks WHERE room_id = $1`,
+          [room.id],
+        )
+      ).rows[0],
+    ).toMatchObject({ status: 'DONE', completed_at: expect.any(Date) });
+  });
 });

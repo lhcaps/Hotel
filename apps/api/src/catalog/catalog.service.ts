@@ -782,6 +782,15 @@ export class CatalogService {
     return this.database.transaction(async (transaction) => {
       const property = await this.repository.getCurrentProperty(transaction);
       if (property === undefined) throw new CatalogNotFoundError();
+      await this.repository.lockRoom(transaction, property.id, id);
+      const existing = await this.repository.findRoom(transaction, property.id, id);
+      if (existing === undefined) throw new CatalogNotFoundError();
+      if (!isAllowedHousekeepingTransition(existing.housekeepingStatus, command.status)) {
+        throw new CatalogSafetyError(
+          'ROOM_HOUSEKEEPING_INVALID_TRANSITION',
+          'Housekeeping must progress from DIRTY to CLEANING before CLEAN.',
+        );
+      }
       const room = await this.repository.updateRoomHousekeeping(
         transaction,
         property.id,
@@ -922,4 +931,16 @@ export class CatalogService {
       return toMaintenance(block);
     });
   }
+}
+
+function isAllowedHousekeepingTransition(
+  current: CatalogRoomRecord['housekeepingStatus'],
+  next: CatalogRoomRecord['housekeepingStatus'],
+): boolean {
+  if (current === next) return true;
+  return (
+    (current === 'CLEAN' && next === 'DIRTY') ||
+    (current === 'DIRTY' && next === 'CLEANING') ||
+    (current === 'CLEANING' && next === 'CLEAN')
+  );
 }

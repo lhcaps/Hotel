@@ -376,6 +376,27 @@ describe('Phase 7G admin booking lifecycle', () => {
   });
 
   describe('Cancel CONFIRMED', () => {
+    it('cancels the future ARRIVAL_PREP task with the booking', async () => {
+      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
+      await confirmBooking(fixture.database, bookingId);
+      await fixture.database.pool.query(
+        `INSERT INTO housekeeping_tasks (property_id, room_id, booking_id, type, status, due_at, reminder_at)
+         SELECT property_id, room_id, id, 'ARRIVAL_PREP', 'SCHEDULED', check_in, check_in - interval '1 hour'
+           FROM bookings WHERE id = $1`,
+        [bookingId],
+      );
+
+      await fixture.service.cancel(actor, bookingCode, { reason: 'guest illness' }, new Date());
+      expect(
+        (
+          await fixture.database.pool.query<{ status: string }>(
+            `SELECT status FROM housekeeping_tasks WHERE booking_id = $1 AND type = 'ARRIVAL_PREP'`,
+            [bookingId],
+          )
+        ).rows[0]?.status,
+      ).toBe('CANCELLED');
+    });
+
     it('4. preserves the SUCCEEDED payment row untouched', async () => {
       const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {
         withPayment: true,

@@ -43,6 +43,20 @@ describe('runWorkerOnce', () => {
     expect(summary.outbox).toBe('succeeded');
     expect(outboxJob.run).toHaveBeenCalledTimes(1);
   });
+
+  it('runs housekeeping reminders in the one-shot lifecycle', async () => {
+    const remindersJob = {
+      name: 'HOUSEKEEPING_REMINDERS' as const,
+      run: vi.fn(async () => undefined),
+    };
+    const summary = await runWorkerOnce({
+      expirationJob: { name: 'HOLD_EXPIRATION', run: vi.fn(async () => undefined) },
+      outboxJob: { name: 'OUTBOX_DELIVERY', run: vi.fn(async () => undefined) },
+      remindersJob,
+    });
+    expect(remindersJob.run).toHaveBeenCalledTimes(1);
+    expect(summary.reminders).toBe('succeeded');
+  });
 });
 
 describe('runWorkerContinuously', () => {

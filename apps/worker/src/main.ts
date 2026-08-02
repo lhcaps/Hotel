@@ -6,6 +6,7 @@ import nodemailer from 'nodemailer';
 import { Redis } from 'ioredis';
 
 import { expireStaleHolds } from './jobs/expire-stale-holds.js';
+import { processHousekeepingReminders } from './jobs/process-housekeeping-reminders.js';
 import { processOutbox } from './jobs/process-outbox.js';
 import { createReconciliationJob } from './jobs/process-reconciliation.js';
 import {
@@ -85,6 +86,10 @@ async function bootstrap(): Promise<number> {
         logger,
       ),
   };
+  const remindersJob = {
+    name: 'HOUSEKEEPING_REMINDERS' as const,
+    run: () => processHousekeepingReminders({ pool, batchSize: 50, maxBatches: 4 }),
+  };
 
   const reconciliationJob = createReconciliationJob({
     pool,
@@ -117,6 +122,7 @@ async function bootstrap(): Promise<number> {
       operationalConfig.WORKER_MODE,
       expirationJob,
       outboxJob,
+      remindersJob,
       reconciliationJob,
     );
   }
@@ -125,6 +131,7 @@ async function bootstrap(): Promise<number> {
     operationalConfig.WORKER_MODE,
     expirationJob,
     outboxJob,
+    remindersJob,
     reconciliationJob,
   );
 }
@@ -134,6 +141,7 @@ async function runContinuous(
   mode: WorkerMode,
   expirationJob: { name: 'HOLD_EXPIRATION'; run: () => Promise<unknown> },
   outboxJob: { name: 'OUTBOX_DELIVERY'; run: () => Promise<unknown> },
+  remindersJob: { name: 'HOUSEKEEPING_REMINDERS'; run: () => Promise<unknown> },
   reconciliationJob: { name: 'PAYMENT_RECONCILIATION'; run: () => Promise<unknown> },
 ): Promise<number> {
   const config = requireWorkerOperationalConfig();
@@ -142,9 +150,11 @@ async function runContinuous(
     runWorkerContinuously({
       expirationJob,
       outboxJob,
+      remindersJob,
       reconciliationJob,
       expirationIntervalMs: config.WORKER_EXPIRATION_INTERVAL_MS,
       outboxIntervalMs: config.WORKER_OUTBOX_INTERVAL_MS,
+      remindersIntervalMs: config.WORKER_HOUSEKEEPING_REMINDER_INTERVAL_MS,
       reconciliationIntervalMs: config.WORKER_RECONCILIATION_INTERVAL_MS,
       initialBackoffMs: config.WORKER_ERROR_BACKOFF_MS,
       maxBackoffMs: config.WORKER_MAX_ERROR_BACKOFF_MS,
@@ -161,22 +171,32 @@ async function runOnce(
   mode: WorkerMode,
   expirationJob: { name: 'HOLD_EXPIRATION'; run: () => Promise<unknown> },
   outboxJob: { name: 'OUTBOX_DELIVERY'; run: () => Promise<unknown> },
+  remindersJob: { name: 'HOUSEKEEPING_REMINDERS'; run: () => Promise<unknown> },
   reconciliationJob: { name: 'PAYMENT_RECONCILIATION'; run: () => Promise<unknown> },
 ): Promise<number> {
   logger.info({ mode }, 'worker.started');
   const summary = await lifecycle.runIteration(() =>
-    runWorkerOnce({ expirationJob, outboxJob, reconciliationJob, logger }),
+    runWorkerOnce({ expirationJob, outboxJob, remindersJob, reconciliationJob, logger }),
   );
   logger.info({ ...summaryToFields(summary) }, 'worker.shutdown.completed');
   await lifecycle.shutdown('SIGTERM');
-  return summary.expiration === 'failed' || summary.outbox === 'failed' ? 1 : 0;
+  return summary.expiration === 'failed' ||
+    summary.outbox === 'failed' ||
+    summary.reminders === 'failed'
+    ? 1
+    : 0;
 }
 
 function summaryToFields(summary: {
   expiration: 'succeeded' | 'failed' | 'skipped';
   outbox: 'succeeded' | 'failed' | 'skipped';
-}): { expiration: string; outbox: string } {
-  return { expiration: summary.expiration, outbox: summary.outbox };
+  reminders: 'succeeded' | 'failed' | 'skipped';
+}): { expiration: string; outbox: string; reminders: string } {
+  return {
+    expiration: summary.expiration,
+    outbox: summary.outbox,
+    reminders: summary.reminders,
+  };
 }
 
 void bootstrap()

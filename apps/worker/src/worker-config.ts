@@ -14,6 +14,7 @@ const workerConfigSchema = z
     WORKER_MODE: workerModeSchema.default('continuous'),
     WORKER_OUTBOX_INTERVAL_MS: positiveBoundedInteger(50, 3_600_000).default(2_000),
     WORKER_EXPIRATION_INTERVAL_MS: positiveBoundedInteger(50, 3_600_000).default(30_000),
+    WORKER_HOUSEKEEPING_REMINDER_INTERVAL_MS: positiveBoundedInteger(50, 3_600_000).default(30_000),
     WORKER_ERROR_BACKOFF_MS: positiveBoundedInteger(50, 3_600_000).default(1_000),
     WORKER_MAX_ERROR_BACKOFF_MS: positiveBoundedInteger(50, 3_600_000).default(60_000),
     WORKER_RECONCILIATION_BATCH_SIZE: positiveBoundedInteger(1, 100).default(25),
