@@ -1,0 +1,2 @@
+# False positive: the documented MOMO_ENVIRONMENT=sandbox setting is not a credential.
+495b9a7476d94d052c052973326f4bccb9eb99ad:docs/runbooks/momo-sandbox.md:generic-api-key:3
