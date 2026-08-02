@@ -357,6 +357,15 @@ try {
     '-f',
     'packages/database/dist/database/drizzle/meta/_journal.json',
   ]);
+  run('Next standalone static assets exist', 'docker', [
+    'run',
+    '--rm',
+    '--entrypoint',
+    'sh',
+    image,
+    '-ec',
+    'test -n "$(find apps/web/.next/standalone/apps/web/.next/static -type f -print -quit)"',
+  ]);
   runNode(
     'drizzle-orm resolves from database workspace',
     'packages/database',
