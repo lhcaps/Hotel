@@ -28,9 +28,13 @@ test.describe('public release smoke', () => {
     await page.locator('input[name=email]').fill(adminEmail!);
     await page.locator('input[name=password]').fill(adminPassword!);
     await page.locator('button[type=submit]').click();
-    await page.waitForURL(/\/admin(\/|$)/);
+    await page.waitForURL((url) => url.pathname === '/admin');
     const cookies = await context.cookies(baseURL);
-    const session = cookies.find((cookie) => cookie.name === 'better-auth.session_token');
+    const session = cookies.find(
+      (cookie) =>
+        cookie.name === 'better-auth.session_token' ||
+        cookie.name === '__Secure-better-auth.session_token',
+    );
     expect(session).toMatchObject({ httpOnly: true, secure: true, sameSite: 'Lax' });
     const me = await page.request.get(new URL('/api/admin/me', baseURL).toString());
     expect(me.status()).toBe(200);
