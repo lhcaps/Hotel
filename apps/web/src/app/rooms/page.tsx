@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 
-import { resolveLocale, translate } from '../../lib/i18n/messages';
-import { loadPublicRoomCatalog, publicRoomImage } from '../../lib/public-room-catalog';
+import { presentPhysicalRooms } from '../../content/peace-home-physical-rooms';
+import { formatVnd, resolveLocale, translate } from '../../lib/i18n/messages';
+import { loadPublicRoomCatalog } from '../../lib/public-room-catalog';
 import { toPublicCatalogState } from '../../lib/public-catalog-state';
 
 export const dynamic = 'force-dynamic';
@@ -49,26 +50,27 @@ export default async function PublicRoomsPage() {
       ) : null}
       {state.kind === 'ready' ? (
         <section aria-label={translate(locale, 'catalog.list')} className="room-catalog-list">
-          {state.catalog.items.map((room, index) => {
-            const detailsHref = `/rooms/${room.id}`;
+          {presentPhysicalRooms(state.catalog).map((room, index) => {
+            const detailsHref = `/rooms/${room.slug}`;
             return (
-              <article className="room-catalog-list__item" key={room.id} data-room-index={index}>
-                <img alt={room.name} src={publicRoomImage(room.id)} />
+              <article className="room-catalog-list__item" key={room.slug} data-room-index={index}>
+                <img alt={room.name} src={room.gallery[0].replace('-hero.webp', '-card.webp')} />
                 <div>
-                  <p className="room-catalog-list__eyebrow">
-                    {translate(locale, 'public.roomsPricing')}
-                  </p>
+                  <p className="room-catalog-list__eyebrow">{room.roomType.name}</p>
                   <h2>{room.name}</h2>
-                  {room.description === null ? null : <p>{room.description}</p>}
                   <p className="room-catalog-list__capacity">
-                    {translate(locale, 'search.capacity', { count: room.maxOccupancy })}
+                    {translate(locale, 'search.capacity', { count: room.roomType.maxOccupancy })}
                   </p>
-                  {room.amenities.length > 0 ? (
+                  <p className="room-catalog-list__capacity">
+                    {locale === 'vi' ? 'Từ ' : 'From '}
+                    {formatVnd(locale, room.startingFromVnd)}
+                  </p>
+                  {room.roomType.amenities.length > 0 ? (
                     <ul
                       aria-label={translate(locale, 'catalog.amenities')}
                       className="room-catalog-list__amenities"
                     >
-                      {room.amenities.map((amenity) => (
+                      {room.roomType.amenities.map((amenity) => (
                         <li key={amenity.name}>{amenity.name}</li>
                       ))}
                     </ul>

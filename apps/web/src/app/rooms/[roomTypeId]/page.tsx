@@ -3,9 +3,10 @@ import { cookies } from 'next/headers';
 
 import { AvailabilitySearchForm } from '../../../components/availability-search-form';
 import { RoomDetailQuoteAction } from '../../../components/room-detail-quote-action';
+import { findPresentedPhysicalRoom } from '../../../content/peace-home-physical-rooms';
 import { readBookingSearchQuery } from '../../../lib/booking-search-state';
-import { resolveLocale, translate } from '../../../lib/i18n/messages';
-import { loadPublicRoomType, publicRoomImage } from '../../../lib/public-room-catalog';
+import { formatVnd, resolveLocale, translate } from '../../../lib/i18n/messages';
+import { loadPublicRoomCatalog } from '../../../lib/public-room-catalog';
 
 export default async function PublicRoomDetailPage({
   params,
@@ -14,8 +15,13 @@ export default async function PublicRoomDetailPage({
   params: Promise<{ roomTypeId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }>) {
-  const [{ roomTypeId }, query, cookieStore] = await Promise.all([params, searchParams, cookies()]);
-  const room = await loadPublicRoomType(roomTypeId);
+  const [{ roomTypeId }, query, cookieStore, catalog] = await Promise.all([
+    params,
+    searchParams,
+    cookies(),
+    loadPublicRoomCatalog(),
+  ]);
+  const room = catalog === null ? undefined : findPresentedPhysicalRoom(catalog, roomTypeId);
   const locale = resolveLocale(cookieStore.get('room_locale')?.value);
   const search = new URLSearchParams(
     Object.entries(query).flatMap(([key, value]) =>
@@ -29,24 +35,27 @@ export default async function PublicRoomDetailPage({
       <Link href={search.size > 0 ? `/booking/search?${searchString}` : '/rooms'}>
         {translate(locale, 'catalog.backToResults')}
       </Link>
-      {room === null ? (
+      {room === undefined ? (
         <p className="rooms-catalog__status" role="alert">
           {translate(locale, 'search.loadErrorHelp')}
         </p>
       ) : (
         <section className="room-detail" data-testid="room-detail">
-          <img alt={room.name} src={publicRoomImage(room.id)} />
+          <img alt={room.name} src={room.gallery[0]} />
           <div>
-            <p>{translate(locale, 'public.roomsPricing')}</p>
+            <p>{room.roomType.name}</p>
             <h1>{room.name}</h1>
-            {room.description === null ? null : <p>{room.description}</p>}
             <p className="room-detail__capacity">
-              {translate(locale, 'search.capacity', { count: room.maxOccupancy })}
+              {translate(locale, 'search.capacity', { count: room.roomType.maxOccupancy })}
+            </p>
+            <p className="room-detail__capacity">
+              {locale === 'vi' ? 'Từ ' : 'From '}
+              {formatVnd(locale, room.startingFromVnd)}
             </p>
             <h2>{translate(locale, 'catalog.amenities')}</h2>
-            {room.amenities.length > 0 ? (
+            {room.roomType.amenities.length > 0 ? (
               <ul className="room-detail__amenities">
-                {room.amenities.map((amenity) => (
+                {room.roomType.amenities.map((amenity) => (
                   <li key={amenity.name}>{amenity.name}</li>
                 ))}
               </ul>
@@ -77,9 +86,18 @@ export default async function PublicRoomDetailPage({
                 <p className="rooms-catalog__status" data-testid="room-detail-selected-interval">
                   {translate(locale, 'roomDetail.browseHelp')}
                 </p>
-                <RoomDetailQuoteAction roomTypeId={roomTypeId} search={searchString} />
+                <RoomDetailQuoteAction roomTypeId={room.roomType.id} search={searchString} />
               </>
             )}
+          </div>
+          <div aria-label={`${room.name} gallery`} className="room-detail__gallery">
+            {room.gallery.slice(1).map((image, index) => (
+              <img
+                alt={`${room.name} ${index + 2}`}
+                key={image}
+                src={image.replace('-hero.webp', '-thumb.webp')}
+              />
+            ))}
           </div>
         </section>
       )}

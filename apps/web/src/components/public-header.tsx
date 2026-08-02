@@ -19,37 +19,43 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { LocaleSwitch } from './locale-switch';
 
-type CustomerState = 'unknown' | 'anonymous' | 'customer';
+type AccountState = 'unknown' | 'anonymous' | 'customer' | 'admin';
 
 export function PublicHeader({
   locale,
   children,
 }: Readonly<{ locale: Locale; children?: React.ReactNode }>) {
   const router = useRouter();
-  const [customerState, setCustomerState] = useState<CustomerState>('unknown');
+  const [accountState, setAccountState] = useState<AccountState>('unknown');
   const [logoutPending, setLogoutPending] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
     if (apiBase === undefined) {
-      setCustomerState('anonymous');
+      setAccountState('anonymous');
       return undefined;
     }
-    void fetch(`${new URL(apiBase).origin}/api/v1/customer/profile/session`, {
-      credentials: 'include',
-    })
-      .then(async (response) => {
-        const body: unknown = await response.json().catch(() => undefined);
+    const origin = new URL(apiBase).origin;
+    void Promise.all([
+      fetch(`${origin}/api/v1/customer/profile/session`, { credentials: 'include' }),
+      fetch(`${origin}/api/v1/admin/me`, { credentials: 'include' }),
+    ])
+      .then(async ([customerResponse, adminResponse]) => {
+        if (adminResponse.ok) {
+          if (!cancelled) setAccountState('admin');
+          return;
+        }
+        const body: unknown = await customerResponse.json().catch(() => undefined);
         const authenticated =
-          response.ok &&
+          customerResponse.ok &&
           typeof body === 'object' &&
           body !== null &&
           'authenticated' in body &&
           body.authenticated === true;
-        if (!cancelled) setCustomerState(authenticated ? 'customer' : 'anonymous');
+        if (!cancelled) setAccountState(authenticated ? 'customer' : 'anonymous');
       })
-      .catch(() => !cancelled && setCustomerState('anonymous'));
+      .catch(() => !cancelled && setAccountState('anonymous'));
     return () => {
       cancelled = true;
     };
@@ -65,7 +71,7 @@ export function PublicHeader({
           method: 'POST',
           credentials: 'include',
         });
-      setCustomerState('anonymous');
+      setAccountState('anonymous');
       router.refresh();
     } finally {
       setLogoutPending(false);
@@ -74,12 +80,12 @@ export function PublicHeader({
 
   const bookingLabel = translate(
     locale,
-    customerState === 'customer' ? 'public.newBooking' : 'public.booking',
+    accountState === 'customer' ? 'public.newBooking' : 'public.booking',
   );
-  const accountLink = customerState === 'customer' ? '/account/bookings' : '/booking/manage';
+  const accountLink = accountState === 'customer' ? '/account/bookings' : '/booking/manage';
   const accountLabel = translate(
     locale,
-    customerState === 'customer' ? 'public.myBookings' : 'public.guestAccess',
+    accountState === 'customer' ? 'public.myBookings' : 'public.guestAccess',
   );
   const navLinks = (
     <>
@@ -91,6 +97,28 @@ export function PublicHeader({
       <Link href={accountLink}>{accountLabel}</Link>
     </>
   );
+
+  const authLinks =
+    accountState === 'customer' ? (
+      <>
+        <Link href="/account/bookings">{translate(locale, 'public.myBookings')}</Link>
+        <button disabled={logoutPending} onClick={() => void logout()} type="button">
+          {translate(locale, 'public.logout')}
+        </button>
+      </>
+    ) : accountState === 'admin' ? (
+      <>
+        <Link href="/admin">{translate(locale, 'public.adminDashboard')}</Link>
+        <button disabled={logoutPending} onClick={() => void logout()} type="button">
+          {translate(locale, 'public.logout')}
+        </button>
+      </>
+    ) : (
+      <>
+        <Link href="/login">{translate(locale, 'public.customerLogin')}</Link>
+        <Link href="/admin/login">{translate(locale, 'public.adminLogin')}</Link>
+      </>
+    );
 
   return (
     <>
@@ -110,7 +138,7 @@ export function PublicHeader({
             <div className="public-header__locale">
               <LocaleSwitch locale={locale} />
             </div>
-            {customerState === 'customer' ? (
+            {accountState === 'customer' ? (
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
@@ -149,9 +177,7 @@ export function PublicHeader({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link className="public-header__login" href="/login">
-                {translate(locale, 'public.login')}
-              </Link>
+              <div className="public-header__auth-links">{authLinks}</div>
             )}
             <Sheet>
               <SheetTrigger
@@ -175,6 +201,7 @@ export function PublicHeader({
                   className="public-header__sheet-nav"
                 >
                   {navLinks}
+                  {authLinks}
                 </nav>
               </SheetContent>
             </Sheet>

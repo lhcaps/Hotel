@@ -25,9 +25,9 @@ export async function loadPublicRoomType(roomTypeId: string): Promise<PublicRoom
 }
 
 const roomImages = [
-  '/images/hospitality/hero-suite.png',
-  '/images/hospitality/family-suite.png',
-  '/images/hospitality/executive-suite.png',
+  '/images/peace-home/rose/rose-066-card.webp',
+  '/images/peace-home/nami/nami-030-card.webp',
+  '/images/peace-home/wabi/wabi-124-card.webp',
 ] as const;
 
 export function publicRoomImage(roomTypeId: string): string {

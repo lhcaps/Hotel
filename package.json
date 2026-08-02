@@ -44,6 +44,7 @@
     "admin:bootstrap": "pnpm --filter @room/auth admin:bootstrap",
     "generate:openapi": "pnpm exec tsx scripts/generate-openapi.mts --write && pnpm exec tsx scripts/generate-public-openapi.mts --write && pnpm exec tsx scripts/generate-operations-openapi.mts --write",
     "check:openapi": "pnpm exec tsx scripts/generate-openapi.mts --check && pnpm exec tsx scripts/generate-public-openapi.mts --check && pnpm exec tsx scripts/generate-operations-openapi.mts --check && pnpm exec tsx scripts/check-openapi-structure.mts && pnpm exec tsx scripts/validate-admin-coupon-schema.mts",
+    "check:peace-home-media": "node scripts/verify-peace-home-media.mjs",
     "check:endpoints": "pnpm exec tsx scripts/check-endpoints.mts",
     "check:i18n-critical": "pnpm exec tsx scripts/check-i18n-critical.mts",
     "check:google-oauth": "node scripts/check-google-oauth-config.mjs",

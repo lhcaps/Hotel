@@ -14,9 +14,8 @@ import {
 
 import type { PublicRoomCatalogResponse } from '@room/contracts/public-room-catalog';
 
-import { publicHospitalityContent } from '../content/public-hospitality-content';
+import { peaceHomeCommonImages, presentPhysicalRooms } from '../content/peace-home-physical-rooms';
 import { translate } from '../lib/i18n/messages';
-import { publicRoomImage } from '../lib/public-room-catalog';
 import { toPublicCatalogState } from '../lib/public-catalog-state';
 import { LandingAvailabilitySearch } from './landing-availability-search';
 import { useLocale } from './locale-provider';
@@ -26,12 +25,12 @@ export function PublicLanding({
 }: Readonly<{ catalog?: PublicRoomCatalogResponse | null }>) {
   const locale = useLocale();
   const state = toPublicCatalogState(catalog);
-  const catalogRooms = state.kind === 'ready' ? state.catalog.items : [];
+  const catalogRooms = state.kind === 'ready' ? presentPhysicalRooms(state.catalog) : [];
 
   return (
     <main id="main-content">
       <section className="hospitality-hero" aria-labelledby="landing-heading">
-        <img alt="" className="hospitality-hero__image" src={publicHospitalityContent.heroImage} />
+        <img alt="" className="hospitality-hero__image" src={peaceHomeCommonImages[0]} />
         <div className="hospitality-hero__shade" />
         <div className="hospitality-hero__content">
           <p className="hospitality-hero__kicker">Room Management</p>
@@ -82,25 +81,25 @@ export function PublicLanding({
         {catalogRooms.length > 0 ? (
           <div className="hospitality-rooms" data-testid="landing-featured-rooms">
             {catalogRooms.slice(0, 3).map((room) => (
-              <article className="hospitality-room" key={room.id}>
-                <img alt={room.name} src={publicRoomImage(room.id)} />
+              <article className="hospitality-room" key={room.slug}>
+                <img alt={room.name} src={room.gallery[0].replace('-hero.webp', '-card.webp')} />
                 <div className="hospitality-room__body">
                   <div className="hospitality-room__title-row">
                     <h3>{room.name}</h3>
                     <span>
                       <Users aria-hidden="true" size={15} />
-                      {translate(locale, 'search.capacity', { count: room.maxOccupancy })}
+                      {translate(locale, 'search.capacity', { count: room.roomType.maxOccupancy })}
                     </span>
                   </div>
-                  {room.description === null ? null : <p>{room.description}</p>}
-                  {room.amenities.length > 0 ? (
+                  <p>{room.roomType.name}</p>
+                  {room.roomType.amenities.length > 0 ? (
                     <ul aria-label={translate(locale, 'catalog.amenities')}>
-                      {room.amenities.slice(0, 3).map((amenity) => (
+                      {room.roomType.amenities.slice(0, 3).map((amenity) => (
                         <li key={amenity.name}>{amenity.name}</li>
                       ))}
                     </ul>
                   ) : null}
-                  <Link href={`/rooms/${room.id}`}>
+                  <Link href={`/rooms/${room.slug}`}>
                     {translate(locale, 'catalog.detailHeading')}{' '}
                     <ArrowRight aria-hidden="true" size={16} />
                   </Link>
@@ -186,7 +185,7 @@ export function PublicLanding({
       </section>
 
       <section className="hospitality-story" id="about" aria-labelledby="story-heading">
-        <img alt="" src={publicHospitalityContent.rooms[1].image} />
+        <img alt="" src={peaceHomeCommonImages[1]} />
         <div>
           <p>{translate(locale, 'public.about')}</p>
           <h2 id="story-heading">{translate(locale, 'landing.storyHeading')}</h2>

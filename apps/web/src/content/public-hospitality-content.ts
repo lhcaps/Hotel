@@ -1,19 +1,19 @@
 export const publicHospitalityContent = {
-  heroImage: '/images/hospitality/hero-suite.png',
+  heroImage: '/images/peace-home/common/common-027-hero.webp',
   rooms: [
     {
       key: 'deluxe',
-      image: '/images/hospitality/hero-suite.png',
+      image: '/images/peace-home/rose/rose-066-card.webp',
       imageAltKey: 'landing.room.deluxe.imageAlt',
     },
     {
       key: 'family',
-      image: '/images/hospitality/family-suite.png',
+      image: '/images/peace-home/nami/nami-030-card.webp',
       imageAltKey: 'landing.room.family.imageAlt',
     },
     {
       key: 'executive',
-      image: '/images/hospitality/executive-suite.png',
+      image: '/images/peace-home/wabi/wabi-124-card.webp',
       imageAltKey: 'landing.room.executive.imageAlt',
     },
   ],
