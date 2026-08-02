@@ -103,9 +103,12 @@ async function main() {
 
   log('Source of truth: clean committed HEAD via git archive');
 
-  log('Preparing staging directory');
-  await rm(outputDir, { recursive: true, force: true });
+  log('Preparing staging directory without removing unrelated local output');
   await mkdir(outputDir, { recursive: true });
+  await rm(zipPath, { force: true });
+  await rm(sumsPath, { force: true });
+  await rm(stageDir, { recursive: true, force: true });
+  await rm(path.join(outputDir, 'stage.tar'), { force: true });
   await mkdir(stageDir, { recursive: true });
 
   log('Exporting tree from HEAD (no worktree noise)');
