@@ -5,7 +5,10 @@ import {
 } from '@room/contracts/public-room-catalog';
 
 export async function loadPublicRoomCatalog(): Promise<PublicRoomCatalogResponse | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  // Catalog loaders run on the Next.js server. Prefer the private Compose
+  // network so public-page rendering does not depend on resolving the public
+  // hostname from inside an application container.
+  const baseUrl = process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
   if (baseUrl === undefined) return null;
   try {
     const response = await fetch(`${baseUrl}/public/room-types`, { cache: 'no-store' });

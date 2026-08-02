@@ -3,6 +3,8 @@ import type { PublicRoomCatalogResponse } from '@room/contracts/public-room-cata
 import { PublicLanding } from '../components/public-landing';
 import { loadPublicRoomCatalog } from '../lib/public-room-catalog';
 
+export const dynamic = 'force-dynamic';
+
 interface HomePageProps {
   searchParams: Promise<{ __catalog?: string }>;
 }
