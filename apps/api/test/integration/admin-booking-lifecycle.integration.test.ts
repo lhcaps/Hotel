@@ -459,6 +459,22 @@ describe('Phase 7G admin booking lifecycle', () => {
       expect(blocks.rows[0]?.status).toBe('RELEASED');
     });
 
+    it('marks the assigned room DIRTY when check-out succeeds', async () => {
+      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
+      await confirmBooking(fixture.database, bookingId);
+      await fixture.service.checkIn(actor, bookingCode, new Date());
+      await fixture.service.checkOut(actor, bookingCode, new Date());
+
+      const room = await fixture.database.pool.query<{ housekeeping_status: string }>(
+        `SELECT r.housekeeping_status
+           FROM rooms r
+           JOIN bookings b ON b.room_id = r.id
+          WHERE b.id = $1`,
+        [bookingId],
+      );
+      expect(room.rows[0]?.housekeeping_status).toBe('DIRTY');
+    });
+
     it('15. duplicate check-out is rejected', async () => {
       const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
       await confirmBooking(fixture.database, bookingId);

@@ -405,6 +405,14 @@ export class AdminBookingLifecycleService {
           WHERE id = $1`,
         [row.id, now],
       );
+      await client.query(
+        `UPDATE rooms
+            SET housekeeping_status = 'DIRTY',
+                updated_at = $2
+          WHERE id = $1
+            AND property_id = $3`,
+        [row.room_id, now, row.property_id],
+      );
       await releaseInventoryBlock(client, row.id, now);
       await appendAudit(client, {
         propertyId: row.property_id,
