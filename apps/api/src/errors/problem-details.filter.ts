@@ -38,6 +38,7 @@ import {
   CustomerSessionRequiredError,
 } from '../auth/customer-session.service.js';
 import { BookingNotFoundError } from '../booking/services/booking-detail.service.js';
+import { BookingAccessPassError } from '../booking/services/booking-access-pass.service.js';
 import { CouponDeliveryError } from '../booking/coupon-delivery.errors.js';
 import { PaymentInitiationError } from '../payment/payment.errors.js';
 import { PaymentProviderSettingsError } from '../payment/payment-provider-settings.errors.js';
@@ -260,6 +261,16 @@ export class ProblemDetailsFilter implements ExceptionFilter {
         status,
         code: error.code,
         detail: 'The requested booking could not be found.',
+        ...base,
+      };
+    } else if (error instanceof BookingAccessPassError) {
+      status = 409;
+      body = {
+        type: 'booking-access-pass-invalid',
+        title: 'Booking access pass unavailable',
+        status,
+        code: error.code,
+        detail: 'A current booking access pass is not available for this booking.',
         ...base,
       };
     } else if (error instanceof CouponDeliveryError) {

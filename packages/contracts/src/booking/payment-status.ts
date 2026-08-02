@@ -8,7 +8,15 @@ export const paymentStatusResponseSchema = z.object({
   attemptStatus: z
     .enum(['PENDING', 'SUCCEEDED', 'FAILED', 'REVIEW_REQUIRED', 'EXPIRED', 'CANCELLED'])
     .nullable(),
-  bookingStatus: z.enum(['HOLD', 'CONFIRMED', 'EXPIRED', 'CANCELLED']),
+  bookingStatus: z.enum([
+    'HOLD',
+    'CONFIRMED',
+    'EXPIRED',
+    'CANCELLED',
+    'NO_SHOW',
+    'CHECKED_IN',
+    'CHECKED_OUT',
+  ]),
   amountVnd: z.number().int().nonnegative(),
   currency: z.literal('VND'),
   createdAt: z.string().datetime().nullable(),

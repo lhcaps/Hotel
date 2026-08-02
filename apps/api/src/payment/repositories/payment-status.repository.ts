@@ -6,7 +6,8 @@ export interface PaymentStatusRecord {
     'PENDING' | 'SUCCEEDED' | 'REVIEW_REQUIRED' | 'CANCELLED' | 'EXPIRED' | null;
   readonly attemptStatus:
     'PENDING' | 'SUCCEEDED' | 'FAILED' | 'REVIEW_REQUIRED' | 'EXPIRED' | 'CANCELLED' | null;
-  readonly bookingStatus: 'HOLD' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED';
+  readonly bookingStatus:
+    'HOLD' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED' | 'NO_SHOW' | 'CHECKED_IN' | 'CHECKED_OUT';
   readonly amountVnd: string | number | bigint;
   readonly currency: 'VND';
   readonly createdAt: Date | string | null;

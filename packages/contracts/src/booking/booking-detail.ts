@@ -6,7 +6,15 @@ const instantSchema = z.string().datetime({ offset: true });
 export const bookingDetailResponseSchema = z
   .object({
     bookingCode: z.string().regex(/^[A-Z0-9-]{4,32}$/),
-    status: z.enum(['HOLD', 'CONFIRMED', 'EXPIRED', 'CANCELLED']),
+    status: z.enum([
+      'HOLD',
+      'CONFIRMED',
+      'EXPIRED',
+      'CANCELLED',
+      'NO_SHOW',
+      'CHECKED_IN',
+      'CHECKED_OUT',
+    ]),
     property: z
       .object({
         code: z.string().regex(/^[A-Z0-9_-]{2,64}$/),
@@ -41,3 +49,13 @@ export const bookingDetailResponseSchema = z
   .strict();
 
 export type BookingDetailResponse = z.infer<typeof bookingDetailResponseSchema>;
+
+export const bookingAccessPassResponseSchema = z
+  .object({
+    bookingCode: z.string().regex(/^[A-Z0-9-]{4,32}$/),
+    expiresAt: instantSchema,
+    svg: z.string().min(1),
+  })
+  .strict();
+
+export type BookingAccessPassResponse = z.infer<typeof bookingAccessPassResponseSchema>;

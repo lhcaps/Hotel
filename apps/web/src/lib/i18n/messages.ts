@@ -446,6 +446,11 @@ const messages = {
     'guest.queryingEmail': 'Đang truy vấn với email {email}',
     'guest.logout': 'Đăng xuất',
     'guest.loggingOut': 'Đang đăng xuất…',
+    'accessPass.heading': 'Mã QR nhận phòng',
+    'accessPass.instructions': 'Xuất trình mã này cùng mã đặt phòng khi đến nhận phòng.',
+    'accessPass.imageAlt': 'Mã QR nhận phòng',
+    'accessPass.expiresAt': 'Mã có hiệu lực đến {expiresAt}.',
+    'accessPass.unavailable': 'Mã nhận phòng hiện chưa sẵn sàng.',
     'claim.heading': 'Liên kết đặt phòng {code} với tài khoản',
     'claim.help':
       'Bạn đã đăng nhập. Thêm đặt phòng này vào tài khoản khách hàng của bạn. Mã đã dùng với email và OTP sẽ chứng minh quyền sở hữu.',
@@ -1117,6 +1122,11 @@ const messages = {
     'guest.queryingEmail': 'Looking up with email {email}',
     'guest.logout': 'Sign out',
     'guest.loggingOut': 'Signing out…',
+    'accessPass.heading': 'Booking access QR',
+    'accessPass.instructions': 'Present this code with your booking code when you arrive.',
+    'accessPass.imageAlt': 'Booking access QR code',
+    'accessPass.expiresAt': 'This pass is valid until {expiresAt}.',
+    'accessPass.unavailable': 'Access pass unavailable',
     'claim.heading': 'Link booking {code} to your account',
     'claim.help':
       'You are signed in. Add this booking to your customer account. The code used with email and OTP proves ownership.',

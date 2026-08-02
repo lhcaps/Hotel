@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BookingDetailResponse, PaymentStatusResponse } from '@room/contracts';
 
 import { ConfirmedSuccessPanel } from '../src/components/confirmed-success-panel';
@@ -41,6 +41,11 @@ const PAYMENT: PaymentStatusResponse = {
 };
 
 describe('ConfirmedSuccessPanel', () => {
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_API_BASE_URL;
+    vi.restoreAllMocks();
+  });
+
   it('renders the Vietnamese Đặt phòng thành công heading', () => {
     render(
       <LocaleProvider locale="vi">
@@ -59,6 +64,31 @@ describe('ConfirmedSuccessPanel', () => {
       </LocaleProvider>,
     );
     expect(screen.getByTestId('confirmed-success-heading')).toHaveTextContent('Booking confirmed');
+  });
+
+  it('shows the authorized booking-access QR after a confirmed payment', async () => {
+    process.env.NEXT_PUBLIC_API_BASE_URL = 'http://api.local/api/v1';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            bookingCode: BOOKING.bookingCode,
+            expiresAt: '2027-01-10T07:00:00.000Z',
+            svg: '<svg xmlns="http://www.w3.org/2000/svg" />',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      ),
+    );
+
+    render(
+      <LocaleProvider locale="en">
+        <ConfirmedSuccessPanel booking={BOOKING} payment={PAYMENT} />
+      </LocaleProvider>,
+    );
+
+    expect(await screen.findByRole('img', { name: 'Booking access QR code' })).toBeVisible();
   });
 
   it('never exposes physical room identifiers or internal payment details', () => {

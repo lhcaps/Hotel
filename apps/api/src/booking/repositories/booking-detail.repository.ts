@@ -5,7 +5,8 @@ export interface BookingDetailRecord {
   readonly propertyId: string;
   readonly roomTypeId: string;
   readonly bookingCode: string;
-  readonly status: 'HOLD' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED';
+  readonly status:
+    'HOLD' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED' | 'NO_SHOW' | 'CHECKED_IN' | 'CHECKED_OUT';
   readonly checkIn: Date;
   readonly checkOut: Date;
   readonly adults: number;
@@ -13,6 +14,8 @@ export interface BookingDetailRecord {
   readonly currency: 'VND';
   readonly finalAmountVnd: number;
   readonly holdExpiresAt: Date | null;
+  readonly accessPassVersion: number;
+  readonly accessPassRevokedAt: Date | null;
   readonly propertyCode: string;
   readonly propertyName: string;
   readonly propertyTimezone: string;
@@ -46,6 +49,8 @@ interface DetailRow {
   currency: 'VND';
   final_amount_vnd: string | number | bigint;
   hold_expires_at: Date | string | null;
+  access_pass_version: number;
+  access_pass_revoked_at: Date | string | null;
   property_code: string;
   property_name: string;
   property_timezone: string;
@@ -120,6 +125,11 @@ export function toBookingDetailRecord(row: DetailRow): BookingDetailRecord {
     finalAmountVnd: asBigIntAmount(row.final_amount_vnd),
     holdExpiresAt:
       row.hold_expires_at === null ? null : asDate(row.hold_expires_at, 'hold_expires_at'),
+    accessPassVersion: row.access_pass_version,
+    accessPassRevokedAt:
+      row.access_pass_revoked_at === null
+        ? null
+        : asDate(row.access_pass_revoked_at, 'access_pass_revoked_at'),
     propertyCode: row.property_code,
     propertyName: row.property_name,
     propertyTimezone: row.property_timezone,
@@ -152,6 +162,8 @@ export class BookingDetailRepository {
                 b.currency      AS currency,
                 b.final_amount_vnd AS final_amount_vnd,
                 b.hold_expires_at  AS hold_expires_at,
+                b.access_pass_version AS access_pass_version,
+                b.access_pass_revoked_at AS access_pass_revoked_at,
                 p.code          AS property_code,
                 p.name          AS property_name,
                 p.timezone      AS property_timezone,

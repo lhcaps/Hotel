@@ -22,6 +22,7 @@ import {
   guestAccessOtpVerifySchema,
   guestAccessOtpVerifyResponseSchema,
   bookingDetailResponseSchema,
+  bookingAccessPassResponseSchema,
   bookingHoldStatusRequestSchema,
   bookingHoldStatusResponseSchema,
   guestLogoutResponseSchema,
@@ -324,6 +325,33 @@ const document = {
         },
       },
     },
+    '/api/v1/public/bookings/{bookingCode}/access-pass': {
+      get: {
+        operationId: 'getPublicBookingAccessPass',
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          {
+            name: 'bookingCode',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', pattern: '^[A-Z0-9-]{4,32}$' },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'A signed, time-bounded booking access-pass SVG for a confirmed booking.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/BookingAccessPassResponse' },
+              },
+            },
+          },
+          '401': { $ref: '#/components/responses/GuestSessionRequired' },
+          '404': { $ref: '#/components/responses/BookingNotFound' },
+          '409': { $ref: '#/components/responses/BookingAccessPassInvalid' },
+        },
+      },
+    },
     '/api/v1/public/bookings/{bookingCode}/payments/momo/attempts': {
       post: {
         operationId: 'initiateMomoPayment',
@@ -558,6 +586,7 @@ const document = {
       GuestAccessOtpVerify: jsonSchema(guestAccessOtpVerifySchema),
       GuestAccessOtpVerifyResponse: jsonSchema(guestAccessOtpVerifyResponseSchema),
       BookingDetailResponse: jsonSchema(bookingDetailResponseSchema),
+      BookingAccessPassResponse: jsonSchema(bookingAccessPassResponseSchema),
       BookingHoldStatusRequest: jsonSchema(bookingHoldStatusRequestSchema),
       BookingHoldStatusResponse: jsonSchema(bookingHoldStatusResponseSchema),
       GuestLogoutResponse: jsonSchema(guestLogoutResponseSchema),
@@ -633,6 +662,13 @@ const document = {
       },
       BookingNotFound: {
         description: 'The requested booking could not be found (RFC 7807 type=booking-not-found).',
+        content: {
+          'application/problem+json': { schema: { $ref: '#/components/schemas/ProblemDetails' } },
+        },
+      },
+      BookingAccessPassInvalid: {
+        description:
+          'The booking access pass is unavailable because the booking is not confirmed or the pass was revoked.',
         content: {
           'application/problem+json': { schema: { $ref: '#/components/schemas/ProblemDetails' } },
         },

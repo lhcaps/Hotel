@@ -52,4 +52,33 @@ describe('PaymentStatusService', () => {
     );
     expect(payments.findByBookingId).toHaveBeenCalledWith(booking.bookingId);
   });
+
+  it('keeps the settled payment summary readable after check-in', async () => {
+    const sessions = { requireForBooking: vi.fn().mockResolvedValue(undefined) };
+    const payments = {
+      findByBookingId: vi.fn().mockResolvedValue({
+        provider: 'MOMO',
+        paymentStatus: 'SUCCEEDED',
+        attemptStatus: 'SUCCEEDED',
+        bookingStatus: 'CHECKED_IN',
+        amountVnd: '359000',
+        currency: 'VND',
+        createdAt: new Date('2026-07-26T00:00:00.000Z'),
+        updatedAt: new Date('2026-07-26T00:01:00.000Z'),
+        completedAt: new Date('2026-07-26T00:01:00.000Z'),
+      }),
+    };
+    const service = new PaymentStatusService(
+      { findByBookingCodeForSession: vi.fn().mockResolvedValue(booking) } as never,
+      sessions as never,
+      payments as never,
+    );
+
+    await expect(
+      service.get(booking.bookingCode, Buffer.alloc(32), new Date()),
+    ).resolves.toMatchObject({
+      bookingStatus: 'CHECKED_IN',
+      paymentStatus: 'SUCCEEDED',
+    });
+  });
 });

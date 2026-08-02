@@ -24,6 +24,7 @@ const valid = {
   GUEST_CHALLENGE_REF_SECRET: 'b'.repeat(48),
   GUEST_SESSION_SECRET: 'c'.repeat(48),
   BOOKING_IP_DIGEST_SECRET: 'd'.repeat(48),
+  BOOKING_ACCESS_QR_SECRET: 'e'.repeat(48),
 };
 
 const workerValid = {
@@ -65,6 +66,19 @@ describe('loopbackOriginAlias', () => {
 });
 
 describe('API environment', () => {
+  it('requires a dedicated booking access QR secret that differs from the guest session secret', () => {
+    const missing = parseApiEnvironment({ ...valid, BOOKING_ACCESS_QR_SECRET: undefined });
+    expect(missing.success).toBe(false);
+    if (!missing.success) expect(missing.error.message).toContain('BOOKING_ACCESS_QR_SECRET');
+
+    const reused = parseApiEnvironment({
+      ...valid,
+      BOOKING_ACCESS_QR_SECRET: valid.GUEST_SESSION_SECRET,
+    });
+    expect(reused.success).toBe(false);
+    if (!reused.success) expect(reused.error.message).toContain('BOOKING_ACCESS_QR_SECRET');
+  });
+
   it('rejects a missing required server variable without exposing a secret', () => {
     const result = parseApiEnvironment({ ...valid, DATABASE_URL: undefined });
 

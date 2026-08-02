@@ -97,6 +97,37 @@ describe('BookingDetailPanel', () => {
     expect(screen.queryByText(/sessionRow/i)).not.toBeInTheDocument();
   });
 
+  it('shows a confirmed guest their booking access QR', async () => {
+    fetchMock.mockImplementation((input) => {
+      const url = String(input);
+      if (url.endsWith(`/public/bookings/${BOOKING.bookingCode}`)) {
+        return Promise.resolve(
+          jsonResponse({ ...BOOKING, status: 'CONFIRMED', holdExpiresAt: null }),
+        );
+      }
+      if (url.endsWith(`/public/bookings/${BOOKING.bookingCode}/access-pass`)) {
+        return Promise.resolve(
+          jsonResponse({
+            bookingCode: BOOKING.bookingCode,
+            expiresAt: '2027-01-10T07:00:00.000Z',
+            svg: '<svg xmlns="http://www.w3.org/2000/svg" />',
+          }),
+        );
+      }
+      return Promise.resolve(jsonResponse({}));
+    });
+
+    render(
+      <BookingDetailPanel
+        bookingCode="RM-AB23-CD45-EF67"
+        email="guest@example.test"
+        onLogout={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByRole('img', { name: 'Mã QR nhận phòng' })).toBeVisible();
+  });
+
   it('offers an authorized printable confirmation without internal fields', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse(BOOKING));
     render(

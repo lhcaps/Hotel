@@ -225,6 +225,7 @@ const apiEnvironmentSchema = sharedEnvironmentSchema
     GUEST_CHALLENGE_REF_SECRET: z.string().min(32),
     GUEST_SESSION_SECRET: z.string().min(32),
     BOOKING_IP_DIGEST_SECRET: z.string().min(32),
+    BOOKING_ACCESS_QR_SECRET: z.string().min(32),
     BOOKING_HOLD_DURATION_MS: z.coerce.number().int().min(60_000).max(3_600_000).default(900_000),
     GUEST_OTP_TTL_MS: z.coerce.number().int().min(60_000).max(3_600_000).default(600_000),
     GUEST_OTP_RESEND_COOLDOWN_MS: z.coerce.number().int().min(1_000).max(3_600_000).default(60_000),
@@ -317,6 +318,9 @@ const apiEnvironmentSchema = sharedEnvironmentSchema
     PAYMENT_RECONCILIATION_RETRY_DELAYS_MS: paymentReconciliationRetryDelaysSchema,
   })
   .superRefine((value, context) => {
+    if (value.BOOKING_ACCESS_QR_SECRET === value.GUEST_SESSION_SECRET) {
+      addIssue(context, 'BOOKING_ACCESS_QR_SECRET', 'must differ from GUEST_SESSION_SECRET');
+    }
     if (value.PAYMENT_RECONCILIATION_MAX_ATTEMPTS > 0) {
       const delays = value.PAYMENT_RECONCILIATION_RETRY_DELAYS_MS;
       if (delays.length > value.PAYMENT_RECONCILIATION_MAX_ATTEMPTS) {

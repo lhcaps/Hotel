@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { Buffer } from 'node:buffer';
+import { requireApiEnvironment } from '@room/config';
 import { type DatabasePool } from '@room/database';
 
 import { DatabaseProvider } from '../database/database.provider.js';
@@ -24,6 +26,7 @@ import {
 import { GuestSessionRepository } from './repositories/guest-session.repository.js';
 import { AdminBookingLifecycleService } from './services/admin-booking-lifecycle.service.js';
 import { BookingDetailService } from './services/booking-detail.service.js';
+import { BookingAccessPassService } from './services/booking-access-pass.service.js';
 import { BookingHoldService } from './services/booking-hold.service.js';
 import { BookingHoldStatusService } from './services/booking-hold-status.service.js';
 import { GuestAccessOtpRequestService } from './services/guest-access-otp-request.service.js';
@@ -140,6 +143,13 @@ export const GUEST_RATE_LIMIT_CONFIG = Symbol('GUEST_RATE_LIMIT_CONFIG');
         repository: BookingDetailRepository,
         session: GuestSessionService,
       ): BookingDetailService => new BookingDetailService(repository, session),
+    },
+    {
+      provide: BookingAccessPassService,
+      useFactory: (): BookingAccessPassService =>
+        new BookingAccessPassService(
+          Buffer.from(requireApiEnvironment().BOOKING_ACCESS_QR_SECRET, 'utf8'),
+        ),
     },
     {
       provide: BookingHoldStatusService,

@@ -7,6 +7,7 @@ import { bookingApi, BookingApiError } from '../lib/booking-api';
 import { CouponSummary } from './coupon-summary';
 import { PaymentProviderSelector } from './payment-provider-selector';
 import { PaymentStatusSummary } from './payment-status-summary';
+import { BookingAccessPassPanel } from './booking-access-pass-panel';
 import { formatDateTime, formatVnd, translate, translatePaymentStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 
@@ -198,6 +199,10 @@ export function BookingDetailPanel({ bookingCode, email, onLogout }: BookingDeta
 
       {booking.status === 'HOLD' && booking.amountVnd > 0 ? (
         <PaymentProviderSelector bookingCode={booking.bookingCode} />
+      ) : null}
+
+      {booking.status === 'CONFIRMED' ? (
+        <BookingAccessPassPanel bookingCode={booking.bookingCode} />
       ) : null}
 
       <PaymentStatusSummary bookingCode={booking.bookingCode} />

@@ -1,5 +1,6 @@
 import type {
   BookingDetailResponse,
+  BookingAccessPassResponse,
   BookingHoldResponse,
   BookingHoldStatusRequest,
   BookingHoldStatusResponse,
@@ -250,6 +251,17 @@ export const bookingApi = {
   ): Promise<BookingDetailResponse> {
     return request<BookingDetailResponse>(
       `/public/bookings/${encodeURIComponent(bookingCode)}`,
+      { method: 'GET' },
+      options,
+    );
+  },
+
+  getBookingAccessPass(
+    bookingCode: string,
+    options?: BookingApiRequestOptions,
+  ): Promise<BookingAccessPassResponse> {
+    return request<BookingAccessPassResponse>(
+      `/public/bookings/${encodeURIComponent(bookingCode)}/access-pass`,
       { method: 'GET' },
       options,
     );

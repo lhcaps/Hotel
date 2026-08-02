@@ -29,23 +29,25 @@ import type {
 } from '@room/contracts';
 
 const fetchMock = vi.fn<typeof fetch>();
-const { getPaymentStatus, listPaymentProviders, BookingApiError } = vi.hoisted(() => {
-  class BookingApiErrorImpl extends Error {
-    readonly status: number;
-    readonly code: string | undefined;
-    constructor(status: number, message: string, code?: string) {
-      super(message);
-      this.status = status;
-      this.code = code;
-      this.name = 'BookingApiError';
+const { getBookingAccessPass, getPaymentStatus, listPaymentProviders, BookingApiError } =
+  vi.hoisted(() => {
+    class BookingApiErrorImpl extends Error {
+      readonly status: number;
+      readonly code: string | undefined;
+      constructor(status: number, message: string, code?: string) {
+        super(message);
+        this.status = status;
+        this.code = code;
+        this.name = 'BookingApiError';
+      }
     }
-  }
-  return {
-    getPaymentStatus: vi.fn(),
-    listPaymentProviders: vi.fn(),
-    BookingApiError: BookingApiErrorImpl,
-  };
-});
+    return {
+      getBookingAccessPass: vi.fn(),
+      getPaymentStatus: vi.fn(),
+      listPaymentProviders: vi.fn(),
+      BookingApiError: BookingApiErrorImpl,
+    };
+  });
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
@@ -54,6 +56,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('../src/lib/booking-api', () => ({
   bookingApi: {
+    getBookingAccessPass,
     getPaymentStatus,
     listPaymentProviders,
   },
@@ -153,6 +156,12 @@ describe('Phase 2.1 customer booking accessibility evidence', () => {
     fetchMock.mockReset();
     process.env.NEXT_PUBLIC_API_BASE_URL = 'http://api.local/api/v1';
     globalThis.fetch = fetchMock as unknown as typeof fetch;
+    getBookingAccessPass.mockReset();
+    getBookingAccessPass.mockResolvedValue({
+      bookingCode: BOOKING.bookingCode,
+      expiresAt: '2027-01-10T07:00:00.000Z',
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" />',
+    });
     getPaymentStatus.mockReset();
     listPaymentProviders.mockReset();
   });

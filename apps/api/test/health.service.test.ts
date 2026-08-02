@@ -20,6 +20,7 @@ const environment = {
   GUEST_CHALLENGE_REF_SECRET: 'test-challenge-ref-secret-32-chars-aaaa',
   GUEST_SESSION_SECRET: 'test-guest-session-secret-32-chars-aaaa',
   BOOKING_IP_DIGEST_SECRET: 'test-ip-digest-secret-32-chars-aaaaa',
+  BOOKING_ACCESS_QR_SECRET: 'test-booking-access-qr-secret-32-chars-aaaa',
   BOOKING_HOLD_DURATION_MS: 900_000,
   GUEST_OTP_TTL_MS: 600_000,
   GUEST_OTP_RESEND_COOLDOWN_MS: 60_000,

@@ -13,6 +13,7 @@ import {
   GuestSessionWrongBookingError,
 } from '../src/booking/services/guest-session.service.js';
 import { BookingNotFoundError } from '../src/booking/services/booking-detail.service.js';
+import { BookingAccessPassError } from '../src/booking/services/booking-access-pass.service.js';
 import {
   QuoteExpiredError,
   QuotePricingConfigurationError,
@@ -113,6 +114,9 @@ describe('ProblemDetailsFilter', () => {
     );
     expect(invoke(new BookingNotFoundError()).send).toHaveBeenCalledWith(
       expect.objectContaining({ status: 404, code: 'BOOKING_NOT_FOUND' }),
+    );
+    expect(invoke(new BookingAccessPassError()).send).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 409, code: 'BOOKING_ACCESS_PASS_INVALID' }),
     );
   });
 });

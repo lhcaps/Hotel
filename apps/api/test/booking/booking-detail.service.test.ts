@@ -9,6 +9,7 @@ import {
   GuestSessionRequiredError,
   GuestSessionService,
 } from '../../src/booking/services/guest-session.service.js';
+import { BookingAccessPassService } from '../../src/booking/services/booking-access-pass.service.js';
 import type { BookingDetailRecord } from '../../src/booking/repositories/booking-detail.repository.js';
 
 function record(overrides: Partial<BookingDetailRecord> = {}): BookingDetailRecord {
@@ -31,6 +32,8 @@ function record(overrides: Partial<BookingDetailRecord> = {}): BookingDetailReco
     finalAmountVnd: 359000,
     currency: 'VND',
     holdExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+    accessPassVersion: 1,
+    accessPassRevokedAt: null,
     fullName: 'Nguyen Van A',
     normalizedEmail: 'anna@example.com',
     normalizedPhoneE164: '+84909000000',
@@ -59,6 +62,45 @@ function services(overrides: {
 }
 
 describe('BookingDetailService', () => {
+  it('issues a guest-authorized SVG access pass for a confirmed booking', async () => {
+    const confirmed = Object.assign(record({ status: 'CONFIRMED', holdExpiresAt: null }), {
+      accessPassVersion: 1,
+      accessPassRevokedAt: null,
+    });
+    const { service, session } = services({
+      find: async () => confirmed,
+      requireForBooking: async () => ({ bookingId: confirmed.bookingId }),
+    });
+    const subject = service as unknown as {
+      getAccessPass(
+        bookingCode: string,
+        token: Buffer | null,
+        now: Date,
+        passes: BookingAccessPassService,
+      ): Promise<{ bookingCode: string; expiresAt: string; svg: string }>;
+    };
+
+    const result = await subject.getAccessPass(
+      confirmed.bookingCode,
+      Buffer.alloc(32),
+      new Date('2027-01-01T00:00:00.000Z'),
+      new BookingAccessPassService(
+        Buffer.from('booking-detail-access-pass-test-secret-at-least-32-bytes', 'utf8'),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      bookingCode: confirmed.bookingCode,
+      expiresAt: '2026-07-23T08:00:00.000Z',
+    });
+    expect(result.svg).toContain('<svg');
+    expect(session.requireForBooking).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      confirmed.bookingId,
+      new Date('2027-01-01T00:00:00.000Z'),
+    );
+  });
+
   it('throws when the booking code is unknown', async () => {
     const { service } = services({});
     await expect(
@@ -108,6 +150,21 @@ describe('BookingDetailService', () => {
     );
     expect(result.status).toBe('CONFIRMED');
     expect(result.holdExpiresAt).toBeNull();
+  });
+
+  it('keeps a guest detail readable after check-in', async () => {
+    const { service } = services({
+      find: async () => record({ status: 'CHECKED_IN', holdExpiresAt: null }),
+      requireForBooking: async () => ({}),
+    });
+
+    const result = await service.getByBookingCode(
+      'RM-AB12-CD34-EF56',
+      Buffer.alloc(8),
+      new Date('2026-07-23T00:00:00.000Z'),
+    );
+
+    expect(result.status).toBe('CHECKED_IN');
   });
 
   it('masks very short phone numbers as-is', async () => {

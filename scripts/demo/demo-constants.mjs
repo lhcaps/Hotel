@@ -52,6 +52,7 @@ export const DEMO_SECRET_KEYS = Object.freeze([
   'GUEST_CHALLENGE_REF_SECRET',
   'GUEST_SESSION_SECRET',
   'BOOKING_IP_DIGEST_SECRET',
+  'BOOKING_ACCESS_QR_SECRET',
 ]);
 
 export function createUniqueDemoDatabaseName() {

@@ -3,7 +3,9 @@ import { maskEmailForDisplay } from '@room/booking';
 import {
   bookingDetailResponseSchema,
   bookingHoldCouponSummarySchema,
+  bookingAccessPassResponseSchema,
   type BookingDetailResponse,
+  type BookingAccessPassResponse,
 } from '@room/contracts';
 
 import {
@@ -11,6 +13,7 @@ import {
   type BookingDetailRepository,
 } from '../repositories/booking-detail.repository.js';
 import { GuestSessionService } from './guest-session.service.js';
+import { BookingAccessPassError, BookingAccessPassService } from './booking-access-pass.service.js';
 
 export class BookingNotFoundError extends Error {
   public readonly code = 'BOOKING_NOT_FOUND';
@@ -82,5 +85,30 @@ export class BookingDetailService {
     }
     await this.session.requireForBooking(sessionToken, record.bookingId, now);
     return toResponse(record, now);
+  }
+
+  public async getAccessPass(
+    bookingCode: string,
+    sessionToken: Buffer | null,
+    now: Date,
+    passes: BookingAccessPassService,
+  ): Promise<BookingAccessPassResponse> {
+    const record = await this.repository.findByBookingCodeForSession(bookingCode);
+    if (record === null) throw new BookingNotFoundError();
+    await this.session.requireForBooking(sessionToken, record.bookingId, now);
+    if (record.status !== 'CONFIRMED' || record.accessPassRevokedAt !== null) {
+      throw new BookingAccessPassError();
+    }
+    const expiresAt = new Date(record.checkOut.getTime() + 60 * 60 * 1000);
+    const pass = passes.issue({
+      bookingId: record.bookingId,
+      version: record.accessPassVersion,
+      expiresAt,
+    });
+    return bookingAccessPassResponseSchema.parse({
+      bookingCode: record.bookingCode,
+      expiresAt: expiresAt.toISOString(),
+      svg: await passes.toSvg(pass),
+    });
   }
 }

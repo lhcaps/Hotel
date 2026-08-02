@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { BookingDetailResponse, PaymentStatusResponse } from '@room/contracts';
 
 import { CouponSummary } from './coupon-summary';
+import { BookingAccessPassPanel } from './booking-access-pass-panel';
 import { useLocale } from './locale-provider';
 import { formatDateTime, formatVnd, translate } from '../lib/i18n/messages';
 
@@ -86,6 +87,8 @@ export function ConfirmedSuccessPanel({ booking, payment }: ConfirmedSuccessPane
           <CouponSummary coupon={booking.coupon} testId="success-coupon-summary" />
         </div>
       ) : null}
+
+      <BookingAccessPassPanel bookingCode={booking.bookingCode} />
 
       <p className="mt-4 text-sm text-emerald-900" role="status">
         {translate(locale, 'success.emailNotice')}

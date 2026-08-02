@@ -22,6 +22,7 @@ const EXPECTED_PATHS = [
   '/api/v1/public/guest-access/otp/request',
   '/api/v1/public/guest-access/otp/verify',
   '/api/v1/public/bookings/{bookingCode}',
+  '/api/v1/public/bookings/{bookingCode}/access-pass',
   '/api/v1/public/bookings/{bookingCode}/payments/momo/attempts',
   '/api/v1/webhooks/momo',
   '/api/v1/payments/providers/momo/return',
@@ -70,6 +71,20 @@ describe('public-v1.json route coverage', () => {
       security?: ReadonlyArray<Record<string, string[]>>;
     };
     expect(op.security?.some((scheme) => 'cookieAuth' in scheme)).toBe(true);
+  });
+
+  it('documents the guest-authorized booking access pass as a conflict-safe QR response', async () => {
+    const doc = await loadArtifact();
+    const operation = doc.paths?.['/api/v1/public/bookings/{bookingCode}/access-pass']?.get as
+      | {
+          security?: ReadonlyArray<Record<string, string[]>>;
+          responses?: Record<string, { $ref?: string }>;
+        }
+      | undefined;
+    expect(operation?.security?.some((scheme) => 'cookieAuth' in scheme)).toBe(true);
+    expect(operation?.responses?.['409']?.$ref).toBe(
+      '#/components/responses/BookingAccessPassInvalid',
+    );
   });
 
   it('documents the Phase 7D MoMo initiation as booking-scoped and keeps its IPN unauthenticated', async () => {

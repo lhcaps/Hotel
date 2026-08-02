@@ -103,10 +103,19 @@ describe('bookingApi', () => {
     );
     await bookingApi.getGuestBooking('RM-AB23-CD45-EF67');
 
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        bookingCode: 'RM-AB23-CD45-EF67',
+        expiresAt: '2027-01-10T07:00:00.000Z',
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" />',
+      }),
+    );
+    await bookingApi.getBookingAccessPass('RM-AB23-CD45-EF67');
+
     fetchMock.mockResolvedValueOnce(jsonResponse({ loggedOutAt: '2027-01-10T03:00:00.000Z' }));
     await bookingApi.logoutGuestAccess();
 
-    expect(fetchMock.mock.calls).toHaveLength(6);
+    expect(fetchMock.mock.calls).toHaveLength(7);
 
     const calls = fetchMock.mock.calls.map(([input, init]) => ({
       input,
@@ -130,9 +139,15 @@ describe('bookingApi', () => {
     expect(calls[4]?.init?.method).toBe('GET');
     expect(calls[4]?.init?.credentials).toBe('include');
 
-    expect(calls[5]?.input).toBe('http://api.local/api/v1/public/guest-access/logout');
-    expect(calls[5]?.init?.method).toBe('POST');
+    expect(calls[5]?.input).toBe(
+      'http://api.local/api/v1/public/bookings/RM-AB23-CD45-EF67/access-pass',
+    );
+    expect(calls[5]?.init?.method).toBe('GET');
     expect(calls[5]?.init?.credentials).toBe('include');
+
+    expect(calls[6]?.input).toBe('http://api.local/api/v1/public/guest-access/logout');
+    expect(calls[6]?.init?.method).toBe('POST');
+    expect(calls[6]?.init?.credentials).toBe('include');
   });
 
   it('omits any client-authoritative fields from the HOLD request body', async () => {
