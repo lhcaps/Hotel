@@ -29,6 +29,14 @@ const bytea = customType<{ data: Buffer }>({
 export const catalogStatus = pgEnum('catalog_status', ['ACTIVE', 'INACTIVE']);
 export const roomStatus = pgEnum('room_status', ['ACTIVE', 'INACTIVE', 'MAINTENANCE']);
 export const housekeepingStatus = pgEnum('housekeeping_status', ['CLEAN', 'DIRTY', 'CLEANING']);
+export const housekeepingTaskType = pgEnum('housekeeping_task_type', ['ARRIVAL_PREP', 'TURNOVER']);
+export const housekeepingTaskStatus = pgEnum('housekeeping_task_status', [
+  'SCHEDULED',
+  'DUE',
+  'IN_PROGRESS',
+  'DONE',
+  'CANCELLED',
+]);
 export const ratePlanStatus = pgEnum('rate_plan_status', ['DRAFT', 'ACTIVE', 'INACTIVE']);
 export const bookingStatus = pgEnum('booking_status', [
   'HOLD',
@@ -791,6 +799,67 @@ export const bookings = pgTable(
       table.createdAt.desc(),
     ),
     index('bookings_property_check_in_idx').on(table.propertyId, table.checkIn),
+  ],
+);
+
+/**
+ * Durable operational work queue. This deliberately remains separate from a
+ * room's current housekeeping condition: a room can be CLEAN while an
+ * ARRIVAL_PREP verification task is still scheduled, and a schedule-free
+ * DIRTY room can require a TURNOVER task.
+ */
+export const housekeepingTasks = pgTable(
+  'housekeeping_tasks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    propertyId: uuid('property_id').notNull(),
+    roomId: uuid('room_id').notNull(),
+    bookingId: uuid('booking_id'),
+    type: housekeepingTaskType('type').notNull(),
+    status: housekeepingTaskStatus('status').notNull().default('SCHEDULED'),
+    dueAt: timestamptz('due_at').notNull(),
+    reminderAt: timestamptz('reminder_at'),
+    reminderSentAt: timestamptz('reminder_sent_at'),
+    startedAt: timestamptz('started_at'),
+    completedAt: timestamptz('completed_at'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'housekeeping_tasks_property_fk',
+      columns: [table.propertyId],
+      foreignColumns: [properties.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'housekeeping_tasks_property_room_fk',
+      columns: [table.propertyId, table.roomId],
+      foreignColumns: [rooms.propertyId, rooms.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'housekeeping_tasks_property_booking_fk',
+      columns: [table.propertyId, table.bookingId],
+      foreignColumns: [bookings.propertyId, bookings.id],
+    }).onDelete('restrict'),
+    unique('housekeeping_tasks_property_id_uq').on(table.propertyId, table.id),
+    uniqueIndex('housekeeping_tasks_booking_type_uq')
+      .on(table.bookingId, table.type)
+      .where(sql`${table.bookingId} IS NOT NULL`),
+    index('housekeeping_tasks_property_status_due_idx').on(
+      table.propertyId,
+      table.status,
+      table.dueAt,
+    ),
+    index('housekeeping_tasks_room_status_due_idx').on(table.roomId, table.status, table.dueAt),
+    check(
+      'housekeeping_tasks_reminder_sent_ck',
+      sql`${table.reminderSentAt} IS NULL OR ${table.reminderAt} IS NOT NULL`,
+    ),
+    check(
+      'housekeeping_tasks_completed_at_ck',
+      sql`(${table.status} = 'DONE' AND ${table.completedAt} IS NOT NULL)
+          OR (${table.status} <> 'DONE' AND ${table.completedAt} IS NULL)`,
+    ),
   ],
 );
 
@@ -1675,6 +1744,7 @@ export const databaseSchema = {
   customerProfiles,
   guestOtpChallenges,
   guestSessions,
+  housekeepingTasks,
   maintenanceBlocks,
   outboxEvents,
   operationalReviews,

@@ -21,7 +21,10 @@ describe('client room import manifest', () => {
       [399_000, 469_000, 549_000],
       [499_000, 589_000, 689_000],
       [749_000, 879_000, 1_029_000],
-      [80_000, 80_000, 80_000],
+      [80_000, 95_000, 110_000],
     ]);
+    expect(CLIENT_ROOM_MANIFEST.tiers.find((tier) => tier.code === 'SIGNATURE')).toMatchObject({
+      maxOccupancy: 5,
+    });
   });
 });

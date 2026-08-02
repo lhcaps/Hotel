@@ -397,6 +397,7 @@ export class AdminBookingLifecycleService {
       if (row.status !== 'CHECKED_IN') {
         throw new BookingTransitionError(`Cannot check out a booking in status ${row.status}.`);
       }
+      await lockAssignedRoom(client, row.property_id, row.room_id);
       await client.query(
         `UPDATE bookings
             SET status = 'CHECKED_OUT',
@@ -412,6 +413,16 @@ export class AdminBookingLifecycleService {
           WHERE id = $1
             AND property_id = $3`,
         [row.room_id, now, row.property_id],
+      );
+      await client.query(
+        `INSERT INTO housekeeping_tasks (
+            property_id, room_id, booking_id, type, status, due_at
+         )
+         VALUES ($1, $2, $3, 'TURNOVER', 'DUE', $4)
+         ON CONFLICT (booking_id, type)
+         WHERE booking_id IS NOT NULL
+         DO NOTHING`,
+        [row.property_id, row.room_id, row.id, now],
       );
       await releaseInventoryBlock(client, row.id, now);
       await appendAudit(client, {
@@ -603,6 +614,24 @@ export class AdminBookingLifecycleService {
       client.release();
     }
     return this.getDetail(bookingCode, now);
+  }
+}
+
+async function lockAssignedRoom(
+  client: DatabasePoolClient,
+  propertyId: string,
+  roomId: string,
+): Promise<void> {
+  const locked = await client.query<{ id: string }>(
+    `SELECT id
+       FROM rooms
+      WHERE property_id = $1
+        AND id = $2
+      FOR UPDATE`,
+    [propertyId, roomId],
+  );
+  if (locked.rows[0] === undefined) {
+    throw new BookingTransitionError('Assigned room is unavailable for check-out.');
   }
 }
 

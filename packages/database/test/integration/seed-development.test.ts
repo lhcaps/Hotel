@@ -88,6 +88,69 @@ describe('guarded deterministic development seed', () => {
       status: 'ACTIVE',
       prices: { DELUXE: 419000, SIGNATURE: 489000, STANDARD: 359000 },
     });
+    expect(
+      Object.fromEntries(
+        plans.rows
+          .filter((plan) =>
+            new Set([
+              'THREE_HOUR_COMBO',
+              'FIVE_HOUR_COMBO',
+              'LUNCH_COMBO',
+              'NIGHT_COMBO',
+              'DAY_COMBO',
+              'EXTRA_HOUR',
+            ]).has(plan.code),
+          )
+          .map((plan) => [plan.code, plan.prices]),
+      ),
+    ).toEqual({
+      THREE_HOUR_COMBO: { DELUXE: 349000, SIGNATURE: 399000, STANDARD: 299000 },
+      FIVE_HOUR_COMBO: { DELUXE: 469000, SIGNATURE: 549000, STANDARD: 399000 },
+      LUNCH_COMBO: { DELUXE: 419000, SIGNATURE: 489000, STANDARD: 359000 },
+      NIGHT_COMBO: { DELUXE: 589000, SIGNATURE: 689000, STANDARD: 499000 },
+      DAY_COMBO: { DELUXE: 879000, SIGNATURE: 1029000, STANDARD: 749000 },
+      EXTRA_HOUR: { DELUXE: 95000, SIGNATURE: 110000, STANDARD: 80000 },
+    });
+    const signature = await database.pool.query<{
+      max_occupancy: number;
+    }>(
+      `SELECT rt.max_occupancy
+         FROM room_types rt
+         JOIN price_tiers pt ON pt.id = rt.price_tier_id
+        WHERE pt.code = 'SIGNATURE'`,
+    );
+    expect(signature.rows).toEqual([{ max_occupancy: 5 }]);
+    const providers = await database.pool.query<{
+      provider: string;
+      enabled: boolean;
+      display_name: string;
+      display_order: number;
+      checkout_expiry_minutes: number;
+    }>(
+      `SELECT pps.provider, pps.enabled, pps.display_name, pps.display_order,
+              pps.checkout_expiry_minutes
+         FROM payment_provider_settings pps
+         JOIN properties p ON p.id = pps.property_id
+        WHERE p.id = $1
+        ORDER BY pps.display_order`,
+      ['10000000-0000-4000-8000-000000000001'],
+    );
+    expect(providers.rows).toEqual([
+      {
+        provider: 'MOMO',
+        enabled: false,
+        display_name: 'MoMo Demo',
+        display_order: 10,
+        checkout_expiry_minutes: 15,
+      },
+      {
+        provider: 'VNPAY',
+        enabled: false,
+        display_name: 'VNPAY Demo',
+        display_order: 20,
+        checkout_expiry_minutes: 15,
+      },
+    ]);
     const publicPlanCodes = new Set([
       'THREE_HOUR_COMBO',
       'FIVE_HOUR_COMBO',

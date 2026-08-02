@@ -12,8 +12,9 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const repoRoot = resolve(import.meta.dirname, '..', '..');
+const repoRoot = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const drizzleDir = resolve(repoRoot, 'packages', 'database', 'drizzle');
 const manifestPath = resolve(drizzleDir, 'migration-provenance.json');
 

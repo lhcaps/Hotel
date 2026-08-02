@@ -22,7 +22,7 @@ export const CLIENT_ROOM_MANIFEST = Object.freeze({
       sortOrder: 3,
       maxAdults: 4,
       maxChildren: 2,
-      maxOccupancy: 6,
+      maxOccupancy: 5,
     },
   ],
   rooms: [
@@ -101,7 +101,7 @@ export const CLIENT_ROOM_MANIFEST = Object.freeze({
       maxCheckInMinuteExclusive: null,
       minDurationMinutesInclusive: null,
       maxDurationMinutesInclusive: null,
-      amounts: [80_000, 80_000, 80_000],
+      amounts: [80_000, 95_000, 110_000],
     },
   ],
 });

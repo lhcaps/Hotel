@@ -283,6 +283,9 @@ describe('Phase 7G admin booking lifecycle', () => {
         `DELETE FROM room_inventory_blocks WHERE property_id = $1`,
         [ids.property],
       );
+      await fixture.database.pool.query(`DELETE FROM housekeeping_tasks WHERE property_id = $1`, [
+        ids.property,
+      ]);
       await fixture.database.pool.query(
         `ALTER TABLE booking_contacts DISABLE TRIGGER booking_contacts_reject_mutation`,
       );
@@ -473,6 +476,32 @@ describe('Phase 7G admin booking lifecycle', () => {
         [bookingId],
       );
       expect(room.rows[0]?.housekeeping_status).toBe('DIRTY');
+    });
+
+    it('creates exactly one immediately due TURNOVER task when check-out succeeds', async () => {
+      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
+      const checkedOutAt = new Date('2027-02-10T07:00:00.000Z');
+      await confirmBooking(fixture.database, bookingId);
+      await fixture.service.checkIn(actor, bookingCode, new Date('2027-02-10T04:00:00.000Z'));
+      await fixture.service.checkOut(actor, bookingCode, checkedOutAt);
+
+      const tasks = await fixture.database.pool.query<{
+        type: string;
+        status: string;
+        due_at: Date;
+        reminder_at: Date | null;
+      }>(
+        `SELECT type, status, due_at, reminder_at
+           FROM housekeeping_tasks
+          WHERE booking_id = $1
+            AND room_id = $2`,
+        [bookingId, ids.room],
+      );
+      expect(tasks.rows).toHaveLength(1);
+      expect(tasks.rows[0]?.type).toBe('TURNOVER');
+      expect(tasks.rows[0]?.status).toBe('DUE');
+      expect(tasks.rows[0]?.due_at.toISOString()).toBe(checkedOutAt.toISOString());
+      expect(tasks.rows[0]?.reminder_at).toBeNull();
     });
 
     it('15. duplicate check-out is rejected', async () => {

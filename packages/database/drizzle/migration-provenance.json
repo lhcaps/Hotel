@@ -148,6 +148,13 @@
       "sha256": "deaf3a819a68ce2c764e4666b213c2ba6c77063f3281528662a25fa0b3c36dcf",
       "phase": "phase 9 outward contract coverage",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 21,
+      "fileName": "0021_customer_ready_operations.sql",
+      "sha256": "7ce9c9a08de742312f33909d78f77698f1e35f4ce867b723deec6776c660bf55",
+      "phase": "customer-ready pricing and housekeeping operations",
+      "previousIntroductionReference": null
     }
   ]
 }

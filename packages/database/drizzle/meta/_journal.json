@@ -148,6 +148,13 @@
       "when": 1785324277129,
       "tag": "0020_panoramic_mantis",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1785684026643,
+      "tag": "0021_customer_ready_operations",
+      "breakpoints": true
     }
   ]
 }
