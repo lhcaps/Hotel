@@ -13,16 +13,19 @@ import {
 } from '@nestjs/common';
 import type {
   AdminBookingDetail,
+  AdminBookingAccessPassScanResponse,
   AdminBookingListResponse,
   AdminOperationalReviewDetail,
   AdminOperationalReviewListResponse,
 } from '@room/contracts';
+import { adminBookingAccessPassScanRequestSchema } from '@room/contracts';
 
 import type { ActorContext } from '../auth/actor-context.js';
 import { AdminPermissionGuard } from '../auth/admin-permission.guard.js';
 import { RequirePermissions } from '../auth/permissions.decorator.js';
 import { PropertyContextService } from '../catalog/property-context.service.js';
 import { AdminBookingLifecycleService } from './services/admin-booking-lifecycle.service.js';
+import { AdminBookingAccessPassService } from './services/admin-booking-access-pass.service.js';
 import { CouponDeliveryService } from './services/coupon-delivery.service.js';
 
 type AdminRequest = {
@@ -40,6 +43,8 @@ export class AdminBookingOperationsController {
     private readonly propertyContext: PropertyContextService,
     @Inject(CouponDeliveryService)
     private readonly couponDelivery: CouponDeliveryService,
+    @Inject(AdminBookingAccessPassService)
+    private readonly accessPasses: AdminBookingAccessPassService,
   ) {}
 
   @Get('bookings')
@@ -63,6 +68,18 @@ export class AdminBookingOperationsController {
   ): Promise<AdminBookingDetail> {
     void request;
     return this.lifecycle.getDetail(bookingCode, new Date());
+  }
+
+  @Post('booking-access-passes/scan')
+  @Version('1')
+  @RequirePermissions('booking.lifecycle.read')
+  public async scanAccessPass(
+    @Body() body: unknown,
+    @Req() request: AdminRequest,
+  ): Promise<AdminBookingAccessPassScanResponse> {
+    void request;
+    const command = adminBookingAccessPassScanRequestSchema.parse(body);
+    return this.accessPasses.scan(command.value, new Date());
   }
 
   @Post('bookings/:bookingCode/send-coupons')

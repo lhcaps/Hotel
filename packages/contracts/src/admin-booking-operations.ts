@@ -27,6 +27,20 @@ export const reviewPresenceSchema = z.enum(['OPEN', 'RESOLVED', 'NONE']);
 
 export const adminBookingActionSchema = z.enum(['cancel', 'check-in', 'check-out', 'no-show']);
 
+export const adminBookingAccessPassScanRequestSchema = z
+  .object({
+    value: z.string().trim().min(16).max(4_096),
+  })
+  .strict();
+
+export const adminBookingAccessPassScanResponseSchema = z
+  .object({
+    bookingCode: bookingCodeSchema,
+    status: bookingStatusSchema,
+    action: z.enum(['check-in', 'check-out']),
+  })
+  .strict();
+
 export const adminBookingListQuerySchema = z
   .object({
     page: z.coerce.number().int().min(1).default(1),
@@ -259,6 +273,12 @@ export type AdminBookingListResponse = z.infer<typeof adminBookingListResponseSc
 export type AdminBookingSummary = z.infer<typeof adminBookingSummarySchema>;
 export type AdminBookingDetail = z.infer<typeof adminBookingDetailSchema>;
 export type AdminBookingAction = z.infer<typeof adminBookingActionSchema>;
+export type AdminBookingAccessPassScanRequest = z.infer<
+  typeof adminBookingAccessPassScanRequestSchema
+>;
+export type AdminBookingAccessPassScanResponse = z.infer<
+  typeof adminBookingAccessPassScanResponseSchema
+>;
 export type AdminBookingCancelRequest = z.infer<typeof adminBookingCancelRequestSchema>;
 export type AdminBookingNoShowRequest = z.infer<typeof adminBookingNoShowRequestSchema>;
 export type AdminOperationalReviewListQuery = z.infer<typeof adminOperationalReviewListQuerySchema>;

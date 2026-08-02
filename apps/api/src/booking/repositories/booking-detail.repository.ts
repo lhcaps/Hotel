@@ -36,6 +36,14 @@ export interface BookingDetailCouponSnapshot {
   readonly finalAmountVnd: number;
 }
 
+export interface BookingAccessPassRecord {
+  readonly bookingId: string;
+  readonly bookingCode: string;
+  readonly status: BookingDetailRecord['status'];
+  readonly accessPassVersion: number;
+  readonly accessPassRevokedAt: Date | null;
+}
+
 interface DetailRow {
   booking_id: string;
   property_id: string;
@@ -190,5 +198,37 @@ export class BookingDetailRepository {
     const row = result.rows[0];
     if (row === undefined) return null;
     return toBookingDetailRecord(row);
+  }
+
+  public async findAccessPassRecord(bookingId: string): Promise<BookingAccessPassRecord | null> {
+    const result = await this.client.execute<
+      {
+        booking_id: string;
+        booking_code: string;
+        status: BookingDetailRecord['status'];
+        access_pass_version: number;
+        access_pass_revoked_at: Date | string | null;
+      } & Record<string, unknown>
+    >(
+      sql`SELECT id AS booking_id,
+                  booking_code,
+                  status,
+                  access_pass_version,
+                  access_pass_revoked_at
+             FROM bookings
+            WHERE id = ${bookingId}`,
+    );
+    const row = result.rows[0];
+    if (row === undefined) return null;
+    return {
+      bookingId: row.booking_id,
+      bookingCode: row.booking_code,
+      status: row.status,
+      accessPassVersion: row.access_pass_version,
+      accessPassRevokedAt:
+        row.access_pass_revoked_at === null
+          ? null
+          : asDate(row.access_pass_revoked_at, 'access_pass_revoked_at'),
+    };
   }
 }

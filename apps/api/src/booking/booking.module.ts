@@ -25,6 +25,7 @@ import {
 } from './repositories/guest-access.repository.js';
 import { GuestSessionRepository } from './repositories/guest-session.repository.js';
 import { AdminBookingLifecycleService } from './services/admin-booking-lifecycle.service.js';
+import { AdminBookingAccessPassService } from './services/admin-booking-access-pass.service.js';
 import { BookingDetailService } from './services/booking-detail.service.js';
 import { BookingAccessPassService } from './services/booking-access-pass.service.js';
 import { BookingHoldService } from './services/booking-hold.service.js';
@@ -197,6 +198,14 @@ export const GUEST_RATE_LIMIT_CONFIG = Symbol('GUEST_RATE_LIMIT_CONFIG');
         repository: AdminBookingRepository,
       ): AdminBookingLifecycleService =>
         new AdminBookingLifecycleService(database.pool as unknown as DatabasePool, repository),
+    },
+    {
+      provide: AdminBookingAccessPassService,
+      inject: [BookingAccessPassService, BookingDetailRepository],
+      useFactory: (
+        passes: BookingAccessPassService,
+        bookings: BookingDetailRepository,
+      ): AdminBookingAccessPassService => new AdminBookingAccessPassService(passes, bookings),
     },
     {
       provide: CouponDeliveryService,

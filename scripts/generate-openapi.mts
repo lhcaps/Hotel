@@ -10,6 +10,8 @@ interface NormalizedErrno {
 import {
   adminCouponCreateSchema,
   adminBookingCouponDeliverySchema,
+  adminBookingAccessPassScanRequestSchema,
+  adminBookingAccessPassScanResponseSchema,
   adminMeSchema,
   adminOperationalReportQuerySchema,
   adminOperationalReportSchema,
@@ -1067,6 +1069,35 @@ const document = {
         },
       },
     },
+    '/api/v1/admin/booking-access-passes/scan': {
+      post: {
+        operationId: 'scanAdminBookingAccessPass',
+        summary: 'Verify a signed booking access pass and return the next ADMIN lifecycle action.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AdminBookingAccessPassScanRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description:
+              'A token-free booking preview. Check-in and check-out remain separate ADMIN-confirmed actions.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AdminBookingAccessPassScanResponse' },
+              },
+            },
+          },
+          '400': { $ref: '#/components/responses/ValidationError' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { $ref: '#/components/responses/BookingAccessPassInvalid' },
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
@@ -1080,6 +1111,8 @@ const document = {
     },
     schemas: {
       AdminBookingCouponDelivery: jsonSchema(adminBookingCouponDeliverySchema),
+      AdminBookingAccessPassScanRequest: jsonSchema(adminBookingAccessPassScanRequestSchema),
+      AdminBookingAccessPassScanResponse: jsonSchema(adminBookingAccessPassScanResponseSchema),
       AdminCouponCreate: jsonSchema(adminCouponCreateSchema),
       AdminMe: jsonSchema(adminMeSchema),
       Amenity: jsonSchema(amenitySchema),
@@ -1165,6 +1198,12 @@ const document = {
       },
       CatalogConflict: {
         description: 'The requested catalog mutation conflicts with existing data.',
+        content: {
+          'application/problem+json': { schema: { $ref: '#/components/schemas/ProblemDetails' } },
+        },
+      },
+      BookingAccessPassInvalid: {
+        description: 'The booking access pass is invalid, expired, revoked, or not actionable.',
         content: {
           'application/problem+json': { schema: { $ref: '#/components/schemas/ProblemDetails' } },
         },

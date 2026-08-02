@@ -321,6 +321,12 @@ export const adminApi = {
   },
   getAdminBooking: (bookingCode: string) =>
     request<AdminBookingDetail>(`/admin/bookings/${bookingCode}`),
+  scanBookingAccessPass: (value: string) =>
+    request<AdminBookingAccessPassScanResult>('/admin/booking-access-passes/scan', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ value }),
+    }),
   sendAdminBookingCoupons: (
     bookingCode: string,
     couponCodes: readonly string[],
@@ -735,4 +741,10 @@ export interface AdminBookingDetail {
   readonly timeline: readonly AdminBookingTimelineEntry[];
   readonly availableActions: readonly ('cancel' | 'check-in' | 'check-out' | 'no-show')[];
   readonly serverTime: string;
+}
+
+export interface AdminBookingAccessPassScanResult {
+  readonly bookingCode: string;
+  readonly status: BookingStatus;
+  readonly action: 'check-in' | 'check-out';
 }

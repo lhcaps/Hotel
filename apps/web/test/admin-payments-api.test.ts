@@ -151,6 +151,20 @@ describe('adminApi payment routes', () => {
     expect(firstCall?.[1]?.body).toBe(JSON.stringify({ couponCodes: ['WELCOME10', 'STAY20'] }));
   });
 
+  it('sends a scanned booking access pass only to the ADMIN scanner endpoint', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ bookingCode: 'BK-ABCDEF', status: 'CONFIRMED', action: 'check-in' }),
+    );
+
+    await adminApi.scanBookingAccessPass('signed-pass-value');
+
+    const firstCall = fetchMock.mock.calls[0];
+    expect(firstCall?.[0]).toBe('http://api.local/api/v1/admin/booking-access-passes/scan');
+    expect(firstCall?.[1]?.method).toBe('POST');
+    expect(firstCall?.[1]?.credentials).toBe('include');
+    expect(firstCall?.[1]?.body).toBe(JSON.stringify({ value: 'signed-pass-value' }));
+  });
+
   it('queries the payment status with POST and an empty body', async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({

@@ -20,6 +20,7 @@ const groups = [
     links: [
       ['admin.overview', '/admin'],
       ['admin.bookings', '/admin/bookings'],
+      ['admin.scanner', '/admin/scanner'],
       ['admin.payments', '/admin/payments'],
       ['admin.reviews', '/admin/operational-reviews'],
     ],
