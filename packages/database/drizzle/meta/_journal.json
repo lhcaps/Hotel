@@ -155,6 +155,13 @@
       "when": 1785684026643,
       "tag": "0021_customer_ready_operations",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1785686034745,
+      "tag": "0022_booking_access_pass",
+      "breakpoints": true
     }
   ]
 }

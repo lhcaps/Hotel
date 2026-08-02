@@ -31,7 +31,7 @@ describe('Phase 8C payment reconciliation schema', () => {
   it('reports the latest schema version as ready after preserving Phase 8C payment tables', async () => {
     await expect(getSchemaStatus(database.pool)).resolves.toEqual({
       ready: true,
-      actualVersion: 'phase-8d-client-acceptance-v1',
+      actualVersion: EXPECTED_SCHEMA_VERSION,
       expectedVersion: EXPECTED_SCHEMA_VERSION,
     });
   });

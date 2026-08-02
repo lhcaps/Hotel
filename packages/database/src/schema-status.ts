@@ -1,6 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 
-export const EXPECTED_SCHEMA_VERSION = 'phase-8d-client-acceptance-v1';
+export const EXPECTED_SCHEMA_VERSION = 'booking-access-pass-v1';
 
 export interface SchemaStatus {
   readonly ready: boolean;

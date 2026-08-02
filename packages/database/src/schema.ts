@@ -693,6 +693,8 @@ export const bookings = pgTable(
     checkedOutAt: timestamptz('checked_out_at'),
     noShowAt: timestamptz('no_show_at'),
     cancellationReason: text('cancellation_reason'),
+    accessPassVersion: integer('access_pass_version').notNull().default(1),
+    accessPassRevokedAt: timestamptz('access_pass_revoked_at'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
     updatedAt: timestamptz('updated_at').notNull().defaultNow(),
   },
