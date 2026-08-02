@@ -31,7 +31,7 @@ function scan(source, expectsFindings) {
         `${source}:/scan:ro`,
         '-v',
         `${join(repositoryRoot, '.gitleaks.toml')}:/config/.gitleaks.toml:ro`,
-        'zricethezav/gitleaks:latest',
+        'ghcr.io/gitleaks/gitleaks:v8.25.0',
         'detect',
         '--source',
         '/scan',
