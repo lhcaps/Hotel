@@ -365,6 +365,7 @@ export class AdminBookingLifecycleService {
       if (row.status !== 'CONFIRMED') {
         throw new BookingTransitionError(`Cannot check in a booking in status ${row.status}.`);
       }
+      await assertCheckInReadiness(client, row, now);
       await client.query(
         `UPDATE bookings
             SET status = 'CHECKED_IN',
@@ -635,6 +636,61 @@ async function lockAssignedRoom(
   );
   if (locked.rows[0] === undefined) {
     throw new BookingTransitionError('Assigned room is unavailable for check-out.');
+  }
+}
+
+async function assertCheckInReadiness(
+  client: DatabasePoolClient,
+  row: BookingLifecycleRow,
+  now: Date,
+): Promise<void> {
+  if (!(await isPaymentSucceeded(client, row.id))) {
+    throw new BookingTransitionError('A successful payment is required before check-in.');
+  }
+  const checkIn = asDate(row.check_in, 'check_in');
+  const checkOut = asDate(row.check_out, 'check_out');
+  if (now.getTime() < checkIn.getTime() || now.getTime() >= checkOut.getTime()) {
+    throw new BookingTransitionError(
+      'Check-in is not permitted outside the scheduled stay window.',
+    );
+  }
+  const room = await client.query<{
+    status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+    housekeeping_status: 'CLEAN' | 'DIRTY' | 'CLEANING';
+    maintenance_active: boolean;
+    occupied_by_another_booking: boolean;
+  }>(
+    `SELECT r.status, r.housekeeping_status,
+            EXISTS (
+              SELECT 1 FROM maintenance_blocks mb
+               WHERE mb.property_id = r.property_id AND mb.room_id = r.id
+                 AND mb.status = 'ACTIVE' AND mb.starts_at <= $3 AND mb.ends_at > $3
+            ) AS maintenance_active,
+            EXISTS (
+              SELECT 1 FROM bookings b
+               WHERE b.property_id = r.property_id AND b.room_id = r.id
+                 AND b.id <> $1 AND b.status = 'CHECKED_IN'
+            ) AS occupied_by_another_booking
+       FROM rooms r
+      WHERE r.id = $2 AND r.property_id = $4
+      FOR UPDATE`,
+    [row.id, row.room_id, now, row.property_id],
+  );
+  const state = room.rows[0];
+  if (state === undefined) {
+    throw new BookingTransitionError('Assigned room is unavailable for check-in.');
+  }
+  if (state.status !== 'ACTIVE') {
+    throw new BookingTransitionError('Assigned room is not operationally active.');
+  }
+  if (state.maintenance_active) {
+    throw new BookingTransitionError('Assigned room has an active maintenance block.');
+  }
+  if (state.housekeeping_status !== 'CLEAN') {
+    throw new BookingTransitionError('Assigned room is not clean and ready for check-in.');
+  }
+  if (state.occupied_by_another_booking) {
+    throw new BookingTransitionError('Assigned room is already occupied by another booking.');
   }
 }
 

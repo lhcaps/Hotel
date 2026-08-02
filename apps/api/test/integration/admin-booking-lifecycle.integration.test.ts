@@ -263,6 +263,10 @@ describe('Phase 7G admin booking lifecycle', () => {
   });
   beforeEach(async () => {
     await fixture.database.pool.query(
+      `UPDATE rooms SET status = 'ACTIVE', housekeeping_status = 'CLEAN' WHERE property_id = $1`,
+      [ids.property],
+    );
+    await fixture.database.pool.query(
       `ALTER TABLE booking_contacts DISABLE TRIGGER booking_contacts_reject_mutation`,
     );
     try {
@@ -461,9 +465,11 @@ describe('Phase 7G admin booking lifecycle', () => {
 
   describe('Check-in / Check-out', () => {
     it('8. check-in preserves inventory blocking', async () => {
-      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
+      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {
+        withPayment: true,
+      });
       await confirmBooking(fixture.database, bookingId);
-      await fixture.service.checkIn(actor, bookingCode, new Date());
+      await fixture.service.checkIn(actor, bookingCode, new Date('2027-02-10T04:00:00.000Z'));
       const blocks = await fixture.database.pool.query<{ status: string }>(
         `SELECT status FROM room_inventory_blocks WHERE booking_id = $1`,
         [bookingId],
@@ -472,10 +478,12 @@ describe('Phase 7G admin booking lifecycle', () => {
     });
 
     it('9. check-out releases inventory', async () => {
-      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
+      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {
+        withPayment: true,
+      });
       await confirmBooking(fixture.database, bookingId);
-      await fixture.service.checkIn(actor, bookingCode, new Date());
-      await fixture.service.checkOut(actor, bookingCode, new Date());
+      await fixture.service.checkIn(actor, bookingCode, new Date('2027-02-10T04:00:00.000Z'));
+      await fixture.service.checkOut(actor, bookingCode, new Date('2027-02-10T05:00:00.000Z'));
       const blocks = await fixture.database.pool.query<{ status: string }>(
         `SELECT status FROM room_inventory_blocks WHERE booking_id = $1`,
         [bookingId],
@@ -484,10 +492,12 @@ describe('Phase 7G admin booking lifecycle', () => {
     });
 
     it('marks the assigned room DIRTY when check-out succeeds', async () => {
-      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
+      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {
+        withPayment: true,
+      });
       await confirmBooking(fixture.database, bookingId);
-      await fixture.service.checkIn(actor, bookingCode, new Date());
-      await fixture.service.checkOut(actor, bookingCode, new Date());
+      await fixture.service.checkIn(actor, bookingCode, new Date('2027-02-10T04:00:00.000Z'));
+      await fixture.service.checkOut(actor, bookingCode, new Date('2027-02-10T05:00:00.000Z'));
 
       const room = await fixture.database.pool.query<{ housekeeping_status: string }>(
         `SELECT r.housekeeping_status
@@ -500,7 +510,9 @@ describe('Phase 7G admin booking lifecycle', () => {
     });
 
     it('creates exactly one immediately due TURNOVER task when check-out succeeds', async () => {
-      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
+      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {
+        withPayment: true,
+      });
       const checkedOutAt = new Date('2027-02-10T07:00:00.000Z');
       await confirmBooking(fixture.database, bookingId);
       await fixture.service.checkIn(actor, bookingCode, new Date('2027-02-10T04:00:00.000Z'));
@@ -526,13 +538,23 @@ describe('Phase 7G admin booking lifecycle', () => {
     });
 
     it('15. duplicate check-out is rejected', async () => {
-      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
+      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {
+        withPayment: true,
+      });
       await confirmBooking(fixture.database, bookingId);
-      await fixture.service.checkIn(actor, bookingCode, new Date());
-      await fixture.service.checkOut(actor, bookingCode, new Date());
+      await fixture.service.checkIn(actor, bookingCode, new Date('2027-02-10T04:00:00.000Z'));
+      await fixture.service.checkOut(actor, bookingCode, new Date('2027-02-10T05:00:00.000Z'));
       await expect(fixture.service.checkOut(actor, bookingCode, new Date())).rejects.toBeInstanceOf(
         BookingTransitionError,
       );
+    });
+
+    it('rejects check-in when payment has not succeeded', async () => {
+      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
+      await confirmBooking(fixture.database, bookingId);
+      await expect(
+        fixture.service.checkIn(actor, bookingCode, new Date('2027-02-10T04:00:00.000Z')),
+      ).rejects.toBeInstanceOf(BookingTransitionError);
     });
   });
 
