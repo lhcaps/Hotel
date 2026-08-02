@@ -11,7 +11,9 @@ import {
   roomInventoryBlocks,
   auditEvents,
   bookingCouponApplications,
+  housekeepingTasks,
   outboxEvents,
+  sql,
   type DatabasePool,
 } from '@room/database';
 import { randomUUID } from 'node:crypto';
@@ -653,6 +655,21 @@ export async function applyVerifiedPaymentEvent(
       .update(bookings)
       .set({ status: 'CONFIRMED', updatedAt: input.occurredAt })
       .where(eq(bookings.id, lockedBooking.id));
+    await tx
+      .insert(housekeepingTasks)
+      .values({
+        propertyId: lockedBooking.propertyId,
+        roomId: lockedBooking.roomId,
+        bookingId: lockedBooking.id,
+        type: 'ARRIVAL_PREP',
+        status: 'SCHEDULED',
+        dueAt: lockedBooking.checkIn,
+        reminderAt: new Date(lockedBooking.checkIn.getTime() - 60 * 60 * 1000),
+      })
+      .onConflictDoNothing({
+        target: [housekeepingTasks.bookingId, housekeepingTasks.type],
+        where: sql`${housekeepingTasks.bookingId} IS NOT NULL`,
+      });
     await tx.insert(paymentProviderEvents).values({
       propertyId: lockedPayment.propertyId,
       paymentAttemptId: lockedAttempt.id,
@@ -837,6 +854,21 @@ export async function confirmNoChargeBooking(
       .update(bookings)
       .set({ status: 'CONFIRMED', updatedAt: databaseNow })
       .where(eq(bookings.id, lockedBooking.id));
+    await tx
+      .insert(housekeepingTasks)
+      .values({
+        propertyId: lockedBooking.propertyId,
+        roomId: lockedBooking.roomId,
+        bookingId: lockedBooking.id,
+        type: 'ARRIVAL_PREP',
+        status: 'SCHEDULED',
+        dueAt: lockedBooking.checkIn,
+        reminderAt: new Date(lockedBooking.checkIn.getTime() - 60 * 60 * 1000),
+      })
+      .onConflictDoNothing({
+        target: [housekeepingTasks.bookingId, housekeepingTasks.type],
+        where: sql`${housekeepingTasks.bookingId} IS NOT NULL`,
+      });
     await tx.insert(auditEvents).values([
       {
         propertyId: payment.propertyId,

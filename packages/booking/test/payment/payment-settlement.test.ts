@@ -182,6 +182,26 @@ describe('verified payment settlement', () => {
         held.bookingId,
       ]),
     ).resolves.toMatchObject({ rows: [{ status: 'SUCCEEDED' }] });
+    await expect(
+      database.pool.query<{
+        type: string;
+        status: string;
+        due_at: Date;
+        reminder_at: Date;
+      }>(
+        `SELECT type, status, due_at, reminder_at
+           FROM housekeeping_tasks
+          WHERE booking_id = $1`,
+        [held.bookingId],
+      ),
+    ).resolves.toMatchObject({
+      rows: [
+        {
+          type: 'ARRIVAL_PREP',
+          status: 'SCHEDULED',
+        },
+      ],
+    });
     const outbox = await database.pool.query<{ event_type: string }>(
       `SELECT event_type FROM outbox_events WHERE property_id = $1 ORDER BY event_type`,
       [seeded.propertyId],
