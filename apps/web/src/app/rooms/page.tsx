@@ -62,8 +62,9 @@ export default async function PublicRoomsPage() {
                     {translate(locale, 'search.capacity', { count: room.roomType.maxOccupancy })}
                   </p>
                   <p className="room-catalog-list__capacity">
-                    {locale === 'vi' ? 'Từ ' : 'From '}
-                    {formatVnd(locale, room.startingFromVnd)}
+                    {translate(locale, 'catalog.fromPrice', {
+                      price: formatVnd(locale, room.startingFromVnd),
+                    })}
                   </p>
                   {room.roomType.amenities.length > 0 ? (
                     <ul

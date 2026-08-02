@@ -49,8 +49,9 @@ export default async function PublicRoomDetailPage({
               {translate(locale, 'search.capacity', { count: room.roomType.maxOccupancy })}
             </p>
             <p className="room-detail__capacity">
-              {locale === 'vi' ? 'Từ ' : 'From '}
-              {formatVnd(locale, room.startingFromVnd)}
+              {translate(locale, 'catalog.fromPrice', {
+                price: formatVnd(locale, room.startingFromVnd),
+              })}
             </p>
             <h2>{translate(locale, 'catalog.amenities')}</h2>
             {room.roomType.amenities.length > 0 ? (
