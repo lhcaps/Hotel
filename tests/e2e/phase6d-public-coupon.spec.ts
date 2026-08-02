@@ -465,7 +465,7 @@ async function runOtpAndDetailFlow(
       response.url().endsWith('/public/guest-access/logout') &&
       response.request().method() === 'POST',
   );
-  await page.getByRole('button', { name: 'Đăng xuất' }).click();
+  await page.getByTestId('guest-booking-detail').getByRole('button', { name: 'Đăng xuất' }).click();
   const logoutResponse = await logoutResponsePromise;
   expect(logoutResponse.ok(), `logout failed: ${logoutResponse.status()}`).toBe(true);
   await context.clearCookies({ name: 'rm_guest_session_v1' });
