@@ -366,6 +366,15 @@ try {
     '-ec',
     'test -n "$(find apps/web/.next/standalone/apps/web/.next/static -type f -print -quit)"',
   ]);
+  run('Next standalone public assets exist', 'docker', [
+    'run',
+    '--rm',
+    '--entrypoint',
+    'sh',
+    image,
+    '-ec',
+    'for asset in hero-suite.png family-suite.png executive-suite.png; do test -f "apps/web/.next/standalone/apps/web/public/images/hospitality/$asset"; done',
+  ]);
   runNode(
     'drizzle-orm resolves from database workspace',
     'packages/database',
