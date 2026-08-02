@@ -81,28 +81,28 @@ describe('physical room catalog transactions', () => {
     await expect(
       catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEANING' }),
     ).resolves.toMatchObject({ housekeepingStatus: 'CLEANING' });
-    expect(
-      (
-        await database.pool.query<{ status: string; started_at: Date | null }>(
-          `SELECT status, started_at FROM housekeeping_tasks WHERE room_id = $1`,
-          [room.id],
-        )
-      ).rows[0],
-    ).toMatchObject({ status: 'IN_PROGRESS', started_at: expect.any(Date) });
+    const startedTask = (
+      await database.pool.query<{ status: string; started_at: Date | null }>(
+        `SELECT status, started_at FROM housekeeping_tasks WHERE room_id = $1`,
+        [room.id],
+      )
+    ).rows[0];
+    expect(startedTask?.status).toBe('IN_PROGRESS');
+    expect(startedTask?.started_at).toBeInstanceOf(Date);
 
     await expect(
       catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
     ).resolves.toMatchObject({
       housekeepingStatus: 'CLEAN',
     });
-    expect(
-      (
-        await database.pool.query<{ status: string; completed_at: Date | null }>(
-          `SELECT status, completed_at FROM housekeeping_tasks WHERE room_id = $1`,
-          [room.id],
-        )
-      ).rows[0],
-    ).toMatchObject({ status: 'DONE', completed_at: expect.any(Date) });
+    const completedTask = (
+      await database.pool.query<{ status: string; completed_at: Date | null }>(
+        `SELECT status, completed_at FROM housekeeping_tasks WHERE room_id = $1`,
+        [room.id],
+      )
+    ).rows[0];
+    expect(completedTask?.status).toBe('DONE');
+    expect(completedTask?.completed_at).toBeInstanceOf(Date);
   });
 
   it('returns merged inventory-free windows and the active housekeeping task from PostgreSQL', async () => {

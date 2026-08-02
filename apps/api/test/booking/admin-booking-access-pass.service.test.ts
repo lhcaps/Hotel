@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer';
 import { describe, expect, it, vi } from 'vitest';
 
 import { BookingAccessPassError } from '../../src/booking/services/booking-access-pass.service.js';

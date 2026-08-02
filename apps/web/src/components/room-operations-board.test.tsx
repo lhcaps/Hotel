@@ -20,6 +20,8 @@ describe('RoomOperationsBoard', () => {
           roomStatus: 'ACTIVE',
           housekeepingStatus: 'DIRTY',
           maintenanceState: 'NONE',
+          freeWindows: [],
+          activeHousekeepingTask: null,
           bookings: [
             {
               bookingCode: 'BK-101',

@@ -28,6 +28,8 @@ describe('Phase 8H operational accessibility', () => {
           housekeepingStatus: 'CLEAN',
           maintenanceState: 'NONE',
           bookings: [],
+          freeWindows: [],
+          activeHousekeepingTask: null,
         },
       ],
     });
