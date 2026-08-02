@@ -504,6 +504,12 @@ export interface AdminRoomOperationsResponse {
     readonly roomStatus: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
     readonly housekeepingStatus: 'CLEAN' | 'DIRTY' | 'CLEANING';
     readonly maintenanceState: 'ACTIVE' | 'NONE';
+    readonly freeWindows: readonly { readonly startsAt: string; readonly endsAt: string }[];
+    readonly activeHousekeepingTask: {
+      readonly type: 'ARRIVAL_PREP' | 'TURNOVER';
+      readonly status: 'SCHEDULED' | 'DUE' | 'IN_PROGRESS';
+      readonly dueAt: string;
+    } | null;
     readonly bookings: readonly {
       readonly bookingCode: string;
       readonly status: BookingStatus;

@@ -83,6 +83,27 @@ export function RoomOperationsBoard() {
                   {room.maintenanceState === 'ACTIVE' ? 'Maintenance active' : 'No maintenance'}
                 </span>
               </div>
+              {room.activeHousekeepingTask === null ? null : (
+                <p>
+                  Task: {room.activeHousekeepingTask.type} Â· {room.activeHousekeepingTask.status}{' '}
+                  Â· due{' '}
+                  {new Date(room.activeHousekeepingTask.dueAt).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+              )}
+              <p>
+                Free windows:{' '}
+                {room.freeWindows.length === 0
+                  ? 'None in this range'
+                  : room.freeWindows
+                      .map(
+                        (window) =>
+                          `${new Date(window.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}–${new Date(window.endsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+                      )
+                      .join(', ')}
+              </p>
               {room.bookings.length === 0 ? (
                 <p>No occupied booking span in this range.</p>
               ) : (

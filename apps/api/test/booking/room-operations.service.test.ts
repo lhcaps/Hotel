@@ -1,6 +1,39 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { RoomOperationsService } from '../../src/booking/services/room-operations.service.js';
+import { computeFreeWindows } from '../../src/booking/services/room-operations.service.js';
+
+describe('computeFreeWindows', () => {
+  it('clamps, merges adjacent occupied intervals, and returns the exact free complement', () => {
+    expect(
+      computeFreeWindows(
+        new Date('2026-08-01T00:00:00.000Z'),
+        new Date('2026-08-01T12:00:00.000Z'),
+        [
+          {
+            startsAt: new Date('2026-07-31T23:00:00.000Z'),
+            endsAt: new Date('2026-08-01T02:00:00.000Z'),
+          },
+          {
+            startsAt: new Date('2026-08-01T03:00:00.000Z'),
+            endsAt: new Date('2026-08-01T05:00:00.000Z'),
+          },
+          {
+            startsAt: new Date('2026-08-01T05:00:00.000Z'),
+            endsAt: new Date('2026-08-01T06:00:00.000Z'),
+          },
+          {
+            startsAt: new Date('2026-08-01T10:00:00.000Z'),
+            endsAt: new Date('2026-08-01T13:00:00.000Z'),
+          },
+        ],
+      ).map((window) => [window.startsAt.toISOString(), window.endsAt.toISOString()]),
+    ).toEqual([
+      ['2026-08-01T02:00:00.000Z', '2026-08-01T03:00:00.000Z'],
+      ['2026-08-01T06:00:00.000Z', '2026-08-01T10:00:00.000Z'],
+    ]);
+  });
+});
 
 describe('RoomOperationsService', () => {
   it('returns the property-scoped rows supplied by the authoritative repository', async () => {
@@ -12,6 +45,8 @@ describe('RoomOperationsService', () => {
           roomStatus: 'ACTIVE',
           housekeepingStatus: 'DIRTY',
           maintenanceState: 'NONE',
+          blockedIntervals: [],
+          activeHousekeepingTask: null,
           bookings: [
             {
               bookingCode: 'BK-101',

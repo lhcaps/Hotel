@@ -10,6 +10,8 @@ import { AuditRepository } from '../../src/catalog/audit.repository.js';
 import { CatalogConflictError } from '../../src/catalog/catalog.errors.js';
 import { CatalogRepository } from '../../src/catalog/catalog.repository.js';
 import { CatalogService } from '../../src/catalog/catalog.service.js';
+import { RoomOperationsRepository } from '../../src/booking/repositories/room-operations.repository.js';
+import { RoomOperationsService } from '../../src/booking/services/room-operations.service.js';
 
 const actor: ActorContext = {
   userId: '550e8400-e29b-41d4-a716-446655440000',
@@ -101,5 +103,44 @@ describe('physical room catalog transactions', () => {
         )
       ).rows[0],
     ).toMatchObject({ status: 'DONE', completed_at: expect.any(Date) });
+  });
+
+  it('returns merged inventory-free windows and the active housekeeping task from PostgreSQL', async () => {
+    const room = await catalog.createRoom(actor, {
+      roomTypeId: '550e8400-e29b-41d4-a716-446655440030',
+      roomNumber: '103',
+    });
+    const maintenance = await database.pool.query<{ id: string }>(
+      `INSERT INTO maintenance_blocks (property_id, room_id, starts_at, ends_at, reason)
+       VALUES ($1, $2, '2027-02-10T01:00:00.000Z', '2027-02-10T03:00:00.000Z', 'test')
+       RETURNING id`,
+      [room.propertyId, room.id],
+    );
+    await database.pool.query(
+      `INSERT INTO room_inventory_blocks
+         (property_id, room_id, maintenance_block_id, block_type, status, starts_at, ends_at)
+       VALUES ($1, $2, $3, 'MAINTENANCE', 'ACTIVE', '2027-02-10T05:00:00.000Z', '2027-02-10T06:00:00.000Z')`,
+      [room.propertyId, room.id, maintenance.rows[0]?.id],
+    );
+    await database.pool.query(
+      `INSERT INTO housekeeping_tasks (property_id, room_id, type, status, due_at)
+       VALUES ($1, $2, 'TURNOVER', 'DUE', '2027-02-10T01:00:00.000Z')`,
+      [room.propertyId, room.id],
+    );
+    const operations = new RoomOperationsService(new RoomOperationsRepository(database.pool));
+
+    const response = await operations.list(room.propertyId, {
+      from: '2027-02-10T00:00:00.000Z',
+      to: '2027-02-10T08:00:00.000Z',
+    });
+    const item = response.items.find((candidate) => candidate.roomId === room.id);
+    expect(item).toMatchObject({
+      activeHousekeepingTask: { type: 'TURNOVER', status: 'DUE' },
+      freeWindows: [
+        { startsAt: '2027-02-10T00:00:00.000Z', endsAt: '2027-02-10T01:00:00.000Z' },
+        { startsAt: '2027-02-10T03:00:00.000Z', endsAt: '2027-02-10T05:00:00.000Z' },
+        { startsAt: '2027-02-10T06:00:00.000Z', endsAt: '2027-02-10T08:00:00.000Z' },
+      ],
+    });
   });
 });

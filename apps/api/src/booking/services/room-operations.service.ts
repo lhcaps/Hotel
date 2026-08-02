@@ -12,6 +12,17 @@ export interface RoomOperationBookingRow {
   checkOut: Date;
 }
 
+export interface RoomOperationInterval {
+  readonly startsAt: Date;
+  readonly endsAt: Date;
+}
+
+export interface RoomOperationHousekeepingTask {
+  readonly type: 'ARRIVAL_PREP' | 'TURNOVER';
+  readonly status: 'SCHEDULED' | 'DUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+  readonly dueAt: Date;
+}
+
 export interface RoomOperationRow {
   roomId: string;
   roomNumber: string;
@@ -19,6 +30,8 @@ export interface RoomOperationRow {
   housekeepingStatus: 'CLEAN' | 'DIRTY' | 'CLEANING';
   maintenanceState: 'ACTIVE' | 'NONE';
   bookings: readonly RoomOperationBookingRow[];
+  blockedIntervals: readonly RoomOperationInterval[];
+  activeHousekeepingTask: RoomOperationHousekeepingTask | null;
 }
 
 export interface RoomOperationsRepositoryPort {
@@ -36,15 +49,67 @@ export class RoomOperationsService {
     const parsed = adminRoomOperationsQuerySchema.parse(query);
     const items = await this.repository.list(propertyId, parsed);
     return adminRoomOperationsResponseSchema.parse({
-      items: items.map((room) => ({
+      items: items.map(({ blockedIntervals, activeHousekeepingTask, ...room }) => ({
         ...room,
         bookings: room.bookings.map((booking) => ({
           ...booking,
           checkIn: booking.checkIn.toISOString(),
           checkOut: booking.checkOut.toISOString(),
         })),
+        freeWindows: computeFreeWindows(
+          new Date(parsed.from),
+          new Date(parsed.to),
+          blockedIntervals,
+        ).map((window) => ({
+          startsAt: window.startsAt.toISOString(),
+          endsAt: window.endsAt.toISOString(),
+        })),
+        activeHousekeepingTask:
+          activeHousekeepingTask === null
+            ? null
+            : {
+                ...activeHousekeepingTask,
+                dueAt: activeHousekeepingTask.dueAt.toISOString(),
+              },
       })),
       generatedAt: now.toISOString(),
     });
   }
+}
+
+export function computeFreeWindows(
+  rangeStart: Date,
+  rangeEnd: Date,
+  blockedIntervals: readonly RoomOperationInterval[],
+): readonly RoomOperationInterval[] {
+  const clamped = blockedIntervals
+    .map((interval) => ({
+      startsAt: new Date(Math.max(interval.startsAt.getTime(), rangeStart.getTime())),
+      endsAt: new Date(Math.min(interval.endsAt.getTime(), rangeEnd.getTime())),
+    }))
+    .filter((interval) => interval.startsAt.getTime() < interval.endsAt.getTime())
+    .sort((left, right) => left.startsAt.getTime() - right.startsAt.getTime());
+  const merged: RoomOperationInterval[] = [];
+  for (const interval of clamped) {
+    const previous = merged.at(-1);
+    if (previous === undefined || interval.startsAt.getTime() > previous.endsAt.getTime()) {
+      merged.push(interval);
+      continue;
+    }
+    if (interval.endsAt.getTime() > previous.endsAt.getTime()) {
+      merged[merged.length - 1] = { startsAt: previous.startsAt, endsAt: interval.endsAt };
+    }
+  }
+  const windows: RoomOperationInterval[] = [];
+  let cursor = rangeStart;
+  for (const interval of merged) {
+    if (cursor.getTime() < interval.startsAt.getTime()) {
+      windows.push({ startsAt: cursor, endsAt: interval.startsAt });
+    }
+    cursor = interval.endsAt;
+  }
+  if (cursor.getTime() < rangeEnd.getTime()) {
+    windows.push({ startsAt: cursor, endsAt: rangeEnd });
+  }
+  return windows;
 }

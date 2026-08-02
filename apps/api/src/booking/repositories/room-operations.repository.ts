@@ -13,6 +13,8 @@ interface DbRow {
   housekeeping_status: 'CLEAN' | 'DIRTY' | 'CLEANING';
   maintenance_state: 'ACTIVE' | 'NONE';
   bookings: unknown;
+  blocked_intervals: unknown;
+  active_housekeeping_task: unknown;
 }
 
 export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
@@ -30,6 +32,34 @@ export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
                  WHERE mb.room_id = r.id AND mb.status = 'ACTIVE'
                    AND mb.starts_at < $3 AND mb.ends_at > $2
               ) THEN 'ACTIVE' ELSE 'NONE' END AS maintenance_state,
+              COALESCE((
+                SELECT jsonb_agg(jsonb_build_object('startsAt', span.starts_at, 'endsAt', span.ends_at))
+                  FROM (
+                    SELECT ib.starts_at, ib.ends_at
+                      FROM room_inventory_blocks ib
+                     WHERE ib.property_id = r.property_id AND ib.room_id = r.id
+                       AND ib.status = 'ACTIVE' AND ib.starts_at < $3 AND ib.ends_at > $2
+                    UNION ALL
+                    SELECT b2.check_in, b2.check_out
+                      FROM bookings b2
+                     WHERE b2.property_id = r.property_id AND b2.room_id = r.id
+                       AND b2.status IN ('HOLD', 'CONFIRMED', 'CHECKED_IN')
+                       AND b2.check_in < $3 AND b2.check_out > $2
+                    UNION ALL
+                    SELECT mb2.starts_at, mb2.ends_at
+                      FROM maintenance_blocks mb2
+                     WHERE mb2.property_id = r.property_id AND mb2.room_id = r.id
+                       AND mb2.status = 'ACTIVE' AND mb2.starts_at < $3 AND mb2.ends_at > $2
+                  ) span
+              ), '[]'::jsonb) AS blocked_intervals,
+              (
+                SELECT jsonb_build_object('type', ht.type, 'status', ht.status, 'dueAt', ht.due_at)
+                  FROM housekeeping_tasks ht
+                 WHERE ht.property_id = r.property_id AND ht.room_id = r.id
+                   AND ht.status IN ('SCHEDULED', 'DUE', 'IN_PROGRESS')
+                 ORDER BY ht.due_at ASC, ht.id ASC
+                 LIMIT 1
+              ) AS active_housekeeping_task,
               COALESCE(jsonb_agg(jsonb_build_object(
                 'bookingCode', b.booking_code, 'status', b.status,
                 'checkIn', b.check_in, 'checkOut', b.check_out
@@ -61,6 +91,23 @@ export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
         checkIn: new Date(booking.checkIn),
         checkOut: new Date(booking.checkOut),
       })),
+      blockedIntervals: (row.blocked_intervals as Array<{ startsAt: string; endsAt: string }>).map(
+        (interval) => ({
+          startsAt: new Date(interval.startsAt),
+          endsAt: new Date(interval.endsAt),
+        }),
+      ),
+      activeHousekeepingTask:
+        row.active_housekeeping_task === null
+          ? null
+          : (() => {
+              const task = row.active_housekeeping_task as {
+                type: 'ARRIVAL_PREP' | 'TURNOVER';
+                status: 'SCHEDULED' | 'DUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+                dueAt: string;
+              };
+              return { type: task.type, status: task.status, dueAt: new Date(task.dueAt) };
+            })(),
     }));
   }
 }
