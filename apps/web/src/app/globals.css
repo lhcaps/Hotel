@@ -1595,6 +1595,9 @@ a:focus {
 }
 
 @media (max-width: 44rem) {
+  .public-header__auth-links {
+    display: none;
+  }
   .public-header__inner {
     min-height: 4rem;
     align-items: center;

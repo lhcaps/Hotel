@@ -37,23 +37,18 @@ export function PublicHeader({
       return undefined;
     }
     const origin = new URL(apiBase).origin;
-    void Promise.all([
-      fetch(`${origin}/api/v1/customer/profile/session`, { credentials: 'include' }),
-      fetch(`${origin}/api/v1/admin/me`, { credentials: 'include' }),
-    ])
-      .then(async ([customerResponse, adminResponse]) => {
-        if (adminResponse.ok) {
-          if (!cancelled) setAccountState('admin');
-          return;
+    void fetch(`${origin}/api/auth/get-session`, { credentials: 'include' })
+      .then(async (response) => {
+        const body: unknown = await response.json().catch(() => undefined);
+        const role =
+          typeof body === 'object' && body !== null && 'user' in body
+            ? (body as { user?: { role?: unknown } }).user?.role
+            : undefined;
+        if (!cancelled) {
+          setAccountState(
+            role === 'ADMIN' ? 'admin' : role === 'CUSTOMER' ? 'customer' : 'anonymous',
+          );
         }
-        const body: unknown = await customerResponse.json().catch(() => undefined);
-        const authenticated =
-          customerResponse.ok &&
-          typeof body === 'object' &&
-          body !== null &&
-          'authenticated' in body &&
-          body.authenticated === true;
-        if (!cancelled) setAccountState(authenticated ? 'customer' : 'anonymous');
       })
       .catch(() => !cancelled && setAccountState('anonymous'));
     return () => {

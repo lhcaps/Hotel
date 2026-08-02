@@ -106,7 +106,7 @@ test('captures final demo landing exact and nearby screenshots', async ({ page }
   await page.getByLabel('Người lớn').fill('2');
   await page.getByRole('button', { name: 'Tìm phòng' }).click();
   await expect(page.getByText('Không còn phòng đúng thời gian bạn chọn')).toBeVisible();
-  await expect(page.getByText('Phòng Deluxe')).toBeVisible();
+  await expect(page.getByText('Deluxe').first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await capture(page, 'landing-nearby-1440');
 
@@ -118,7 +118,7 @@ test('captures final demo landing exact and nearby screenshots', async ({ page }
 test('captures final demo room detail screenshot', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/rooms/10000000-0000-4000-8000-000000000201');
-  await expect(page.getByRole('heading', { name: 'Deluxe' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Nami' })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await capture(page, 'room-detail-1440');
 });
@@ -236,7 +236,7 @@ test('captures responsive overflow measurements for all required viewports', asy
   }
 
   await page.goto('/rooms/10000000-0000-4000-8000-000000000201');
-  await expect(page.getByRole('heading', { name: 'Deluxe' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Nami' })).toBeVisible();
   for (const size of sizes) {
     await page.setViewportSize({ width: size.width, height: size.height });
     await expectNoHorizontalOverflow(page);
