@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -102,6 +102,84 @@ describe('QuoteContactForm', () => {
     const [hold, email] = onHoldCreated.mock.calls[0] as readonly [unknown, string];
     expect(email).toBe('guest@example.test');
     expect(hold).toMatchObject({ bookingCode: 'RM-AB23-CD45-EF67', status: 'HOLD' });
+  });
+
+  it('keeps the reservation internal while starting the selected demo payment checkout', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify([
+            {
+              provider: 'MOMO',
+              displayName: 'MoMo Demo',
+              displayOrder: 1,
+              checkoutExpiryMinutes: 15,
+              maintenanceMessage: null,
+              enabled: true,
+              unavailableReason: null,
+            },
+            {
+              provider: 'VNPAY',
+              displayName: 'VNPAY Demo',
+              displayOrder: 2,
+              checkoutExpiryMinutes: 15,
+              maintenanceMessage: null,
+              enabled: true,
+              unavailableReason: null,
+            },
+          ]),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            bookingId: '22222222-2222-4222-8222-222222222222',
+            bookingCode: 'RM-AB23-CD45-EF67',
+            status: 'HOLD',
+            checkIn: '2099-01-10T03:00:00.000Z',
+            checkOut: '2099-01-10T06:00:00.000Z',
+            holdExpiresAt: '2099-01-10T03:15:00.000Z',
+            amountVnd: 359000,
+            currency: 'VND',
+            idempotent: false,
+          }),
+          { status: 201, headers: { 'content-type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            paymentId: '33333333-3333-4333-8333-333333333333',
+            paymentAttemptId: '44444444-4444-4444-8444-444444444444',
+            provider: 'MOMO',
+            status: 'PENDING',
+            redirectUrl: 'https://pay.example.test/momo-demo/checkout?reference=safe-reference',
+            expiresAt: '2099-01-10T03:15:00.000Z',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      );
+    const onCheckoutStarted = vi.fn();
+    const user = userEvent.setup();
+    render(<QuoteContactForm quote={makeQuote()} onCheckoutStarted={onCheckoutStarted} />);
+
+    await user.click(await screen.findByRole('radio', { name: 'MoMo Demo' }));
+    await user.type(screen.getByLabelText('Họ và tên'), 'Nguyen Van A');
+    await user.type(screen.getByLabelText('Email'), 'guest@example.test');
+    await user.clear(screen.getByLabelText(/Số điện thoại/));
+    await user.type(screen.getByLabelText(/Số điện thoại/), '+84909000000');
+    await user.click(screen.getByRole('button', { name: 'Thanh toán & đặt phòng' }));
+
+    await waitFor(() => expect(onCheckoutStarted).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/public/quotes/quote-id-1/bookings');
+    expect(String(fetchMock.mock.calls[2]?.[0])).toContain(
+      '/public/bookings/RM-AB23-CD45-EF67/payments/momo/attempts',
+    );
+    const paymentInit = fetchMock.mock.calls[2]?.[1] as RequestInit;
+    expect(paymentInit.headers).toMatchObject({ 'idempotency-key': expect.any(String) });
+    expect(document.body.textContent).not.toMatch(/Giữ chỗ|Hoàn tất giữ chỗ/);
   });
 
   it('blocks invalid email client-side and surfaces server errors safely', async () => {

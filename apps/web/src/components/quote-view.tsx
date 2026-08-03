@@ -3,14 +3,13 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import type { BookingHoldResponse, Quote } from '@room/contracts';
+import type { Quote } from '@room/contracts';
 
 import { publicApi } from '../lib/admin-api';
 import { AdminApiError } from '../lib/admin-api';
 import { BookingApiError } from '../lib/booking-api';
 import { translate, type Locale } from '../lib/i18n/messages';
 import { CouponInput } from './coupon-input';
-import { HoldSuccessPanel } from './hold-success-panel';
 import { QuoteContactForm } from './quote-contact-form';
 import { QuoteSummary } from './quote-summary';
 import { StayTimeRecommendations } from './stay-time-recommendations';
@@ -20,11 +19,6 @@ type LoadState =
   | { readonly kind: 'loading' }
   | { readonly kind: 'error'; readonly message: string }
   | { readonly kind: 'ready'; readonly quote: Quote };
-
-interface ActiveHold {
-  readonly hold: BookingHoldResponse;
-  readonly email: string;
-}
 
 export interface QuoteContext {
   readonly roomTypeId: string;
@@ -99,7 +93,6 @@ export function QuoteView({
   const locale = useLocale();
   const router = useRouter();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
-  const [activeHold, setActiveHold] = useState<ActiveHold | undefined>();
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponPending, setCouponPending] = useState(false);
   const loadTokenRef = useRef(0);
@@ -200,23 +193,6 @@ export function QuoteView({
   }
 
   const { quote } = state;
-  if (activeHold !== undefined) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-3xl items-center p-8">
-        <div className="w-full space-y-6">
-          <HoldSuccessPanel
-            bookingCode={activeHold.hold.bookingCode}
-            email={activeHold.email}
-            hold={activeHold.hold}
-            onManageBooking={() => {
-              globalThis.location.assign('/booking/manage');
-            }}
-          />
-        </div>
-      </main>
-    );
-  }
-
   return (
     <main className="quote-page" id="main-content">
       <div className="quote-page__inner">
@@ -265,7 +241,9 @@ export function QuoteView({
           <aside className="quote-page__summary">
             <QuoteContactForm
               quote={quote}
-              onHoldCreated={(hold, email) => setActiveHold({ hold, email })}
+              onCheckoutStarted={({ payment }) => {
+                globalThis.location.assign(payment.redirectUrl);
+              }}
             />
           </aside>
         </div>

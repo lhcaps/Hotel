@@ -56,6 +56,27 @@ const EMPTY_RECOMMENDATIONS = {
   advisoryExpiresAt: '2027-01-10T02:15:00.000Z',
 };
 
+const PAYMENT_PROVIDERS = [
+  {
+    provider: 'MOMO',
+    displayName: 'MoMo Demo',
+    displayOrder: 1,
+    checkoutExpiryMinutes: 15,
+    maintenanceMessage: null,
+    enabled: true,
+    unavailableReason: null,
+  },
+  {
+    provider: 'VNPAY',
+    displayName: 'VNPAY Demo',
+    displayOrder: 2,
+    checkoutExpiryMinutes: 15,
+    maintenanceMessage: null,
+    enabled: true,
+    unavailableReason: null,
+  },
+];
+
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status: 200,
@@ -78,6 +99,13 @@ function problemResponse(code: string, status = 409): Response {
   );
 }
 
+function findQuoteIssueCall(fetchMock: ReturnType<typeof vi.fn<typeof fetch>>) {
+  return fetchMock.mock.calls.find((call) => {
+    const request = call[1] as RequestInit | undefined;
+    return request?.method === 'POST' && String(call[0]).includes('/quotes');
+  });
+}
+
 const CONTEXT = {
   roomTypeId: '11111111-1111-4111-8111-111111111111',
   checkIn: '2027-01-10T03:00:00.000Z',
@@ -94,6 +122,14 @@ describe('QuoteView coupon integration', () => {
     fetchMock.mockReset();
     process.env.NEXT_PUBLIC_API_BASE_URL = 'http://api.local/api/v1';
     globalThis.fetch = fetchMock as unknown as typeof fetch;
+    fetchMock.mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes('/payments/providers'))
+        return Promise.resolve(jsonResponse(PAYMENT_PROVIDERS));
+      if (url.includes('/recommendations'))
+        return Promise.resolve(jsonResponse(EMPTY_RECOMMENDATIONS));
+      return Promise.reject(new Error(`Unexpected request: ${url}`));
+    });
   });
 
   afterEach(() => {
@@ -104,6 +140,7 @@ describe('QuoteView coupon integration', () => {
   it('renders English quote state without translating the coupon code', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(QUOTE_WITH_COUPON))
+      .mockResolvedValueOnce(jsonResponse(PAYMENT_PROVIDERS))
       .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS));
     render(
       <LocaleProvider locale="en">
@@ -111,7 +148,7 @@ describe('QuoteView coupon integration', () => {
       </LocaleProvider>,
     );
 
-    expect(await screen.findByText('Complete your hold')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Pay & book' })).toBeInTheDocument();
     expect(screen.getByTestId('coupon-summary')).toHaveTextContent('SUMMER-50K');
     expect(document.body.textContent).not.toContain('Hoàn tất giữ chỗ');
   });
@@ -119,10 +156,11 @@ describe('QuoteView coupon integration', () => {
   it('renders the coupon input and a safe summary when the quote already includes one', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(QUOTE_WITH_COUPON))
+      .mockResolvedValueOnce(jsonResponse(PAYMENT_PROVIDERS))
       .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS));
     render(<QuoteView id={QUOTE_WITH_COUPON.id} context={CONTEXT} />);
 
-    await screen.findByText('Hoàn tất giữ chỗ');
+    await screen.findByTestId('coupon-input');
     expect(screen.getByTestId('coupon-input')).toBeInTheDocument();
     const summary = await screen.findByTestId('coupon-summary');
     expect(summary).toHaveTextContent('SUMMER-50K');
@@ -131,17 +169,21 @@ describe('QuoteView coupon integration', () => {
   it('issues a new quote when a coupon code is applied and the request body contains only couponCode', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(QUOTE_WITHOUT_COUPON))
+      .mockResolvedValueOnce(jsonResponse(PAYMENT_PROVIDERS))
       .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS))
       .mockResolvedValueOnce(jsonResponse({ id: '00000000-0000-4000-8000-000000000099' }));
     const user = userEvent.setup();
     render(<QuoteView id={QUOTE_WITHOUT_COUPON.id} context={CONTEXT} />);
 
-    await screen.findByText('Hoàn tất giữ chỗ');
+    await screen.findByTestId('coupon-input');
     await user.type(screen.getByLabelText('Mã giảm giá'), 'SUMMER-50K');
     await user.click(screen.getByRole('button', { name: 'Áp dụng' }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-    const issueCall = fetchMock.mock.calls[2];
+    const issueCall = await waitFor(() => {
+      const call = findQuoteIssueCall(fetchMock);
+      expect(call).toBeDefined();
+      return call;
+    });
     const init = issueCall?.[1] as RequestInit | undefined;
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body).toEqual({
@@ -161,6 +203,7 @@ describe('QuoteView coupon integration', () => {
   it('preserves selectedPlanCode through a coupon clear cycle (applies then clears)', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(QUOTE_WITHOUT_COUPON))
+      .mockResolvedValueOnce(jsonResponse(PAYMENT_PROVIDERS))
       .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS))
       .mockResolvedValueOnce(jsonResponse({ id: '00000000-0000-4000-8000-000000000011' }))
       .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS))
@@ -168,12 +211,14 @@ describe('QuoteView coupon integration', () => {
     const user = userEvent.setup();
     render(<QuoteView id={QUOTE_WITHOUT_COUPON.id} context={CONTEXT} />);
 
-    await screen.findByText('Hoàn tất giữ chỗ');
+    await screen.findByTestId('coupon-input');
     await user.type(screen.getByLabelText('Mã giảm giá'), 'SUMMER-50K');
     await user.click(screen.getByRole('button', { name: 'Áp dụng' }));
-    await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3));
-
-    const applyCall = fetchMock.mock.calls[2];
+    const applyCall = await waitFor(() => {
+      const call = findQuoteIssueCall(fetchMock);
+      expect(call).toBeDefined();
+      return call;
+    });
     const applyInit = applyCall?.[1] as RequestInit | undefined;
     const applyBody = JSON.parse(String(applyInit?.body)) as Record<string, unknown>;
     expect(applyBody.selectedPlanCode).toBe('THREE_HOUR_COMBO');
@@ -190,17 +235,21 @@ describe('QuoteView coupon integration', () => {
     };
     fetchMock
       .mockResolvedValueOnce(jsonResponse(QUOTE_WITHOUT_COUPON))
+      .mockResolvedValueOnce(jsonResponse(PAYMENT_PROVIDERS))
       .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS))
       .mockResolvedValueOnce(jsonResponse({ id: '00000000-0000-4000-8000-000000000012' }));
     const user = userEvent.setup();
     render(<QuoteView id={QUOTE_WITHOUT_COUPON.id} context={CONTEXT_NO_PLAN} />);
 
-    await screen.findByText('Hoàn tất giữ chỗ');
+    await screen.findByTestId('coupon-input');
     await user.type(screen.getByLabelText('Mã giảm giá'), 'SUMMER-50K');
     await user.click(screen.getByRole('button', { name: 'Áp dụng' }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-    const issueCall = fetchMock.mock.calls[2];
+    const issueCall = await waitFor(() => {
+      const call = findQuoteIssueCall(fetchMock);
+      expect(call).toBeDefined();
+      return call;
+    });
     const init = issueCall?.[1] as RequestInit | undefined;
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body).not.toHaveProperty('selectedPlanCode');
@@ -210,12 +259,13 @@ describe('QuoteView coupon integration', () => {
   it('shows a safe Vietnamese error and does not replace the current quote when the coupon is rejected', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(QUOTE_WITHOUT_COUPON))
+      .mockResolvedValueOnce(jsonResponse(PAYMENT_PROVIDERS))
       .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS))
       .mockResolvedValueOnce(problemResponse('COUPON_NOT_APPLICABLE'));
     const user = userEvent.setup();
     render(<QuoteView id={QUOTE_WITHOUT_COUPON.id} context={CONTEXT} />);
 
-    await screen.findByText('Hoàn tất giữ chỗ');
+    await screen.findByTestId('coupon-input');
     await user.type(screen.getByLabelText('Mã giảm giá'), 'BOGUS');
     await user.click(screen.getByRole('button', { name: 'Áp dụng' }));
 
@@ -223,23 +273,27 @@ describe('QuoteView coupon integration', () => {
     expect(error).toHaveTextContent('Mã giảm giá không hợp lệ');
     // The existing quote summary must still be visible — the failed reissue
     // must not visually replace the displayed totals.
-    await screen.findByText('Hoàn tất giữ chỗ');
+    await screen.findByTestId('coupon-input');
     expect(screen.getByText('Tổng cộng:')).toBeInTheDocument();
   });
 
   it('drops the coupon when clearing, requesting a plain quote', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(QUOTE_WITH_COUPON))
+      .mockResolvedValueOnce(jsonResponse(PAYMENT_PROVIDERS))
       .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS))
       .mockResolvedValueOnce(jsonResponse({ id: QUOTE_WITHOUT_COUPON.id }));
     const user = userEvent.setup();
     render(<QuoteView id={QUOTE_WITH_COUPON.id} context={CONTEXT} />);
 
-    await screen.findByText('Hoàn tất giữ chỗ');
+    await screen.findByTestId('coupon-input');
     await user.click(screen.getByRole('button', { name: 'Bỏ mã' }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-    const issueCall = fetchMock.mock.calls[2];
+    const issueCall = await waitFor(() => {
+      const call = findQuoteIssueCall(fetchMock);
+      expect(call).toBeDefined();
+      return call;
+    });
     const init = issueCall?.[1] as RequestInit | undefined;
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body).not.toHaveProperty('couponCode');
@@ -249,12 +303,13 @@ describe('QuoteView coupon integration', () => {
   it('does not write the coupon code to URL or browser storage', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(QUOTE_WITH_COUPON))
+      .mockResolvedValueOnce(jsonResponse(PAYMENT_PROVIDERS))
       .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS));
     const setItem = vi.spyOn(window.localStorage, 'setItem');
     const sessionSetItem = vi.spyOn(window.sessionStorage, 'setItem');
     render(<QuoteView id={QUOTE_WITH_COUPON.id} context={CONTEXT} />);
 
-    await screen.findByText('Hoàn tất giữ chỗ');
+    await screen.findByTestId('coupon-input');
     expect(globalThis.location.search).not.toContain('SUMMER-50K');
     expect(globalThis.location.hash).not.toContain('SUMMER-50K');
     for (const call of setItem.mock.calls) {
@@ -275,6 +330,7 @@ describe('QuoteView coupon integration', () => {
     );
     fetchMock
       .mockResolvedValueOnce(jsonResponse(QUOTE_WITHOUT_COUPON))
+      .mockResolvedValueOnce(jsonResponse(PAYMENT_PROVIDERS))
       .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS))
       .mockResolvedValueOnce(jsonResponse(EMPTY_RECOMMENDATIONS));
 
@@ -283,7 +339,7 @@ describe('QuoteView coupon integration', () => {
 
     resolveFirst?.(jsonResponse(QUOTE_WITH_COUPON));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByTestId('coupon-input')).toBeInTheDocument());
     // The stale response (with the coupon) must not have been applied.
     expect(screen.queryByTestId('coupon-summary')).toBeNull();
   });

@@ -1,16 +1,30 @@
 'use client';
 
-import { type FormEvent, useId, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
 import type { BookingHoldResponse, Quote } from '@room/contracts';
 
-import { bookingApi, BookingApiError } from '../lib/booking-api';
+import {
+  bookingApi,
+  BookingApiError,
+  type PaymentInitiationResponse,
+  type PublicPaymentProvider,
+} from '../lib/booking-api';
+import { assertSafePaymentRedirect, type PaymentRedirectRuntime } from '../lib/payment-redirect';
 import { translate, type Locale } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 
 export interface QuoteContactFormProps {
   readonly quote: Quote;
-  readonly onHoldCreated: (hold: BookingHoldResponse, email: string) => void;
+  readonly onHoldCreated?: (hold: BookingHoldResponse, email: string) => void;
+  readonly onCheckoutStarted?: (checkout: CheckoutStarted) => void;
 }
+
+type PaymentProvider = 'MOMO' | 'VNPAY';
+
+type CheckoutStarted = Readonly<{
+  bookingCode: string;
+  payment: PaymentInitiationResponse;
+}>;
 
 const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -39,7 +53,19 @@ function validate(
   return errors;
 }
 
-function problemToMessage(locale: Locale, error: unknown): string {
+const PAYMENT_RUNTIME: PaymentRedirectRuntime =
+  process.env['NEXT_PUBLIC_PAYMENT_REDIRECT_RUNTIME'] === 'production'
+    ? 'production'
+    : process.env['NEXT_PUBLIC_PAYMENT_REDIRECT_RUNTIME'] === 'test'
+      ? 'test'
+      : 'development';
+
+function problemToMessage(
+  locale: Locale,
+  error: unknown,
+  phase: 'payment' | 'reservation',
+): string {
+  if (phase === 'payment') return translate(locale, 'payment.initError');
   if (error instanceof BookingApiError) {
     if (error.status === 429) {
       return translate(locale, 'hold.rateLimited');
@@ -73,7 +99,11 @@ function problemToMessage(locale: Locale, error: unknown): string {
   return translate(locale, 'hold.genericError');
 }
 
-export function QuoteContactForm({ quote, onHoldCreated }: QuoteContactFormProps) {
+export function QuoteContactForm({
+  quote,
+  onHoldCreated,
+  onCheckoutStarted,
+}: QuoteContactFormProps) {
   const locale = useLocale();
   const formId = useId();
   const [fullName, setFullName] = useState('');
@@ -82,7 +112,11 @@ export function QuoteContactForm({ quote, onHoldCreated }: QuoteContactFormProps
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState<string | undefined>();
   const [pending, setPending] = useState(false);
+  const [providers, setProviders] = useState<readonly PublicPaymentProvider[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<PaymentProvider | undefined>();
+  const [providersLoaded, setProvidersLoaded] = useState(onCheckoutStarted === undefined);
   const inFlight = useRef(false);
+  const checkoutMode = onCheckoutStarted !== undefined;
 
   const nameId = `${formId}-full-name`;
   const emailId = `${formId}-email`;
@@ -92,6 +126,26 @@ export function QuoteContactForm({ quote, onHoldCreated }: QuoteContactFormProps
   const phoneErrorId = `${formId}-phone-error`;
   const submitErrorId = `${formId}-submit-error`;
 
+  useEffect(() => {
+    if (!checkoutMode) return;
+    let cancelled = false;
+    void bookingApi
+      .listPaymentProviders()
+      .then((response) => {
+        if (cancelled) return;
+        setProviders(response);
+        setProvidersLoaded(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setProviders([]);
+        setProvidersLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [checkoutMode]);
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (inFlight.current) return;
@@ -100,9 +154,14 @@ export function QuoteContactForm({ quote, onHoldCreated }: QuoteContactFormProps
     const validation = validate(locale, values);
     setErrors(validation);
     if (Object.keys(validation).length > 0) return;
+    if (checkoutMode && selectedProvider === undefined) {
+      setSubmitError(translate(locale, 'payment.providerRequired'));
+      return;
+    }
 
     inFlight.current = true;
     setPending(true);
+    let phase: 'payment' | 'reservation' = 'reservation';
     try {
       const response = await bookingApi.createBookingHold(quote.id, {
         contact: {
@@ -111,9 +170,24 @@ export function QuoteContactForm({ quote, onHoldCreated }: QuoteContactFormProps
           phone: values.phone,
         },
       });
-      onHoldCreated(response, values.email.toLowerCase());
+      if (!checkoutMode) {
+        onHoldCreated?.(response, values.email.toLowerCase());
+        return;
+      }
+      if (selectedProvider === undefined) {
+        setSubmitError(translate(locale, 'payment.providerRequired'));
+        return;
+      }
+      phase = 'payment';
+      const payment = await bookingApi.initiatePayment(
+        response.bookingCode,
+        selectedProvider,
+        globalThis.crypto.randomUUID(),
+      );
+      assertSafePaymentRedirect(payment.redirectUrl, PAYMENT_RUNTIME);
+      onCheckoutStarted({ bookingCode: response.bookingCode, payment });
     } catch (error) {
-      setSubmitError(problemToMessage(locale, error));
+      setSubmitError(problemToMessage(locale, error, phase));
     } finally {
       inFlight.current = false;
       setPending(false);
@@ -130,7 +204,9 @@ export function QuoteContactForm({ quote, onHoldCreated }: QuoteContactFormProps
       <h2 id={`${formId}-heading`} className="text-xl font-semibold">
         {translate(locale, 'hold.contactHeading')}
       </h2>
-      <p className="mt-2 text-sm text-slate-600">{translate(locale, 'hold.contactHelp')}</p>
+      <p className="mt-2 text-sm text-slate-600">
+        {translate(locale, checkoutMode ? 'payment.contactHelp' : 'hold.contactHelp')}
+      </p>
 
       <div className="mt-4 space-y-4">
         <div>
@@ -213,6 +289,42 @@ export function QuoteContactForm({ quote, onHoldCreated }: QuoteContactFormProps
         </div>
       </div>
 
+      {checkoutMode ? (
+        <fieldset className="mt-6 space-y-3" disabled={pending || !providersLoaded}>
+          <legend className="font-semibold">{translate(locale, 'payment.selection')}</legend>
+          <p className="text-sm text-slate-600">{translate(locale, 'payment.selectionHelp')}</p>
+          {providers.map((provider) => (
+            <label
+              className="flex items-center gap-2 rounded-md border p-3"
+              key={provider.provider}
+            >
+              <input
+                checked={selectedProvider === provider.provider}
+                disabled={!provider.enabled}
+                name={`${formId}-payment-provider`}
+                onChange={() => setSelectedProvider(provider.provider)}
+                type="radio"
+                value={provider.provider}
+              />
+              <span>{provider.displayName}</span>
+              {!provider.enabled ? (
+                <span className="text-sm text-slate-600">
+                  {provider.maintenanceMessage ?? translate(locale, 'payment.providerUnavailable')}
+                </span>
+              ) : null}
+            </label>
+          ))}
+          {providersLoaded && providers.length === 0 ? (
+            <p className="text-sm text-red-700" role="alert">
+              {translate(locale, 'payment.noProviders')}
+            </p>
+          ) : null}
+          <p className="text-sm font-medium text-emerald-800">
+            {translate(locale, 'payment.demoNotice')}
+          </p>
+        </fieldset>
+      ) : null}
+
       {submitError !== undefined ? (
         <p id={submitErrorId} className="mt-4 text-sm text-red-600" role="alert">
           {submitError}
@@ -225,7 +337,9 @@ export function QuoteContactForm({ quote, onHoldCreated }: QuoteContactFormProps
         disabled={pending}
         type="submit"
       >
-        {pending ? translate(locale, 'hold.pending') : translate(locale, 'hold.submit')}
+        {pending
+          ? translate(locale, checkoutMode ? 'payment.checkoutPending' : 'hold.pending')
+          : translate(locale, checkoutMode ? 'payment.checkoutSubmit' : 'hold.submit')}
       </button>
     </form>
   );
