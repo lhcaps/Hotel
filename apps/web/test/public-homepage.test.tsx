@@ -168,7 +168,7 @@ describe('public booking entry', () => {
     await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
     expect(push).not.toHaveBeenCalled();
     expect(await screen.findByRole('heading', { name: 'Hạng phòng còn trống' })).toBeVisible();
-    expect(screen.getByText('Từ 300.000 ₫')).toBeVisible();
+    expect(screen.getByText('Giá đúng khung giờ đã chọn: 300.000 ₫')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Mở trang kết quả đầy đủ' })).toHaveAttribute(
       'href',
       expect.stringContaining('/booking/search?mode=overnight'),
