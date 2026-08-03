@@ -8,7 +8,7 @@ x-app: &app
       RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
   restart: unless-stopped
   env_file:
-    - path: ./deploy/.env.production
+    - path: /opt/room-management/shared/.env.production
       required: false
   environment:
     RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
@@ -32,7 +32,7 @@ services:
       PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-}
       PAYMENT_DEMO_DOMAIN: ${PAYMENT_DEMO_DOMAIN:-}
     env_file:
-      - path: ./deploy/.env.production
+      - path: /opt/room-management/shared/.env.production
         required: false
     ports:
       - '80:80'
@@ -119,7 +119,7 @@ services:
     image: postgres:18.1-alpine
     restart: unless-stopped
     env_file:
-      - path: ./deploy/.env.production
+      - path: /opt/room-management/shared/.env.production
         required: false
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-}
