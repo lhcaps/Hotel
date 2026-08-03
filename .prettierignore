@@ -14,7 +14,8 @@ apps/web/storybook-static/
 # Generated artifacts:
 #   Drizzle migration metadata is owned by drizzle-kit; do not hand-format.
 #   Audit run artifacts produced by deterministic generators.
-packages/database/drizzle/meta/snapshot-*.json
+packages/database/drizzle/meta/_journal.json
+packages/database/drizzle/meta/*_snapshot.json
 packages/database/drizzle/migration-provenance.json
 docs/audit/**/artifacts/
 docs/audit/api-source-map-*.md
