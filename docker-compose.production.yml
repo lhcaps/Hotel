@@ -74,6 +74,9 @@ services:
       RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
     expose:
       - '3001'
+    networks:
+      - private
+      - edge
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -95,6 +98,9 @@ services:
   worker:
     <<: *app
     command: ['node', 'apps/worker/dist/src/main.js']
+    networks:
+      - private
+      - edge
     depends_on:
       migrate:
         condition: service_completed_successfully
