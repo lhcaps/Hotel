@@ -91,6 +91,11 @@ export interface RevokeSessionParams {
   readonly now: Date;
 }
 
+export interface CreateCheckoutSessionParams {
+  readonly bookingId: string;
+  readonly now: Date;
+}
+
 export interface BookingContactLookup {
   readonly bookingId: string;
   readonly propertyId: string;
@@ -152,6 +157,32 @@ export class GuestAccessRepository {
       propertyId: row.property_id,
       contactEmailDigest: row.contact_email_digest,
     };
+  }
+
+  /**
+   * Creates a session used only by the path-scoped payment cookie issued
+   * immediately after a guest creates their own booking. It cannot be sent
+   * to booking-detail or OTP routes, so payment initiation remains one step
+   * without weakening guest-access verification.
+   */
+  public async createCheckoutSession(
+    params: CreateCheckoutSessionParams,
+  ): Promise<{ readonly token: Buffer; readonly expiresAt: Date }> {
+    const now = params.now;
+    const token = randomBytes(32);
+    const tokenDigest = computeDigest({
+      secretKey: this.secrets.sessionSecret,
+      domainLabel: DIGEST_DOMAIN_LABELS.guestSession,
+      parts: [token],
+    });
+    const expiresAt = new Date(now.getTime() + this.config.sessionTtlMs);
+    await this.pool.query(
+      `INSERT INTO guest_sessions
+         (id, booking_id, token_digest, created_ip_digest, expires_at, revoked_at, created_at)
+       VALUES ($1, $2, $3, NULL, $4, NULL, $5)`,
+      [randomUUID(), params.bookingId, tokenDigest, expiresAt, now],
+    );
+    return { token, expiresAt };
   }
 
   public async findActiveChallenge(bookingId: string): Promise<ActiveChallengeLookup | null> {
