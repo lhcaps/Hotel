@@ -60,6 +60,16 @@ export function QuoteSummary({ quote }: { readonly quote: Quote }) {
           <dt className="text-slate-500">{translate(locale, 'quote.extraHours')}</dt>
           <dd className="font-medium">{quote.pricing.extraUnits}</dd>
         </div>
+        <div>
+          <dt className="text-slate-500">{translate(locale, 'quote.baseAmount')}</dt>
+          <dd className="font-medium">{formatVnd(locale, quote.pricing.baseAmountVnd)}</dd>
+        </div>
+        {quote.pricing.extraAmountVnd > 0 ? (
+          <div>
+            <dt className="text-slate-500">{translate(locale, 'quote.extraAmount')}</dt>
+            <dd className="font-medium">{formatVnd(locale, quote.pricing.extraAmountVnd)}</dd>
+          </div>
+        ) : null}
       </dl>
       {quote.coupon !== undefined ? (
         <div className="mt-4">

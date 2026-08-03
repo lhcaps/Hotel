@@ -86,6 +86,35 @@ describe('QuoteSummary', () => {
     expect(screen.getByTestId('coupon-summary')).toHaveTextContent('SUMMER-50K');
   });
 
+  it('itemizes the exact base and extension prices used for the selected interval', () => {
+    render(
+      <LocaleProvider locale="en">
+        <QuoteSummary
+          quote={makeQuote({
+            pricing: {
+              ruleVersion: 'phase-4-pricing-availability-v1',
+              selectedPlanCode: 'THREE_HOUR_COMBO',
+              basePlanCode: 'THREE_HOUR_COMBO',
+              baseMinutes: 180,
+              extraUnits: 2,
+              baseAmountVnd: 359000,
+              extraAmountVnd: 120000,
+              totalAmountVnd: 479000,
+              lineItems: [
+                { code: 'THREE_HOUR_COMBO', amountVnd: 359000, units: 1 },
+                { code: 'EXTRA_HOUR', amountVnd: 120000, units: 2 },
+              ],
+            },
+          })}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText('Base price')).toBeInTheDocument();
+    expect(screen.getByText('Extra time price')).toBeInTheDocument();
+    expect(screen.getByText('₫120,000')).toBeInTheDocument();
+  });
+
   it('does not display any internal UUID, digest, or quota fields', () => {
     render(
       <QuoteSummary
