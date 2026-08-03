@@ -118,6 +118,11 @@ test('requires a private token to map an order, then settles and redirects a MoM
     });
     assert.equal(mapped.status, 200);
 
+    const checkoutPage = await send(port, 'GET', '/momo-test/pay?orderId=order-001');
+    assert.equal(checkoutPage.status, 200);
+    assert.match(checkoutPage.body, /alt="Payment QR code"/u);
+    assert.match(checkoutPage.body, /data:image\/png;base64,/u);
+
     const confirmed = await send(port, 'POST', '/momo-test/confirm?orderId=order-001');
     assert.equal(confirmed.status, 303);
     assert.equal(confirmed.headers.location, 'https://example.test/booking/manage/BOOK-001');

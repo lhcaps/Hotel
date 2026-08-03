@@ -4,6 +4,7 @@ import { Buffer } from 'node:buffer';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import { fileURLToPath, URL, URLSearchParams } from 'node:url';
+import QRCode from 'qrcode';
 
 const MAX_BODY_BYTES = 64 * 1024;
 const BOOKING_CODE_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
@@ -123,7 +124,7 @@ function html(response, status, body) {
   response.setHeader('cache-control', 'no-store');
   response.setHeader(
     'content-security-policy',
-    "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'",
+    "default-src 'none'; img-src data:; style-src 'unsafe-inline'; form-action 'self'",
   );
   response.end(body);
 }
@@ -229,12 +230,18 @@ function requireMappedBooking(orders, orderId) {
   return order;
 }
 
-function checkoutPage({ provider, orderId, amount, confirmPath }) {
+async function checkoutPage({ provider, orderId, amount, confirmPath, checkoutUrl }) {
+  const paymentQr = await QRCode.toDataURL(checkoutUrl, {
+    errorCorrectionLevel: 'M',
+    margin: 1,
+    width: 240,
+  });
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>${escapeHtml(provider)} demo payment</title>
-<style>body{font:16px system-ui,sans-serif;max-width:42rem;margin:4rem auto;padding:0 1rem}aside{padding:1rem;background:#fff3cd;border:1px solid #ffec99}button{padding:.75rem 1rem;font-weight:700}</style></head>
+<style>body{font:16px system-ui,sans-serif;max-width:42rem;margin:4rem auto;padding:0 1rem}aside{padding:1rem;background:#fff3cd;border:1px solid #ffec99}button{padding:.75rem 1rem;font-weight:700}.payment-qr{max-width:15rem;margin:1.5rem 0;padding:1rem;border:1px solid #ddd;border-radius:.5rem}.payment-qr img{display:block;width:15rem;height:15rem;max-width:100%}</style></head>
 <body><h1>${escapeHtml(provider)} demo payment</h1><aside><strong>DEMO — NO REAL MONEY.</strong> This screen only verifies the Room Management demo flow. Do not enter bank, card, or wallet credentials.</aside>
 <p>Order <code>${escapeHtml(orderId)}</code></p><p>Amount <strong>${escapeHtml(amount)} VND</strong></p>
+<section class="payment-qr" aria-label="Payment QR"><h2>Payment QR</h2><img alt="Payment QR code" src="${escapeHtml(paymentQr)}"><p>Scan to open this demo checkout on another device.</p></section>
 <form method="post" action="${escapeHtml(confirmPath)}"><button type="submit">Confirm demo payment</button></form>
 <p>You may close this page to cancel. No money will be charged.</p></body></html>`;
 }
@@ -538,11 +545,12 @@ export function createPaymentDemoServer(environment) {
       html(
         response,
         200,
-        checkoutPage({
+        await checkoutPage({
           provider: 'MoMo',
           orderId: order.orderId,
           amount: order.amount,
           confirmPath: `/momo-test/confirm?orderId=${encodeURIComponent(order.orderId)}`,
+          checkoutUrl: `${environment.publicOrigin}/momo-test/pay?orderId=${encodeURIComponent(order.orderId)}`,
         }),
       );
       return;
@@ -584,11 +592,12 @@ export function createPaymentDemoServer(environment) {
       html(
         response,
         200,
-        checkoutPage({
+        await checkoutPage({
           provider: 'VNPAY',
           orderId: order.orderId,
           amount: order.amount,
           confirmPath: `/vnpay-test/confirm?orderId=${encodeURIComponent(order.orderId)}`,
+          checkoutUrl: `${environment.publicOrigin}${requestUrl.pathname}${requestUrl.search}`,
         }),
       );
       return;

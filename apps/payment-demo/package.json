@@ -9,5 +9,8 @@
     "lint": "eslint main.mjs test",
     "typecheck": "node --check main.mjs",
     "test:unit": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "qrcode": "1.5.4"
   }
 }
