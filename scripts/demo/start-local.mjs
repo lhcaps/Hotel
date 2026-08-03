@@ -25,12 +25,14 @@
 //       process that this script will not terminate).
 
 import { spawn, execFile } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { closeSync, mkdirSync, openSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 import process from 'node:process';
 import { resolveCommandInvocation } from '../command-executable.mjs';
+import { DEMO_SECRET_KEYS } from './demo-constants.mjs';
 import { inspectWindowsProcessIdentity, isExactReadyStatus } from './runner-safety.mjs';
 
 const REPO_ROOT = process.cwd();
@@ -115,6 +117,15 @@ function loadEnvFile(filePath) {
   return out;
 }
 
+function createMissingDemoSecrets(fileEnv) {
+  const generated = {};
+  for (const key of DEMO_SECRET_KEYS) {
+    if (typeof fileEnv[key] === 'string' && fileEnv[key].length >= 32) continue;
+    generated[key] = randomBytes(32).toString('base64url');
+  }
+  return generated;
+}
+
 function spawnNodeScript(args, extraEnv) {
   // Load the repository's .env file at the runner process so the
   // spawned children inherit DATABASE_URL, BETTER_AUTH_SECRET,
@@ -124,9 +135,11 @@ function spawnNodeScript(args, extraEnv) {
   // at the runner is the only reliable way to load it once and
   // propagate it down to every child.
   const fileEnv = loadEnvFile(join(REPO_ROOT, '.env'));
+  const generatedDemoSecrets = createMissingDemoSecrets(fileEnv);
   const env = {
     ...process.env,
     ...fileEnv,
+    ...generatedDemoSecrets,
     ...extraEnv,
   };
   // Resolve the high-level command (pnpm, node, tsx, etc.) into a

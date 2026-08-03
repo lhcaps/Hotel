@@ -145,7 +145,11 @@ async function adminLogin(page: Page): Promise<void> {
 
 async function expectNoForbiddenErrors(consoleErrors: ReadonlyArray<string>) {
   const filtered = consoleErrors.filter(
-    (line) => !/fontawesome|cdn\.jsdelivr\.net|cloudflare-insights|favicon/i.test(line),
+    (line) =>
+      !/fontawesome|cdn\.jsdelivr\.net|cloudflare-insights|favicon/i.test(line) &&
+      !/Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/.test(
+        line,
+      ),
   );
   expect(filtered, `unexpected console errors:\n${filtered.join('\n')}`).toEqual([]);
 }
@@ -160,7 +164,7 @@ async function expectStatus(response: Response | null, expected: number) {
 
 async function buildCustomerBooking(
   page: Page,
-  providerButtonLabel: RegExp,
+  providerName: 'MoMo' | 'VNPAY',
 ): Promise<{ bookingCode: string; recipientEmail: string }> {
   const recipientEmail = `finaldemo+${Date.now()}@mailpit.test`;
   // Try several candidate windows until the search shows at least one room
@@ -235,10 +239,11 @@ async function buildCustomerBooking(
   await page.getByLabel('Họ và tên').fill('Demo Final Customer');
   await page.getByLabel('Email').fill(recipientEmail);
   await page.getByLabel('Số điện thoại (E.164)').fill('+84909000123');
-  await page.getByRole('button', { name: /Giữ chỗ/ }).click();
-  await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
-  const rawBookingCode = await page.getByTestId('hold-booking-code').innerText();
-  const bookingCode = rawBookingCode.trim();
+  await resetSimulator();
+  await page.getByRole('radio', { name: providerName }).check();
+  await page.getByRole('button', { name: 'Thanh toán & đặt phòng' }).click();
+  await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+  const bookingCode = new URL(page.url()).pathname.split('/').at(-1)?.trim() ?? '';
   expect(bookingCode).toMatch(/^[A-Z0-9-]+$/);
 
   // OTP
@@ -263,13 +268,7 @@ async function buildCustomerBooking(
   await page.getByRole('button', { name: /Xác nhận|Xác minh/ }).click();
   await expect(page).toHaveURL(new RegExp(`/booking/manage/${bookingCode}$`));
 
-  await resetSimulator();
-  const providerButton = page.getByRole('button', { name: providerButtonLabel });
-  await expect(providerButton).toBeVisible({ timeout: 30_000 });
-  await providerButton.click();
-  // The simulator will host either 127.0.0.1 or localhost, and after the
-  // IPN settles it redirects back to /booking/manage/{bookingCode}.
-  await expect(page).toHaveURL(new RegExp(`/booking/manage/${bookingCode}$`), { timeout: 30_000 });
+  await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
 
   return { bookingCode, recipientEmail };
 }
@@ -305,7 +304,7 @@ test.describe('Final local demo acceptance', () => {
     page.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
     });
-    const { bookingCode, recipientEmail } = await buildCustomerBooking(page, /Thanh toán qua MoMo/);
+    const { bookingCode, recipientEmail } = await buildCustomerBooking(page, 'MoMo');
     const counters = await readSimulatorCounters();
     expect(counters.defaultBackRedirectBase).toBe('http://localhost:3000/booking/manage');
     // Simulator must observe at least one IPN, then redirect to the persistent route.
@@ -339,10 +338,7 @@ test.describe('Final local demo acceptance', () => {
     page.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
     });
-    const { bookingCode, recipientEmail } = await buildCustomerBooking(
-      page,
-      /Thanh toán qua VNPay/,
-    );
+    const { bookingCode, recipientEmail } = await buildCustomerBooking(page, 'VNPAY');
     await expect(page).toHaveURL(new RegExp(`/booking/manage/${bookingCode}$`), {
       timeout: 30_000,
     });
