@@ -72,6 +72,7 @@ const PLAYWRIGHT_GUEST_SECRETS = {
   GUEST_OTP_SECRET: 'test-guest-otp-secret-32-chars-min-aaaaaa',
   GUEST_CHALLENGE_REF_SECRET: 'test-challenge-ref-secret-32-chars-aaaa',
   GUEST_SESSION_SECRET: 'test-guest-session-secret-32-chars-aaaa',
+  BOOKING_ACCESS_QR_SECRET: 'test-booking-access-qr-secret-32-chars',
   BOOKING_IP_DIGEST_SECRET: 'test-ip-digest-secret-32-chars-aaaaa',
 } as const;
 
@@ -247,7 +248,11 @@ async function seedPlaywrightCatalog(database: GuardedTestDatabase): Promise<voi
        VALUES ('10000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000201', '10000000-0000-4000-8000-000000000401');
      INSERT INTO payment_provider_settings (property_id, provider, enabled, display_name, display_order)
        VALUES ('10000000-0000-4000-8000-000000000001', 'MOMO', true, 'MoMo', 10),
-              ('10000000-0000-4000-8000-000000000001', 'VNPAY', true, 'VNPAY', 20);
+              ('10000000-0000-4000-8000-000000000001', 'VNPAY', true, 'VNPAY', 20)
+       ON CONFLICT (property_id, provider) DO UPDATE
+         SET enabled = EXCLUDED.enabled,
+             display_name = EXCLUDED.display_name,
+             display_order = EXCLUDED.display_order;
 INSERT INTO rate_plans (id, property_id, code, name, status, included_duration_minutes, priority,
                             is_base_plan, min_check_in_minute_inclusive, max_check_in_minute_exclusive,
                             min_duration_minutes_inclusive, max_duration_minutes_inclusive)

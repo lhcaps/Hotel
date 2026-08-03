@@ -589,7 +589,7 @@ test.describe('Phase 2 customer browser vertical', () => {
       page.waitForURL(/\/booking\/quote\//, { timeout: 30_000 }),
       page.getByRole('button', { name: 'Xem giá chính thức' }).click(),
     ]);
-    await expect(page.getByRole('heading', { name: 'Hoàn tất giữ chỗ' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Thanh toán & đặt phòng' })).toBeVisible();
     const quoteUrl = page.url();
 
     // 7. Apply the deterministic demo coupon via the browser.

@@ -15,5 +15,5 @@ test('anonymous visitor searches availability and receives a non-reserving quote
   await expect(page.getByRole('heading', { name: 'Deluxe' })).toBeVisible();
   await page.getByRole('button', { name: 'Xem giá chính thức' }).click();
   await expect(page).toHaveURL(/\/booking\/quote\//);
-  await expect(page.getByRole('heading', { name: 'Hoàn tất giữ chỗ' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Thanh toán & đặt phòng' })).toBeVisible();
 });

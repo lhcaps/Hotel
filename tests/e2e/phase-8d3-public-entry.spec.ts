@@ -78,7 +78,7 @@ test.describe('Phase 8D.3 real public entry', () => {
     await expect(page.getByRole('button', { name: labels.quote })).toBeVisible();
     await page.getByRole('button', { name: labels.quote }).click();
     await page.waitForURL(/\/booking\/quote\//);
-    await expect(page.getByRole('heading', { name: 'Hoàn tất giữ chỗ' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Thanh toán & đặt phòng' })).toBeVisible();
     await expect(page.getByLabel('Họ và tên')).toBeVisible();
     expect(errors).toEqual([]);
   });

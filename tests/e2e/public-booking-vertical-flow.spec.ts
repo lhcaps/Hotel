@@ -183,7 +183,7 @@ test.describe('public booking vertical flow', () => {
 
     // 2-3. Navigate to the quote page; verify pricing display.
     await page.goto(`/booking/quote/${quote.id}`);
-    await expect(page.getByRole('heading', { name: 'Hoàn tất giữ chỗ' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Thanh toán & đặt phòng' })).toBeVisible();
     await expect(page.getByText('Deluxe')).toBeVisible();
     await expect(page.locator('strong.font-mono')).toContainText(expectedAmount);
 
@@ -374,7 +374,7 @@ test.describe('public booking vertical flow', () => {
     }
     const quote = (await response.json()) as QuoteResponse;
     await page.goto(`/booking/quote/${quote.id}`);
-    await expect(page.getByRole('heading', { name: 'Hoàn tất giữ chỗ' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Thanh toán & đặt phòng' })).toBeVisible();
     await page.getByLabel('Họ và tên').fill('Playwright Mobile');
     await page.getByLabel('Email').fill(`mobile-${RECIPIENT_TAG}@playwright.test`);
     await page.getByLabel(/Số điện thoại/).fill('+84909000098');

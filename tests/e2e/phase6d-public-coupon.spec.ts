@@ -267,7 +267,7 @@ async function runCouponVerticalFlow(
   await Promise.all([page.waitForURL(/\/booking\/quote\//), quoteButton.click()]);
 
   // 4. The quote page renders the introductory copy.
-  await expect(page.getByRole('heading', { name: 'Hoàn tất giữ chỗ' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Thanh toán & đặt phòng' })).toBeVisible();
 
   // 5. Apply the coupon via the dedicated input.
   const couponInput = page.getByRole('textbox', { name: 'Mã giảm giá' });

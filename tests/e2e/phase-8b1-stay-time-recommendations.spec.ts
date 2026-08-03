@@ -111,7 +111,7 @@ test('visitor sees cheaper stay-time recommendations and reissues a quote', asyn
   const initialUrl = page.url();
   expect(initialUrl).toContain(`/booking/quote/${initialQuote.id}`);
 
-  await expect(page.getByRole('heading', { name: 'Hoàn tất giữ chỗ' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Thanh toán & đặt phòng' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Khung giờ thay thế rẻ hơn' })).toBeVisible();
 
   const recommendationsResponse: Response = await page.waitForResponse(
@@ -240,7 +240,7 @@ test('visitor sees cheaper stay-time recommendations and reissues a quote', asyn
 
   // The reissued quote page must render the fresh server-authoritative
   // plan and amount selected from the recommendation candidate.
-  await expect(page.getByRole('heading', { name: 'Hoàn tất giữ chỗ' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Thanh toán & đặt phòng' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Ưu đãi đặt sớm' })).toBeVisible();
   await expect(
     page.getByText(
