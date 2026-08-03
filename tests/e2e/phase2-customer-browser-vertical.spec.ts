@@ -618,22 +618,18 @@ test.describe('Phase 2 customer browser vertical', () => {
     await page.getByLabel('Email').fill(recipientEmail);
     await page.getByLabel('Số điện thoại (E.164)').fill('+84909000021');
 
-    // 10. Click HOLD.
-    await page.getByRole('button', { name: 'Giữ chỗ' }).click();
-    await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
+    // 10. Choose MoMo and complete the one-step checkout. The simulator's
+    // signed callback settles payment before it returns to booking access.
+    await page.getByRole('radio', { name: 'MoMo' }).check();
+    await page.getByRole('button', { name: 'Thanh toán & đặt phòng' }).click();
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
 
-    // 11. Read the booking code from the browser-rendered HOLD panel.
-    const bookingCode = (await page.getByTestId('hold-booking-code').innerText()).trim();
+    // 11. The return route contains only the non-secret booking code.
+    const bookingCode = new URL(page.url()).pathname.split('/').at(-1) ?? '';
     expect(bookingCode).toMatch(/^[A-Z0-9-]{8,32}$/);
-    // URL must not contain the booking code or recipient email.
-    const holdUrl = page.url();
-    expect(holdUrl).not.toContain(bookingCode);
-    expect(holdUrl).not.toContain(recipientEmail);
 
-    // 12. Navigate to booking management through the UI button.
-    const manageBookingCta = page.getByRole('button', { name: 'Quản lý đặt phòng' });
-    await manageBookingCta.click();
-    await expect(page).toHaveURL(/\/booking\/manage(\?|$)/);
+    // 12. Navigate to booking management and request OTP access.
+    await page.goto('/booking/manage');
     await page.waitForLoadState('networkidle');
 
     // 13. Enter booking code and email in the OTP request panel.
@@ -674,41 +670,8 @@ test.describe('Phase 2 customer browser vertical', () => {
     expect(otpUrl).not.toContain('challengeRef');
     expect(otpUrl).not.toContain('rm_guest_session_v1');
 
-    // 17. Click MoMo through the browser.
-    const momoButton = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
-    await expect(momoButton).toBeVisible({ timeout: 30_000 });
-
-    // Reset both provider states. No control-plane backRedirectUrl is
-    // set on either provider: the API server pushes the (orderId →
-    // bookingCode) mapping to the simulator at initiation time, and the
-    // simulator's trusted default base URL resolves the authoritative
-    // booking code on the browser-side redirect.
-    await setSimulatorMode('momo', 'verify', { reset: true });
-    await setSimulatorMode('vnpay', 'verify', { reset: true });
-
-    const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
-    await Promise.all([
-      page.waitForURL((current) => current.host === '127.0.0.1:3090', { timeout: 30_000 }),
-      momoButton.click(),
-    ]);
-
-    // 18. Wait until the simulator has posted at least one IPN, then
-    // observe the automatic browser back-redirect to the persistent
-    // booking page. The redirect must contain the real booking code,
-    // not the MoMo orderId.
-    await waitFor(
-      async () => {
-        const counts = await readSimulatorCounts();
-        return counts.counts.momoIpnAttempts > initialIpnCount;
-      },
-      { timeoutMs: 15_000 },
-    );
-    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
-    // Sanity: the URL contains the booking code, not the MoMo orderId.
-    expect(page.url()).toContain(bookingCode);
-    expect(page.url()).not.toContain('MOMO-');
-
-    // 19. Observe the loading state, then the confirmed success surface.
+    // 17. OTP unlocks the already-settled booking. The success surface is
+    // authoritative and must not depend on a browser return query.
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
 
@@ -771,16 +734,16 @@ test.describe('Phase 2 customer browser vertical', () => {
       timeout: 30_000,
     });
 
-    // Fill contact and create HOLD.
+    // Fill contact and start the VNPAY one-step checkout.
     const recipientEmail = `e2e+${Date.now()}@mailpit.test`;
+    await setSimulatorMode('vnpay', 'verify', { reset: true });
     await page.getByLabel('Họ và tên').fill('Nguyen Van Demo');
     await page.getByLabel('Email').fill(recipientEmail);
     await page.getByLabel('Số điện thoại').fill('+84900000001');
-    await page.getByRole('button', { name: 'Giữ chỗ' }).click();
-
-    await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
-    const rawBookingCode = await page.getByTestId('hold-booking-code').innerText();
-    const bookingCode = rawBookingCode.trim();
+    await page.getByRole('radio', { name: 'VNPAY' }).check();
+    await page.getByRole('button', { name: 'Thanh toán & đặt phòng' }).click();
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    const bookingCode = new URL(page.url()).pathname.split('/').at(-1) ?? '';
     if (!bookingCode || !/^[A-Z0-9-]+$/.test(bookingCode)) {
       throw new Error('Booking code was not rendered or has invalid format');
     }
@@ -806,38 +769,12 @@ test.describe('Phase 2 customer browser vertical', () => {
     await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
     expect(page.url()).toContain(bookingCode);
 
-    // 4. Reset VNPAY state — do NOT set backRedirectUrl.
-    // The auto-derive path exercises PAYMENT_SIMULATOR_DEFAULT_BACK_REDIRECT_BASE.
-    await setSimulatorMode('vnpay', 'verify', { reset: true });
-
-    const initialIpnCount = (await readSimulatorCounts()).counts.vnpayIpnAttempts;
-    const vnpayButton = page.getByRole('button', { name: 'Thanh toán qua VNPAY' });
-    await expect(vnpayButton).toBeVisible();
-
-    // 5. Click VNPAY and let the simulator auto-redirect.
-    await Promise.all([
-      page.waitForURL((current) => current.host === '127.0.0.1:3090', { timeout: 30_000 }),
-      vnpayButton.click(),
-    ]);
-
-    // 6. Wait for IPN settlement.
-    await waitFor(
-      async () => {
-        const counts = await readSimulatorCounts();
-        return counts.counts.vnpayIpnAttempts > initialIpnCount;
-      },
-      { timeoutMs: 15_000 },
-    );
-
-    // 7. Auto-redirect must land on /booking/manage/{bookingCode}.
-    // VNPAY's vnp_TxnRef equals the booking code, so the simulator's
-    // auto-derive (DEFAULT_BACK_REDIRECT_BASE + orderId) produces the
-    // correct URL without any control-plane backRedirectUrl.
+    // 4. OTP only authorizes booking access; VNPAY was settled by the signed
+    // callback before this route was opened.
     await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
     expect(page.url()).toContain(bookingCode);
-    expect(page.url()).not.toContain('vnp_');
 
-    // 8. Confirmed success surface.
+    // 5. Confirmed success surface.
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');
 
@@ -918,14 +855,18 @@ test.describe('Phase 2 customer browser vertical', () => {
     await page.waitForLoadState('networkidle');
 
     const recipientEmail = `e2e+${Date.now()}@mailpit.test`;
+    // The one-step payment starts after contact submission. Configure the
+    // duplicate signed callbacks before initiating MoMo.
+    await setSimulatorMode('momo', 'verify', { reset: true });
+    await setSimulatorMode('momo', 'verify', { duplicateIpns: true });
+    const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
     await page.getByLabel('Họ và tên').fill('Tran Van Check');
     await page.getByLabel('Email').fill(recipientEmail);
     await page.getByLabel('Số điện thoại').fill('+84900000002');
-    await page.getByRole('button', { name: 'Giữ chỗ' }).click();
-
-    await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
-    const rawBookingCode = await page.getByTestId('hold-booking-code').innerText();
-    const bookingCode = rawBookingCode.trim();
+    await page.getByRole('radio', { name: 'MoMo' }).check();
+    await page.getByRole('button', { name: 'Thanh toán & đặt phòng' }).click();
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    const bookingCode = new URL(page.url()).pathname.split('/').at(-1) ?? '';
     if (!bookingCode || !/^[A-Z0-9-]+$/.test(bookingCode)) {
       throw new Error('Booking code was not rendered or has invalid format');
     }
@@ -947,23 +888,8 @@ test.describe('Phase 2 customer browser vertical', () => {
     await page.getByRole('button', { name: 'Xác nhận' }).click();
     await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
 
-    // 12. Set duplicateIpns: true so the simulator fires the same signed
-    // MoMo IPN twice when the user clicks MoMo. The backend must accept
-    // both (idempotency) but only send one confirmation email. No
-    // control-plane backRedirectUrl: the API server pushed the
-    // (orderId → bookingCode) mapping at initiation time.
-    await setSimulatorMode('momo', 'verify', { duplicateIpns: true });
-
-    // Count IPN attempts before the click.
-    const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
-    const momoBtn = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
-    await expect(momoBtn).toBeVisible();
-    await Promise.all([
-      page.waitForURL((current) => current.host === '127.0.0.1:3090', { timeout: 30_000 }),
-      momoBtn.click(),
-    ]);
-
-    // Wait for both IPN attempts.
+    // 12. The checkout callback sends the same signed MoMo IPN twice. Wait
+    // for both attempts; access OTP must not affect payment settlement.
     await waitFor(
       async () => {
         const counts = await readSimulatorCounts();
