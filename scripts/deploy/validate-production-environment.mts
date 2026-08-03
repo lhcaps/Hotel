@@ -60,6 +60,8 @@ export function validateProductionDeploymentEnvironment(source: EnvironmentSourc
   requireParsed('Web', parseWebEnvironment(source));
   requireParsed('Worker', parseWorkerEnvironment(source));
 
+  if (source.PAYMENT_DEMO_ENABLED !== 'true') return;
+
   try {
     loadEnvironment(source);
   } catch (error) {
