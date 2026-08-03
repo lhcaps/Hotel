@@ -154,8 +154,8 @@ test.describe('phase1 browser api seams', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          requestedCheckIn: '2026-07-31T16:00:00.000Z',
-          requestedCheckOut: '2026-07-31T19:00:00.000Z',
+          requestedCheckIn: '2027-07-31T16:00:00.000Z',
+          requestedCheckOut: '2027-07-31T19:00:00.000Z',
           durationMinutes: 180,
           candidates: [],
         }),
@@ -176,8 +176,8 @@ test.describe('phase1 browser api seams', () => {
     });
 
     await goToLanding(page);
-    await page.getByLabel('Nhận phòng').fill('2026-07-31T23:00');
-    await page.getByLabel('Trả phòng').fill('2026-08-01T02:00');
+    await page.getByLabel('Nhận phòng').fill('2027-07-31T23:00');
+    await page.getByLabel('Trả phòng').fill('2027-08-01T02:00');
     await page.getByLabel('Người lớn').fill('2');
     await page.getByRole('button', { name: 'Tìm phòng' }).click();
 
@@ -187,8 +187,8 @@ test.describe('phase1 browser api seams', () => {
     await page.waitForTimeout(1_500);
     expect(availabilityBodies.length).toBeGreaterThanOrEqual(1);
     const body = availabilityBodies[0] as Record<string, unknown>;
-    expect(body.checkIn).toBe('2026-07-31T23:00:00+07:00');
-    expect(body.checkOut).toBe('2026-08-01T02:00:00+07:00');
+    expect(body.checkIn).toBe('2027-07-31T23:00:00+07:00');
+    expect(body.checkOut).toBe('2027-08-01T02:00:00+07:00');
   });
 
   test('D. MOMO BROWSER REDIRECT: clicking MoMo navigates to simulator origin', async ({

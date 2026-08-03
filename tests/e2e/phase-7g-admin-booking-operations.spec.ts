@@ -57,6 +57,13 @@ function pastOperationalInterval(daysAgo: number): {
   return { checkIn: checkIn.toISOString(), checkOut: checkOut.toISOString() };
 }
 
+function currentOperationalInterval(): { readonly checkIn: string; readonly checkOut: string } {
+  const checkIn = new Date(Date.now() - 60 * 60_000);
+  checkIn.setUTCMinutes(Math.floor(checkIn.getUTCMinutes() / 15) * 15, 0, 0);
+  const checkOut = new Date(checkIn.getTime() + 3 * 60 * 60_000);
+  return { checkIn: checkIn.toISOString(), checkOut: checkOut.toISOString() };
+}
+
 async function psql(sql: string): Promise<string> {
   const result = await databasePool.query(sql);
   return result.rows
@@ -184,7 +191,7 @@ test.describe('Phase 7G ADMIN booking operations', () => {
 
     await loginAsAdminThroughUi(page);
 
-    const confirmedInterval = pastOperationalInterval(7);
+    const confirmedInterval = currentOperationalInterval();
     const confirmed = await insertHoldBooking({
       roomId: ROOM_ID,
       ...confirmedInterval,

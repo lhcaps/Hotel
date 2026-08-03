@@ -6,6 +6,8 @@ import { promisify } from 'node:util';
 
 import { expect, test } from '@playwright/test';
 
+import { setSimulatorMode } from './_fixtures/payment-test-helpers.mjs';
+
 const execFileAsync = promisify(execFile);
 
 function resolveDatabaseUrl(): string {
@@ -135,7 +137,7 @@ async function createQuote(): Promise<QuoteResponse> {
 }
 
 test.describe('public booking vertical flow', () => {
-  test('quote → hold → OTP email → verify → cookie session → detail → logout', async ({
+  test('quote → one-step payment → OTP email → verify → cookie session → detail → logout', async ({
     page,
     context,
   }) => {
@@ -187,36 +189,36 @@ test.describe('public booking vertical flow', () => {
     await expect(page.getByText('Deluxe')).toBeVisible();
     await expect(page.locator('strong.font-mono')).toContainText(expectedAmount);
 
-    // 4-5. Fill the contact form and submit HOLD.
+    // 4-5. Fill the contact form, select a demo provider, and start the
+    // one-step checkout. The simulator settles the payment through its signed
+    // callback before returning to guest access.
+    await setSimulatorMode('vnpay', 'verify', { reset: true });
     await page.getByLabel('Họ và tên').fill('Playwright Vertical');
     await page.getByLabel('Email').fill(RECIPIENT_EMAIL);
     await page.getByLabel(/Số điện thoại/).fill(PHONE_E164);
+    await page.getByRole('radio', { name: 'VNPAY' }).check();
     const holdResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes('/public/quotes/') &&
         response.url().includes('/bookings') &&
         response.request().method() === 'POST',
     );
-    await page.getByRole('button', { name: 'Giữ chỗ' }).click();
+    await page.getByRole('button', { name: 'Thanh toán & đặt phòng' }).click();
     const holdResponse = await holdResponsePromise;
     if (!holdResponse.ok()) {
       const holdBody = await holdResponse.text();
       throw new Error(`HOLD request failed: ${holdResponse.status()} body=${holdBody}`);
     }
 
-    // 6. Verify the booking code and countdown.
-    const bookingCodeLocator = page.locator('dd.font-mono').first();
-    await expect(bookingCodeLocator).toBeVisible();
-    const bookingCode = (await bookingCodeLocator.textContent())?.trim() ?? '';
+    // 6. The return URL carries only the non-secret booking code. It is
+    // immediately discarded by the management page, where OTP still gates
+    // access to details.
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    const bookingCode = new URL(page.url()).pathname.split('/').at(-1) ?? '';
     expect(bookingCode).toMatch(/^[A-Z0-9-]{8,32}$/);
-    await expect(page.getByText('Giữ chỗ thành công')).toBeVisible();
-    await expect(page.locator('[data-testid="hold-countdown"]')).toContainText(
-      'Thời gian còn lại:',
-    );
 
-    // 7-8. Navigate to booking management and enter booking code + email.
-    await page.getByRole('button', { name: 'Quản lý đặt phòng' }).click();
-    await page.waitForURL(/\/booking\/manage/);
+    // 7-8. Open the management form and enter booking code + email.
+    await page.goto('/booking/manage');
     await page.getByLabel('Mã đặt phòng').fill(bookingCode);
     await page.getByLabel('Email').fill(RECIPIENT_EMAIL);
 
@@ -288,9 +290,10 @@ test.describe('public booking vertical flow', () => {
 
     // 16. Booking detail renders. Property name may have been mutated by
     // prior admin specs running in the same session, so we match the prefix.
-    await expect(page.getByText(/Playwright Hotel/)).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText('Deluxe')).toBeVisible();
-    await expect(page.getByText(/Playwright Vertical/)).toBeVisible();
+    const bookingDetail = page.getByTestId('guest-booking-detail');
+    await expect(bookingDetail.getByText(/Playwright Hotel/)).toBeVisible({ timeout: 30_000 });
+    await expect(bookingDetail.getByText('Deluxe')).toBeVisible();
+    await expect(bookingDetail.getByText(/Playwright Vertical/)).toBeVisible();
     const atIdx = RECIPIENT_EMAIL.indexOf('@');
     const maskedLocal = `${RECIPIENT_EMAIL[0]}${'*'.repeat(atIdx - 2)}${RECIPIENT_EMAIL[atIdx - 1]}`;
     const maskedEmailPattern = `${maskedLocal[0]}\\*+${maskedLocal[maskedLocal.length - 1]}@playwright\\.test`;
@@ -378,7 +381,9 @@ test.describe('public booking vertical flow', () => {
     await page.getByLabel('Họ và tên').fill('Playwright Mobile');
     await page.getByLabel('Email').fill(`mobile-${RECIPIENT_TAG}@playwright.test`);
     await page.getByLabel(/Số điện thoại/).fill('+84909000098');
-    await page.getByRole('button', { name: 'Giữ chỗ' }).click();
-    await expect(page.getByText('Giữ chỗ thành công')).toBeVisible();
+    await setSimulatorMode('vnpay', 'verify', { reset: true });
+    await page.getByRole('radio', { name: 'VNPAY' }).check();
+    await page.getByRole('button', { name: 'Thanh toán & đặt phòng' }).click();
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
   });
 });

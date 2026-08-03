@@ -281,12 +281,14 @@ test.describe('Phase 2 customer browser vertical', () => {
     );
   });
 
-  test('2. VNPAY complete vertical desktop — browser OTP → confirmed', async ({ page }) => {
+  test('2. VNPAY complete vertical desktop — one-step payment → browser OTP → confirmed', async ({
+    page,
+  }) => {
     test.setTimeout(180_000);
     await setSimulatorMode('vnpay', 'verify', { reset: true });
 
-    // 1. Build HOLD entirely through the browser (search → quote → contact
-    // → HOLD). Quarter-hour aligned +07:00 timestamps so the
+    // 1. Start the one-step VNPAY checkout entirely through the browser
+    // (search → quote → contact → payment). Quarter-hour aligned +07:00 timestamps so the
     // deterministic DELUXE seed and lunch price produce a known amount.
     // Keep this browser-created HOLD away from the earlier verticals, which
     // intentionally reserve the near-term deterministic room inventory.
@@ -319,14 +321,16 @@ test.describe('Phase 2 customer browser vertical', () => {
     });
 
     const recipientEmail = `vn-e2e+${Date.now()}@mailpit.test`;
+    const listener = attachListeners(page);
     await page.getByLabel('Họ và tên').fill('VN Browser OTP');
     await page.getByLabel('Email').fill(recipientEmail);
     await page.getByLabel('Số điện thoại').fill('+84900000099');
-    await page.getByRole('button', { name: 'Giữ chỗ' }).click();
-    await expect(page.getByTestId('hold-success-panel')).toBeVisible({ timeout: 30_000 });
-    const bookingCode = (await page.getByTestId('hold-booking-code').innerText()).trim();
+    await page.getByRole('radio', { name: 'VNPAY' }).check();
+    await page.getByRole('button', { name: 'Thanh toán & đặt phòng' }).click();
+    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    const bookingCode = new URL(page.url()).pathname.split('/').at(-1) ?? '';
     if (!/^[A-Z0-9-]+$/.test(bookingCode))
-      throw new Error(`Invalid booking code rendered: ${bookingCode}`);
+      throw new Error(`Invalid booking code returned from checkout: ${bookingCode}`);
 
     // 2. Drive OTP entirely through the browser (no direct cookie attach).
     await page.goto('/booking/manage');
@@ -345,26 +349,9 @@ test.describe('Phase 2 customer browser vertical', () => {
     await page.getByRole('button', { name: 'Xác nhận' }).click();
     await expect(page.getByTestId('guest-booking-detail')).toBeVisible({ timeout: 30_000 });
     expect(page.url()).toContain(bookingCode);
-    const listener = attachListeners(page);
-
-    // 3. Click VNPAY. The simulator auto-redirects via the API-pushed
-    // (orderId → bookingCode) mapping and the trusted default base URL.
-    const initialIpnCount = (await readSimulatorCounts()).counts.vnpayIpnAttempts;
-    const vnpayButton = page.getByRole('button', { name: 'Thanh toán qua VNPAY' });
-    await expect(vnpayButton).toBeVisible();
-    await Promise.all([
-      page.waitForURL((current) => current.host === '127.0.0.1:3090', { timeout: 30_000 }),
-      vnpayButton.click(),
-    ]);
-
-    await waitFor(
-      async () => (await readSimulatorCounts()).counts.vnpayIpnAttempts > initialIpnCount,
-      { timeoutMs: 15_000 },
-    );
-
-    await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+    // 3. The signed simulator callback settled payment before the OTP access
+    // step. The detail view must therefore load the confirmed success state.
     expect(page.url()).toContain(bookingCode);
-    expect(page.url()).not.toContain('vnp_');
 
     await expect(page.getByTestId('confirmed-success-surface')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('confirmed-success-heading')).toHaveText('Đặt phòng thành công');

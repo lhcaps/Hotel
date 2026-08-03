@@ -243,13 +243,12 @@ test('visitor sees cheaper stay-time recommendations and reissues a quote', asyn
   await expect(page.getByRole('heading', { name: 'Thanh toán & đặt phòng' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Ưu đãi đặt sớm' })).toBeVisible();
   await expect(
-    page.getByText(
-      new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-        earlyBird?.finalAmountVnd ?? 0,
-      ),
-      { exact: true },
+    page.locator('section[aria-labelledby="quote-summary-heading"] strong.font-mono').first(),
+  ).toHaveText(
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+      earlyBird?.finalAmountVnd ?? 0,
     ),
-  ).toBeVisible();
+  );
 
   // Post-reissue invariant: public availability is unchanged. The
   // advisory search and the reissue POST are both non-reserving, so no

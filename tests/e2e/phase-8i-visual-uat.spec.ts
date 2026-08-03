@@ -69,7 +69,7 @@ test('captures 13 Phase 8I client-UAT surfaces with isolated synthetic data', as
   await page.waitForURL(/\/rooms\//);
   await expect(page.getByRole('button', { name: 'View official price' })).toBeVisible();
   await page.getByRole('button', { name: 'View official price' }).click();
-  await expect(page.getByRole('heading', { name: 'Complete your hold' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Pay & book' })).toBeVisible();
   await capture(page, '03-hold-contact-desktop');
 
   await signInAsCustomer(page);

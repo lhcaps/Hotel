@@ -6,6 +6,8 @@ import { promisify } from 'node:util';
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { setSimulatorMode } from './_fixtures/payment-test-helpers.mjs';
+
 const execFileAsync = promisify(execFile);
 
 function resolveDatabaseUrl(): string {
@@ -321,7 +323,8 @@ async function runCouponVerticalFlow(
   expect(clearResponse.ok(), `Clear failed: ${clearResponse.status()}`).toBe(true);
   await expect(page.getByTestId('coupon-summary')).toHaveCount(0);
 
-  // 9. Re-apply the coupon so the HOLD carries the discount.
+  // 9. Re-apply the coupon so the reservation created during one-step
+  // checkout carries the discount.
   await couponInput.fill(options.couponCode);
   const reapplyPromise = page.waitForResponse(
     (response) =>
@@ -331,10 +334,12 @@ async function runCouponVerticalFlow(
   await reapplyPromise;
   await page.getByTestId('coupon-summary').waitFor();
 
-  // 10. Submit the contact form.
+  // 10. Submit the contact form through the one-step payment checkout.
+  await setSimulatorMode('vnpay', 'verify', { reset: true });
   await page.getByLabel('Họ và tên').fill(options.fullName);
   await page.getByLabel('Email').fill(options.recipientEmail);
   await page.getByLabel(/Số điện thoại/).fill(options.phone);
+  await page.getByRole('radio', { name: 'VNPAY' }).check();
 
   const holdResponsePromise = page.waitForResponse(
     (response) =>
@@ -342,7 +347,7 @@ async function runCouponVerticalFlow(
       response.url().includes('/bookings') &&
       response.request().method() === 'POST',
   );
-  await page.getByRole('button', { name: 'Giữ chỗ' }).click();
+  await page.getByRole('button', { name: 'Thanh toán & đặt phòng' }).click();
   const holdResponse = await holdResponsePromise;
   if (!holdResponse.ok()) {
     const body = await holdResponse.text();
@@ -366,9 +371,10 @@ async function runCouponVerticalFlow(
   expect(holdBody.coupon?.grossAmountVnd ?? 0).toBeGreaterThan(holdBody.amountVnd);
   expect(holdBody.coupon?.discountAmountVnd ?? 0).toBe(50_000);
 
-  // 11. The HOLD success panel surfaces the same coupon summary.
-  await expect(page.getByTestId('hold-coupon-summary')).toBeVisible();
-  await expect(page.getByTestId('hold-coupon-summary')).toContainText(options.couponCode);
+  // 11. Payment settles through the simulator callback, then guest access is
+  // opened at the booking code without exposing coupon data in the URL.
+  await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
+  expect(page.url()).toContain(holdBody.bookingCode);
 
   return { bookingCode: holdBody.bookingCode, couponCode: options.couponCode };
 }
@@ -381,8 +387,7 @@ async function runOtpAndDetailFlow(
   couponCode: string,
 ): Promise<void> {
   // 12. Navigate to booking management and enter booking code + email.
-  await page.getByRole('button', { name: 'Quản lý đặt phòng' }).click();
-  await page.waitForURL(/\/booking\/manage/);
+  await page.goto('/booking/manage');
   await page.getByLabel('Mã đặt phòng').fill(bookingCode);
   await page.getByLabel('Email').fill(recipientEmail);
 
@@ -448,9 +453,10 @@ async function runOtpAndDetailFlow(
     throw new Error(`In-page booking detail failed: ${inPageDetail.status()} body=${detailBody}`);
   }
 
-  await expect(page.getByText(/Playwright Hotel/)).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText('Deluxe')).toBeVisible();
-  await expect(page.getByText(/Phase 6D/)).toBeVisible();
+  const bookingDetail = page.getByTestId('guest-booking-detail');
+  await expect(bookingDetail.getByText(/Playwright Hotel/)).toBeVisible({ timeout: 30_000 });
+  await expect(bookingDetail.getByText('Deluxe')).toBeVisible();
+  await expect(bookingDetail.getByText(/Phase 6D/)).toBeVisible();
   await expect(page.getByTestId('detail-coupon-summary')).toBeVisible();
   await expect(page.getByTestId('detail-coupon-summary')).toContainText(couponCode);
 
@@ -529,8 +535,8 @@ test.describe('Phase 6D public coupon vertical flow', () => {
     page.on('pageerror', (error) => pageErrors.push(error.message));
     page.on('requestfailed', (request) => {
       if (
-        request.url().endsWith('/admin/me') &&
-        request.failure()?.errorText === 'net::ERR_ABORTED'
+        request.failure()?.errorText === 'net::ERR_ABORTED' &&
+        (request.url().endsWith('/admin/me') || request.url().includes('/_next/static/chunks/'))
       ) {
         return;
       }
