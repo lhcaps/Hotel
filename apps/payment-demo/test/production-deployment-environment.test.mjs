@@ -11,6 +11,7 @@ import { resolveCommandInvocation } from '../../../scripts/command-executable.mj
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const templatePath = resolve(root, 'deploy/.env.production.example');
 const validatorPath = resolve(root, 'scripts/deploy/validate-production-environment.mts');
+const preflightPath = resolve(root, 'scripts/deploy/preflight.mjs');
 
 function parseTemplate() {
   return Object.fromEntries(
@@ -41,6 +42,7 @@ function substitutedProductionEnvironment() {
     REPLACE_WITH_32_PLUS_CHAR_CHALLENGE_SECRET: 'c'.repeat(40),
     REPLACE_WITH_32_PLUS_CHAR_SESSION_SECRET: 'd'.repeat(40),
     REPLACE_WITH_32_PLUS_CHAR_IP_DIGEST_SECRET: 'e'.repeat(40),
+    REPLACE_WITH_32_PLUS_CHAR_BOOKING_ACCESS_QR_SECRET: 'f'.repeat(40),
     REPLACE_WITH_32_PLUS_CHAR_PAYMENT_DEMO_CONTROL_TOKEN: 'f'.repeat(40),
     REPLACE_WITH_MOMO_PARTNER_CODE: 'generated-momo-partner-code',
     REPLACE_WITH_MOMO_ACCESS_KEY: 'generated-momo-access-key',
@@ -57,6 +59,15 @@ function substitutedProductionEnvironment() {
       ),
     ]),
   );
+}
+
+function preflight(environment) {
+  return spawnSync(process.execPath, [preflightPath], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, ...environment },
+    windowsHide: true,
+  });
 }
 
 function validate(environment) {
@@ -95,4 +106,17 @@ test('former sandbox and payment-demo callback topology is rejected without expo
   assert.match(output, /MOMO_API_BASE_URL/u);
   assert.doesNotMatch(output, new RegExp(environment.MOMO_SECRET_KEY, 'u'));
   assert.doesNotMatch(output, new RegExp(environment.VNPAY_HASH_SECRET, 'u'));
+});
+
+test('preflight rejects an unresolved booking-access QR secret placeholder without printing it', () => {
+  const environment = {
+    ...substitutedProductionEnvironment(),
+    BOOKING_ACCESS_QR_SECRET: 'REPLACE_WITH_32_PLUS_CHAR_BOOKING_ACCESS_QR_SECRET',
+  };
+  const result = preflight(environment);
+  const output = `${result.stdout}${result.stderr}`;
+
+  assert.notEqual(result.status, 0);
+  assert.match(output, /BOOKING_ACCESS_QR_SECRET/u);
+  assert.doesNotMatch(output, new RegExp(environment.BOOKING_ACCESS_QR_SECRET, 'u'));
 });
