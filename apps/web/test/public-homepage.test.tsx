@@ -48,10 +48,69 @@ describe('public booking entry', () => {
       'false',
     );
     expect(screen.queryByLabelText('Nhận phòng')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2027-04-10' } });
+    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
     fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '11:00' } });
     await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it('keeps a visible hourly end time synchronized with shortcuts and submits that interval', async () => {
+    const onSearch = vi.fn();
+    const user = userEvent.setup();
+    render(<AvailabilitySearchForm onSearch={onSearch} variant="home" />);
+
+    await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
+
+    const endTime = screen.getByLabelText('Giờ kết thúc');
+    expect(endTime).toBeVisible();
+
+    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
+    fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '10:00' } });
+    expect(endTime).toHaveValue('13:00');
+
+    await user.click(screen.getByRole('button', { name: '5 giờ' }));
+    expect(endTime).toHaveValue('15:00');
+
+    fireEvent.change(endTime, { target: { value: '15:30' } });
+    expect(screen.getByRole('button', { name: 'Tùy chỉnh' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
+    expect(onSearch).toHaveBeenCalledWith({
+      mode: 'hourly',
+      checkIn: '2099-04-10T10:00:00+07:00',
+      checkOut: '2099-04-10T15:30:00+07:00',
+      adults: 1,
+      children: 0,
+    });
+  });
+
+  it('suggests overnight booking when an hourly shortcut crosses midnight', async () => {
+    const user = userEvent.setup();
+    render(<AvailabilitySearchForm onSearch={vi.fn()} variant="home" />);
+
+    await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
+    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
+    fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '23:00' } });
+    await user.click(screen.getByRole('button', { name: '3 giờ' }));
+    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('qua đêm');
+  });
+
+  it('rejects an hourly interval that is already in the past', async () => {
+    const user = userEvent.setup();
+    render(<AvailabilitySearchForm onSearch={vi.fn()} variant="home" />);
+
+    await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
+    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2020-04-10' } });
+    fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '10:00' } });
+    fireEvent.change(screen.getByLabelText('Giờ kết thúc'), { target: { value: '13:00' } });
+    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('trong tương lai');
   });
 
   it('switches to overnight without retaining hourly fields in the search payload', async () => {
@@ -60,22 +119,22 @@ describe('public booking entry', () => {
     render(<AvailabilitySearchForm onSearch={onSearch} variant="home" />);
 
     await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
-    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2027-04-10' } });
+    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
     fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '11:00' } });
     await user.click(screen.getByRole('button', { name: 'Qua đêm' }));
 
     expect(screen.getByRole('button', { name: 'Qua đêm' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByLabelText('Ngày')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Nhận phòng'), {
-      target: { value: '2027-04-10T18:00' },
+      target: { value: '2099-04-10T18:00' },
     });
-    fireEvent.change(screen.getByLabelText('Trả phòng'), { target: { value: '2027-04-11T08:00' } });
+    fireEvent.change(screen.getByLabelText('Trả phòng'), { target: { value: '2099-04-11T08:00' } });
     await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
 
     expect(onSearch).toHaveBeenCalledWith({
       mode: 'overnight',
-      checkIn: '2027-04-10T18:00:00+07:00',
-      checkOut: '2027-04-11T08:00:00+07:00',
+      checkIn: '2099-04-10T18:00:00+07:00',
+      checkOut: '2099-04-11T08:00:00+07:00',
       adults: 1,
       children: 0,
     });
@@ -103,9 +162,9 @@ describe('public booking entry', () => {
       </LocaleProvider>,
     );
     fireEvent.change(screen.getByLabelText('Nhận phòng'), {
-      target: { value: '2027-04-10T11:00' },
+      target: { value: '2099-04-10T11:00' },
     });
-    fireEvent.change(screen.getByLabelText('Trả phòng'), { target: { value: '2027-04-10T14:00' } });
+    fireEvent.change(screen.getByLabelText('Trả phòng'), { target: { value: '2099-04-10T14:00' } });
     await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
     expect(push).not.toHaveBeenCalled();
     expect(await screen.findByRole('heading', { name: 'Hạng phòng còn trống' })).toBeVisible();

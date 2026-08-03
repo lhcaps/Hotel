@@ -44,9 +44,36 @@ function durationMinutes(checkIn: string | undefined, checkOut: string | undefin
 }
 
 function isQuarterHour(time: string) {
-  const [hour, minute] = time.split(':').map(Number);
-  if (hour === undefined || minute === undefined) return false;
-  return minute % 15 === 0;
+  const [hour = Number.NaN, minute = Number.NaN] = time.split(':').map(Number);
+  return (
+    Number.isInteger(hour) &&
+    hour >= 0 &&
+    hour <= 23 &&
+    Number.isInteger(minute) &&
+    minute % 15 === 0
+  );
+}
+
+function minutesSinceMidnight(time: string) {
+  if (!isQuarterHour(time)) return undefined;
+  const [hour = 0, minute = 0] = time.split(':').map(Number);
+  return hour * 60 + minute;
+}
+
+function addMinutesToTime(time: string, duration: number) {
+  const start = minutesSinceMidnight(time);
+  if (start === undefined) return '';
+  const end = (start + duration) % (24 * 60);
+  return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
+}
+
+function durationFromVisibleTimes(start: string, end: string) {
+  const startMinutes = minutesSinceMidnight(start);
+  const endMinutes = minutesSinceMidnight(end);
+  if (startMinutes === undefined || endMinutes === undefined || endMinutes <= startMinutes) {
+    return undefined;
+  }
+  return endMinutes - startMinutes;
 }
 
 function roundUpToNextQuarterHour(time: string) {
@@ -82,13 +109,18 @@ export function AvailabilitySearchForm({
     if (raw === '' || !isQuarterHour(raw)) return roundUpToNextQuarterHour(raw || '00:00');
     return raw;
   }, [queryState?.checkIn]);
+  const initialHourlyEnd = useMemo(() => {
+    const raw = inputTime(queryState?.checkOut);
+    if (raw !== '' && isQuarterHour(raw)) return raw;
+    return addMinutesToTime(initialHourlyStart, Number(initialDuration));
+  }, [initialDuration, initialHourlyStart, queryState?.checkOut]);
   const [bookingMode, setBookingMode] = useState<BookingMode>(initialMode);
   const [hourlyDate, setHourlyDate] = useState(inputDate(queryState?.checkIn));
   const [hourlyStart, setHourlyStart] = useState(initialHourlyStart);
+  const [hourlyEnd, setHourlyEnd] = useState(initialHourlyEnd);
   const [hourlyDuration, setHourlyDuration] = useState(
     initialDuration === '180' || initialDuration === '300' ? initialDuration : 'custom',
   );
-  const [customDuration, setCustomDuration] = useState(initialDuration);
   const [checkIn, setCheckIn] = useState(inputDateTime(queryState?.checkIn));
   const [checkOut, setCheckOut] = useState(inputDateTime(queryState?.checkOut));
   const [adults, setAdults] = useState(String(queryState?.adults ?? 1));
@@ -106,8 +138,8 @@ export function AvailabilitySearchForm({
     setBookingMode(queryState.mode);
     setHourlyDate(inputDate(queryState.checkIn));
     setHourlyStart(inputTime(queryState.checkIn));
+    setHourlyEnd(inputTime(queryState.checkOut));
     setHourlyDuration(nextDuration === '180' || nextDuration === '300' ? nextDuration : 'custom');
-    setCustomDuration(nextDuration);
     setCheckIn(inputDateTime(queryState.checkIn));
     setCheckOut(inputDateTime(queryState.checkOut));
     setAdults(String(queryState.adults));
@@ -119,16 +151,20 @@ export function AvailabilitySearchForm({
     const form = new FormData(event.currentTarget);
     const submittedHourlyDate = String(form.get('hourlyDate') ?? '');
     const submittedHourlyStart = String(form.get('hourlyStart') ?? '');
+    const submittedHourlyEnd = String(form.get('hourlyEnd') ?? '');
     const submittedCheckIn = String(form.get('checkIn') ?? '');
     const submittedCheckOut = String(form.get('checkOut') ?? '');
     const submittedAdults = Number(form.get('adults'));
     const submittedChildren = Number(form.get('children'));
-    const submittedDuration =
-      hourlyDuration === 'custom' ? Number(form.get('hourlyDuration')) : Number(hourlyDuration);
+    const submittedDuration = durationFromVisibleTimes(submittedHourlyStart, submittedHourlyEnd);
 
     if (bookingMode === 'hourly') {
-      if (!isQuarterHour(submittedHourlyStart)) {
+      if (!isQuarterHour(submittedHourlyStart) || !isQuarterHour(submittedHourlyEnd)) {
         setError(translate(locale, 'search.invalidInterval'));
+        return;
+      }
+      if (submittedDuration === undefined) {
+        setError(translate(locale, 'search.hourlyCrossesMidnight'));
         return;
       }
     }
@@ -138,7 +174,7 @@ export function AvailabilitySearchForm({
     try {
       interval =
         bookingMode === 'hourly'
-          ? submittedHourlyDate && submittedHourlyStart
+          ? submittedHourlyDate && submittedHourlyStart && submittedDuration !== undefined
             ? buildHourlyInterval({
                 date: submittedHourlyDate,
                 time: submittedHourlyStart,
@@ -158,13 +194,18 @@ export function AvailabilitySearchForm({
 
     if (
       !interval ||
+      new Date(interval.checkIn).getTime() <= Date.now() ||
       !Number.isInteger(submittedAdults) ||
       submittedAdults < 1 ||
       !Number.isInteger(submittedChildren) ||
       submittedChildren < 0 ||
       new Date(interval.checkOut).getTime() <= new Date(interval.checkIn).getTime()
     ) {
-      setError(translate(locale, 'search.invalidInterval'));
+      setError(
+        interval && new Date(interval.checkIn).getTime() <= Date.now()
+          ? translate(locale, 'search.intervalMustBeFuture')
+          : translate(locale, 'search.invalidInterval'),
+      );
       return;
     }
     setError(undefined);
@@ -240,7 +281,13 @@ export function AvailabilitySearchForm({
                 id="hourly-start"
                 name="hourlyStart"
                 disabled={!isHydrated}
-                onChange={(event) => setHourlyStart(event.target.value)}
+                onChange={(event) => {
+                  const nextStart = event.target.value;
+                  setHourlyStart(nextStart);
+                  if (hourlyDuration !== 'custom') {
+                    setHourlyEnd(addMinutesToTime(nextStart, Number(hourlyDuration)));
+                  }
+                }}
                 required
                 step={60 * 15}
                 type="time"
@@ -248,10 +295,36 @@ export function AvailabilitySearchForm({
               />
             </Field>
             <Field>
+              <FieldLabel htmlFor="hourly-end">{translate(locale, 'search.hourlyEnd')}</FieldLabel>
+              <Input
+                aria-invalid={hourlyEnd !== '' && !isQuarterHour(hourlyEnd)}
+                id="hourly-end"
+                name="hourlyEnd"
+                disabled={!isHydrated}
+                onChange={(event) => {
+                  const nextEnd = event.target.value;
+                  setHourlyEnd(nextEnd);
+                  const nextDuration = durationFromVisibleTimes(hourlyStart, nextEnd);
+                  setHourlyDuration(
+                    nextDuration === 180 ? '180' : nextDuration === 300 ? '300' : 'custom',
+                  );
+                }}
+                required
+                step={60 * 15}
+                type="time"
+                value={hourlyEnd}
+              />
+            </Field>
+            <Field>
               <FieldLabel>{translate(locale, 'search.duration')}</FieldLabel>
               <ToggleGroup
                 onValueChange={(value) => {
-                  if (value.length > 0) setHourlyDuration((value[0] ?? 'custom') as string);
+                  const nextDuration = (value[0] ?? 'custom') as string;
+                  if (value.length === 0) return;
+                  setHourlyDuration(nextDuration);
+                  if (nextDuration !== 'custom') {
+                    setHourlyEnd(addMinutesToTime(hourlyStart, Number(nextDuration)));
+                  }
                 }}
                 value={[hourlyDuration]}
               >
@@ -275,24 +348,6 @@ export function AvailabilitySearchForm({
                 </ToggleGroupItem>
               </ToggleGroup>
             </Field>
-            {hourlyDuration === 'custom' ? (
-              <Field>
-                <FieldLabel htmlFor="hourly-duration">
-                  {translate(locale, 'search.durationMinutes')}
-                </FieldLabel>
-                <Input
-                  id="hourly-duration"
-                  name="hourlyDuration"
-                  disabled={!isHydrated}
-                  min="60"
-                  onChange={(event) => setCustomDuration(event.target.value)}
-                  required
-                  step="15"
-                  type="number"
-                  value={customDuration}
-                />
-              </Field>
-            ) : null}
           </FieldGroup>
         ) : (
           <FieldGroup className="availability-search__fields">
