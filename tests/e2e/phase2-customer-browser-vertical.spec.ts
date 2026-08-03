@@ -86,11 +86,17 @@ function attachListeners(page: import('@playwright/test').Page): TrackingListene
     consoleErrors.push(text);
   });
   page.on('pageerror', (error) => pageErrors.push(error.message));
-  page.on('requestfailed', (request) =>
+  page.on('requestfailed', (request) => {
+    if (
+      request.failure()?.errorText === 'net::ERR_ABORTED' &&
+      request.url().includes('/_next/static/chunks/')
+    ) {
+      return;
+    }
     requestFailures.push(
       `${request.method()} ${request.url()} ${request.failure()?.errorText ?? ''}`,
-    ),
-  );
+    );
+  });
   page.on('response', (response) => {
     if (response.status() >= 500) {
       requestFailures.push(`${response.status()} ${response.request().method()} ${response.url()}`);

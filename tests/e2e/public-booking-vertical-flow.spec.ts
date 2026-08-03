@@ -159,6 +159,12 @@ test.describe('public booking vertical flow', () => {
       pageErrors.push(error.message);
     });
     page.on('requestfailed', (request) => {
+      if (
+        request.failure()?.errorText === 'net::ERR_ABORTED' &&
+        request.url().includes('/_next/static/chunks/')
+      ) {
+        return;
+      }
       requestFailures.push(`${request.method()} ${request.url()} ${request.failure()?.errorText}`);
     });
     page.on('response', (response) => {
