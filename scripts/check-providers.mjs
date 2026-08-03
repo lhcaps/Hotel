@@ -52,18 +52,32 @@ function safeUrl(value) {
   }
 }
 
+function isLoopbackHost(host) {
+  const normalized = host.toLowerCase();
+  return (
+    normalized === 'localhost' ||
+    normalized === '::1' ||
+    normalized.startsWith('127.') ||
+    normalized.startsWith('10.') ||
+    normalized.startsWith('192.168.') ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)
+  );
+}
+
 function isPublicHttpsCallback(value, path) {
   const parsed = safeUrl(value);
   if (parsed === undefined || parsed.protocol !== 'https:' || parsed.pathname !== path)
     return false;
-  const host = parsed.hostname.toLowerCase();
-  return !(
-    host === 'localhost' ||
-    host === '::1' ||
-    host.startsWith('127.') ||
-    host.startsWith('10.') ||
-    host.startsWith('192.168.') ||
-    /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+  return !isLoopbackHost(parsed.hostname);
+}
+
+function isLocalHttpCallback(value, path) {
+  const parsed = safeUrl(value);
+  return (
+    parsed !== undefined &&
+    parsed.protocol === 'http:' &&
+    parsed.pathname === path &&
+    isLoopbackHost(parsed.hostname)
   );
 }
 
@@ -129,18 +143,40 @@ function checkPayment(provider, prefix, endpointHost, returnPath, ipnPath, comma
   const isEnabled = enabled(`${prefix}_ENABLED`);
   const missingKeys = missing(keys);
   const endpoint = safeUrl(env[`${prefix}_API_BASE_URL`] ?? '');
-  const endpointReady = endpoint?.protocol === 'https:' && endpoint.hostname === endpointHost;
-  const callbackReady =
+  const sandboxEndpointReady =
+    endpoint?.protocol === 'https:' && endpoint.hostname === endpointHost;
+  const publicCallbackReady =
     isPublicHttpsCallback(env[`${prefix}_RETURN_URL`] ?? '', returnPath) &&
     isPublicHttpsCallback(env[`${prefix}_IPN_URL`] ?? '', ipnPath);
-  const configReady = isEnabled && missingKeys.length === 0 && endpointReady;
+  const localDemoEndpointReady =
+    endpoint?.protocol === 'http:' && isLoopbackHost(endpoint.hostname);
+  const localDemoCallbackReady =
+    isLocalHttpCallback(env[`${prefix}_RETURN_URL`] ?? '', returnPath) &&
+    isLocalHttpCallback(env[`${prefix}_IPN_URL`] ?? '', ipnPath);
+  const configReady =
+    isEnabled && missingKeys.length === 0 && (sandboxEndpointReady || localDemoEndpointReady);
+  const localDemoReady = configReady && localDemoEndpointReady && localDemoCallbackReady;
   const sandboxReady =
-    configReady && callbackReady && env[`${prefix}_ENVIRONMENT`] !== 'production';
+    configReady &&
+    sandboxEndpointReady &&
+    publicCallbackReady &&
+    env[`${prefix}_ENVIRONMENT`] !== 'production';
   record(`${prefix}_CODE_READY`, validFlag(`${prefix}_ENABLED`) ? 'PASS' : 'FAIL_INVALID_FLAG');
   record(`${prefix}_CONFIG_READY`, configReady ? 'READY' : isEnabled ? 'INVALID' : 'DISABLED');
-  record(`${prefix}_CALLBACK_READY`, callbackReady ? 'READY' : 'BLOCKED_MISSING_PUBLIC_HTTPS');
-  record(`${prefix}_SANDBOX_READY`, sandboxReady ? 'READY' : 'BLOCKED');
-  if (!sandboxReady) {
+  record(
+    `${prefix}_CALLBACK_READY`,
+    publicCallbackReady
+      ? 'READY'
+      : localDemoCallbackReady
+        ? 'READY_LOCAL_DEMO'
+        : 'BLOCKED_MISSING_PUBLIC_HTTPS',
+  );
+  record(`${prefix}_LOCAL_DEMO_READY`, localDemoReady ? 'READY' : 'NOT_REQUESTED');
+  record(
+    `${prefix}_SANDBOX_READY`,
+    sandboxReady ? 'READY' : localDemoReady ? 'NOT_REQUESTED_LOCAL_DEMO' : 'BLOCKED',
+  );
+  if (!sandboxReady && !localDemoReady) {
     blocked(
       prefix,
       missingKeys,
@@ -150,7 +186,7 @@ function checkPayment(provider, prefix, endpointHost, returnPath, ipnPath, comma
     process.stdout.write(`${prefix}_EXPECTED_RETURN_PATH=${returnPath}\n`);
     process.stdout.write(`${prefix}_EXPECTED_IPN_PATH=${ipnPath}\n`);
   }
-  if (isEnabled && !sandboxReady) invalidEnabledProvider = true;
+  if (isEnabled && !sandboxReady && !localDemoReady) invalidEnabledProvider = true;
   if (!sandboxReady) blockedLiveProvider = true;
   return sandboxReady;
 }
