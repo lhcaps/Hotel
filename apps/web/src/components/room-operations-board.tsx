@@ -85,8 +85,10 @@ export function RoomOperationsBoard() {
               </div>
               {room.activeHousekeepingTask === null ? null : (
                 <p>
-                  Task: {room.activeHousekeepingTask.type} Â· {room.activeHousekeepingTask.status}{' '}
-                  Â· due{' '}
+                  Task: {room.activeHousekeepingTask.type}
+                  {' · '}
+                  {room.activeHousekeepingTask.status}
+                  {' · due '}
                   {new Date(room.activeHousekeepingTask.dueAt).toLocaleTimeString([], {
                     hour: '2-digit',
                     minute: '2-digit',
