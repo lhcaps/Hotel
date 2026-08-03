@@ -8,6 +8,8 @@ import QRCode from 'qrcode';
 
 const MAX_BODY_BYTES = 64 * 1024;
 const BOOKING_CODE_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
+const BOOKING_ORDER_INFO_PATTERN = /^Room booking ([A-Za-z0-9-]{1,64})$/;
+const CHECKOUT_TOKEN_TTL_MS = 2 * 60 * 60 * 1000;
 
 function requireString(source, key, minimum = 1) {
   const value = source[key];
@@ -100,6 +102,106 @@ function transactionId(provider, orderId) {
     .digest()
     .readBigUInt64BE(0)
     .toString();
+}
+
+function bookingCodeFromOrderInfo(orderInfo) {
+  if (typeof orderInfo !== 'string') return '';
+  return BOOKING_ORDER_INFO_PATTERN.exec(orderInfo.trim())?.[1] ?? '';
+}
+
+function checkoutToken(environment, order, now = Date.now()) {
+  const payload = Buffer.from(
+    JSON.stringify({
+      version: 1,
+      provider: order.provider,
+      orderId: order.orderId,
+      amount: order.amount,
+      orderInfo: order.orderInfo,
+      bookingCode: order.bookingCode,
+      expiresAt: now + CHECKOUT_TOKEN_TTL_MS,
+    }),
+    'utf8',
+  ).toString('base64url');
+  const signature = hmac('sha256', environment.controlToken, payload);
+  return `${payload}.${signature}`;
+}
+
+function orderFromCheckoutToken(
+  environment,
+  token,
+  expectedProvider,
+  expectedOrderId,
+  now = Date.now(),
+) {
+  if (typeof token !== 'string' || token.length === 0) {
+    throw new Error('checkout token is unavailable');
+  }
+  const separator = token.lastIndexOf('.');
+  if (separator <= 0) throw new Error('checkout token is invalid');
+  const payload = token.slice(0, separator);
+  const signature = token.slice(separator + 1);
+  if (!sameSecret(hmac('sha256', environment.controlToken, payload), signature)) {
+    throw new Error('checkout token is invalid');
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+  } catch {
+    throw new Error('checkout token is invalid');
+  }
+  if (
+    parsed?.version !== 1 ||
+    parsed.provider !== expectedProvider ||
+    parsed.orderId !== expectedOrderId ||
+    !Number.isSafeInteger(parsed.amount) ||
+    parsed.amount < 1 ||
+    typeof parsed.orderInfo !== 'string' ||
+    typeof parsed.bookingCode !== 'string' ||
+    !BOOKING_CODE_PATTERN.test(parsed.bookingCode) ||
+    !Number.isSafeInteger(parsed.expiresAt) ||
+    parsed.expiresAt <= now
+  ) {
+    throw new Error('checkout token is invalid');
+  }
+  return {
+    orderId: parsed.orderId,
+    amount: parsed.amount,
+    orderInfo: parsed.orderInfo,
+    bookingCode: parsed.bookingCode,
+    provider: parsed.provider,
+    settled: false,
+    settling: null,
+  };
+}
+
+function resolveCheckoutOrder(orders, environment, requestUrl, provider) {
+  const orderId = requestUrl.searchParams.get('orderId') ?? '';
+  const existing = orders.get(orderId);
+  const token = requestUrl.searchParams.get('token');
+  if (token === null) {
+    if (existing === undefined || existing.provider !== provider) throw new Error('unknown order');
+    return existing;
+  }
+  const tokenOrder = orderFromCheckoutToken(environment, token, provider, orderId);
+  if (existing !== undefined) {
+    if (
+      existing.provider !== tokenOrder.provider ||
+      existing.amount !== tokenOrder.amount ||
+      existing.orderInfo !== tokenOrder.orderInfo
+    ) {
+      throw new Error('checkout token is invalid');
+    }
+    if (existing.bookingCode === '') existing.bookingCode = tokenOrder.bookingCode;
+    return existing;
+  }
+  orders.set(orderId, tokenOrder);
+  return tokenOrder;
+}
+
+function requireCheckoutBooking(orders, environment, requestUrl, provider) {
+  const order = resolveCheckoutOrder(orders, environment, requestUrl, provider);
+  if (order.bookingCode === '') throw new Error('booking mapping is unavailable');
+  return order;
 }
 
 function escapeHtml(value) {
@@ -221,13 +323,6 @@ function createRateLimiter({ max, windowMs }) {
       };
     },
   };
-}
-
-function requireMappedBooking(orders, orderId) {
-  const order = orders.get(orderId);
-  if (order === undefined || order.bookingCode === '')
-    throw new Error('booking mapping is unavailable');
-  return order;
 }
 
 async function checkoutPage({ provider, orderId, amount, confirmPath, checkoutUrl }) {
@@ -470,13 +565,16 @@ export function createPaymentDemoServer(environment) {
         orderId: body.orderId,
         amount,
         orderInfo: String(body.orderInfo),
-        bookingCode: '',
+        bookingCode: bookingCodeFromOrderInfo(body.orderInfo),
         provider: 'momo',
         settled: false,
         settling: null,
       };
       orders.set(order.orderId, order);
-      const payUrl = `${environment.publicOrigin}/momo-test/pay?orderId=${encodeURIComponent(order.orderId)}`;
+      const token = checkoutToken(environment, order);
+      const payUrl =
+        `${environment.publicOrigin}/momo-test/pay?orderId=${encodeURIComponent(order.orderId)}` +
+        `&token=${encodeURIComponent(token)}`;
       const responseFields = {
         partnerCode: environment.momoPartnerCode,
         orderId: order.orderId,
@@ -537,11 +635,15 @@ export function createPaymentDemoServer(environment) {
       return;
     }
     if (pathname === '/momo-test/pay' && request.method === 'GET') {
-      const order = orders.get(requestUrl.searchParams.get('orderId') ?? '');
-      if (order === undefined || order.provider !== 'momo') {
+      let order;
+      try {
+        order = resolveCheckoutOrder(orders, environment, requestUrl, 'momo');
+      } catch {
         json(response, 404, { error: 'unknown order' });
         return;
       }
+      const token = requestUrl.searchParams.get('token');
+      const tokenSuffix = token === null ? '' : `&token=${encodeURIComponent(token)}`;
       html(
         response,
         200,
@@ -549,14 +651,23 @@ export function createPaymentDemoServer(environment) {
           provider: 'MoMo',
           orderId: order.orderId,
           amount: order.amount,
-          confirmPath: `/momo-test/confirm?orderId=${encodeURIComponent(order.orderId)}`,
-          checkoutUrl: `${environment.publicOrigin}/momo-test/pay?orderId=${encodeURIComponent(order.orderId)}`,
+          confirmPath:
+            `/momo-test/confirm?orderId=${encodeURIComponent(order.orderId)}` + tokenSuffix,
+          checkoutUrl:
+            `${environment.publicOrigin}/momo-test/pay?orderId=${encodeURIComponent(order.orderId)}` +
+            tokenSuffix,
         }),
       );
       return;
     }
     if (pathname === '/momo-test/confirm' && request.method === 'POST') {
-      const order = requireMappedBooking(orders, requestUrl.searchParams.get('orderId') ?? '');
+      let order;
+      try {
+        order = requireCheckoutBooking(orders, environment, requestUrl, 'momo');
+      } catch {
+        json(response, 400, { error: 'invalid checkout confirmation' });
+        return;
+      }
       await settleOrder(order);
       redirect(
         response,
@@ -583,12 +694,13 @@ export function createPaymentDemoServer(environment) {
         orderId: fields.vnp_TxnRef,
         amount,
         orderInfo: fields.vnp_OrderInfo ?? `Room booking ${fields.vnp_TxnRef}`,
-        bookingCode: '',
+        bookingCode: bookingCodeFromOrderInfo(fields.vnp_OrderInfo),
         provider: 'vnpay',
         settled: false,
         settling: null,
       };
       orders.set(order.orderId, order);
+      const token = checkoutToken(environment, order);
       html(
         response,
         200,
@@ -596,14 +708,22 @@ export function createPaymentDemoServer(environment) {
           provider: 'VNPAY',
           orderId: order.orderId,
           amount: order.amount,
-          confirmPath: `/vnpay-test/confirm?orderId=${encodeURIComponent(order.orderId)}`,
+          confirmPath:
+            `/vnpay-test/confirm?orderId=${encodeURIComponent(order.orderId)}` +
+            `&token=${encodeURIComponent(token)}`,
           checkoutUrl: `${environment.publicOrigin}${requestUrl.pathname}${requestUrl.search}`,
         }),
       );
       return;
     }
     if (pathname === '/vnpay-test/confirm' && request.method === 'POST') {
-      const order = requireMappedBooking(orders, requestUrl.searchParams.get('orderId') ?? '');
+      let order;
+      try {
+        order = requireCheckoutBooking(orders, environment, requestUrl, 'vnpay');
+      } catch {
+        json(response, 400, { error: 'invalid checkout confirmation' });
+        return;
+      }
       await settleOrder(order);
       redirect(
         response,

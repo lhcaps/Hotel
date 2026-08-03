@@ -1,7 +1,7 @@
 import { Controller, Get, Inject, Post, Req, Res, VERSION_NEUTRAL } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { fromNodeHeaders } from 'better-auth/node';
-import type { AuthRequestHandler } from './auth-fastify-bridge.js';
+import { forwardAuthResponseHeaders, type AuthRequestHandler } from './auth-fastify-bridge.js';
 import { ROOM_AUTH } from './auth.providers.js';
 import { createLogger } from '@room/observability';
 
@@ -67,9 +67,7 @@ export class AuthController {
         { status, url: url.toString(), method: req.method, body: resBody.slice(0, 200) },
         'Better Auth response',
       );
-      authRes.headers.forEach((value, key) => {
-        reply.header(key, value);
-      });
+      forwardAuthResponseHeaders(authRes, reply);
       return reply.status(status).send(resBody);
     } catch (err) {
       this.logger.error({ err }, 'Auth controller error');

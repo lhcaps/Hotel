@@ -12,9 +12,12 @@ interface BridgeRequest {
   readonly body?: unknown;
 }
 
-interface BridgeReply {
+export interface AuthHeaderReply {
+  header(name: string, value: string | readonly string[]): unknown;
+}
+
+interface BridgeReply extends AuthHeaderReply {
   status(statusCode: number): BridgeReply;
-  header(name: string, value: string): BridgeReply;
   send(payload: string | { code: string; message: string }): unknown;
 }
 
@@ -24,6 +27,14 @@ export interface AuthFastifyRouter {
     url: '/api/auth/*';
     handler: (request: BridgeRequest, reply: BridgeReply) => Promise<unknown>;
   }): unknown;
+}
+
+export function forwardAuthResponseHeaders(response: Response, reply: AuthHeaderReply): void {
+  response.headers.forEach((value, key) => {
+    if (key.toLowerCase() !== 'set-cookie') reply.header(key, value);
+  });
+  const setCookies = response.headers.getSetCookie();
+  if (setCookies.length > 0) reply.header('set-cookie', setCookies);
 }
 
 export function createAuthFastifyHandler(auth: AuthRequestHandler) {
@@ -42,9 +53,7 @@ export function createAuthFastifyHandler(auth: AuthRequestHandler) {
           ...(body === undefined ? {} : { body }),
         }),
       );
-      response.headers.forEach((value, key) => {
-        reply.header(key, value);
-      });
+      forwardAuthResponseHeaders(response, reply);
       return reply.status(response.status).send(await response.text());
     } catch {
       return reply.status(500).send({

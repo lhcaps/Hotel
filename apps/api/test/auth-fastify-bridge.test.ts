@@ -15,12 +15,21 @@ describe('Better Auth Fastify bridge', () => {
     );
   });
 
-  it('forwards method, JSON body and response headers without logging secrets', async () => {
+  it('forwards method, JSON body and every Set-Cookie header without collapsing OAuth cookies', async () => {
+    const responseHeaders = new Headers({ 'content-type': 'application/json' });
+    responseHeaders.append(
+      'set-cookie',
+      'oauth_state=state-secret; Path=/; HttpOnly; SameSite=Lax',
+    );
+    responseHeaders.append(
+      'set-cookie',
+      'better-auth.session_token=session-secret; Path=/; HttpOnly; SameSite=Lax',
+    );
     const handler = createAuthFastifyHandler({
       handler: vi.fn().mockResolvedValue(
         new Response(JSON.stringify({ ok: true }), {
           status: 200,
-          headers: { 'content-type': 'application/json', 'set-cookie': 'session=secret; HttpOnly' },
+          headers: responseHeaders,
         }),
       ),
     });
@@ -43,7 +52,10 @@ describe('Better Auth Fastify bridge', () => {
     );
 
     expect(reply.status).toHaveBeenCalledWith(200);
-    expect(reply.header).toHaveBeenCalledWith('set-cookie', 'session=secret; HttpOnly');
+    expect(reply.header).toHaveBeenCalledWith('set-cookie', [
+      'oauth_state=state-secret; Path=/; HttpOnly; SameSite=Lax',
+      'better-auth.session_token=session-secret; Path=/; HttpOnly; SameSite=Lax',
+    ]);
     expect(reply.send).toHaveBeenCalledWith('{"ok":true}');
   });
 

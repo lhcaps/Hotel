@@ -1,3 +1,4 @@
+/* global URL, URLSearchParams */
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { createHmac } from 'node:crypto';
@@ -6,8 +7,24 @@ import test from 'node:test';
 
 import { createPaymentDemoServer, loadEnvironment } from '../main.mjs';
 
-function hmac(secret, text) {
-  return createHmac('sha256', secret).update(text, 'utf8').digest('hex');
+function hmac(secret, text, algorithm = 'sha256') {
+  return createHmac(algorithm, secret).update(text, 'utf8').digest('hex');
+}
+
+function extractFormAction(html) {
+  const match = /<form method="post" action="([^"]+)">/u.exec(html);
+  assert.ok(match?.[1], 'checkout page must contain a POST confirmation action');
+  return match[1].replaceAll('&amp;', '&');
+}
+
+function vnpayCanonical(fields) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(fields).sort(([left], [right]) =>
+    left.localeCompare(right),
+  )) {
+    params.append(key, value);
+  }
+  return params.toString();
 }
 
 function listen(server) {
@@ -78,7 +95,7 @@ test('requires a private token to map an order, then settles and redirects a MoM
       requestId: 'order-001',
       amount: 750000,
       orderId: 'order-001',
-      orderInfo: 'Room booking order-001',
+      orderInfo: 'Room booking BOOK-001',
       redirectUrl: 'https://example.test/return',
       ipnUrl: 'https://example.test/ipn',
       requestType: 'captureWallet',
@@ -118,18 +135,21 @@ test('requires a private token to map an order, then settles and redirects a MoM
     });
     assert.equal(mapped.status, 200);
 
-    const checkoutPage = await send(port, 'GET', '/momo-test/pay?orderId=order-001');
+    const checkoutUrl = new URL(checkout.payUrl);
+    assert.ok(checkoutUrl.searchParams.get('token'), 'MoMo demo URL must carry a signed token');
+    const checkoutPage = await send(port, 'GET', `${checkoutUrl.pathname}${checkoutUrl.search}`);
     assert.equal(checkoutPage.status, 200);
     assert.match(checkoutPage.body, /alt="Payment QR code"/u);
     assert.match(checkoutPage.body, /data:image\/png;base64,/u);
+    const confirmationPath = extractFormAction(checkoutPage.body);
 
-    const confirmed = await send(port, 'POST', '/momo-test/confirm?orderId=order-001');
+    const confirmed = await send(port, 'POST', confirmationPath);
     assert.equal(confirmed.status, 303);
     assert.equal(confirmed.headers.location, 'https://example.test/booking/manage/BOOK-001');
     assert.equal(callbacks.length, 1);
     assert.match(callbacks[0].body, /"signature":"[a-f0-9]{64}"/);
 
-    const duplicate = await send(port, 'POST', '/momo-test/confirm?orderId=order-001');
+    const duplicate = await send(port, 'POST', confirmationPath);
     assert.equal(duplicate.status, 303);
     assert.equal(callbacks.length, 1, 'a duplicate browser confirmation must not re-send the IPN');
 
@@ -173,5 +193,68 @@ test('rate limits public payment routes without exposing secrets', async () => {
     assert.doesNotMatch(limited.body, /secret|token|signature/i);
   } finally {
     await close(service);
+  }
+});
+
+test('reconstructs a signed VNPAY booking mapping after payment-demo restart', async () => {
+  const callbacks = [];
+  const callbackServer = createServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    callbacks.push({ url: req.url, body: Buffer.concat(chunks).toString('utf8') });
+    res.statusCode = req.url?.startsWith('/api/v1/webhooks/vnpay') ? 200 : 204;
+    res.end('{}');
+  });
+  const callbackPort = await listen(callbackServer);
+  const environment = loadEnvironment({
+    PAYMENT_DEMO_PUBLIC_ORIGIN: 'https://payments.example.test',
+    PAYMENT_DEMO_WEB_ORIGIN: 'https://example.test',
+    PAYMENT_DEMO_MOMO_IPN_URL: `http://127.0.0.1:${callbackPort}/api/v1/webhooks/momo`,
+    PAYMENT_DEMO_VNPAY_IPN_URL: `http://127.0.0.1:${callbackPort}/api/v1/webhooks/vnpay`,
+    PAYMENT_DEMO_CONTROL_TOKEN: 'a-demo-control-token-that-is-at-least-32-characters',
+    MOMO_PARTNER_CODE: 'DEMO_MOMO',
+    MOMO_ACCESS_KEY: 'demo-momo-access',
+    MOMO_SECRET_KEY: 'demo-momo-secret-key-that-is-at-least-32-characters',
+    VNPAY_TMN_CODE: 'DEMOVNPAY',
+    VNPAY_HASH_SECRET: 'demo-vnpay-hash-secret-that-is-at-least-32-characters',
+  });
+  const fields = {
+    vnp_Version: '2.1.0',
+    vnp_Command: 'pay',
+    vnp_TmnCode: environment.vnpayTmnCode,
+    vnp_Amount: '48900000',
+    vnp_CurrCode: 'VND',
+    vnp_TxnRef: 'VNPAY-order-001',
+    vnp_OrderInfo: 'Room booking BOOK-VNPAY-001',
+    vnp_OrderType: 'other',
+    vnp_Locale: 'vn',
+    vnp_ReturnUrl: 'https://example.test/api/v1/payments/providers/vnpay/return',
+    vnp_CreateDate: '20260803230000',
+    vnp_ExpireDate: '20260804010000',
+  };
+  const canonical = vnpayCanonical(fields);
+  const params = new URLSearchParams(canonical);
+  params.set('vnp_SecureHash', hmac(environment.vnpayHashSecret, canonical, 'sha512'));
+
+  let service = createPaymentDemoServer(environment);
+  let port = await listen(service);
+  try {
+    const checkout = await send(port, 'GET', `/vnpay-test/pay?${params.toString()}`);
+    assert.equal(checkout.status, 200);
+    const confirmationPath = extractFormAction(checkout.body);
+    assert.match(confirmationPath, /token=/u);
+
+    await close(service);
+    service = createPaymentDemoServer(environment);
+    port = await listen(service);
+
+    const confirmed = await send(port, 'POST', confirmationPath);
+    assert.equal(confirmed.status, 303);
+    assert.equal(confirmed.headers.location, 'https://example.test/booking/manage/BOOK-VNPAY-001');
+    assert.equal(callbacks.length, 1);
+    assert.match(callbacks[0].url ?? '', /vnp_TxnRef=VNPAY-order-001/u);
+  } finally {
+    if (service.listening) await close(service);
+    await close(callbackServer);
   }
 });

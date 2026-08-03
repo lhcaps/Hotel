@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   MomoAdapter,
@@ -22,6 +22,10 @@ const config: MomoConfig = {
   requestType: 'captureWallet',
   requestTimeoutMs: 30_000,
 };
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 function sign(canonical: string): string {
   return createHmac('sha256', config.secretKey).update(canonical, 'utf8').digest('hex');
@@ -106,6 +110,37 @@ describe('MoMo captureWallet adapter', () => {
       `accessKey=${config.accessKey}&amount=1000&extraData=&ipnUrl=${config.ipnUrl}&orderId=${checkout.merchantOrderId}&orderInfo=${checkout.description}&partnerCode=${config.partnerCode}&redirectUrl=${config.returnUrl}&requestId=${checkout.merchantOrderId}&requestType=captureWallet`,
     );
     expect(request.signature).toBe(sign(canonical));
+  });
+
+  it('accepts the explicitly configured HTTPS payment-demo origin in sandbox mode', async () => {
+    vi.stubEnv('PAYMENT_DEMO_ENABLED', 'true');
+    vi.stubEnv('PAYMENT_DEMO_PUBLIC_ORIGIN', 'https://pay.peacenest.vn');
+    const payUrl = 'https://pay.peacenest.vn/momo-test/pay?orderId=demo-order';
+    const responseFields = {
+      partnerCode: config.partnerCode,
+      orderId: checkout.merchantOrderId,
+      requestId: checkout.merchantOrderId,
+      amount: 1000,
+      responseTime: 1721720619912,
+      message: 'Demo checkout ready',
+      resultCode: 0,
+      payUrl,
+    };
+    const adapter = new MomoAdapter(
+      config,
+      async () =>
+        new Response(
+          JSON.stringify({
+            ...responseFields,
+            signature: sign(
+              `accessKey=${config.accessKey}&amount=1000&message=${responseFields.message}&orderId=${checkout.merchantOrderId}&partnerCode=${config.partnerCode}&payUrl=${payUrl}&requestId=${checkout.merchantOrderId}&responseTime=${responseFields.responseTime}&resultCode=0`,
+            ),
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+    );
+
+    await expect(adapter.createCheckout(checkout)).resolves.toMatchObject({ redirectUrl: payUrl });
   });
 
   it('rejects a response whose provider order, amount, signature, or redirect URL is unsafe', async () => {

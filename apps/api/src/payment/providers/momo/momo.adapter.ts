@@ -75,6 +75,18 @@ function isAllowedRedirect(url: string, environment: MomoConfig['environment']):
     return false;
   }
   if (parsed.protocol === 'https:') {
+    if (process.env.PAYMENT_DEMO_ENABLED === 'true') {
+      const configuredDemoOrigin = process.env.PAYMENT_DEMO_PUBLIC_ORIGIN;
+      if (configuredDemoOrigin !== undefined && configuredDemoOrigin.length > 0) {
+        try {
+          const demoOrigin = new URL(configuredDemoOrigin);
+          if (demoOrigin.protocol === 'https:' && parsed.origin === demoOrigin.origin) return true;
+        } catch {
+          // Invalid demo configuration is rejected by the environment validator;
+          // keep the adapter fail-closed when invoked in isolation.
+        }
+      }
+    }
     return environment !== 'sandbox' || parsed.hostname === 'test-payment.momo.vn';
   }
   if (parsed.protocol !== 'http:') return false;
