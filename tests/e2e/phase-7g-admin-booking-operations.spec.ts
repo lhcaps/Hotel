@@ -181,7 +181,9 @@ test.describe('Phase 7G ADMIN booking operations', () => {
     ).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Thao tác khả dụng' })).toBeVisible();
 
-    // 4. Cancel HOLD with reason.
+    // 4. Preview and cancel HOLD with reason.
+    await page.getByRole('button', { name: 'Xem trước chính sách hủy' }).click();
+    await expect(page.getByRole('status')).toBeVisible();
     await page.getByLabel('Lý do hủy').fill('Playwright cleanup');
     await page.getByRole('button', { name: 'Hủy đặt phòng' }).click();
     await expect(page.getByText('CANCELLED').first()).toBeVisible();

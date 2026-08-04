@@ -386,6 +386,7 @@ export class AdminBookingLifecycleService {
         code: snapshot.code,
         version: snapshot.version,
         timezone: snapshot.timezone,
+        refundBasis: snapshot.refundBasis,
         capturedAt: snapshot.capturedAt,
         checkIn: snapshot.checkIn,
         sevenDayDeadline: snapshot.sevenDayDeadline,
