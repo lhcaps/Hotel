@@ -15,6 +15,7 @@ import type { BookingDetailRecord } from '../../src/booking/repositories/booking
 function record(overrides: Partial<BookingDetailRecord> = {}): BookingDetailRecord {
   return {
     bookingId: '00000000-0000-0000-0000-000000000001',
+    customerUserId: null,
     propertyId: '00000000-0000-0000-0000-000000000010',
     roomTypeId: '00000000-0000-0000-0000-000000000020',
     bookingCode: 'RM-AB12-CD34-EF56',

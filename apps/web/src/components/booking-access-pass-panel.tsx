@@ -11,14 +11,23 @@ type AccessPassState =
   | { readonly kind: 'unavailable' }
   | { readonly kind: 'ready'; readonly expiresAt: string; readonly svg: string };
 
-export function BookingAccessPassPanel({ bookingCode }: { readonly bookingCode: string }) {
+export function BookingAccessPassPanel({
+  bookingCode,
+  customer = false,
+}: {
+  readonly bookingCode: string;
+  readonly customer?: boolean;
+}) {
   const locale = useLocale();
   const [state, setState] = useState<AccessPassState>({ kind: 'loading' });
 
   useEffect(() => {
     let cancelled = false;
-    void bookingApi
-      .getBookingAccessPass(bookingCode)
+    void (
+      customer
+        ? bookingApi.getCustomerBookingAccessPass(bookingCode)
+        : bookingApi.getBookingAccessPass(bookingCode)
+    )
       .then((pass) => {
         if (!cancelled) setState({ kind: 'ready', expiresAt: pass.expiresAt, svg: pass.svg });
       })
@@ -33,7 +42,7 @@ export function BookingAccessPassPanel({ bookingCode }: { readonly bookingCode: 
     return () => {
       cancelled = true;
     };
-  }, [bookingCode]);
+  }, [bookingCode, customer]);
 
   if (state.kind === 'loading') return null;
 

@@ -19,7 +19,10 @@ type LoadState =
   | { readonly kind: 'failed' }
   | { readonly kind: 'ready'; readonly status: PaymentStatusResponse };
 
-export function PaymentStatusSummary({ bookingCode }: Readonly<{ bookingCode: string }>) {
+export function PaymentStatusSummary({
+  bookingCode,
+  customer = false,
+}: Readonly<{ bookingCode: string; customer?: boolean }>) {
   const locale = useLocale();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [retryNonce, setRetryNonce] = useState(0);
@@ -29,7 +32,9 @@ export function PaymentStatusSummary({ bookingCode }: Readonly<{ bookingCode: st
     let retry: ReturnType<typeof globalThis.setTimeout> | undefined;
     const load = async () => {
       try {
-        const next = await bookingApi.getPaymentStatus(bookingCode);
+        const next = await (
+          customer ? bookingApi.getCustomerPaymentStatus : bookingApi.getPaymentStatus
+        )(bookingCode);
         if (cancelled) return;
         setState({ kind: 'ready', status: next });
         if (isPending(next) && !terminal.has(next.paymentStatus ?? '')) {
@@ -44,7 +49,7 @@ export function PaymentStatusSummary({ bookingCode }: Readonly<{ bookingCode: st
       cancelled = true;
       if (retry !== undefined) globalThis.clearTimeout(retry);
     };
-  }, [bookingCode, retryNonce]);
+  }, [bookingCode, customer, retryNonce]);
 
   function onRetry() {
     setState({ kind: 'loading' });

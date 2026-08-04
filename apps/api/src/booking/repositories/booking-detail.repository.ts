@@ -2,6 +2,7 @@ import { sql, type DatabaseClient } from '@room/database';
 
 export interface BookingDetailRecord {
   readonly bookingId: string;
+  readonly customerUserId: string | null;
   readonly propertyId: string;
   readonly roomTypeId: string;
   readonly bookingCode: string;
@@ -46,6 +47,7 @@ export interface BookingAccessPassRecord {
 
 interface DetailRow {
   booking_id: string;
+  customer_user_id: string | null;
   property_id: string;
   room_type_id: string;
   booking_code: string;
@@ -121,6 +123,7 @@ function readCoupon(row: DetailRow): BookingDetailCouponSnapshot | null {
 export function toBookingDetailRecord(row: DetailRow): BookingDetailRecord {
   return {
     bookingId: row.booking_id,
+    customerUserId: row.customer_user_id,
     propertyId: row.property_id,
     roomTypeId: row.room_type_id,
     bookingCode: row.booking_code,
@@ -159,6 +162,7 @@ export class BookingDetailRepository {
   ): Promise<BookingDetailRecord | null> {
     const result = await this.client.execute<DetailRow & Record<string, unknown>>(
       sql`SELECT b.id            AS booking_id,
+                b.customer_user_id AS customer_user_id,
                 b.property_id   AS property_id,
                 b.room_type_id  AS room_type_id,
                 b.booking_code  AS booking_code,

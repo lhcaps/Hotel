@@ -51,10 +51,21 @@ export class PaymentStatusService {
     private readonly payments: PaymentStatusRepository,
   ) {}
 
-  public async get(bookingCode: string, sessionToken: Buffer | null, now: Date) {
+  public async get(
+    bookingCode: string,
+    sessionToken: Buffer | null,
+    now: Date,
+    customerUserId?: string,
+  ) {
     const booking = await this.bookings.findByBookingCodeForSession(bookingCode);
     if (booking === null) throw new PaymentInitiationError('VNPAY_INITIATION_REJECTED');
-    await this.sessions.requireForBooking(sessionToken, booking.bookingId, now);
+    if (customerUserId !== undefined) {
+      if (booking.customerUserId !== customerUserId) {
+        throw new PaymentInitiationError('VNPAY_INITIATION_REJECTED');
+      }
+    } else {
+      await this.sessions.requireForBooking(sessionToken, booking.bookingId, now);
+    }
     const payment = await this.payments.findByBookingId(booking.bookingId);
     if (payment === null) throw new Error('Booking disappeared while resolving payment status.');
     return toResponse(payment);

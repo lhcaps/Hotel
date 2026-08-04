@@ -25,6 +25,7 @@ export class VnpayPaymentInitiationService {
   public async initiate(input: {
     readonly bookingCode: string;
     readonly sessionToken: Buffer | null;
+    readonly customerUserId?: string;
     readonly idempotencyKey: string | undefined;
     readonly requestId: string;
   }) {
@@ -32,7 +33,13 @@ export class VnpayPaymentInitiationService {
       throw new PaymentInitiationError('PAYMENT_IDEMPOTENCY_REQUIRED');
     const booking = await this.bookings.findByBookingCodeForSession(input.bookingCode);
     if (!booking) throw new PaymentInitiationError('VNPAY_INITIATION_REJECTED');
-    await this.sessions.requireForBooking(input.sessionToken, booking.bookingId, new Date());
+    if (input.customerUserId !== undefined) {
+      if (booking.customerUserId !== input.customerUserId) {
+        throw new PaymentInitiationError('VNPAY_INITIATION_REJECTED');
+      }
+    } else {
+      await this.sessions.requireForBooking(input.sessionToken, booking.bookingId, new Date());
+    }
     if (!this.adapter || !(await this.settings.isAvailable('VNPAY', booking.propertyId))) {
       throw new PaymentInitiationError('VNPAY_DISABLED');
     }

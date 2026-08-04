@@ -1,4 +1,8 @@
 import { cookies, headers } from 'next/headers';
+import { BookingAccessPassPanel } from '../../../../components/booking-access-pass-panel';
+import { CustomerBookingActions } from '../../../../components/customer-booking-actions';
+import { PaymentProviderSelector } from '../../../../components/payment-provider-selector';
+import { PaymentStatusSummary } from '../../../../components/payment-status-summary';
 
 import {
   formatDateTime,
@@ -19,6 +23,10 @@ interface BookingDetail {
   readonly discountAmountVnd: string;
   readonly finalAmountVnd: string;
   readonly paymentStatus: string;
+  readonly adults: number;
+  readonly children: number;
+  readonly roomType: { readonly id: string; readonly name: string };
+  readonly offer: { readonly code: string; readonly label: string } | null;
   readonly createdAt: string;
 }
 
@@ -86,6 +94,14 @@ export default async function CustomerBookingDetailPage({ params }: PageProps) {
             <dd>{translatePaymentStatus(locale, booking.paymentStatus)}</dd>
           </div>
           <div>
+            <dt>{translate(locale, 'account.roomType')}</dt>
+            <dd>{booking.roomType.name}</dd>
+          </div>
+          <div>
+            <dt>{translate(locale, 'account.offer')}</dt>
+            <dd>{booking.offer?.label ?? translate(locale, 'account.notAvailable')}</dd>
+          </div>
+          <div>
             <dt>{translate(locale, 'account.checkIn')}</dt>
             <dd>{formatDateTime(locale, booking.checkIn)}</dd>
           </div>
@@ -106,6 +122,19 @@ export default async function CustomerBookingDetailPage({ params }: PageProps) {
             <dd>{formatVnd(locale, Number(booking.finalAmountVnd))}</dd>
           </div>
         </dl>
+        {booking.status === 'HOLD' && Number(booking.finalAmountVnd) > 0 ? (
+          <PaymentProviderSelector bookingCode={booking.bookingCode} customer />
+        ) : null}
+        <PaymentStatusSummary bookingCode={booking.bookingCode} customer />
+        <BookingAccessPassPanel bookingCode={booking.bookingCode} customer />
+        <CustomerBookingActions
+          adults={booking.adults}
+          bookingCode={booking.bookingCode}
+          checkIn={booking.checkIn}
+          checkOut={booking.checkOut}
+          children={booking.children}
+          finalAmountVnd={booking.finalAmountVnd}
+        />
       </div>
     </main>
   );

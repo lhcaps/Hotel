@@ -16,7 +16,10 @@ const PAYMENT_RUNTIME: Runtime =
       ? 'test'
       : 'development';
 
-export function PaymentProviderSelector({ bookingCode }: Readonly<{ bookingCode: string }>) {
+export function PaymentProviderSelector({
+  bookingCode,
+  customer = false,
+}: Readonly<{ bookingCode: string; customer?: boolean }>) {
   const locale = useLocale();
   const [providers, setProviders] = useState<readonly PublicPaymentProvider[]>([]);
   const [pending, setPending] = useState<string | null>(null);
@@ -40,11 +43,9 @@ export function PaymentProviderSelector({ bookingCode }: Readonly<{ bookingCode:
     setSelected(provider);
     setMessage(null);
     try {
-      const result = await bookingApi.initiatePayment(
-        bookingCode,
-        provider,
-        globalThis.crypto.randomUUID(),
-      );
+      const result = await (
+        customer ? bookingApi.initiateCustomerPayment : bookingApi.initiatePayment
+      )(bookingCode, provider, globalThis.crypto.randomUUID());
       const url = assertSafePaymentRedirect(result.redirectUrl, PAYMENT_RUNTIME);
       globalThis.location.assign(url.toString());
     } catch {

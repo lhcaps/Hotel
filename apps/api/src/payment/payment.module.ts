@@ -44,6 +44,9 @@ import { MOMO_ADAPTER, VNPAY_ADAPTER } from './payment.tokens.js';
 
 export { MOMO_ADAPTER, VNPAY_ADAPTER } from './payment.tokens.js';
 export { ADMIN_PAYMENT_RECONCILIATION_SERVICE } from './admin-payment-reconciliation.service.js';
+export { MomoPaymentInitiationService } from './services/momo-payment-initiation.service.js';
+export { VnpayPaymentInitiationService } from './services/vnpay-payment-initiation.service.js';
+export { PaymentStatusService } from './services/payment-status.service.js';
 
 /**
  * Internal-only payment composition boundary. Provider adapters and every
@@ -182,5 +185,6 @@ export { ADMIN_PAYMENT_RECONCILIATION_SERVICE } from './admin-payment-reconcilia
       ) => new AdminPaymentReconciliationService(repository, reconciliation),
     },
   ],
+  exports: [MomoPaymentInitiationService, VnpayPaymentInitiationService, PaymentStatusService],
 })
 export class PaymentModule {}

@@ -1,6 +1,9 @@
 import type {
   BookingDetailResponse,
   BookingAccessPassResponse,
+  CustomerAlterationPreview,
+  CustomerAlterationPreviewRequest,
+  CustomerCancellationPreview,
   BookingHoldResponse,
   BookingHoldStatusRequest,
   BookingHoldStatusResponse,
@@ -200,6 +203,24 @@ export const bookingApi = {
       return body;
     });
   },
+
+  initiateCustomerPayment(
+    bookingCode: string,
+    provider: 'MOMO' | 'VNPAY',
+    idempotencyKey: string,
+    options?: BookingApiRequestOptions,
+  ): Promise<PaymentInitiationResponse> {
+    return request<unknown>(
+      `/customer/bookings/${encodeURIComponent(bookingCode)}/payments/${provider.toLowerCase()}/attempts`,
+      { method: 'POST', headers: { 'idempotency-key': idempotencyKey } },
+      options,
+    ).then((body) => {
+      if (!isPaymentInitiation(body, provider)) {
+        throw new Error('Invalid payment initiation response');
+      }
+      return body;
+    });
+  },
   createBookingHold(
     quoteId: string,
     body: CreateBookingHoldRequest,
@@ -267,12 +288,57 @@ export const bookingApi = {
     );
   },
 
+  getCustomerBookingAccessPass(
+    bookingCode: string,
+    options?: BookingApiRequestOptions,
+  ): Promise<BookingAccessPassResponse> {
+    return request<BookingAccessPassResponse>(
+      `/customer/bookings/${encodeURIComponent(bookingCode)}/access-pass`,
+      { method: 'GET' },
+      options,
+    );
+  },
+
+  getCustomerCancellationPreview(
+    bookingCode: string,
+    options?: BookingApiRequestOptions,
+  ): Promise<CustomerCancellationPreview> {
+    return postJson<CustomerCancellationPreview, Record<string, never>>(
+      `/customer/bookings/${encodeURIComponent(bookingCode)}/cancellation-preview`,
+      {},
+      options,
+    );
+  },
+
+  getCustomerAlterationPreview(
+    bookingCode: string,
+    body: CustomerAlterationPreviewRequest,
+    options?: BookingApiRequestOptions,
+  ): Promise<CustomerAlterationPreview> {
+    return postJson<CustomerAlterationPreview, CustomerAlterationPreviewRequest>(
+      `/customer/bookings/${encodeURIComponent(bookingCode)}/alteration-preview`,
+      body,
+      options,
+    );
+  },
+
   getPaymentStatus(
     bookingCode: string,
     options?: BookingApiRequestOptions,
   ): Promise<PaymentStatusResponse> {
     return request<PaymentStatusResponse>(
       `/public/bookings/${encodeURIComponent(bookingCode)}/payment`,
+      { method: 'GET' },
+      options,
+    );
+  },
+
+  getCustomerPaymentStatus(
+    bookingCode: string,
+    options?: BookingApiRequestOptions,
+  ): Promise<PaymentStatusResponse> {
+    return request<PaymentStatusResponse>(
+      `/customer/bookings/${encodeURIComponent(bookingCode)}/payment`,
       { method: 'GET' },
       options,
     );

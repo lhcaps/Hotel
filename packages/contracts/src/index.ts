@@ -4,6 +4,7 @@ export * from './admin-room-operations.js';
 export * from './admin-payment-reconciliation.js';
 export * from './admin.js';
 export * from './coupon.js';
+export * from './customer.js';
 export * from './pricing.js';
 export * from './public-room-catalog.js';
 export * from './booking/index.js';

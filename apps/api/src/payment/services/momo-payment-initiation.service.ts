@@ -22,6 +22,7 @@ import { publishSimulatorBookingCodeMapping } from './payment-simulator-mapping.
 export interface InitiateMomoPaymentInput {
   readonly bookingCode: string;
   readonly sessionToken: Buffer | null;
+  readonly customerUserId?: string;
   readonly idempotencyKey: string | undefined;
   readonly requestId: string;
 }
@@ -50,7 +51,7 @@ export class MomoPaymentInitiationService {
     }
     const booking = await this.bookings.findByBookingCodeForSession(input.bookingCode);
     if (booking === null) throw new PaymentInitiationError('MOMO_INITIATION_REJECTED');
-    await this.requireBookingSession(input.sessionToken, booking.bookingId);
+    await this.requireBookingAccess(input, booking.customerUserId, booking.bookingId);
     if (this.adapter === null || !(await this.settings.isAvailable('MOMO', booking.propertyId))) {
       throw new PaymentInitiationError('MOMO_DISABLED');
     }
@@ -127,10 +128,17 @@ export class MomoPaymentInitiationService {
     }
   }
 
-  private async requireBookingSession(
-    token: Buffer | null,
+  private async requireBookingAccess(
+    input: InitiateMomoPaymentInput,
+    bookingCustomerUserId: string | null,
     bookingId: string,
-  ): Promise<AuthenticatedSession> {
-    return this.sessions.requireForBooking(token, bookingId, new Date());
+  ): Promise<AuthenticatedSession | undefined> {
+    if (input.customerUserId !== undefined) {
+      if (bookingCustomerUserId !== input.customerUserId) {
+        throw new PaymentInitiationError('MOMO_INITIATION_REJECTED');
+      }
+      return undefined;
+    }
+    return this.sessions.requireForBooking(input.sessionToken, bookingId, new Date());
   }
 }
