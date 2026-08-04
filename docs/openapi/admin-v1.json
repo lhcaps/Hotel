@@ -2098,6 +2098,7 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           },
           "roomNumber": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "physicalRoomCode": { "type": "string", "minLength": 1, "maxLength": 128 },
           "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "MAINTENANCE"] },
           "housekeepingStatus": { "type": "string", "enum": ["CLEAN", "DIRTY", "CLEANING"] },
           "createdAt": {
@@ -2116,6 +2117,7 @@
           "propertyId",
           "roomTypeId",
           "roomNumber",
+          "physicalRoomCode",
           "status",
           "housekeepingStatus",
           "createdAt",
@@ -2133,6 +2135,7 @@
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           },
           "roomNumber": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "physicalRoomCode": { "type": "string", "minLength": 1, "maxLength": 128 },
           "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "MAINTENANCE"] }
         },
         "required": ["roomTypeId", "roomNumber"],
