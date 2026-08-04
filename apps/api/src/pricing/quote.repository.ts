@@ -44,7 +44,16 @@ export class QuoteRepository implements QuoteRepositoryPort {
         })
       : undefined;
     if (!property || !roomType) return undefined;
-    if (!isWithinPropertyStayPolicy(input.checkIn, input.checkOut, propertyStayPolicy(property))) {
+    if (
+      !isWithinPropertyStayPolicy(
+        input.checkIn,
+        input.checkOut,
+        propertyStayPolicy(property),
+        Date.now(),
+        input.mode,
+        property.timezone,
+      )
+    ) {
       return undefined;
     }
     const [tier, plans, prices, rooms, blocks] = await Promise.all([

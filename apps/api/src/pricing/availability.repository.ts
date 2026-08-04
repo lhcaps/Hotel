@@ -35,7 +35,16 @@ export class AvailabilityRepository implements AvailabilityRepositoryPort {
     const property = await this.activeProperty();
     if (property === undefined) return { state: 'CATALOG_UNAVAILABLE', items: [] };
     const policy = propertyStayPolicy(property);
-    if (!isWithinPropertyStayPolicy(input.checkIn, input.checkOut, policy)) {
+    if (
+      !isWithinPropertyStayPolicy(
+        input.checkIn,
+        input.checkOut,
+        policy,
+        Date.now(),
+        input.mode,
+        property.timezone,
+      )
+    ) {
       return { state: 'INVALID_INTERVAL', items: [], policy };
     }
     try {
