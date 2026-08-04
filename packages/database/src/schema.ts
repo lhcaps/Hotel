@@ -287,6 +287,7 @@ export const rooms = pgTable(
     propertyId: uuid('property_id').notNull(),
     roomTypeId: uuid('room_type_id').notNull(),
     roomNumber: text('room_number').notNull(),
+    physicalRoomCode: text('physical_room_code').notNull(),
     status: roomStatus('status').notNull().default('ACTIVE'),
     housekeepingStatus: housekeepingStatus('housekeeping_status').notNull().default('CLEAN'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
@@ -306,7 +307,12 @@ export const rooms = pgTable(
     unique('rooms_property_id_uq').on(table.propertyId, table.id),
     unique('rooms_property_room_type_id_uq').on(table.propertyId, table.roomTypeId, table.id),
     uniqueIndex('rooms_property_room_number_uq').on(table.propertyId, table.roomNumber),
+    uniqueIndex('rooms_property_physical_room_code_uq').on(
+      table.propertyId,
+      table.physicalRoomCode,
+    ),
     check('rooms_number_nonempty_ck', sql`btrim(${table.roomNumber}) <> ''`),
+    check('rooms_physical_room_code_nonempty_ck', sql`btrim(${table.physicalRoomCode}) <> ''`),
   ],
 );
 

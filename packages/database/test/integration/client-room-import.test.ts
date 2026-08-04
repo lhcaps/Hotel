@@ -21,7 +21,7 @@ function runImport(databaseUrl: string): Promise<{
     env: {
       ...process.env,
       DATABASE_URL: databaseUrl,
-      CLIENT_ROOM_IMPORT_CONFIRM: 'APPLY_9_ROOMS',
+      CLIENT_ROOM_IMPORT_CONFIRM: 'APPLY_23_ROOMS',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
@@ -43,23 +43,27 @@ function runImport(databaseUrl: string): Promise<{
 }
 
 describe('client room import', () => {
-  it('creates the approved nine rooms and skips every unchanged row on a second apply', async () => {
+  it('creates the approved 23 physical rooms and skips every unchanged row on a second apply', async () => {
     const database = await createMigratedTestDatabase();
     databases.push(database);
 
     const first = await runImport(database.databaseUrl);
-    expect(first.counts).toEqual({ created: 40, updated: 0, skipped: 0 });
+    expect(first.counts).toEqual({ created: 60, updated: 0, skipped: 0 });
 
     const second = await runImport(database.databaseUrl);
-    expect(second.counts).toEqual({ created: 0, updated: 0, skipped: 40 });
+    expect(second.counts).toEqual({ created: 0, updated: 0, skipped: 60 });
 
-    const [rooms, prices] = await Promise.all([
+    const [rooms, concepts, prices] = await Promise.all([
       database.pool.query(
-        "SELECT room_number FROM rooms WHERE room_number IN ('Rose', 'Nami', 'Phù Vân', 'Sunset', 'Yuki', 'Sabi', 'Sudal', 'Wabi', 'Haven') ORDER BY room_number",
+        "SELECT physical_room_code FROM rooms WHERE physical_room_code LIKE '94BDT-%' ORDER BY physical_room_code",
+      ),
+      database.pool.query<{ count: number }>(
+        "SELECT count(*)::int AS count FROM room_types WHERE code IN ('ROSE', 'NAMI', 'PHU_VAN', 'SUNSET', 'YUKI', 'SABI', 'SUDAL', 'WABI', 'HAVEN')",
       ),
       database.pool.query<{ count: number }>('SELECT count(*)::int AS count FROM rate_plan_prices'),
     ]);
-    expect(rooms.rowCount).toBe(9);
+    expect(rooms.rowCount).toBe(23);
+    expect(concepts.rows[0]?.count).toBe(9);
     expect(prices.rows[0]?.count).toBe(18);
   });
 });

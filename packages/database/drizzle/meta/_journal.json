@@ -162,6 +162,13 @@
       "when": 1785686034745,
       "tag": "0022_booking_access_pass",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1785802598202,
+      "tag": "0023_clumsy_karma",
+      "breakpoints": true
     }
   ]
 }

@@ -13,8 +13,8 @@ const propertyCode =
 const propertyName =
   process.env.CLIENT_IMPORT_PROPERTY_NAME ?? CLIENT_ROOM_MANIFEST.property.defaultName;
 
-if (apply && process.env.CLIENT_ROOM_IMPORT_CONFIRM !== 'APPLY_9_ROOMS') {
-  throw new Error('Refusing writes: set CLIENT_ROOM_IMPORT_CONFIRM=APPLY_9_ROOMS with --apply');
+if (apply && process.env.CLIENT_ROOM_IMPORT_CONFIRM !== 'APPLY_23_ROOMS') {
+  throw new Error('Refusing writes: set CLIENT_ROOM_IMPORT_CONFIRM=APPLY_23_ROOMS with --apply');
 }
 
 validateClientRoomManifest();
@@ -106,17 +106,28 @@ try {
       tiers.set(tier.code, id);
     }
 
+    const tiersByCode = new Map(CLIENT_ROOM_MANIFEST.tiers.map((tier) => [tier.code, tier]));
     const roomTypes = new Map<string, string>();
-    for (const tier of CLIENT_ROOM_MANIFEST.tiers) {
-      const tierId = tiers.get(tier.code);
-      if (tierId === undefined) throw new Error(`Tier ${tier.code} did not resolve`);
+    const concepts = [
+      ...new Map(CLIENT_ROOM_MANIFEST.rooms.map((room) => [room.name, room])).values(),
+    ];
+    for (const concept of concepts) {
+      const tier = tiersByCode.get(concept.tierCode);
+      const tierId = tiers.get(concept.tierCode);
+      if (tier === undefined || tierId === undefined) {
+        throw new Error(`Room concept ${concept.name} references an unknown tier`);
+      }
+      const code =
+        concept.name === 'Phù Vân'
+          ? 'PHU_VAN'
+          : concept.name.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
       await upsert(
         client,
         'SELECT price_tier_id, name, max_adults, max_children, max_occupancy, status FROM room_types WHERE property_id = $1 AND code = $2',
-        [propertyId, tier.code],
+        [propertyId, code],
         (row) =>
           row.price_tier_id === tierId &&
-          row.name === tier.name &&
+          row.name === concept.name &&
           row.max_adults === tier.maxAdults &&
           row.max_children === tier.maxChildren &&
           row.max_occupancy === tier.maxOccupancy &&
@@ -128,8 +139,8 @@ try {
         [
           propertyId,
           tierId,
-          tier.code,
-          tier.name,
+          code,
+          concept.name,
           tier.maxAdults,
           tier.maxChildren,
           tier.maxOccupancy,
@@ -137,31 +148,52 @@ try {
       );
       const result = await client.query<{ id: string }>(
         'SELECT id FROM room_types WHERE property_id = $1 AND code = $2',
-        [propertyId, tier.code],
+        [propertyId, code],
       );
       const id = result.rows[0]?.id;
-      if (id === undefined) throw new Error(`Room type ${tier.code} did not resolve`);
-      roomTypes.set(tier.code, id);
+      if (id === undefined) throw new Error(`Room type ${code} did not resolve`);
+      roomTypes.set(concept.name, id);
     }
 
     for (const room of CLIENT_ROOM_MANIFEST.rooms) {
-      const roomTypeId = roomTypes.get(room.tierCode);
+      const roomTypeId = roomTypes.get(room.name);
       if (roomTypeId === undefined) throw new Error(`Room type ${room.tierCode} did not resolve`);
       await upsert(
         client,
-        'SELECT room_type_id, status, housekeeping_status FROM rooms WHERE property_id = $1 AND room_number = $2',
-        [propertyId, room.name],
+        'SELECT room_type_id, room_number, physical_room_code, status, housekeeping_status FROM rooms WHERE property_id = $1 AND physical_room_code = $2',
+        [propertyId, room.physicalRoomCode],
         (row) =>
           row.room_type_id === roomTypeId &&
+          row.room_number === room.physicalRoomCode &&
+          row.physical_room_code === room.physicalRoomCode &&
           row.status === 'ACTIVE' &&
           row.housekeeping_status === 'CLEAN',
-        `INSERT INTO rooms (property_id, room_type_id, room_number, status, housekeeping_status)
-         VALUES ($1, $2, $3, 'ACTIVE', 'CLEAN')
-         ON CONFLICT (property_id, room_number) DO UPDATE SET room_type_id = EXCLUDED.room_type_id,
-           status = EXCLUDED.status, housekeeping_status = EXCLUDED.housekeeping_status`,
-        [propertyId, roomTypeId, room.name],
+        `INSERT INTO rooms (property_id, room_type_id, room_number, physical_room_code, status, housekeeping_status)
+         VALUES ($1, $2, $3, $4, 'ACTIVE', 'CLEAN')
+         ON CONFLICT (property_id, physical_room_code) DO UPDATE SET room_type_id = EXCLUDED.room_type_id,
+           room_number = EXCLUDED.room_number, status = EXCLUDED.status, housekeeping_status = EXCLUDED.housekeeping_status`,
+        [propertyId, roomTypeId, room.physicalRoomCode, room.physicalRoomCode],
       );
     }
+
+    const legacyConceptNames = CLIENT_ROOM_MANIFEST.rooms.map((room) => room.name);
+    await client.query(
+      `UPDATE rooms
+          SET status = 'INACTIVE', updated_at = CURRENT_TIMESTAMP
+        WHERE property_id = $1
+          AND room_number = ANY($2::text[])
+          AND NOT (physical_room_code = ANY($3::text[]))
+          AND NOT EXISTS (
+            SELECT 1 FROM bookings
+             WHERE bookings.property_id = rooms.property_id
+               AND bookings.room_id = rooms.id
+          )`,
+      [
+        propertyId,
+        [...new Set(legacyConceptNames)],
+        CLIENT_ROOM_MANIFEST.rooms.map((room) => room.physicalRoomCode),
+      ],
+    );
 
     for (const plan of CLIENT_ROOM_MANIFEST.ratePlans) {
       const isBasePlan = plan.code !== 'EXTRA_HOUR';

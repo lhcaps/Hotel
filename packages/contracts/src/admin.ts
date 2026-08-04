@@ -213,6 +213,7 @@ export const roomSchema = z
     propertyId: uuidSchema,
     roomTypeId: uuidSchema,
     roomNumber: z.string().trim().min(1).max(64),
+    physicalRoomCode: z.string().trim().min(1).max(128),
     status: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE']),
     housekeepingStatus: roomHousekeepingStatusSchema,
     createdAt: instantSchema,
@@ -224,6 +225,7 @@ export const roomCommandSchema = z
   .object({
     roomTypeId: uuidSchema,
     roomNumber: z.string().trim().min(1).max(64),
+    physicalRoomCode: z.string().trim().min(1).max(128).optional(),
     status: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE']).optional(),
   })
   .strict();

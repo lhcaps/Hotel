@@ -262,12 +262,12 @@ export async function seedDevelopmentData(
             throw new Error('Demo room is missing its deterministic room type');
           }
           await client.query(
-            `INSERT INTO rooms (id, property_id, room_type_id, room_number, status, housekeeping_status)
-             VALUES ($1, $2, $3, $4, 'ACTIVE', $5)
+            `INSERT INTO rooms (id, property_id, room_type_id, room_number, physical_room_code, status, housekeeping_status)
+             VALUES ($1, $2, $3, $4, $4, 'ACTIVE', $5)
              ON CONFLICT (id) DO UPDATE
                SET room_type_id = EXCLUDED.room_type_id,
-                   room_number = EXCLUDED.room_number, status = EXCLUDED.status,
-                   housekeeping_status = EXCLUDED.housekeeping_status`,
+                   room_number = EXCLUDED.room_number, physical_room_code = EXCLUDED.physical_room_code,
+                   status = EXCLUDED.status, housekeeping_status = EXCLUDED.housekeeping_status`,
             [id, DEMO.property, roomType[0], roomNumber, housekeepingStatus],
           );
         }

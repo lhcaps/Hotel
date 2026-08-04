@@ -346,7 +346,12 @@ export class CatalogRepository implements CatalogRepositoryPort {
     const database = asCatalogDatabase(transaction, this.database);
     const [created] = await database
       .insert(rooms)
-      .values({ propertyId, ...command, status: command.status ?? 'ACTIVE' })
+      .values({
+        propertyId,
+        ...command,
+        physicalRoomCode: command.physicalRoomCode ?? command.roomNumber,
+        status: command.status ?? 'ACTIVE',
+      })
       .returning();
     if (created === undefined) throw new Error('Room creation did not return a row.');
     return created;

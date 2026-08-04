@@ -162,6 +162,13 @@
       "sha256": "a2997266d83d921e8b146560ff0f5d45fa44c3361eb956561694cec97dfd1350",
       "phase": "uncategorized",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 23,
+      "fileName": "0023_clumsy_karma.sql",
+      "sha256": "3994c28946d51325349c7e83ffcd3af7cb0cc565ba25fcaefefdd095f91ac70d",
+      "phase": "authoritative physical inventory",
+      "previousIntroductionReference": null
     }
   ]
 }

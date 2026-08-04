@@ -1,4 +1,4 @@
-export const CLIENT_ROOM_IMPORT_VERSION = 'peace-home-9-rooms-v1';
+export const CLIENT_ROOM_IMPORT_VERSION = 'peace-home-23-rooms-v2';
 
 export const CLIENT_ROOM_MANIFEST = Object.freeze({
   property: {
@@ -26,15 +26,29 @@ export const CLIENT_ROOM_MANIFEST = Object.freeze({
     },
   ],
   rooms: [
-    { name: 'Rose', tierCode: 'STANDARD' },
-    { name: 'Nami', tierCode: 'DELUXE' },
-    { name: 'Phù Vân', tierCode: 'DELUXE' },
-    { name: 'Sunset', tierCode: 'DELUXE' },
-    { name: 'Yuki', tierCode: 'DELUXE' },
-    { name: 'Sabi', tierCode: 'DELUXE' },
-    { name: 'Sudal', tierCode: 'DELUXE' },
-    { name: 'Wabi', tierCode: 'SIGNATURE' },
-    { name: 'Haven', tierCode: 'SIGNATURE' },
+    { name: 'Wabi', tierCode: 'SIGNATURE', physicalRoomCode: '94BDT-WabiG01' },
+    { name: 'Wabi', tierCode: 'SIGNATURE', physicalRoomCode: '94BDT-Wabi101' },
+    { name: 'Wabi', tierCode: 'SIGNATURE', physicalRoomCode: '94BDT-Wabi201' },
+    { name: 'Wabi', tierCode: 'SIGNATURE', physicalRoomCode: '94BDT-Wabi301' },
+    { name: 'Haven', tierCode: 'SIGNATURE', physicalRoomCode: '94BDT-HavenG03' },
+    { name: 'Sabi', tierCode: 'DELUXE', physicalRoomCode: '94BDT-SabiG02' },
+    { name: 'Sabi', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Sabi102' },
+    { name: 'Sabi', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Sabi202' },
+    { name: 'Sabi', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Sabi302' },
+    { name: 'Sunset', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Sunset103' },
+    { name: 'Sunset', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Sunset203' },
+    { name: 'Sunset', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Sunset303' },
+    { name: 'Yuki', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Yuki104' },
+    { name: 'Yuki', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Yuki204' },
+    { name: 'Yuki', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Yuki304' },
+    { name: 'Sudal', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Sudal205' },
+    { name: 'Sudal', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Sudal305' },
+    { name: 'Nami', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Nami206' },
+    { name: 'Nami', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Nami306' },
+    { name: 'Phù Vân', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Phù Vân 207' },
+    { name: 'Phù Vân', tierCode: 'DELUXE', physicalRoomCode: '94BDT-Phù vân 307' },
+    { name: 'Rose', tierCode: 'STANDARD', physicalRoomCode: '94BDT-Rose208' },
+    { name: 'Rose', tierCode: 'STANDARD', physicalRoomCode: '94BDT-Rose308' },
   ],
   ratePlans: [
     {
@@ -45,7 +59,7 @@ export const CLIENT_ROOM_MANIFEST = Object.freeze({
       minCheckInMinuteInclusive: 660,
       maxCheckInMinuteExclusive: 900,
       minDurationMinutesInclusive: 180,
-      maxDurationMinutesInclusive: 180,
+      maxDurationMinutesInclusive: 240,
       amounts: [359_000, 419_000, 489_000],
     },
     {
@@ -56,7 +70,7 @@ export const CLIENT_ROOM_MANIFEST = Object.freeze({
       minCheckInMinuteInclusive: null,
       maxCheckInMinuteExclusive: null,
       minDurationMinutesInclusive: 180,
-      maxDurationMinutesInclusive: 180,
+      maxDurationMinutesInclusive: 240,
       amounts: [299_000, 349_000, 399_000],
     },
     {
@@ -66,8 +80,8 @@ export const CLIENT_ROOM_MANIFEST = Object.freeze({
       priority: 70,
       minCheckInMinuteInclusive: null,
       maxCheckInMinuteExclusive: null,
-      minDurationMinutesInclusive: 300,
-      maxDurationMinutesInclusive: 300,
+      minDurationMinutesInclusive: 255,
+      maxDurationMinutesInclusive: 960,
       amounts: [399_000, 469_000, 549_000],
     },
     {
@@ -76,9 +90,9 @@ export const CLIENT_ROOM_MANIFEST = Object.freeze({
       includedDurationMinutes: 720,
       priority: 90,
       minCheckInMinuteInclusive: 1260,
-      maxCheckInMinuteExclusive: 1440,
+      maxCheckInMinuteExclusive: 1380,
       minDurationMinutesInclusive: 720,
-      maxDurationMinutesInclusive: 720,
+      maxDurationMinutesInclusive: 960,
       amounts: [499_000, 589_000, 689_000],
     },
     {
@@ -108,8 +122,12 @@ export const CLIENT_ROOM_MANIFEST = Object.freeze({
 
 export function validateClientRoomManifest(): void {
   const names = CLIENT_ROOM_MANIFEST.rooms.map((room) => room.name);
-  if (names.length !== 9 || new Set(names).size !== 9) {
-    throw new Error('Client room manifest must contain exactly nine unique rooms');
+  const physicalCodes = CLIENT_ROOM_MANIFEST.rooms.map((room) => room.physicalRoomCode);
+  if (physicalCodes.length !== 23 || new Set(physicalCodes).size !== 23) {
+    throw new Error('Client room manifest must contain exactly 23 unique physical room codes');
+  }
+  if (new Set(names).size !== 9) {
+    throw new Error('Client room manifest must contain exactly nine room concepts');
   }
   const tierCodes = new Set(CLIENT_ROOM_MANIFEST.tiers.map((tier) => tier.code));
   if (CLIENT_ROOM_MANIFEST.rooms.some((room) => !tierCodes.has(room.tierCode))) {

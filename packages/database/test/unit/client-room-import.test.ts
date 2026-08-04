@@ -2,19 +2,13 @@ import { CLIENT_ROOM_MANIFEST, validateClientRoomManifest } from '../../src/clie
 import { describe, expect, it } from 'vitest';
 
 describe('client room import manifest', () => {
-  it('contains exactly the approved nine rooms and undiscounted price table', () => {
+  it('contains exactly the approved 23 physical rooms, nine concepts, and price table', () => {
     validateClientRoomManifest();
-    expect(CLIENT_ROOM_MANIFEST.rooms.map((room) => room.name)).toEqual([
-      'Rose',
-      'Nami',
-      'Phù Vân',
-      'Sunset',
-      'Yuki',
-      'Sabi',
-      'Sudal',
-      'Wabi',
-      'Haven',
-    ]);
+    expect(CLIENT_ROOM_MANIFEST.rooms).toHaveLength(23);
+    expect(new Set(CLIENT_ROOM_MANIFEST.rooms.map((room) => room.physicalRoomCode)).size).toBe(23);
+    expect(new Set(CLIENT_ROOM_MANIFEST.rooms.map((room) => room.name))).toEqual(
+      new Set(['Rose', 'Nami', 'Phù Vân', 'Sunset', 'Yuki', 'Sabi', 'Sudal', 'Wabi', 'Haven']),
+    );
     expect(CLIENT_ROOM_MANIFEST.ratePlans.map((plan) => plan.amounts)).toEqual([
       [359_000, 419_000, 489_000],
       [299_000, 349_000, 399_000],

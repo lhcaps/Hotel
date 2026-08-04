@@ -84,6 +84,7 @@ export interface CatalogRoomRecord {
   readonly propertyId: string;
   readonly roomTypeId: string;
   readonly roomNumber: string;
+  readonly physicalRoomCode: string;
   readonly status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
   readonly housekeepingStatus: 'CLEAN' | 'DIRTY' | 'CLEANING';
   readonly createdAt: Date;
