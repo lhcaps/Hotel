@@ -151,6 +151,10 @@ test('requires a private token to map an order, then settles and redirects a MoM
     assert.ok(checkoutUrl.searchParams.get('token'), 'MoMo demo URL must carry a signed token');
     const checkoutPage = await send(port, 'GET', `${checkoutUrl.pathname}${checkoutUrl.search}`);
     assert.equal(checkoutPage.status, 200);
+    assert.match(
+      checkoutPage.headers['content-security-policy'],
+      /form-action https:\/\/payments\.example\.test/u,
+    );
     assert.match(checkoutPage.body, /alt="Payment QR code"/u);
     assert.match(checkoutPage.body, /data:image\/png;base64,/u);
     const confirmationPath = extractFormAction(checkoutPage.body);
