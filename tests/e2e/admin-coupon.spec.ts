@@ -217,7 +217,7 @@ test.describe('Phase 6E ADMIN coupon vertical', () => {
     await page.getByLabel('Hiệu lực đến').fill(untilLocal);
     // Switch scope to specific room type and select ROOM_TYPE_ID.
     await page.getByLabel('Tất cả loại phòng').uncheck();
-    await page.getByLabel('Deluxe').check();
+    await page.getByLabel('Nami').check();
     await page.getByRole('button', { name: 'Tạo coupon' }).click();
     const percentageCreateResponse = await percentageCreatePromise;
     if (!percentageCreateResponse.ok()) {

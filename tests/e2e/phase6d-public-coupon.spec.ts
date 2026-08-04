@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { expect, test, type Page } from '@playwright/test';
 
 import { setSimulatorMode } from './_fixtures/payment-test-helpers.mjs';
+import { fillHourlySearch } from './public-search-helpers';
 
 const execFileAsync = promisify(execFile);
 
@@ -254,11 +255,13 @@ async function runCouponVerticalFlow(
   await expect(page.getByRole('heading', { name: 'Tìm phòng' })).toBeVisible();
 
   // 2. Search for available rooms.
-  await page.getByLabel('Nhận phòng').fill(options.bookingDates.checkIn);
-  await page.getByLabel('Trả phòng').fill(options.bookingDates.checkOut);
-  await page.getByLabel('Người lớn').fill('2');
-  await page.getByLabel('Trẻ em').fill('0');
-  await page.getByRole('button', { name: 'Tìm phòng' }).click();
+  await fillHourlySearch(page, {
+    date: options.bookingDates.checkIn.slice(0, 10),
+    start: `${options.bookingDates.checkIn.slice(11, 16)}:00`,
+    end: `${options.bookingDates.checkOut.slice(11, 16)}:00`,
+    adults: '2',
+    children: '0',
+  });
 
   // 3. Select the room type, then request an authoritative quote from its detail page.
   const roomLink = page.getByRole('link', { name: 'Xem phòng & giá' }).first();
@@ -455,7 +458,9 @@ async function runOtpAndDetailFlow(
 
   const bookingDetail = page.getByTestId('guest-booking-detail');
   await expect(bookingDetail.getByText(/Playwright Hotel/)).toBeVisible({ timeout: 30_000 });
-  await expect(bookingDetail.getByText('Deluxe')).toBeVisible();
+  await expect(
+    bookingDetail.getByText(/^(?:Rose|Nami|Phù Vân|Sunset|Yuki|Sabi|Sudal|Wabi|Haven)$/),
+  ).toBeVisible();
   await expect(bookingDetail.getByText(/Phase 6D/)).toBeVisible();
   await expect(page.getByTestId('detail-coupon-summary')).toBeVisible();
   await expect(page.getByTestId('detail-coupon-summary')).toContainText(couponCode);

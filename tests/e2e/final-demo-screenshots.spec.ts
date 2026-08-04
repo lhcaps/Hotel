@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 
 import { playwrightAdminEmail, playwrightAdminPassword } from './admin-credentials';
+import { fillHourlySearch } from './public-search-helpers';
 
 const OIDC_BASE_URL = process.env.PLAYWRIGHT_TEST_OIDC_BASE_URL;
 
@@ -101,10 +102,11 @@ test('captures final demo landing exact and nearby screenshots', async ({ page }
       body: JSON.stringify({ items: [] }),
     }),
   );
-  await page.getByLabel('Nhận phòng').fill('2030-12-31T11:00');
-  await page.getByLabel('Trả phòng').fill('2030-12-31T14:00');
-  await page.getByLabel('Người lớn').fill('2');
-  await page.getByRole('button', { name: 'Tìm phòng' }).click();
+  await fillHourlySearch(page, {
+    date: '2030-12-31',
+    start: '11:00:00',
+    end: '14:00:00',
+  });
   await expect(page.getByText('Không còn phòng đúng thời gian bạn chọn')).toBeVisible();
   await expect(page.getByText('Deluxe').first()).toBeVisible();
   await expectNoHorizontalOverflow(page);
@@ -225,10 +227,11 @@ test('captures responsive overflow measurements for all required viewports', asy
   );
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
-  await page.getByLabel('Nhận phòng').fill('2030-12-31T11:00');
-  await page.getByLabel('Trả phòng').fill('2030-12-31T14:00');
-  await page.getByLabel('Người lớn').fill('2');
-  await page.getByRole('button', { name: 'Tìm phòng' }).click();
+  await fillHourlySearch(page, {
+    date: '2030-12-31',
+    start: '11:00:00',
+    end: '14:00:00',
+  });
   await expect(page.getByText('Không còn phòng đúng thời gian bạn chọn')).toBeVisible();
   for (const size of sizes) {
     await page.setViewportSize({ width: size.width, height: size.height });

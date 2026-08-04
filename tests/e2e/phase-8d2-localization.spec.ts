@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { playwrightAdminEmail, playwrightAdminPassword } from './admin-credentials';
+import { fillHourlySearch } from './public-search-helpers';
 
 const OIDC_BASE_URL = process.env.PLAYWRIGHT_TEST_OIDC_BASE_URL;
 const WEB_BASE_URL = 'http://127.0.0.1:3100';
@@ -110,12 +111,17 @@ test.describe('Phase 8D.2 localized critical browser acceptance', () => {
     await expect(page.getByRole('heading', { name: 'Find a room' })).toBeVisible();
     await expectEnglishCriticalUi(page);
 
-    await page.getByLabel('Check-in').fill('2027-01-10T11:00');
-    await page.getByLabel('Check-out').fill('2027-01-10T14:00');
-    await page.getByLabel('Adults').fill('2');
-    await page.getByRole('button', { name: 'Search rooms' }).click();
-    await expect(page.getByRole('heading', { name: 'Deluxe' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'View room & price' })).toBeVisible();
+    await fillHourlySearch(page, {
+      date: '2027-01-10',
+      start: '11:00:00',
+      end: '14:00:00',
+    });
+    await expect(page.getByRole('heading', { name: 'Nami' })).toBeVisible();
+    await expect(
+      page
+        .getByTestId('availability-room-10000000-0000-4000-8000-000000000201')
+        .getByRole('link', { name: 'View room & price' }),
+    ).toBeVisible();
     await expectEnglishCriticalUi(page);
 
     await page.reload();

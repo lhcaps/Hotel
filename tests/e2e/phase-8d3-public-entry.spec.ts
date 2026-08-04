@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { fillHourlySearch } from './public-search-helpers';
+
 const OIDC_BASE_URL = process.env.PLAYWRIGHT_TEST_OIDC_BASE_URL;
 const WEB_BASE_URL = 'http://127.0.0.1:3100';
 const viewports = [
@@ -38,15 +40,20 @@ async function searchFromRoot(
           room: 'View room & price',
           quote: 'View official price',
         };
-  await page.getByLabel(labels.checkIn).fill(stay.checkIn);
-  await page.getByLabel(labels.checkOut).fill(stay.checkOut);
-  await page.getByLabel(labels.adults).fill('2');
-  await page.getByRole('button', { name: labels.search }).click();
+  await fillHourlySearch(page, {
+    date: stay.checkIn.slice(0, 10),
+    start: `${stay.checkIn.slice(11, 16)}:00`,
+    end: `${stay.checkOut.slice(11, 16)}:00`,
+  });
   const results = page.getByLabel(
     locale === 'vi' ? 'Hạng phòng còn trống' : 'Available room types',
   );
-  await expect(results.getByRole('heading', { name: 'Deluxe' })).toBeVisible();
-  await expect(results.getByRole('link', { name: labels.room })).toBeVisible();
+  await expect(results.getByRole('heading', { name: 'Nami' })).toBeVisible();
+  await expect(
+    results
+      .getByTestId('availability-room-10000000-0000-4000-8000-000000000201')
+      .getByRole('link', { name: labels.room }),
+  ).toBeVisible();
   return labels;
 }
 
@@ -73,7 +80,11 @@ test.describe('Phase 8D.3 real public entry', () => {
       checkIn: '2027-04-10T11:00',
       checkOut: '2027-04-10T14:00',
     });
-    await page.getByLabel('Hạng phòng còn trống').getByRole('link', { name: labels.room }).click();
+    await page
+      .getByLabel('Hạng phòng còn trống')
+      .getByTestId('availability-room-10000000-0000-4000-8000-000000000201')
+      .getByRole('link', { name: labels.room })
+      .click();
     await page.waitForURL(/\/rooms\//);
     await expect(page.getByRole('button', { name: labels.quote })).toBeVisible();
     await page.getByRole('button', { name: labels.quote }).click();

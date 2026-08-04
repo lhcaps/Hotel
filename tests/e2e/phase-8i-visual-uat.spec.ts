@@ -3,6 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 import { playwrightAdminEmail, playwrightAdminPassword } from './admin-credentials';
+import { fillHourlySearch } from './public-search-helpers';
 
 const OIDC_BASE_URL = process.env.PLAYWRIGHT_TEST_OIDC_BASE_URL;
 
@@ -57,15 +58,19 @@ test('captures 13 Phase 8I client-UAT surfaces with isolated synthetic data', as
   ).toBeVisible();
   await capture(page, '01-public-entry-desktop');
 
-  await page.getByLabel('Check-in').fill('2027-04-10T11:00');
-  await page.getByLabel('Check-out').fill('2027-04-10T14:00');
-  await page.getByLabel('Adults').fill('2');
-  await page.getByRole('button', { name: 'Search rooms' }).click();
+  await fillHourlySearch(page, {
+    date: '2027-04-10',
+    start: '11:00:00',
+    end: '14:00:00',
+  });
   const results = page.getByLabel('Available room types');
-  await expect(results.getByRole('heading', { name: 'Deluxe' })).toBeVisible();
+  await expect(results.getByRole('heading', { name: 'Nami' })).toBeVisible();
   await capture(page, '02-availability-results-desktop');
 
-  await results.getByRole('link', { name: 'View room & price' }).click();
+  await results
+    .getByTestId('availability-room-10000000-0000-4000-8000-000000000201')
+    .getByRole('link', { name: 'View room & price' })
+    .click();
   await page.waitForURL(/\/rooms\//);
   await expect(page.getByRole('button', { name: 'View official price' })).toBeVisible();
   await page.getByRole('button', { name: 'View official price' }).click();

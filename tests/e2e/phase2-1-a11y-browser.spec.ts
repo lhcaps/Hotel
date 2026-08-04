@@ -89,13 +89,13 @@ test.describe('Phase 2.1 real browser structural accessibility', () => {
     });
   }
 
-  test('landing page exposes a single room card with a real DB title (no fabricated marketing rooms)', async ({
+  test('landing page exposes tier summaries backed by the real catalog (no fabricated marketing rooms)', async ({
     page,
   }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     await assertSingleMainLandmark(page);
-    const featured = page.getByTestId('landing-featured-rooms');
+    const featured = page.getByTestId('landing-tier-summary');
     await expect(featured).toBeVisible({ timeout: 15_000 });
     const cards = await featured.locator('article').count();
     expect(cards, 'expected at least one real DB room card').toBeGreaterThan(0);

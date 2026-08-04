@@ -3,6 +3,7 @@ import { expect, test, type Page, type Response } from '@playwright/test';
 import { availabilitySearchResponseSchema } from '@room/contracts';
 
 import { playwrightAdminEmail, playwrightAdminPassword } from './admin-credentials';
+import { fillHourlySearch } from './public-search-helpers';
 
 /**
  * Phase 8B.1 ADMIN rate-plan vertical — generic plan creation through the
@@ -102,7 +103,7 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
     await expect(planRow).toBeVisible();
 
     // Step 4: configure the price.
-    const priceInput = planRow.getByRole('spinbutton');
+    const priceInput = planRow.getByRole('spinbutton', { name: /000000000101$/i });
     await priceInput.fill('259000');
     const [priceResponse, reloadedPlansResponse] = await Promise.all([
       page.waitForResponse(
@@ -115,11 +116,27 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
           response.request().method() === 'GET' &&
           response.url().endsWith('/api/v1/admin/rate-plans'),
       ),
-      planRow.getByRole('button', { name: 'Lưu giá' }).click(),
+      priceInput.locator('xpath=ancestor::li').getByRole('button').click(),
     ]);
     expect(priceResponse.ok()).toBeTruthy();
     expect(reloadedPlansResponse.ok()).toBeTruthy();
     await expect(priceInput).toHaveValue('259000');
+
+    for (const priceTierId of ['000000000102', '000000000103']) {
+      const tierPrice = planRow.getByRole('spinbutton', {
+        name: new RegExp(`${priceTierId}$`),
+      });
+      await tierPrice.fill('259000');
+      const [tierPriceResponse] = await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.request().method() === 'PATCH' &&
+            /\/admin\/rate-plans\/[^/]+\/prices\/[^/]+$/.test(response.url()),
+        ),
+        tierPrice.locator('xpath=ancestor::li').getByRole('button').click(),
+      ]);
+      expect(tierPriceResponse.ok()).toBeTruthy();
+    }
 
     // The default priority (30) conflicts with LUNCH_COMBO in its window;
     // 60 is unique among the deterministic seed rules.
@@ -154,17 +171,21 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
       availabilityBefore.find((room) => room.roomTypeId === ROOM_TYPE_ID)?.availableRoomCount ?? 0;
 
     await page.goto('/booking/search');
-    await page.getByLabel('Nhận phòng').fill('2027-02-10T15:00');
-    await page.getByLabel('Trả phòng').fill('2027-02-10T18:00');
-    await page.getByLabel('Người lớn').fill('2');
-    await page.getByRole('button', { name: 'Tìm phòng' }).click();
-    await expect(page.getByRole('heading', { name: 'Deluxe' })).toBeVisible();
+    await fillHourlySearch(page, {
+      date: '2027-02-10',
+      start: '15:00:00',
+      end: '18:00:00',
+    });
+    await expect(page.getByRole('heading', { name: 'Nami' })).toBeVisible();
 
     const initialQuoteResponsePromise = page.waitForResponse(
       (response) =>
         response.url().endsWith('/api/v1/quotes') && response.request().method() === 'POST',
     );
-    await page.getByRole('link', { name: 'Xem phòng & giá' }).click();
+    await page
+      .getByTestId('availability-room-10000000-0000-4000-8000-000000000201')
+      .getByRole('link', { name: 'Xem phòng & giá' })
+      .click();
     await page.getByRole('button', { name: 'Xem giá chính thức' }).click();
     const initialQuoteResponse: Response = await initialQuoteResponsePromise;
     expect(initialQuoteResponse.ok()).toBeTruthy();
@@ -178,20 +199,30 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
     // Step 7: edit price; new quote reflects the change, old is immutable.
     await page.goto('/admin/rate-plans');
     const planRowAfter = page.getByRole('article', { name: new RegExp(planCode) });
-    await planRowAfter.getByRole('spinbutton').fill('279000');
-    await planRowAfter.getByRole('button', { name: 'Lưu giá' }).click();
-    await expect(planRowAfter.getByRole('spinbutton')).toHaveValue('279000');
+    await planRowAfter.getByRole('spinbutton', { name: /000000000101$/i }).fill('279000');
+    await planRowAfter
+      .getByRole('spinbutton', { name: /000000000101$/i })
+      .locator('xpath=ancestor::li')
+      .getByRole('button')
+      .click();
+    await expect(planRowAfter.getByRole('spinbutton', { name: /000000000101$/i })).toHaveValue(
+      '279000',
+    );
 
     const reQuoteResponsePromise = page.waitForResponse(
       (response) =>
         response.url().endsWith('/api/v1/quotes') && response.request().method() === 'POST',
     );
     await page.goto('/booking/search');
-    await page.getByLabel('Nhận phòng').fill('2027-02-10T15:00');
-    await page.getByLabel('Trả phòng').fill('2027-02-10T18:00');
-    await page.getByLabel('Người lớn').fill('2');
-    await page.getByRole('button', { name: 'Tìm phòng' }).click();
-    await page.getByRole('link', { name: 'Xem phòng & giá' }).click();
+    await fillHourlySearch(page, {
+      date: '2027-02-10',
+      start: '15:00:00',
+      end: '18:00:00',
+    });
+    await page
+      .getByTestId('availability-room-10000000-0000-4000-8000-000000000201')
+      .getByRole('link', { name: 'Xem phòng & giá' })
+      .click();
     await page.getByRole('button', { name: 'Xem giá chính thức' }).click();
     const reQuoteResponse: Response = await reQuoteResponsePromise;
     expect(reQuoteResponse.ok()).toBeTruthy();
@@ -229,11 +260,15 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
         response.url().endsWith('/api/v1/quotes') && response.request().method() === 'POST',
     );
     await page.goto('/booking/search');
-    await page.getByLabel('Nhận phòng').fill('2027-02-10T15:00');
-    await page.getByLabel('Trả phòng').fill('2027-02-10T18:00');
-    await page.getByLabel('Người lớn').fill('2');
-    await page.getByRole('button', { name: 'Tìm phòng' }).click();
-    await page.getByRole('link', { name: 'Xem phòng & giá' }).click();
+    await fillHourlySearch(page, {
+      date: '2027-02-10',
+      start: '15:00:00',
+      end: '18:00:00',
+    });
+    await page
+      .getByTestId('availability-room-10000000-0000-4000-8000-000000000201')
+      .getByRole('link', { name: 'Xem phòng & giá' })
+      .click();
     await page.getByRole('button', { name: 'Xem giá chính thức' }).click();
     const finalQuoteResponse: Response = await finalQuoteResponsePromise;
     const finalQuote = (await finalQuoteResponse.json()) as QuoteSummary;

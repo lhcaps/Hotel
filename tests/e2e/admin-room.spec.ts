@@ -13,5 +13,5 @@ test('ADMIN creates a physical room', async ({ page }) => {
   await page.getByRole('button', { name: 'Tạo phòng' }).click();
   await expect(page.getByText('Đã tạo phòng 102.')).toBeVisible();
   await page.goto('/admin/rooms');
-  await expect(page.locator('input[id^="room-number-"]').first()).toHaveValue('102');
+  await expect(page.locator('input[id^="room-number-"][value="102"]')).toHaveValue('102');
 });

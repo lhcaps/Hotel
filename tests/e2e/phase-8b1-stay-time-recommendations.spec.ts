@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Response } from '@playwright/test';
 
 import { availabilitySearchResponseSchema } from '@room/contracts';
+import { fillHourlySearch } from './public-search-helpers';
 
 const ROOM_TYPE_ID = '10000000-0000-4000-8000-000000000201';
 const API_BASE = 'http://127.0.0.1:3101/api/v1';
@@ -92,17 +93,21 @@ test('visitor sees cheaper stay-time recommendations and reissues a quote', asyn
   // that strictly cheaper alternative without any hold/inventory/coupon
   // side-effects.
   await page.goto('/booking/search');
-  await page.getByLabel('Nhận phòng').fill('2027-01-10T11:00');
-  await page.getByLabel('Trả phòng').fill('2027-01-10T14:00');
-  await page.getByLabel('Người lớn').fill('2');
-  await page.getByRole('button', { name: 'Tìm phòng' }).click();
-  await expect(page.getByRole('heading', { name: 'Deluxe' })).toBeVisible();
+  await fillHourlySearch(page, {
+    date: '2027-01-10',
+    start: '11:00:00',
+    end: '14:00:00',
+  });
+  await expect(page.getByRole('heading', { name: 'Nami' })).toBeVisible();
 
   const initialQuoteResponsePromise = page.waitForResponse(
     (response) =>
       response.url().endsWith('/api/v1/quotes') && response.request().method() === 'POST',
   );
-  await page.getByRole('link', { name: 'Xem phòng & giá' }).click();
+  await page
+    .getByTestId('availability-room-10000000-0000-4000-8000-000000000201')
+    .getByRole('link', { name: 'Xem phòng & giá' })
+    .click();
   await page.getByRole('button', { name: 'Xem giá chính thức' }).click();
   const initialQuoteResponse = await initialQuoteResponsePromise;
   expect(initialQuoteResponse.ok()).toBeTruthy();

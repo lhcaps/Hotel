@@ -94,10 +94,11 @@ function addSecondsToTime(time: string, duration: number) {
 function durationFromVisibleTimes(start: string, end: string) {
   const startSeconds = secondsSinceMidnight(start);
   const endSeconds = secondsSinceMidnight(end);
-  if (startSeconds === undefined || endSeconds === undefined || endSeconds <= startSeconds) {
+  if (startSeconds === undefined || endSeconds === undefined) {
     return undefined;
   }
-  return endSeconds - startSeconds;
+  const sameDayDuration = endSeconds - startSeconds;
+  return sameDayDuration >= 0 ? sameDayDuration || 86_400 : sameDayDuration + 86_400;
 }
 
 export function AvailabilitySearchForm({
@@ -279,10 +280,18 @@ export function AvailabilitySearchForm({
           }}
           value={[bookingMode]}
         >
-          <ToggleGroupItem aria-label={translate(locale, 'search.modeHourly')} value="hourly">
+          <ToggleGroupItem
+            aria-label={translate(locale, 'search.modeHourly')}
+            data-testid="availability-mode-hourly"
+            value="hourly"
+          >
             {translate(locale, 'search.modeHourly')}
           </ToggleGroupItem>
-          <ToggleGroupItem aria-label={translate(locale, 'search.modeOvernight')} value="overnight">
+          <ToggleGroupItem
+            aria-label={translate(locale, 'search.modeOvernight')}
+            data-testid="availability-mode-overnight"
+            value="overnight"
+          >
             {translate(locale, 'search.modeOvernight')}
           </ToggleGroupItem>
         </ToggleGroup>
@@ -293,6 +302,7 @@ export function AvailabilitySearchForm({
                 {translate(locale, 'search.hourlyDate')}
               </FieldLabel>
               <Input
+                data-testid="availability-hourly-date"
                 id="hourly-date"
                 name="hourlyDate"
                 disabled={!isHydrated}
@@ -308,6 +318,7 @@ export function AvailabilitySearchForm({
               </FieldLabel>
               <Input
                 aria-invalid={hourlyStart !== '' && !timeParts(hourlyStart)}
+                data-testid="availability-hourly-start"
                 id="hourly-start"
                 name="hourlyStart"
                 disabled={!isHydrated}
@@ -328,6 +339,7 @@ export function AvailabilitySearchForm({
               <FieldLabel htmlFor="hourly-end">{translate(locale, 'search.hourlyEnd')}</FieldLabel>
               <Input
                 aria-invalid={hourlyEnd !== '' && !timeParts(hourlyEnd)}
+                data-testid="availability-hourly-end"
                 id="hourly-end"
                 name="hourlyEnd"
                 disabled={!isHydrated}
@@ -390,6 +402,7 @@ export function AvailabilitySearchForm({
                 {translate(locale, 'search.checkIn')}
               </FieldLabel>
               <Input
+                data-testid="availability-overnight-date"
                 id="overnight-date"
                 name="overnightDate"
                 disabled={!isHydrated}
@@ -429,6 +442,7 @@ export function AvailabilitySearchForm({
           <Field>
             <FieldLabel htmlFor="adults">{translate(locale, 'search.adults')}</FieldLabel>
             <Input
+              data-testid="availability-adults"
               id="adults"
               name="adults"
               min="1"
@@ -442,6 +456,7 @@ export function AvailabilitySearchForm({
           <Field>
             <FieldLabel htmlFor="children">{translate(locale, 'search.children')}</FieldLabel>
             <Input
+              data-testid="availability-children"
               id="children"
               name="children"
               min="0"
@@ -452,7 +467,7 @@ export function AvailabilitySearchForm({
               value={children}
             />
           </Field>
-          <Button disabled={!isHydrated} size="lg" type="submit">
+          <Button data-testid="availability-submit" disabled={!isHydrated} size="lg" type="submit">
             {translate(locale, 'search.submit')}
           </Button>
         </FieldGroup>

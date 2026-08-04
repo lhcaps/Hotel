@@ -3,6 +3,7 @@ import { expect, test, type Page, type Request } from '@playwright/test';
 import { setSimulatorMode } from './_fixtures/payment-test-helpers.mjs';
 import { createHoldsForUi, fetchOtpFor } from './_fixtures/booking-otp.mjs';
 import { assertSafePaymentRedirect } from './_fixtures/payment-redirect-helper.mjs';
+import { fillHourlySearch } from './public-search-helpers';
 
 const OIDC_BASE_URL = process.env.PLAYWRIGHT_TEST_OIDC_BASE_URL;
 
@@ -110,10 +111,11 @@ test.describe('phase1 browser api seams', () => {
     });
 
     await goToLanding(page);
-    await page.getByLabel('Nhận phòng').fill('2027-05-01T11:00');
-    await page.getByLabel('Trả phòng').fill('2027-05-01T14:00');
-    await page.getByLabel('Người lớn').fill('2');
-    await page.getByRole('button', { name: 'Tìm phòng' }).click();
+    await fillHourlySearch(page, {
+      date: '2027-05-01',
+      start: '11:00:00',
+      end: '14:00:00',
+    });
 
     await expect(page.getByText('Không còn phòng đúng thời gian bạn chọn')).toBeVisible({
       timeout: 15_000,
@@ -176,10 +178,11 @@ test.describe('phase1 browser api seams', () => {
     });
 
     await goToLanding(page);
-    await page.getByLabel('Nhận phòng').fill('2027-07-31T23:00');
-    await page.getByLabel('Trả phòng').fill('2027-08-01T02:00');
-    await page.getByLabel('Người lớn').fill('2');
-    await page.getByRole('button', { name: 'Tìm phòng' }).click();
+    await fillHourlySearch(page, {
+      date: '2027-07-31',
+      start: '23:00:00',
+      end: '02:00:00',
+    });
 
     await expect(page.getByText('Không còn phòng đúng thời gian bạn chọn')).toBeVisible({
       timeout: 15_000,

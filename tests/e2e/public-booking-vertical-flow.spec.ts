@@ -192,7 +192,7 @@ test.describe('public booking vertical flow', () => {
     // 2-3. Navigate to the quote page; verify pricing display.
     await page.goto(`/booking/quote/${quote.id}`);
     await expect(page.getByRole('heading', { name: 'Thanh toán & đặt phòng' })).toBeVisible();
-    await expect(page.getByText('Deluxe')).toBeVisible();
+    await expect(page.getByText('Nami')).toBeVisible();
     await expect(page.locator('strong.font-mono')).toContainText(expectedAmount);
 
     // 4-5. Fill the contact form, select a demo provider, and start the
@@ -298,7 +298,7 @@ test.describe('public booking vertical flow', () => {
     // prior admin specs running in the same session, so we match the prefix.
     const bookingDetail = page.getByTestId('guest-booking-detail');
     await expect(bookingDetail.getByText(/Playwright Hotel/)).toBeVisible({ timeout: 30_000 });
-    await expect(bookingDetail.getByText('Deluxe')).toBeVisible();
+    await expect(bookingDetail.getByText('Nami')).toBeVisible();
     await expect(bookingDetail.getByText(/Playwright Vertical/)).toBeVisible();
     const atIdx = RECIPIENT_EMAIL.indexOf('@');
     const maskedLocal = `${RECIPIENT_EMAIL[0]}${'*'.repeat(atIdx - 2)}${RECIPIENT_EMAIL[atIdx - 1]}`;

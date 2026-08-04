@@ -22,6 +22,7 @@ import {
   setSimulatorMode,
   waitFor,
 } from './_fixtures/payment-test-helpers.mjs';
+import { fillHourlySearch } from './public-search-helpers';
 
 const WEB_BASE = process.env.PAYMENT_TEST_WEB_BASE ?? 'http://127.0.0.1:3100';
 const API_BASE = process.env.PAYMENT_TEST_API_BASE ?? 'http://127.0.0.1:3101/api/v1';
@@ -170,7 +171,7 @@ test.describe('Phase 2 customer browser vertical', () => {
   });
 
   test('B. browse-only room detail renders in-page availability CTA', async ({ page }) => {
-    await page.goto(`/rooms/${ROOM_TYPE_ID}`);
+    await page.goto('/rooms/rose');
     await expect(page.getByTestId('room-detail-browse-cta')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId('room-detail-browse-cta')).toContainText(
       'Kiểm tra tình trạng phòng',
@@ -537,9 +538,9 @@ test.describe('Phase 2 customer browser vertical', () => {
 
     // 1. Open landing page.
     await page.goto('/');
-    await expect(page.getByTestId('landing-featured-rooms')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('landing-tier-summary')).toBeVisible({ timeout: 15_000 });
     // Real DB room cards must be present (the landing uses the truthful catalog).
-    const featured = page.getByTestId('landing-featured-rooms');
+    const featured = page.getByTestId('landing-tier-summary');
     await expect(featured.locator('article')).not.toHaveCount(0);
 
     // 2. Fill the availability form on the landing page (overnight mode is
@@ -549,12 +550,14 @@ test.describe('Phase 2 customer browser vertical', () => {
     const checkOutDate = new Date(checkInDate.getTime() + 24 * 60 * 60_000);
     const checkInLocal = `${formatDateOnly(checkInDate)}T14:00`;
     const checkOutLocal = `${formatDateOnly(checkOutDate)}T12:00`;
-    await page.getByLabel('Nhận phòng').fill(checkInLocal);
-    await page.getByLabel('Trả phòng').fill(checkOutLocal);
-    await page.getByLabel('Người lớn').fill('2');
-    await page.getByLabel('Trẻ em').fill('0');
+    await fillHourlySearch(page, {
+      date: formatDateOnly(checkInDate),
+      start: '14:00:00',
+      end: '12:00:00',
+      adults: '2',
+      children: '0',
+    });
     // 3. Submit exact search.
-    await page.getByRole('button', { name: 'Tìm phòng' }).click();
     await expect(page.getByTestId('availability-room-' + ROOM_TYPE_ID)).toBeVisible({
       timeout: 30_000,
     });
