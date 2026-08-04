@@ -339,7 +339,7 @@ function createRateLimiter({ max, windowMs }) {
   };
 }
 
-async function checkoutPage({ provider, orderId, amount, confirmPath, checkoutUrl }) {
+async function checkoutPage({ provider, orderId, amount, confirmPath, confirmToken, checkoutUrl }) {
   const paymentQr = await QRCode.toDataURL(checkoutUrl, {
     errorCorrectionLevel: 'M',
     margin: 1,
@@ -351,7 +351,7 @@ async function checkoutPage({ provider, orderId, amount, confirmPath, checkoutUr
 <body><h1>${escapeHtml(provider)} demo payment</h1><aside><strong>DEMO — NO REAL MONEY.</strong> This screen only verifies the Room Management demo flow. Do not enter bank, card, or wallet credentials.</aside>
 <p>Order <code>${escapeHtml(orderId)}</code></p><p>Amount <strong>${escapeHtml(amount)} VND</strong></p>
 <section class="payment-qr" aria-label="Payment QR"><h2>Payment QR</h2><img alt="Payment QR code" src="${escapeHtml(paymentQr)}"><p>Scan to open this demo checkout on another device.</p></section>
-<form method="post" action="${escapeHtml(confirmPath)}"><button type="submit">Confirm demo payment</button></form>
+<form method="post" action="${escapeHtml(confirmPath)}"><input type="hidden" name="orderId" value="${escapeHtml(orderId)}"><input type="hidden" name="token" value="${escapeHtml(confirmToken)}"><button type="submit">Confirm demo payment</button></form>
 <p>You may close this page to cancel. No money will be charged.</p></body></html>`;
 }
 
@@ -665,8 +665,8 @@ export function createPaymentDemoServer(environment) {
           provider: 'MoMo',
           orderId: order.orderId,
           amount: order.amount,
-          confirmPath:
-            `/momo-test/confirm?orderId=${encodeURIComponent(order.orderId)}` + tokenSuffix,
+          confirmPath: '/momo-test/confirm',
+          confirmToken: token,
           checkoutUrl:
             `${environment.publicOrigin}/momo-test/pay?orderId=${encodeURIComponent(order.orderId)}` +
             tokenSuffix,
@@ -676,9 +676,15 @@ export function createPaymentDemoServer(environment) {
       return;
     }
     if (pathname === '/momo-test/confirm' && request.method === 'POST') {
+      const form = await readForm(request);
+      const confirmationUrl = new URL(request.url ?? '/', environment.publicOrigin);
+      for (const key of ['orderId', 'token']) {
+        const value = form.get(key);
+        if (value !== null) confirmationUrl.searchParams.set(key, value);
+      }
       let order;
       try {
-        order = requireCheckoutBooking(orders, environment, requestUrl, 'momo');
+        order = requireCheckoutBooking(orders, environment, confirmationUrl, 'momo');
       } catch {
         json(response, 400, { error: 'invalid checkout confirmation' });
         return;
@@ -723,9 +729,8 @@ export function createPaymentDemoServer(environment) {
           provider: 'VNPAY',
           orderId: order.orderId,
           amount: order.amount,
-          confirmPath:
-            `/vnpay-test/confirm?orderId=${encodeURIComponent(order.orderId)}` +
-            `&token=${encodeURIComponent(token)}`,
+          confirmPath: '/vnpay-test/confirm',
+          confirmToken: token,
           checkoutUrl: `${environment.publicOrigin}${requestUrl.pathname}${requestUrl.search}`,
         }),
         environment.publicOrigin,
@@ -733,9 +738,15 @@ export function createPaymentDemoServer(environment) {
       return;
     }
     if (pathname === '/vnpay-test/confirm' && request.method === 'POST') {
+      const form = await readForm(request);
+      const confirmationUrl = new URL(request.url ?? '/', environment.publicOrigin);
+      for (const key of ['orderId', 'token']) {
+        const value = form.get(key);
+        if (value !== null) confirmationUrl.searchParams.set(key, value);
+      }
       let order;
       try {
-        order = requireCheckoutBooking(orders, environment, requestUrl, 'vnpay');
+        order = requireCheckoutBooking(orders, environment, confirmationUrl, 'vnpay');
       } catch {
         json(response, 400, { error: 'invalid checkout confirmation' });
         return;

@@ -17,6 +17,12 @@ function extractFormAction(html) {
   return match[1].replaceAll('&amp;', '&');
 }
 
+function extractHiddenInput(html, name) {
+  const match = new RegExp(`<input type="hidden" name="${name}" value="([^"]+)">`, 'u').exec(html);
+  assert.ok(match?.[1], `${name} hidden input must be present`);
+  return match[1];
+}
+
 function vnpayCanonical(fields) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(fields).sort(([left], [right]) =>
@@ -158,14 +164,24 @@ test('requires a private token to map an order, then settles and redirects a MoM
     assert.match(checkoutPage.body, /alt="Payment QR code"/u);
     assert.match(checkoutPage.body, /data:image\/png;base64,/u);
     const confirmationPath = extractFormAction(checkoutPage.body);
+    const confirmationBody = new URLSearchParams({
+      orderId: 'order-001',
+      token: extractHiddenInput(checkoutPage.body, 'token'),
+    }).toString();
 
-    const confirmed = await send(port, 'POST', confirmationPath);
+    const confirmed = await send(port, 'POST', confirmationPath, {
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: confirmationBody,
+    });
     assert.equal(confirmed.status, 303);
     assert.equal(confirmed.headers.location, 'https://example.test/booking/manage/BOOK-001');
     assert.equal(callbacks.length, 1);
     assert.match(callbacks[0].body, /"signature":"[a-f0-9]{64}"/);
 
-    const duplicate = await send(port, 'POST', confirmationPath);
+    const duplicate = await send(port, 'POST', confirmationPath, {
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: confirmationBody,
+    });
     assert.equal(duplicate.status, 303);
     assert.equal(callbacks.length, 1, 'a duplicate browser confirmation must not re-send the IPN');
 
@@ -258,13 +274,20 @@ test('reconstructs a signed VNPAY booking mapping after payment-demo restart', a
     const checkout = await send(port, 'GET', `/vnpay-test/pay?${params.toString()}`);
     assert.equal(checkout.status, 200);
     const confirmationPath = extractFormAction(checkout.body);
-    assert.match(confirmationPath, /token=/u);
+    assert.equal(confirmationPath, '/vnpay-test/confirm');
+    const confirmationBody = new URLSearchParams({
+      orderId: 'VNPAY-order-001',
+      token: extractHiddenInput(checkout.body, 'token'),
+    }).toString();
 
     await close(service);
     service = createPaymentDemoServer(environment);
     port = await listen(service);
 
-    const confirmed = await send(port, 'POST', confirmationPath);
+    const confirmed = await send(port, 'POST', confirmationPath, {
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: confirmationBody,
+    });
     assert.equal(confirmed.status, 303);
     assert.equal(confirmed.headers.location, 'https://example.test/booking/manage/BOOK-VNPAY-001');
     assert.equal(callbacks.length, 1);
