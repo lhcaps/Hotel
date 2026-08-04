@@ -268,6 +268,20 @@ function momoCanonical(fields) {
     .join('&');
 }
 
+function momoResponseCanonical(fields) {
+  return [
+    `accessKey=${fields.accessKey}`,
+    `amount=${fields.amount}`,
+    `message=${fields.message}`,
+    `orderId=${fields.orderId}`,
+    `partnerCode=${fields.partnerCode}`,
+    `payUrl=${fields.payUrl}`,
+    `requestId=${fields.requestId}`,
+    `responseTime=${fields.responseTime}`,
+    `resultCode=${fields.resultCode}`,
+  ].join('&');
+}
+
 function vnpayCanonical(fields) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(fields)
@@ -585,7 +599,7 @@ export function createPaymentDemoServer(environment) {
         responseTime: Date.now(),
         resultCode: 0,
       };
-      const responseCanonical = momoCanonical({
+      const responseCanonical = momoResponseCanonical({
         accessKey: environment.momoAccessKey,
         ...responseFields,
       });

@@ -90,6 +90,9 @@ test('fully substituted production template satisfies every service environment 
 test('former sandbox and payment-demo callback topology is rejected without exposing secrets', () => {
   const environment = {
     ...substitutedProductionEnvironment(),
+    PAYMENT_DEMO_ENABLED: 'true',
+    MOMO_ENABLED: 'true',
+    VNPAY_ENABLED: 'true',
     MOMO_ENVIRONMENT: 'sandbox',
     MOMO_API_BASE_URL: 'https://test-payment.momo.vn',
     MOMO_RETURN_URL: 'https://payments.room.example.test/momo/return',

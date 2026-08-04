@@ -120,6 +120,18 @@ test('requires a private token to map an order, then settles and redirects a MoM
     assert.equal(created.status, 200);
     const checkout = JSON.parse(created.body);
     assert.match(checkout.payUrl, /^https:\/\/payments\.example\.test\/momo-test\/pay/);
+    const responseCanonical = [
+      `accessKey=${environment.momoAccessKey}`,
+      `amount=${checkout.amount}`,
+      `message=${checkout.message}`,
+      `orderId=${checkout.orderId}`,
+      `partnerCode=${checkout.partnerCode}`,
+      `payUrl=${checkout.payUrl}`,
+      `requestId=${checkout.requestId}`,
+      `responseTime=${checkout.responseTime}`,
+      `resultCode=${checkout.resultCode}`,
+    ].join('&');
+    assert.equal(checkout.signature, hmac(environment.momoSecretKey, responseCanonical));
 
     const rejected = await send(port, 'POST', '/__internal/order-mapping', {
       headers: { 'content-type': 'application/json' },
