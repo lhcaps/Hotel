@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createCancellationPolicySnapshot,
   evaluateCancellationPolicy,
+  toCancellationPolicyDisplaySnapshot,
 } from './cancellation-policy.js';
 
 const checkIn = new Date('2026-08-20T12:00:00.000Z');
@@ -17,6 +18,20 @@ describe('cancellation policy snapshot', () => {
     expect(snapshot.refundBasis).toBe('PAID_AMOUNT');
     expect(snapshot.sevenDayDeadline).toBe('2026-08-13T12:00:00.000Z');
     expect(snapshot.threeDayDeadline).toBe('2026-08-17T12:00:00.000Z');
+  });
+
+  it('projects a contract-safe display snapshot without internal refund bands', () => {
+    const display = toCancellationPolicyDisplaySnapshot(snapshot);
+    expect(display).toEqual({
+      code: 'PEACENEST_STANDARD_V1',
+      version: 1,
+      timezone: 'Asia/Ho_Chi_Minh',
+      refundBasis: 'PAID_AMOUNT',
+      capturedAt: '2026-08-01T00:00:00.000Z',
+      checkIn: '2026-08-20T12:00:00.000Z',
+      sevenDayDeadline: '2026-08-13T12:00:00.000Z',
+      threeDayDeadline: '2026-08-17T12:00:00.000Z',
+    });
   });
 
   it.each([

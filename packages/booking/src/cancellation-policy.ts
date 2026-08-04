@@ -26,6 +26,23 @@ export interface CancellationPolicySnapshot {
   ];
 }
 
+export type CancellationPolicyDisplaySnapshot = Omit<CancellationPolicySnapshot, 'bands'>;
+
+export function toCancellationPolicyDisplaySnapshot(
+  snapshot: CancellationPolicySnapshot,
+): CancellationPolicyDisplaySnapshot {
+  return {
+    code: snapshot.code,
+    version: snapshot.version,
+    timezone: snapshot.timezone,
+    refundBasis: snapshot.refundBasis,
+    capturedAt: snapshot.capturedAt,
+    checkIn: snapshot.checkIn,
+    sevenDayDeadline: snapshot.sevenDayDeadline,
+    threeDayDeadline: snapshot.threeDayDeadline,
+  };
+}
+
 export interface CancellationEvaluation {
   readonly eligible: boolean;
   readonly outcome: 'NO_CHARGE' | 'REVIEW_REQUIRED' | 'NO_REFUND' | 'NOT_ELIGIBLE';

@@ -26,6 +26,7 @@ export interface BookingDetailRecord {
   readonly fullName: string;
   readonly normalizedEmail: string;
   readonly normalizedPhoneE164: string;
+  readonly cancellationPolicySnapshot: unknown;
   readonly coupon: BookingDetailCouponSnapshot | null;
 }
 
@@ -70,6 +71,7 @@ interface DetailRow {
   full_name: string;
   normalized_email: string;
   normalized_phone_e164: string;
+  cancellation_policy_snapshot: unknown;
   coupon_code: string | null;
   coupon_discount_type: 'FIXED' | 'PERCENTAGE' | null;
   coupon_gross_amount_vnd: string | number | bigint | null;
@@ -150,6 +152,7 @@ export function toBookingDetailRecord(row: DetailRow): BookingDetailRecord {
     fullName: row.full_name,
     normalizedEmail: row.normalized_email,
     normalizedPhoneE164: row.normalized_phone_e164,
+    cancellationPolicySnapshot: row.cancellation_policy_snapshot,
     coupon: readCoupon(row),
   };
 }
@@ -185,6 +188,7 @@ export class BookingDetailRepository {
                 bc.full_name    AS full_name,
                 bc.normalized_email AS normalized_email,
                 bc.normalized_phone_e164 AS normalized_phone_e164,
+                b.cancellation_policy_snapshot AS cancellation_policy_snapshot,
                 bca.coupon_code_snapshot AS coupon_code,
                 bca.discount_type   AS coupon_discount_type,
                 bca.gross_amount_vnd AS coupon_gross_amount_vnd,

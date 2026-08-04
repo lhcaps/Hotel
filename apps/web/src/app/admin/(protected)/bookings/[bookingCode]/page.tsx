@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
 import { AdminApiError, adminApi, type AdminBookingDetail } from '../../../../../lib/admin-api';
 import { CouponDeliveryAction } from '../../../../../components/coupon-delivery-action';
+import { CancellationPolicySummary } from '../../../../../components/cancellation-policy-summary';
 import { useLocale } from '../../../../../components/locale-provider';
 import {
   formatDateTime,
@@ -168,6 +169,10 @@ export default function AdminBookingDetailPage() {
               : ` · ${formatVnd(locale, detail.payment.amountVnd)}`}
           </dd>
         </dl>
+      </section>
+
+      <section className="admin-card">
+        <CancellationPolicySummary policy={detail.cancellationPolicy} />
       </section>
 
       <section className="admin-card">

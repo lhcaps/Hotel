@@ -35,7 +35,9 @@ export {
   CANCELLATION_THREE_DAY_SECONDS,
   createCancellationPolicySnapshot,
   evaluateCancellationPolicy,
+  toCancellationPolicyDisplaySnapshot,
   type CancellationEvaluation,
+  type CancellationPolicyDisplaySnapshot,
   type CancellationPolicySnapshot,
 } from './cancellation-policy.js';
 

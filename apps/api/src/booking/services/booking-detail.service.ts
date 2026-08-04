@@ -1,5 +1,9 @@
 import { Buffer } from 'node:buffer';
-import { maskEmailForDisplay } from '@room/booking';
+import {
+  maskEmailForDisplay,
+  toCancellationPolicyDisplaySnapshot,
+  type CancellationPolicySnapshot,
+} from '@room/booking';
 import {
   bookingDetailResponseSchema,
   bookingHoldCouponSummarySchema,
@@ -29,6 +33,7 @@ function maskPhone(phoneE164: string): string {
 }
 
 function toResponse(record: BookingDetailRecord, serverTime: Date): BookingDetailResponse {
+  const cancellationPolicy = readCancellationPolicySnapshot(record.cancellationPolicySnapshot);
   const coupon = record.coupon
     ? bookingHoldCouponSummarySchema.parse({
         code: record.coupon.code,
@@ -63,9 +68,29 @@ function toResponse(record: BookingDetailRecord, serverTime: Date): BookingDetai
       emailMasked: maskEmailForDisplay(record.normalizedEmail),
       phoneMasked: maskPhone(record.normalizedPhoneE164),
     },
+    cancellationPolicy:
+      cancellationPolicy === null ? null : toCancellationPolicyDisplaySnapshot(cancellationPolicy),
     ...(coupon !== undefined ? { coupon } : {}),
     serverTime: serverTime.toISOString(),
   });
+}
+
+function readCancellationPolicySnapshot(value: unknown): CancellationPolicySnapshot | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const candidate = value as Partial<CancellationPolicySnapshot>;
+  if (
+    candidate.code !== 'PEACENEST_STANDARD_V1' ||
+    candidate.version !== 1 ||
+    typeof candidate.timezone !== 'string' ||
+    candidate.refundBasis !== 'PAID_AMOUNT' ||
+    typeof candidate.capturedAt !== 'string' ||
+    typeof candidate.checkIn !== 'string' ||
+    typeof candidate.sevenDayDeadline !== 'string' ||
+    typeof candidate.threeDayDeadline !== 'string'
+  ) {
+    return null;
+  }
+  return value as CancellationPolicySnapshot;
 }
 
 export class BookingDetailService {

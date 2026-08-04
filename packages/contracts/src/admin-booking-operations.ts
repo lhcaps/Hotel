@@ -190,6 +190,7 @@ export const adminBookingDetailSchema = z
       .strict()
       .nullable(),
     roomStatus: adminRoomOperationalStatusSchema.nullable(),
+    cancellationPolicy: cancellationPolicySchema.nullable(),
     interval: z
       .object({
         checkIn: instantSchema,

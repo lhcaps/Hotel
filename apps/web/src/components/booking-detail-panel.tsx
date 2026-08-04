@@ -8,6 +8,7 @@ import { CouponSummary } from './coupon-summary';
 import { PaymentProviderSelector } from './payment-provider-selector';
 import { PaymentStatusSummary } from './payment-status-summary';
 import { BookingAccessPassPanel } from './booking-access-pass-panel';
+import { CancellationPolicySummary } from './cancellation-policy-summary';
 import { formatDateTime, formatVnd, translate, translatePaymentStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 
@@ -196,6 +197,11 @@ export function BookingDetailPanel({ bookingCode, email, onLogout }: BookingDeta
           <CouponSummary coupon={booking.coupon} testId="detail-coupon-summary" />
         </div>
       ) : null}
+
+      <CancellationPolicySummary
+        className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4"
+        policy={booking.cancellationPolicy}
+      />
 
       {booking.status === 'HOLD' && booking.amountVnd > 0 ? (
         <PaymentProviderSelector bookingCode={booking.bookingCode} />

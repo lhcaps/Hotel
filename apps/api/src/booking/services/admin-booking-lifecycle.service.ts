@@ -27,6 +27,7 @@ import {
 import {
   evaluateCancellationPolicy,
   maskEmailForDisplay,
+  toCancellationPolicyDisplaySnapshot,
   type CancellationPolicySnapshot,
 } from '@room/booking';
 
@@ -127,6 +128,7 @@ function toAdminBookingDetail(
   timeline: readonly AdminBookingTimelineRow[],
   now: Date,
 ): AdminBookingDetail {
+  const cancellationPolicy = readCancellationPolicySnapshot(row.cancellationPolicySnapshot);
   return adminBookingDetailSchema.parse({
     bookingCode: row.bookingCode,
     status: row.status,
@@ -152,6 +154,8 @@ function toAdminBookingDetail(
         ? null
         : { id: row.roomId, roomNumber: row.roomNumber },
     roomStatus: row.roomStatus,
+    cancellationPolicy:
+      cancellationPolicy === null ? null : toCancellationPolicyDisplaySnapshot(cancellationPolicy),
     interval: {
       checkIn: row.checkIn.toISOString(),
       checkOut: row.checkOut.toISOString(),

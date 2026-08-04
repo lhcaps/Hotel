@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { bookingHoldCouponSummarySchema } from './hold.js';
+import { cancellationPolicySchema } from '../pricing.js';
 
 const instantSchema = z.string().datetime({ offset: true });
 
@@ -43,6 +44,7 @@ export const bookingDetailResponseSchema = z
         phoneMasked: z.string().min(3).max(32),
       })
       .strict(),
+    cancellationPolicy: cancellationPolicySchema.nullable(),
     coupon: bookingHoldCouponSummarySchema.optional(),
     serverTime: instantSchema,
   })

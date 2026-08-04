@@ -5,6 +5,7 @@ import type { BookingDetailResponse, PaymentStatusResponse } from '@room/contrac
 
 import { CouponSummary } from './coupon-summary';
 import { BookingAccessPassPanel } from './booking-access-pass-panel';
+import { CancellationPolicySummary } from './cancellation-policy-summary';
 import { useLocale } from './locale-provider';
 import { formatDateTime, formatVnd, translate } from '../lib/i18n/messages';
 
@@ -87,6 +88,11 @@ export function ConfirmedSuccessPanel({ booking, payment }: ConfirmedSuccessPane
           <CouponSummary coupon={booking.coupon} testId="success-coupon-summary" />
         </div>
       ) : null}
+
+      <CancellationPolicySummary
+        className="mt-6 rounded-md border border-emerald-200 bg-white/70 p-4"
+        policy={booking.cancellationPolicy}
+      />
 
       <BookingAccessPassPanel bookingCode={booking.bookingCode} />
 

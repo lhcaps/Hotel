@@ -786,6 +786,16 @@ export interface AdminBookingDetail {
   };
   readonly room: { readonly id: string; readonly roomNumber: string } | null;
   readonly roomStatus: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE' | null;
+  readonly cancellationPolicy: {
+    readonly code: string;
+    readonly version: number;
+    readonly timezone: string;
+    readonly refundBasis: 'PAID_AMOUNT';
+    readonly capturedAt: string;
+    readonly checkIn: string;
+    readonly sevenDayDeadline: string;
+    readonly threeDayDeadline: string;
+  } | null;
   readonly interval: { readonly checkIn: string; readonly checkOut: string };
   readonly pricing: AdminBookingPricing;
   readonly payment: AdminBookingPaymentSummary;
@@ -817,6 +827,7 @@ export interface AdminBookingCancellationPreview {
     readonly code: string;
     readonly version: number;
     readonly timezone: string;
+    readonly refundBasis: 'PAID_AMOUNT';
     readonly capturedAt: string;
     readonly checkIn: string;
     readonly sevenDayDeadline: string;

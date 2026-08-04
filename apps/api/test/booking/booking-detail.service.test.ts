@@ -38,6 +38,7 @@ function record(overrides: Partial<BookingDetailRecord> = {}): BookingDetailReco
     fullName: 'Nguyen Van A',
     normalizedEmail: 'anna@example.com',
     normalizedPhoneE164: '+84909000000',
+    cancellationPolicySnapshot: null,
     coupon: null,
     ...overrides,
   };

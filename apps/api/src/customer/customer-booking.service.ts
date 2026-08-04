@@ -24,7 +24,11 @@ import {
   type BookingAccessPassResponse,
   type CustomerCancellationPolicy,
 } from '@room/contracts';
-import { evaluateCancellationPolicy, type CancellationPolicySnapshot } from '@room/booking';
+import {
+  evaluateCancellationPolicy,
+  toCancellationPolicyDisplaySnapshot,
+  type CancellationPolicySnapshot,
+} from '@room/booking';
 
 import { QuoteService } from '../pricing/quote.service.js';
 import {
@@ -175,6 +179,7 @@ export class CustomerBookingService {
       .where(eq(payments.bookingId, row.id))
       .limit(1);
     const paymentStatus = paymentRows[0]?.status ?? 'NONE';
+    const cancellationPolicy = readCancellationPolicySnapshot(row.cancellationPolicySnapshot);
     return customerBookingDetailSchema.parse({
       bookingId: row.id,
       bookingCode: row.bookingCode,
@@ -190,7 +195,10 @@ export class CustomerBookingService {
       paymentStatus,
       roomType: { id: row.roomTypeId, name: row.roomTypeName },
       offer: readOffer(row.priceSnapshot),
-      cancellationPolicy: readCancellationPolicySnapshot(row.cancellationPolicySnapshot),
+      cancellationPolicy:
+        cancellationPolicy === null
+          ? null
+          : toCancellationPolicyDisplaySnapshot(cancellationPolicy),
       cancellationRefundState: row.cancellationRefundState,
       cancellationRefundAmountVnd: row.cancellationRefundAmountVnd?.toString() ?? null,
       cancellationRetainedAmountVnd: row.cancellationRetainedAmountVnd?.toString() ?? null,
@@ -237,7 +245,7 @@ export class CustomerBookingService {
       retainedAmountVnd: evaluation.retainedAmountVnd.toString(),
       refundPercent: evaluation.refundPercent,
       refundBasis: 'PAID_AMOUNT',
-      policy,
+      policy: toCancellationPolicyDisplaySnapshot(policy),
       policyMessage: evaluation.policyMessage,
     });
   }

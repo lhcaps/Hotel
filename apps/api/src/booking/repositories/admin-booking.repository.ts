@@ -41,6 +41,7 @@ export interface AdminBookingDetailRow extends AdminBookingListRow {
   readonly discountAmountVnd: bigint;
   readonly pricingRuleVersion: string | null;
   readonly priceSnapshot: unknown;
+  readonly cancellationPolicySnapshot: unknown;
   readonly holdExpiresAt: Date | null;
   readonly cancelledAt: Date | null;
   readonly checkedInAt: Date | null;
@@ -139,6 +140,7 @@ interface AdminBookingDetailDbRow extends AdminBookingListDbRow {
   discount_amount_vnd: string | number | bigint;
   pricing_rule_version: string | null;
   price_snapshot: unknown;
+  cancellation_policy_snapshot: unknown;
   hold_expires_at: Date | string | null;
   cancelled_at: Date | string | null;
   checked_in_at: Date | string | null;
@@ -309,6 +311,7 @@ function toAdminBookingDetailRow(row: AdminBookingDetailDbRow): AdminBookingDeta
     discountAmountVnd: asBigInt(row.discount_amount_vnd, 'discount_amount_vnd'),
     pricingRuleVersion: row.pricing_rule_version,
     priceSnapshot: row.price_snapshot,
+    cancellationPolicySnapshot: row.cancellation_policy_snapshot,
     holdExpiresAt: asOptionalDate(row.hold_expires_at, 'hold_expires_at'),
     cancelledAt: asOptionalDate(row.cancelled_at, 'cancelled_at'),
     checkedInAt: asOptionalDate(row.checked_in_at, 'checked_in_at'),
@@ -531,6 +534,7 @@ export class AdminBookingRepository {
               b.final_amount_vnd         AS final_amount_vnd,
               b.pricing_rule_version     AS pricing_rule_version,
               b.price_snapshot           AS price_snapshot,
+              b.cancellation_policy_snapshot AS cancellation_policy_snapshot,
               b.hold_expires_at          AS hold_expires_at,
               b.cancelled_at             AS cancelled_at,
               b.checked_in_at            AS checked_in_at,
