@@ -3,6 +3,9 @@
 This Compose file exposes only Caddy on ports 80 and 443. PostgreSQL, Redis,
 the API, worker, web and no-money payment-demo services remain on the private
 Docker network. Caddy exposes the demo service at `PAYMENT_DEMO_DOMAIN`.
+The PostgreSQL 18 cluster volume is mounted at `/var/lib/postgresql`; keep this
+mount target unchanged so the named volume remains authoritative across
+container recreation.
 
 1. Copy `.env.production.example` to `.env.production`, replace placeholders,
    and restrict it to the deployment account (`chmod 600`).
