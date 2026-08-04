@@ -8,6 +8,7 @@ export const PERMISSIONS = [
   'catalog.amenity.read',
   'catalog.amenity.manage',
   'catalog.room.read',
+  'catalog.room.status.read',
   'catalog.room.manage',
   'catalog.maintenance.read',
   'catalog.maintenance.manage',
@@ -22,13 +23,20 @@ export const PERMISSIONS = [
   'booking.review.manage',
   'payment.reconciliation.read',
   'payment.reconciliation.manage',
+  'admin.account.read',
+  'admin.account.manage',
+  'admin.department.read',
+  'admin.department.manage',
+  'admin.audit.read',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
-export type HumanRole = 'ADMIN' | 'CUSTOMER';
+export type HumanRole = 'ADMIN' | 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER' | 'CUSTOMER';
 
 export const ROLE_PERMISSIONS: Readonly<Record<HumanRole, readonly Permission[]>> = {
   ADMIN: PERMISSIONS,
+  SUPER_ADMIN: PERMISSIONS,
+  ROOM_STATUS_VIEWER: ['catalog.property.read', 'catalog.room.read', 'catalog.room.status.read'],
   CUSTOMER: [],
 };
 

@@ -74,6 +74,15 @@
   box-sizing: border-box;
 }
 
+/* Product closure policy: keep public booking and admin surfaces motion-free. */
+*,
+*::before,
+*::after {
+  animation: none !important;
+  scroll-behavior: auto !important;
+  transition: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -93,17 +102,6 @@ button,
 input,
 select {
   font: inherit;
-}
-
-button,
-a,
-input,
-select {
-  transition:
-    border-color 160ms ease,
-    background-color 160ms ease,
-    color 160ms ease,
-    box-shadow 160ms ease;
 }
 
 .public-header {

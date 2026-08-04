@@ -6,6 +6,7 @@ export interface ActorContext {
   readonly displayName: string;
   readonly role: HumanRole;
   readonly permissions: readonly Permission[];
+  readonly departments?: readonly string[];
   readonly sessionId: string;
   readonly sessionExpiresAt: Date;
   readonly requestId: string;
@@ -21,6 +22,8 @@ export function createActorContext(input: {
     readonly status: 'ACTIVE' | 'DISABLED';
   };
   readonly session: { readonly id: string; readonly expiresAt: Date };
+  readonly permissions?: readonly Permission[];
+  readonly departments?: readonly string[];
   readonly requestId: string;
   readonly correlationId?: string;
 }): ActorContext {
@@ -29,7 +32,8 @@ export function createActorContext(input: {
     email: input.user.email,
     displayName: input.user.name,
     role: input.user.role,
-    permissions: ROLE_PERMISSIONS[input.user.role],
+    permissions: input.permissions ?? ROLE_PERMISSIONS[input.user.role],
+    departments: input.departments ?? [],
     sessionId: input.session.id,
     sessionExpiresAt: input.session.expiresAt,
     requestId: input.requestId,

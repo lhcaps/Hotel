@@ -32,4 +32,16 @@ describe('Phase 8B.1 payment reconciliation permissions', () => {
     expect(hasPermissions('CUSTOMER', ['payment.reconciliation.read'])).toBe(false);
     expect(hasPermissions('CUSTOMER', ['payment.reconciliation.manage'])).toBe(false);
   });
+
+  it('keeps room status viewing read-only and reserves account management for super admins', () => {
+    expect(ROLE_PERMISSIONS.ROOM_STATUS_VIEWER).toEqual([
+      'catalog.property.read',
+      'catalog.room.read',
+      'catalog.room.status.read',
+    ]);
+    expect(hasPermissions('ROOM_STATUS_VIEWER', ['catalog.room.status.read'])).toBe(true);
+    expect(hasPermissions('ROOM_STATUS_VIEWER', ['catalog.room.manage'])).toBe(false);
+    expect(hasPermissions('ROOM_STATUS_VIEWER', ['admin.account.read'])).toBe(false);
+    expect(hasPermissions('SUPER_ADMIN', ['admin.account.manage', 'admin.audit.read'])).toBe(true);
+  });
 });

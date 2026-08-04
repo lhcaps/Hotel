@@ -1,4 +1,4 @@
-import type { HumanRole } from '@room/auth';
+import type { HumanRole, Permission } from '@room/auth';
 
 import { createActorContext, type ActorContext } from './actor-context.js';
 
@@ -16,6 +16,11 @@ export interface AuthUserReader {
     name: string;
     role: HumanRole;
     status: 'ACTIVE' | 'DISABLED';
+  } | null>;
+  findAdminAccess?(userId: string): Promise<{
+    readonly role: HumanRole;
+    readonly permissions: readonly Permission[];
+    readonly departments: readonly string[];
   } | null>;
 }
 
@@ -37,10 +42,13 @@ export class AdminSessionService {
     if (user === null || user.status !== 'ACTIVE') {
       return null;
     }
+    const access = await this.users.findAdminAccess?.(user.id);
+    const effectiveRole = access?.role ?? user.role;
     const correlation = request.headers['x-correlation-id'];
     return createActorContext({
-      user,
+      user: { ...user, role: effectiveRole },
       session: session.session,
+      ...(access ? { permissions: access.permissions, departments: access.departments } : {}),
       requestId: request.id,
       ...(typeof correlation === 'string' ? { correlationId: correlation } : {}),
     });

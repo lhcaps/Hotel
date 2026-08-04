@@ -44,6 +44,15 @@ const groups = [
       ['admin.providers', '/admin/payment-providers'],
     ],
   },
+  {
+    label: 'admin.accounts',
+    links: [
+      ['admin.accounts', '/admin/accounts'],
+      ['admin.customerAccounts', '/admin/customer-accounts'],
+      ['admin.departments', '/admin/departments'],
+      ['admin.audit', '/admin/audit'],
+    ],
+  },
 ] as const satisfies readonly {
   readonly label: MessageKey;
   readonly links: readonly (readonly [MessageKey, string])[];
@@ -55,12 +64,54 @@ function isCurrent(pathname: string, href: string) {
     : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AdminNavigation({ locale }: Readonly<{ locale: Locale }>) {
+const requiredPermissionByPath: Readonly<Record<string, string>> = {
+  '/admin/property': 'catalog.property.read',
+  '/admin/rooms': 'catalog.room.read',
+  '/admin/maintenance': 'catalog.maintenance.read',
+  '/admin/room-types': 'catalog.room_type.read',
+  '/admin/amenities': 'catalog.amenity.read',
+  '/admin/accounts': 'admin.account.read',
+  '/admin/customer-accounts': 'admin.account.read',
+  '/admin/departments': 'admin.department.read',
+  '/admin/audit': 'admin.audit.read',
+  '/admin/room-operations': 'catalog.room.read',
+};
+
+export function AdminNavigation({
+  locale,
+  permissions,
+  role,
+}: Readonly<{
+  locale: Locale;
+  permissions?: readonly string[];
+  role?: 'ADMIN' | 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
+}>) {
   const pathname = usePathname();
+  const navigationGroups =
+    role === 'ROOM_STATUS_VIEWER'
+      ? [
+          {
+            label: 'admin.navOperations' as const,
+            links: [['admin.roomOperations', '/admin/room-operations']] as const,
+          },
+        ]
+      : groups;
+  const visibleGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      links: group.links.filter(([label, href]) => {
+        void label;
+        const required = requiredPermissionByPath[href];
+        return (
+          required === undefined || permissions === undefined || permissions.includes(required)
+        );
+      }),
+    }))
+    .filter((group) => group.links.length > 0);
   return (
     <SidebarContent aria-label={translate(locale, 'admin.navigation')}>
       <nav aria-label={translate(locale, 'admin.navigation')}>
-        {groups.map((group) => (
+        {visibleGroups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{translate(locale, group.label)}</SidebarGroupLabel>
             <SidebarGroupContent>

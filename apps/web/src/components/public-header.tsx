@@ -46,7 +46,11 @@ export function PublicHeader({
             : undefined;
         if (!cancelled) {
           setAccountState(
-            role === 'ADMIN' ? 'admin' : role === 'CUSTOMER' ? 'customer' : 'anonymous',
+            role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'ROOM_STATUS_VIEWER'
+              ? 'admin'
+              : role === 'CUSTOMER'
+                ? 'customer'
+                : 'anonymous',
           );
         }
       })

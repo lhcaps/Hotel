@@ -48,9 +48,19 @@ export default async function AdminProtectedLayout({
     redirect('/admin/login');
   }
 
+  const pathname = headerStore.get(PATHNAME_HEADER) ?? '';
+  if (
+    resolution.session.role === 'ROOM_STATUS_VIEWER' &&
+    pathname !== '' &&
+    pathname !== '/admin/room-operations' &&
+    pathname !== '/admin/profile'
+  ) {
+    redirect('/admin/room-operations');
+  }
+
   // Header only exists to silence "unused" warnings; the layout intentionally
   // does not branch on pathname because every nested page is protected.
-  void headerStore.get(PATHNAME_HEADER);
+  void pathname;
 
   return (
     <SidebarProvider className="admin-layout">
@@ -64,11 +74,16 @@ export default async function AdminProtectedLayout({
             <strong>Room Management</strong>
           </Link>
         </SidebarHeader>
-        <AdminNavigation locale={locale} />
+        <AdminNavigation
+          locale={locale}
+          permissions={resolution.session.permissions}
+          role={resolution.session.role}
+        />
       </Sidebar>
       <SidebarInset className="admin-workspace">
         <header className="admin-topbar">
           <span className="admin-topbar__eyebrow">{translate(locale, 'admin.session')}</span>
+          <Link href="/admin/profile">{translate(locale, 'admin.profile')}</Link>
           <AdminLogoutButton />
         </header>
         <div id="admin-content" tabIndex={-1}>

@@ -1,6 +1,8 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { defaultAc } from 'better-auth/plugins/admin/access';
 import { genericOAuth } from 'better-auth/plugins/generic-oauth';
+import { admin } from 'better-auth/plugins/admin';
 import { randomUUID } from 'node:crypto';
 
 import { loopbackOriginAlias } from '@room/config';
@@ -24,6 +26,39 @@ export interface RoomTestGenericOAuthEnvironment {
   readonly scopes?: readonly string[];
 }
 
+export interface AdminUserCreationInput {
+  readonly email: string;
+  readonly name: string;
+  readonly password: string;
+  readonly role: 'ADMIN' | 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
+}
+
+const roomAdminRole = defaultAc.newRole({
+  user: [
+    'create',
+    'list',
+    'set-role',
+    'ban',
+    'delete',
+    'set-password',
+    'set-email',
+    'get',
+    'update',
+  ],
+  session: ['list', 'revoke', 'delete'],
+});
+
+interface CreateUserApi {
+  createUser(input: { body: AdminUserCreationInput }): Promise<{ user: { id: string } }>;
+}
+
+function isCreateUserApi(value: object): value is CreateUserApi {
+  return (
+    'createUser' in value &&
+    typeof (value as { readonly createUser?: unknown }).createUser === 'function'
+  );
+}
+
 export interface RoomAuthEnvironment {
   readonly BETTER_AUTH_SECRET: string;
   readonly WEB_ORIGIN: string;
@@ -41,7 +76,19 @@ export function createRoomAuth(database: DatabaseClient, environment: RoomAuthEn
     }
   }
 
-  const plugins = [];
+  const plugins: Array<ReturnType<typeof admin> | ReturnType<typeof genericOAuth>> = [
+    admin({
+      defaultRole: 'CUSTOMER',
+      adminRoles: ['ADMIN', 'SUPER_ADMIN'],
+      roles: {
+        ADMIN: roomAdminRole,
+        SUPER_ADMIN: roomAdminRole,
+        ROOM_STATUS_VIEWER: defaultAc.newRole({ user: [], session: [] }),
+        CUSTOMER: defaultAc.newRole({ user: [], session: [] }),
+      },
+      allowImpersonatingAdmins: false,
+    }),
+  ];
   if (environment.NODE_ENV === 'test' && environment.testGenericOAuth !== undefined) {
     const testProvider = environment.testGenericOAuth;
     plugins.push(
@@ -130,4 +177,15 @@ export function createRoomAuth(database: DatabaseClient, environment: RoomAuthEn
       },
     },
   });
+}
+
+export async function createAuthAdminUser(
+  auth: ReturnType<typeof createRoomAuth>,
+  input: AdminUserCreationInput,
+): Promise<{ id: string }> {
+  if (!isCreateUserApi(auth.api)) {
+    throw new Error('Better Auth admin user creation is unavailable.');
+  }
+  const result = await auth.api.createUser({ body: input });
+  return { id: result.user.id };
 }

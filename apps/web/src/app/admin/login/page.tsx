@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { adminMeSchema } from '@room/contracts/admin';
 
 import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert';
 import { Button } from '../../../components/ui/button';
@@ -57,7 +58,10 @@ export default function AdminLoginPage() {
         setError(translate(locale, 'admin.loginError'));
         return;
       }
-      router.replace('/admin');
+      const me = adminMeSchema.safeParse(await meResponse.json());
+      router.replace(
+        me.success && me.data.role === 'ROOM_STATUS_VIEWER' ? '/admin/room-operations' : '/admin',
+      );
       router.refresh();
     } catch {
       setError(translate(locale, 'admin.loginError'));
@@ -115,7 +119,9 @@ export default function AdminLoginPage() {
           <CardContent>
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="admin-login-email">Email</FieldLabel>
+                <FieldLabel htmlFor="admin-login-email">
+                  {translate(locale, 'admin.email')}
+                </FieldLabel>
                 <Input
                   autoComplete="email"
                   id="admin-login-email"
