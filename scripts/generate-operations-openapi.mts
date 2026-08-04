@@ -104,6 +104,42 @@ const operations: ReadonlyArray<Operation> = [
     summary: 'Read a booking owned by the authenticated customer.',
   },
   {
+    method: 'post',
+    path: '/api/v1/customer/bookings/{bookingCode}/cancellation-preview',
+    operationId: 'previewCustomerBookingCancellation',
+    summary: 'Preview cancellation eligibility and the server-calculated outcome.',
+  },
+  {
+    method: 'post',
+    path: '/api/v1/customer/bookings/{bookingCode}/alteration-preview',
+    operationId: 'previewCustomerBookingAlteration',
+    summary: 'Preview a booking alteration without mutating the existing booking.',
+  },
+  {
+    method: 'get',
+    path: '/api/v1/customer/bookings/{bookingCode}/access-pass',
+    operationId: 'getCustomerBookingAccessPass',
+    summary: 'Read a signed access pass for an owned confirmed booking.',
+  },
+  {
+    method: 'post',
+    path: '/api/v1/customer/bookings/{bookingCode}/payments/momo/attempts',
+    operationId: 'initiateCustomerMomoPayment',
+    summary: 'Start a MoMo payment attempt for an owned booking.',
+  },
+  {
+    method: 'post',
+    path: '/api/v1/customer/bookings/{bookingCode}/payments/vnpay/attempts',
+    operationId: 'initiateCustomerVnpayPayment',
+    summary: 'Start a VNPAY payment attempt for an owned booking.',
+  },
+  {
+    method: 'get',
+    path: '/api/v1/customer/bookings/{bookingCode}/payment',
+    operationId: 'getCustomerPaymentStatus',
+    summary: 'Read persisted payment status for an owned booking.',
+  },
+  {
     method: 'get',
     path: '/api/v1/customer/profile/session',
     operationId: 'getCustomerSessionStatus',

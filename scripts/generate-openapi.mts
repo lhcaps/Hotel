@@ -12,6 +12,14 @@ import {
   adminBookingCouponDeliverySchema,
   adminBookingAccessPassScanRequestSchema,
   adminBookingAccessPassScanResponseSchema,
+  adminAccountPatchSchema,
+  adminAccountCreateSchema,
+  adminAccountSchema,
+  adminCustomerAccountPatchSchema,
+  adminCustomerAccountSchema,
+  adminAuditResponseSchema,
+  adminDepartmentCommandSchema,
+  adminDepartmentSchema,
   adminMeSchema,
   adminOperationalReportQuerySchema,
   adminOperationalReportSchema,
@@ -324,6 +332,232 @@ const document = {
             description: 'Safe current administrator identity.',
             content: {
               'application/json': { schema: { $ref: '#/components/schemas/AdminMe' } },
+            },
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+        },
+      },
+    },
+    '/api/v1/admin/accounts': {
+      get: {
+        operationId: 'listAdminAccounts',
+        responses: {
+          '200': {
+            description: 'Administrator accounts visible to the current administrator.',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { $ref: '#/components/schemas/AdminAccount' } },
+              },
+            },
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+        },
+      },
+      post: {
+        operationId: 'createAdminAccount',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/AdminAccountCreate' } },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Administrator account created through the server-side auth authority.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AdminAccount' },
+              },
+            },
+          },
+          '400': { $ref: '#/components/responses/ValidationError' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { $ref: '#/components/responses/CatalogConflict' },
+        },
+      },
+    },
+    '/api/v1/admin/accounts/{id}': {
+      patch: {
+        operationId: 'updateAdminAccount',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/AdminAccountPatch' } },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Updated administrator account.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/AdminAccount' } },
+            },
+          },
+          '400': { $ref: '#/components/responses/ValidationError' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '404': { $ref: '#/components/responses/NotFound' },
+        },
+      },
+    },
+    '/api/v1/admin/customer-accounts': {
+      get: {
+        operationId: 'listCustomerAccounts',
+        responses: {
+          '200': {
+            description: 'Customer accounts with masked identity data and operational counts.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/AdminCustomerAccount' },
+                },
+              },
+            },
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+        },
+      },
+    },
+    '/api/v1/admin/customer-accounts/{id}': {
+      patch: {
+        operationId: 'updateCustomerAccount',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AdminCustomerAccountPatch' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Updated customer account.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/AdminCustomerAccount' } },
+            },
+          },
+          '400': { $ref: '#/components/responses/ValidationError' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '404': { $ref: '#/components/responses/NotFound' },
+        },
+      },
+    },
+    '/api/v1/admin/customer-accounts/{id}/revoke-sessions': {
+      post: {
+        operationId: 'revokeCustomerSessions',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          '200': {
+            description: 'All sessions for the customer were revoked.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['userId', 'revokedSessions'],
+                  properties: {
+                    userId: { type: 'string', format: 'uuid' },
+                    revokedSessions: { type: 'integer', minimum: 0 },
+                  },
+                },
+              },
+            },
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '404': { $ref: '#/components/responses/NotFound' },
+        },
+      },
+    },
+    '/api/v1/admin/accounts/{id}/revoke-sessions': {
+      post: {
+        operationId: 'revokeAdminSessions',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          '200': {
+            description: 'All sessions for the administrator were revoked.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['userId', 'revokedSessions'],
+                  properties: {
+                    userId: { type: 'string', format: 'uuid' },
+                    revokedSessions: { type: 'integer', minimum: 0 },
+                  },
+                },
+              },
+            },
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '404': { $ref: '#/components/responses/NotFound' },
+        },
+      },
+    },
+    '/api/v1/admin/departments': {
+      get: {
+        operationId: 'listAdminDepartments',
+        responses: {
+          '200': {
+            description: 'Administrator departments.',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { $ref: '#/components/schemas/AdminDepartment' } },
+              },
+            },
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+        },
+      },
+      post: {
+        operationId: 'createAdminDepartment',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/AdminDepartmentCommand' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Created administrator department.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/AdminDepartment' } },
+            },
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { $ref: '#/components/responses/CatalogConflict' },
+        },
+      },
+    },
+    '/api/v1/admin/audit': {
+      get: {
+        operationId: 'listAdminAudit',
+        responses: {
+          '200': {
+            description: 'Recent administrator audit events.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AdminAuditResponse' },
+              },
             },
           },
           '401': { $ref: '#/components/responses/AuthenticationRequired' },
@@ -1144,6 +1378,14 @@ const document = {
       PaymentProviderAdmin: jsonSchema(paymentProviderAdminSchema),
       PaymentProviderUpdate: jsonSchema(paymentProviderUpdateSchema),
       AdminPaymentDetail: jsonSchema(adminPaymentDetailSchema),
+      AdminAccount: jsonSchema(adminAccountSchema),
+      AdminAccountPatch: jsonSchema(adminAccountPatchSchema),
+      AdminAccountCreate: jsonSchema(adminAccountCreateSchema),
+      AdminCustomerAccount: jsonSchema(adminCustomerAccountSchema),
+      AdminCustomerAccountPatch: jsonSchema(adminCustomerAccountPatchSchema),
+      AdminAuditResponse: jsonSchema(adminAuditResponseSchema),
+      AdminDepartment: jsonSchema(adminDepartmentSchema),
+      AdminDepartmentCommand: jsonSchema(adminDepartmentCommandSchema),
       AdminPaymentListQuery: jsonSchema(adminPaymentListQuerySchema),
       AdminPaymentListResponse: jsonSchema(adminPaymentListResponseSchema),
       AdminPaymentListStatus: jsonSchema(

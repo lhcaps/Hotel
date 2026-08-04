@@ -216,6 +216,90 @@
         }
       }
     },
+    "/api/v1/customer/bookings/{bookingCode}/cancellation-preview": {
+      "post": {
+        "operationId": "previewCustomerBookingCancellation",
+        "summary": "Preview cancellation eligibility and the server-calculated outcome.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}/alteration-preview": {
+      "post": {
+        "operationId": "previewCustomerBookingAlteration",
+        "summary": "Preview a booking alteration without mutating the existing booking.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}/access-pass": {
+      "get": {
+        "operationId": "getCustomerBookingAccessPass",
+        "summary": "Read a signed access pass for an owned confirmed booking.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}/payments/momo/attempts": {
+      "post": {
+        "operationId": "initiateCustomerMomoPayment",
+        "summary": "Start a MoMo payment attempt for an owned booking.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}/payments/vnpay/attempts": {
+      "post": {
+        "operationId": "initiateCustomerVnpayPayment",
+        "summary": "Start a VNPAY payment attempt for an owned booking.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}/payment": {
+      "get": {
+        "operationId": "getCustomerPaymentStatus",
+        "summary": "Read persisted payment status for an owned booking.",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": { "description": "Authorized operation completed." },
+          "401": { "description": "Authentication is required." },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        }
+      }
+    },
     "/api/v1/customer/profile/session": {
       "get": {
         "operationId": "getCustomerSessionStatus",

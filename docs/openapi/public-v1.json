@@ -625,6 +625,55 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
         "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "NO_EXACT_AVAILABILITY",
+              "PRICING_CONFIGURATION_UNAVAILABLE",
+              "CATALOG_UNAVAILABLE",
+              "INVALID_INTERVAL"
+            ]
+          },
+          "policy": {
+            "type": "object",
+            "properties": {
+              "minimumStayMinutes": { "type": "integer", "minimum": 1, "maximum": 44640 },
+              "maximumStayMinutes": { "type": "integer", "minimum": 1, "maximum": 44640 },
+              "minimumLeadTimeMinutes": { "type": "integer", "minimum": 0, "maximum": 44640 },
+              "maximumAdvanceBookingDays": { "type": "integer", "minimum": 0, "maximum": 3650 },
+              "defaultOvernightDurationMinutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 44640
+              }
+            },
+            "required": [
+              "minimumStayMinutes",
+              "maximumStayMinutes",
+              "minimumLeadTimeMinutes",
+              "maximumAdvanceBookingDays",
+              "defaultOvernightDurationMinutes"
+            ],
+            "additionalProperties": false
+          },
+          "requestedInterval": {
+            "type": "object",
+            "properties": {
+              "checkIn": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "checkOut": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "required": ["checkIn", "checkOut"],
+            "additionalProperties": false
+          },
           "items": {
             "type": "array",
             "items": {
@@ -666,6 +715,19 @@
                     },
                     { "type": "null" }
                   ]
+                },
+                "offers": {
+                  "maxItems": 24,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "planLabel": { "type": "string", "minLength": 1, "maxLength": 160 },
+                      "amountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+                    },
+                    "required": ["planLabel", "amountVnd"],
+                    "additionalProperties": false
+                  }
                 }
               },
               "required": [
@@ -796,7 +858,7 @@
                       "pattern": "^[A-Z0-9_]+$"
                     },
                     "amountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-                    "units": { "type": "integer", "minimum": 1, "maximum": 24 }
+                    "units": { "type": "integer", "minimum": 1, "maximum": 168 }
                   },
                   "required": ["code", "amountVnd", "units"],
                   "additionalProperties": false
@@ -873,7 +935,7 @@
                 "type": "string",
                 "minLength": 8,
                 "maxLength": 20,
-                "pattern": "^\\+[1-9]\\d{7,14}$"
+                "pattern": "^(?:\\+[1-9]\\d{7,14}|0(?:3|5|7|8|9)\\d{8})$"
               }
             },
             "required": ["fullName", "email", "phone"],
@@ -1523,7 +1585,7 @@
                           "minimum": 0,
                           "maximum": 9007199254740991
                         },
-                        "units": { "type": "integer", "minimum": 1, "maximum": 24 }
+                        "units": { "type": "integer", "minimum": 1, "maximum": 168 }
                       },
                       "required": ["code", "amountVnd", "units"],
                       "additionalProperties": false
@@ -1727,8 +1789,8 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
-          "durationMinutes": { "type": "integer", "minimum": 60, "maximum": 1440 },
-          "durationSeconds": { "type": "integer", "minimum": 3600, "maximum": 86400 },
+          "durationMinutes": { "type": "integer", "minimum": 1, "maximum": 44640 },
+          "durationSeconds": { "type": "integer", "minimum": 1, "maximum": 2678400 },
           "candidates": {
             "maxItems": 12,
             "type": "array",
@@ -1796,6 +1858,23 @@
                           },
                           { "type": "null" }
                         ]
+                      },
+                      "offers": {
+                        "maxItems": 24,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "planLabel": { "type": "string", "minLength": 1, "maxLength": 160 },
+                            "amountVnd": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": ["planLabel", "amountVnd"],
+                          "additionalProperties": false
+                        }
                       },
                       "description": {
                         "anyOf": [{ "type": "string", "maxLength": 2000 }, { "type": "null" }]
