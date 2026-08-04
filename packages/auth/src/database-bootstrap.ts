@@ -17,8 +17,8 @@ export function createDatabaseBootstrapDependencies(
           .limit(1);
         const known = existing[0];
         if (known !== undefined) {
-          if (known.role !== 'ADMIN') {
-            throw new Error('The bootstrap email belongs to a non-ADMIN user.');
+          if (known.role !== input.role) {
+            throw new Error('The bootstrap email belongs to a different user role.');
           }
           return { id: known.id, created: false };
         }
@@ -48,7 +48,7 @@ export function createDatabaseBootstrapDependencies(
           aggregateId: user.id,
           eventType: 'ADMIN_BOOTSTRAPPED',
           actorType: 'SYSTEM',
-          payload: { email: input.email },
+          payload: { email: input.email, role: input.role },
         });
         return { id: user.id, created: true };
       });

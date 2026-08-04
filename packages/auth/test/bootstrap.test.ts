@@ -29,6 +29,27 @@ describe('bootstrapAdmin', () => {
     expect(JSON.stringify(result)).not.toContain(testPassword);
   });
 
+  it('creates an explicitly requested SUPER_ADMIN without changing the default role', async () => {
+    const createAdmin = vi.fn().mockResolvedValue({ id: 'super-admin-id', created: true });
+
+    await bootstrapAdmin(
+      {
+        email: 'superadmin@example.test',
+        password: testPassword,
+        role: 'SUPER_ADMIN',
+        environment: 'development',
+      },
+      { createAdmin },
+    );
+
+    expect(createAdmin).toHaveBeenCalledWith({
+      email: 'superadmin@example.test',
+      password: testPassword,
+      role: 'SUPER_ADMIN',
+      status: 'ACTIVE',
+    });
+  });
+
   it('is idempotent and rejects weak passwords and unsafe production execution', async () => {
     const dependencies = {
       createAdmin: vi.fn().mockResolvedValue({ id: 'existing-id', created: false }),

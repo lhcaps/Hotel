@@ -1,15 +1,18 @@
 export interface BootstrapAdminInput {
   readonly email: string;
   readonly password: string;
+  readonly role?: BootstrapAdminRole;
   readonly environment: 'development' | 'test' | 'production';
   readonly productionAcknowledged?: boolean;
 }
+
+export type BootstrapAdminRole = 'ADMIN' | 'SUPER_ADMIN';
 
 export interface BootstrapAdminDependencies {
   readonly createAdmin: (input: {
     email: string;
     password: string;
-    role: 'ADMIN';
+    role: BootstrapAdminRole;
     status: 'ACTIVE';
   }) => Promise<{ id: string; created: boolean }>;
 }
@@ -37,12 +40,19 @@ function validatePassword(password: string): void {
   }
 }
 
+function normalizeRole(role: BootstrapAdminRole | undefined): BootstrapAdminRole {
+  if (role === undefined) return 'ADMIN';
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN') return role;
+  throw new BootstrapAdminError('ADMIN bootstrap role must be ADMIN or SUPER_ADMIN.');
+}
+
 export async function bootstrapAdmin(
   input: BootstrapAdminInput,
   dependencies: BootstrapAdminDependencies,
 ): Promise<{ email: string; created: boolean }> {
   const email = normalizeEmail(input.email);
   validatePassword(input.password);
+  const role = normalizeRole(input.role);
   if (input.environment === 'production' && input.productionAcknowledged !== true) {
     throw new BootstrapAdminError(
       'Production ADMIN bootstrap requires explicit operator acknowledgement.',
@@ -52,7 +62,7 @@ export async function bootstrapAdmin(
   const created = await dependencies.createAdmin({
     email,
     password: input.password,
-    role: 'ADMIN',
+    role,
     status: 'ACTIVE',
   });
   return { email, created: created.created };

@@ -6,9 +6,16 @@ plan that touches identity, sessions, or the customer/admin boundary.
 
 ## Roles
 
-- `ADMIN` — full operational access. Granted exclusively through
-  `@room/auth`'s `bootstrapAdmin` script. Never created through Google
-  sign-in.
+- `ADMIN` — full operational access. Granted through
+  `@room/auth`'s `bootstrapAdmin` script or by an authorized
+  `SUPER_ADMIN`. Never created through Google sign-in.
+- `SUPER_ADMIN` — ADMIN access plus account-management authority. It may
+  be established only through an explicitly requested `SUPER_ADMIN`
+  `bootstrapAdmin` invocation with production acknowledgement, or by an
+  existing `SUPER_ADMIN` through the guarded account-management flow.
+- `ROOM_STATUS_VIEWER` — read-only catalog and room-status access. It is not
+  eligible for bootstrap and must be assigned by an authorized
+  `SUPER_ADMIN`.
 - `CUSTOMER` — can sign in with Google (Phase 7F onward), can read
   their own profile and bookings, and can claim guest bookings. Has no
   admin permissions.
