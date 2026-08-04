@@ -19,6 +19,7 @@ import {
   QuotePricingConfigurationError,
   QuoteUnavailableError,
 } from '../src/pricing/quote.service.js';
+import { PricingRuleNotFoundError } from '../src/pricing/pricing-engine.js';
 
 function invoke(error: unknown) {
   const send = vi.fn();
@@ -79,6 +80,9 @@ describe('ProblemDetailsFilter', () => {
     );
     expect(invoke(new QuotePricingConfigurationError()).send).toHaveBeenCalledWith(
       expect.objectContaining({ status: 409, code: 'PRICING_CONFIGURATION_UNAVAILABLE' }),
+    );
+    expect(invoke(new PricingRuleNotFoundError('no matching plan')).send).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 409, code: 'PRICING_RULE_NOT_FOUND' }),
     );
     expect(invoke(new QuoteExpiredError()).send).toHaveBeenCalledWith(
       expect.objectContaining({ status: 409, code: 'QUOTE_EXPIRED' }),

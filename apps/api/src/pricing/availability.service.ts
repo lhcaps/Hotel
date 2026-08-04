@@ -30,23 +30,19 @@ export function offerSummary(
     readonly planLabels: Readonly<Record<string, string>>;
   },
 ) {
-  try {
-    const pricing = calculatePricing(
-      {
-        checkIn: input.checkIn,
-        checkOut: input.checkOut,
-        priceTierCode: source.priceTierCode,
-        timezone: source.propertyTimezone,
-      },
-      source.catalog,
-    );
-    return {
-      planLabel: source.planLabels[pricing.selectedPlanCode] ?? pricing.selectedPlanCode,
-      amountVnd: pricing.totalAmountVnd,
-    };
-  } catch {
-    return null;
-  }
+  const pricing = calculatePricing(
+    {
+      checkIn: input.checkIn,
+      checkOut: input.checkOut,
+      priceTierCode: source.priceTierCode,
+      timezone: source.propertyTimezone,
+    },
+    source.catalog,
+  );
+  return {
+    planLabel: source.planLabels[pricing.selectedPlanCode] ?? pricing.selectedPlanCode,
+    amountVnd: pricing.totalAmountVnd,
+  };
 }
 
 export class AvailabilityService {

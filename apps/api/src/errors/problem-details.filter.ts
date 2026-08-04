@@ -42,6 +42,7 @@ import { BookingAccessPassError } from '../booking/services/booking-access-pass.
 import { CouponDeliveryError } from '../booking/coupon-delivery.errors.js';
 import { PaymentInitiationError } from '../payment/payment.errors.js';
 import { PaymentProviderSettingsError } from '../payment/payment-provider-settings.errors.js';
+import { PricingConfigurationError } from '../pricing/pricing-engine.js';
 
 const logger = createLogger({ service: 'api', environment: process.env.NODE_ENV ?? 'unknown' });
 
@@ -128,13 +129,19 @@ export class ProblemDetailsFilter implements ExceptionFilter {
         detail: 'The requested room type is not available for this interval.',
         ...base,
       };
-    } else if (error instanceof QuotePricingConfigurationError) {
+    } else if (
+      error instanceof QuotePricingConfigurationError ||
+      error instanceof PricingConfigurationError
+    ) {
       status = 409;
       body = {
         type: 'pricing-configuration-unavailable',
         title: 'Pricing configuration unavailable',
         status,
-        code: error.code,
+        code:
+          'code' in error && typeof error.code === 'string'
+            ? error.code
+            : 'PRICING_CONFIGURATION_UNAVAILABLE',
         detail: 'Pricing is not configured for the requested stay.',
         ...base,
       };
