@@ -4,6 +4,22 @@ export const defaultLocale: Locale = 'vi';
 
 const messages = {
   vi: {
+    'profile.accountStatus': '\u0054r\u1ea1ng th\u00e1i t\u00e0i kho\u1ea3n',
+    'profile.activeSession': 'Phi\u00ean hi\u1ec7n t\u1ea1i h\u1ebft h\u1ea1n l\u00fac',
+    'profile.loggingOut': '\u0110ang \u0111\u0103ng xu\u1ea5t\u2026',
+    'profile.logoutError':
+      'Kh\u00f4ng th\u1ec3 \u0111\u0103ng xu\u1ea5t. Vui l\u00f2ng th\u1eed l\u1ea1i.',
+    'account.cancellationPaidAmount': '\u0110\u00e3 thanh to\u00e1n',
+    'account.cancellationRefundAmount': 'Ho\u00e0n d\u1ef1 ki\u1ebfn',
+    'account.cancellationRetainedAmount': 'Gi\u1eef l\u1ea1i d\u1ef1 ki\u1ebfn',
+    'account.cancellationRule7Days':
+      'T\u1eeb 7 ng\u00e0y tr\u01b0\u1edbc gi\u1edd nh\u1eadn ph\u00f2ng: ho\u00e0n 100%.',
+    'account.cancellationRule3Days':
+      'T\u1eeb 3 \u0111\u1ebfn d\u01b0\u1edbi 7 ng\u00e0y: ho\u00e0n 50%.',
+    'account.cancellationRuleUnder3Days':
+      'Trong v\u00f2ng 3 ng\u00e0y: kh\u00f4ng ho\u00e0n ti\u1ec1n.',
+    'account.cancellationConfirmWarning':
+      'H\u1ee7y \u0111\u1eb7t ph\u00f2ng l\u00e0 thao t\u00e1c kh\u00f4ng th\u1ec3 ho\u00e0n t\u00e1c. Ti\u1ebfp t\u1ee5c?',
     'locale.switch': 'English',
     'payment.provider.momo': 'MoMo',
     'public.brand': 'Room Management',
@@ -830,6 +846,17 @@ const messages = {
     'ratePlan.deactivate': 'Ngừng áp dụng',
   },
   en: {
+    'profile.accountStatus': 'Account status',
+    'profile.activeSession': 'Current session expires at',
+    'profile.loggingOut': 'Signing out\u2026',
+    'profile.logoutError': 'The session could not be signed out. Try again.',
+    'account.cancellationPaidAmount': 'Paid amount',
+    'account.cancellationRefundAmount': 'Estimated refund',
+    'account.cancellationRetainedAmount': 'Estimated retained amount',
+    'account.cancellationRule7Days': 'At least 7 days before check-in: 100% refund.',
+    'account.cancellationRule3Days': 'From 3 to under 7 days: 50% refund.',
+    'account.cancellationRuleUnder3Days': 'Within 3 days: no refund.',
+    'account.cancellationConfirmWarning': 'Cancellation cannot be undone. Continue?',
     'locale.switch': 'Tiếng Việt',
     'payment.provider.momo': 'MoMo',
     'public.brand': 'Room Management',

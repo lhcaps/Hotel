@@ -4,11 +4,13 @@ import { useState } from 'react';
 
 import { useLocale } from '../../../components/locale-provider';
 import { translate } from '../../../lib/i18n/messages';
+import { SessionLogoutButton } from '../../../components/session-logout-button';
 
 interface ProfilePayload {
   readonly userId: string;
   readonly email: string;
   readonly name: string;
+  readonly accountStatus: 'ACTIVE' | 'DISABLED';
   readonly phone: string | null;
   readonly addressLine1: string | null;
   readonly addressLine2: string | null;
@@ -18,6 +20,7 @@ interface ProfilePayload {
   readonly postalCode: string | null;
   readonly countryCode: string;
   readonly updatedAt: string;
+  readonly sessionExpiresAt: string;
 }
 
 interface CustomerProfileClientProps {
@@ -83,6 +86,16 @@ export function CustomerProfileClient({ initialProfile, apiBase }: CustomerProfi
             <p>{profile.email}</p>
           </div>
         </section>
+        <dl className="profile-session-summary">
+          <div>
+            <dt>{translate(locale, 'profile.accountStatus')}</dt>
+            <dd>{profile.accountStatus}</dd>
+          </div>
+          <div>
+            <dt>{translate(locale, 'profile.activeSession')}</dt>
+            <dd>{profile.sessionExpiresAt}</dd>
+          </div>
+        </dl>
         <form action={save} className="profile-form">
           <section className="profile-form__section">
             <label>
@@ -145,6 +158,7 @@ export function CustomerProfileClient({ initialProfile, apiBase }: CustomerProfi
             {pending ? translate(locale, 'profile.saving') : translate(locale, 'profile.save')}
           </button>
         </form>
+        <SessionLogoutButton redirectTo="/login" />
       </div>
     </main>
   );

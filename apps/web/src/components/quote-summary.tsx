@@ -76,6 +76,26 @@ export function QuoteSummary({ quote }: { readonly quote: Quote }) {
           <CouponSummary coupon={quote.coupon} showRevalidationNotice />
         </div>
       ) : null}
+      {quote.cancellationPolicy !== undefined ? (
+        <section aria-labelledby="quote-cancellation-policy-heading" className="mt-6">
+          <h2 id="quote-cancellation-policy-heading" className="text-lg font-semibold">
+            {translate(locale, 'account.cancellationPolicy')}
+          </h2>
+          <p className="mt-2 text-sm">{translate(locale, 'account.cancellationPolicyBasis')}</p>
+          <ul className="mt-2 list-disc pl-5 text-sm">
+            <li>{translate(locale, 'account.cancellationRule7Days')}</li>
+            <li>{translate(locale, 'account.cancellationRule3Days')}</li>
+            <li>{translate(locale, 'account.cancellationRuleUnder3Days')}</li>
+          </ul>
+          <p className="mt-2 text-sm text-slate-600">
+            {translate(locale, 'account.cancellationBoundary7Days')}:{' '}
+            {formatDateTime(locale, quote.cancellationPolicy.sevenDayDeadline)} ·{' '}
+            {translate(locale, 'account.cancellationBoundary3Days')}:{' '}
+            {formatDateTime(locale, quote.cancellationPolicy.threeDayDeadline)} (
+            {quote.cancellationPolicy.timezone})
+          </p>
+        </section>
+      ) : null}
     </section>
   );
 }

@@ -231,11 +231,25 @@ export default function AdminBookingDetailPage() {
                   {translate(locale, 'admin.previewCancellation')}
                 </button>
                 {cancellationPreview ? (
-                  <p role="status">
-                    {cancellationPreview.policyMessage} ·{' '}
-                    {translate(locale, 'admin.estimatedRefund')}:{' '}
-                    {formatVnd(locale, cancellationPreview.estimatedRefundVnd)}
-                  </p>
+                  <div role="status">
+                    <p>{cancellationPreview.policyMessage}</p>
+                    <p>
+                      {translate(locale, 'admin.estimatedRefund')}:{' '}
+                      {formatVnd(locale, cancellationPreview.estimatedRefundVnd)} ·{' '}
+                      {translate(locale, 'account.cancellationPaidAmount')}:{' '}
+                      {formatVnd(locale, cancellationPreview.paidAmountVnd)} ·{' '}
+                      {translate(locale, 'account.cancellationRetainedAmount')}:{' '}
+                      {formatVnd(locale, cancellationPreview.retainedAmountVnd)}
+                    </p>
+                    {cancellationPreview.policy ? (
+                      <p>
+                        {translate(locale, 'account.cancellationBoundary7Days')}:{' '}
+                        {formatDateTime(locale, cancellationPreview.policy.sevenDayDeadline)} ·{' '}
+                        {translate(locale, 'account.cancellationBoundary3Days')}:{' '}
+                        {formatDateTime(locale, cancellationPreview.policy.threeDayDeadline)}
+                      </p>
+                    ) : null}
+                  </div>
                 ) : null}
                 <label>
                   {translate(locale, 'admin.cancelReason')}

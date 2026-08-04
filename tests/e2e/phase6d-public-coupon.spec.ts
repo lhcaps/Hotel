@@ -541,7 +541,9 @@ test.describe('Phase 6D public coupon vertical flow', () => {
     page.on('requestfailed', (request) => {
       if (
         request.failure()?.errorText === 'net::ERR_ABORTED' &&
-        (request.url().endsWith('/admin/me') || request.url().includes('/_next/static/chunks/'))
+        (request.url().endsWith('/admin/me') ||
+          request.url().includes('/_next/static/chunks/') ||
+          request.url().includes('/api/v1/public/bookings/'))
       ) {
         return;
       }

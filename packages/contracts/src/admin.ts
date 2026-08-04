@@ -44,7 +44,7 @@ export const problemDetailsSchema = z
 export const adminMeSchema = z
   .object({
     id: uuidSchema,
-    email: z.email(),
+    emailMasked: z.string().trim().min(3).max(320),
     displayName: nameSchema,
     role: adminRoleSchema,
     permissions: z.array(z.string().min(1)).readonly(),

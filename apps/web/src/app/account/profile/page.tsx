@@ -9,6 +9,7 @@ interface ProfilePayload {
   readonly userId: string;
   readonly email: string;
   readonly name: string;
+  readonly accountStatus: 'ACTIVE' | 'DISABLED';
   readonly phone: string | null;
   readonly addressLine1: string | null;
   readonly addressLine2: string | null;
@@ -18,6 +19,7 @@ interface ProfilePayload {
   readonly postalCode: string | null;
   readonly countryCode: string;
   readonly updatedAt: string;
+  readonly sessionExpiresAt: string;
 }
 
 export default async function CustomerProfilePage() {

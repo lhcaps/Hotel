@@ -7,6 +7,7 @@ import {
   buildClearCookieHeader,
   parseGuestSessionCookie,
   serializeGuestSessionCookie,
+  GUEST_SESSION_COOKIE_PATH,
   type GuestSessionCookieAttributes,
 } from './cookie.js';
 import {
@@ -88,6 +89,7 @@ export class GuestAccessOtpController {
       const attributes: GuestSessionCookieAttributes = {
         nodeEnv: process.env.NODE_ENV === 'production' ? 'production' : 'development',
         ttlSeconds: 1800,
+        path: GUEST_SESSION_COOKIE_PATH,
       };
       const cookie = serializeGuestSessionCookie(sessionToken, attributes);
       (reply as unknown as ReplyWithSetCookie).header('Set-Cookie', cookie.header);

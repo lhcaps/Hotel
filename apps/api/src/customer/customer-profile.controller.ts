@@ -42,7 +42,7 @@ export class CustomerProfileController {
     if (profile === null) {
       throw new UnauthorizedException({ code: 'CUSTOMER_PROFILE_NOT_FOUND' });
     }
-    return profile;
+    return { ...profile, sessionExpiresAt: actor.sessionExpiresAt.toISOString() };
   }
 
   @Patch()
@@ -62,9 +62,10 @@ export class CustomerProfileController {
       }
       throw error;
     }
-    return this.profiles.patchProfile(actor.userId, patch, {
+    const profile = await this.profiles.patchProfile(actor.userId, patch, {
       actorId: actor.userId,
       requestId: actor.requestId,
     });
+    return { ...profile, sessionExpiresAt: actor.sessionExpiresAt.toISOString() };
   }
 }

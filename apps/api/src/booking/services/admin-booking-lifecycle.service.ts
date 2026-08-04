@@ -25,7 +25,6 @@ import {
 } from '@room/contracts';
 
 import {
-  createCancellationPolicySnapshot,
   evaluateCancellationPolicy,
   maskEmailForDisplay,
   type CancellationPolicySnapshot,
@@ -343,13 +342,29 @@ export class AdminBookingLifecycleService {
     const row = result.rows[0];
     if (row === undefined) throw new BookingNotFoundError();
     const checkIn = asDate(row.check_in, 'check_in');
-    const snapshot =
-      readCancellationPolicySnapshot(row.cancellation_policy_snapshot) ??
-      createCancellationPolicySnapshot({
-        checkIn,
-        timezone: row.property_timezone,
-        capturedAt: now,
+    const snapshot = readCancellationPolicySnapshot(row.cancellation_policy_snapshot);
+    if (snapshot === null) {
+      return adminBookingCancellationPreviewSchema.parse({
+        bookingCode: row.booking_code,
+        bookingStatus: row.status,
+        eligible: false,
+        outcome: 'NOT_ELIGIBLE',
+        refundBasis: 'PAID_AMOUNT',
+        refundPercent: 0,
+        estimatedRefundVnd: 0,
+        paidAmountVnd:
+          toBigIntAmount(row.paid_amount_vnd) > 0n
+            ? bigIntToNumber(toBigIntAmount(row.paid_amount_vnd))
+            : 0,
+        retainedAmountVnd:
+          toBigIntAmount(row.paid_amount_vnd) > 0n
+            ? bigIntToNumber(toBigIntAmount(row.paid_amount_vnd))
+            : 0,
+        policy: null,
+        policyMessage:
+          'Booking has no immutable cancellation policy snapshot; operations review is required before cancellation.',
       });
+    }
     const evaluation = evaluateCancellationPolicy({
       snapshot,
       now,
@@ -365,6 +380,8 @@ export class AdminBookingLifecycleService {
       refundBasis: 'PAID_AMOUNT',
       refundPercent: evaluation.refundPercent,
       estimatedRefundVnd: bigIntToNumber(evaluation.refundAmountVnd),
+      paidAmountVnd: bigIntToNumber(evaluation.paidAmountVnd),
+      retainedAmountVnd: bigIntToNumber(evaluation.retainedAmountVnd),
       policy: {
         code: snapshot.code,
         version: snapshot.version,
@@ -401,13 +418,12 @@ export class AdminBookingLifecycleService {
       const succeededPayment = await getSucceededPayment(client, row.id);
       const paid = succeededPayment !== null;
       const checkIn = asDate(row.check_in, 'check_in');
-      const snapshot =
-        readCancellationPolicySnapshot(row.cancellation_policy_snapshot) ??
-        createCancellationPolicySnapshot({
-          checkIn,
-          timezone: row.property_timezone,
-          capturedAt: now,
-        });
+      const snapshot = readCancellationPolicySnapshot(row.cancellation_policy_snapshot);
+      if (snapshot === null) {
+        throw new BookingTransitionError(
+          'Booking has no immutable cancellation policy snapshot; operations review is required before cancellation.',
+        );
+      }
       const evaluation = evaluateCancellationPolicy({
         snapshot,
         now,

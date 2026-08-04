@@ -2,7 +2,7 @@ import { Body, Controller, Inject, Param, Post, Req, Res, Version } from '@nestj
 import type { FastifyReply } from 'fastify';
 
 import { CustomerSessionService } from '../auth/customer-session.service.js';
-import { serializeGuestSessionCookie } from './cookie.js';
+import { serializeGuestSessionCookie, GUEST_SESSION_COOKIE_PATH } from './cookie.js';
 import { GuestAccessRepository } from './repositories/guest-access.repository.js';
 import { BookingHoldService } from './services/booking-hold.service.js';
 
@@ -39,7 +39,7 @@ export class BookingHoldController {
         1,
         Math.floor((checkoutSession.expiresAt.getTime() - Date.now()) / 1000),
       ),
-      path: `/api/v1/public/bookings/${encodeURIComponent(hold.bookingCode)}/payments`,
+      path: GUEST_SESSION_COOKIE_PATH,
     });
     reply.header('Set-Cookie', cookie.header);
     return hold;

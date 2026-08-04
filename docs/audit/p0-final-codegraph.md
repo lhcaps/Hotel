@@ -133,3 +133,22 @@ This graph is the pre-edit root-cause map. Subsequent edits must preserve Postgr
 - CUSTOMER `POST /customer/bookings/:bookingCode/cancel` and ADMIN preview/execution routes use row locks, idempotency keys, release the booking inventory block, append actor-specific audit, and keep signed payment settlement review-only after cancellation.
 - ADMIN booking list/detail responses now include `roomStatus` from the authoritative `rooms.status` column beside the assigned room field.
 - Forward-only migration `0027_superb_sumo.sql` adds the snapshot, cancellation idempotency, refund state/amount fields, checks, and unique key index; released migrations remain unchanged.
+
+## P0 closure delta in this pass
+
+- The live payment root cause was cookie scope, not provider settlement: the
+  HOLD guest session was previously limited to the payment-initiation path, so
+  a signed demo IPN could confirm PostgreSQL while the browser redirect still
+  received `401` on booking detail. `GUEST_SESSION_COOKIE_PATH` now covers the
+  public booking API and is used consistently for HOLD, OTP verification, and
+  logout clearing.
+- `/admin/me` now returns only `emailMasked`; the admin profile also renders
+  session expiry, role/department/permission scope, and logout. CUSTOMER
+  profile responses include account status and the active session expiry.
+- Account layout rejects ADMIN sessions before customer pages render, while
+  `/admin/login` probes the same Better Auth session authority and redirects
+  permitted admins or shows a controlled CUSTOMER state.
+- Quote snapshots expose the same immutable cancellation policy summary before
+  checkout. Customer and ADMIN previews expose paid, refund, retained amounts;
+  ADMIN cancellation now fails closed for legacy bookings without a snapshot
+  instead of silently inventing a policy.

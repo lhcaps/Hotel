@@ -64,6 +64,9 @@ export interface CustomerBookingDetail {
   readonly roomType: { readonly id: string; readonly name: string };
   readonly offer: { readonly code: string; readonly label: string } | null;
   readonly cancellationPolicy: CustomerCancellationPolicy | null;
+  readonly cancellationRefundState: string | null;
+  readonly cancellationRefundAmountVnd: string | null;
+  readonly cancellationRetainedAmountVnd: string | null;
   readonly createdAt: string;
 }
 
@@ -153,6 +156,9 @@ export class CustomerBookingService {
         roomTypeName: roomTypes.name,
         priceSnapshot: bookings.priceSnapshot,
         cancellationPolicySnapshot: bookings.cancellationPolicySnapshot,
+        cancellationRefundState: bookings.cancellationRefundState,
+        cancellationRefundAmountVnd: bookings.cancellationRefundAmountVnd,
+        cancellationRetainedAmountVnd: bookings.cancellationRetainedAmountVnd,
         createdAt: bookings.createdAt,
       })
       .from(bookings)
@@ -185,6 +191,9 @@ export class CustomerBookingService {
       roomType: { id: row.roomTypeId, name: row.roomTypeName },
       offer: readOffer(row.priceSnapshot),
       cancellationPolicy: readCancellationPolicySnapshot(row.cancellationPolicySnapshot),
+      cancellationRefundState: row.cancellationRefundState,
+      cancellationRefundAmountVnd: row.cancellationRefundAmountVnd?.toString() ?? null,
+      cancellationRetainedAmountVnd: row.cancellationRetainedAmountVnd?.toString() ?? null,
       createdAt: row.createdAt.toISOString(),
     });
   }
@@ -203,6 +212,8 @@ export class CustomerBookingService {
         eligible: false,
         outcome: 'NOT_ELIGIBLE',
         estimatedRefundVnd: '0',
+        paidAmountVnd: '0',
+        retainedAmountVnd: '0',
         refundPercent: 0,
         refundBasis: 'PAID_AMOUNT',
         policy: null,
@@ -222,6 +233,8 @@ export class CustomerBookingService {
       eligible: evaluation.eligible,
       outcome: evaluation.outcome,
       estimatedRefundVnd: evaluation.refundAmountVnd.toString(),
+      paidAmountVnd: evaluation.paidAmountVnd.toString(),
+      retainedAmountVnd: evaluation.retainedAmountVnd.toString(),
       refundPercent: evaluation.refundPercent,
       refundBasis: 'PAID_AMOUNT',
       policy,

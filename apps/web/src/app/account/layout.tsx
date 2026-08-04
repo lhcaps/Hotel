@@ -1,9 +1,20 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 import { resolveLocale, translate } from '../../lib/i18n/messages';
+import { resolveAdminSessionFromHeaders } from '../../lib/admin-session-server';
 
 export default async function AccountLayout({ children }: { readonly children: React.ReactNode }) {
-  const locale = resolveLocale((await cookies()).get('room_locale')?.value);
+  const cookieStore = await cookies();
+  const locale = resolveLocale(cookieStore.get('room_locale')?.value);
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((entry) => `${entry.name}=${entry.value}`)
+    .join('; ');
+  const resolution = await resolveAdminSessionFromHeaders({
+    cookie: cookieHeader || (await headers()).get('cookie') || undefined,
+  });
+  if (resolution.kind === 'admin') redirect('/admin/profile');
   return (
     <div className="account-shell">
       <header>

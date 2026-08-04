@@ -20,11 +20,12 @@ describe('AdminController', () => {
 
     expect(result).toEqual({
       id: '550e8400-e29b-41d4-a716-446655440000',
-      email: 'admin@example.test',
+      emailMasked: 'a***n@example.test',
       displayName: 'Administrator',
       role: 'ADMIN',
       permissions: ['catalog.property.read'],
       sessionExpiresAt: '2027-01-01T00:00:00.000Z',
+      departments: undefined,
     });
     expect(JSON.stringify(result)).not.toMatch(/session-id|token|password|hash/i);
   });

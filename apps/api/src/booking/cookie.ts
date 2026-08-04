@@ -2,7 +2,7 @@
  * Cookie serialization / parsing for the Phase 5 guest session cookie.
  *
  * Name: `rm_guest_session_v1`
- * Attributes: HttpOnly, SameSite=Lax, Path=/, Secure in production,
+ * Attributes: HttpOnly, SameSite=Lax, Path=/api/v1/public, Secure in production,
  * Max-Age = `GUEST_SESSION_TTL_MS / 1000` (default 1800s).
  *
  * The cookie payload is the base64url-encoded raw session token; only
@@ -18,6 +18,7 @@ export interface GuestSessionCookieAttributes {
 }
 
 export const GUEST_SESSION_COOKIE_NAME = 'rm_guest_session_v1';
+export const GUEST_SESSION_COOKIE_PATH = '/api/v1/public';
 
 function base64UrlEncode(buffer: Buffer): string {
   return buffer.toString('base64url');
@@ -48,7 +49,7 @@ export function serializeGuestSessionCookie(
     `${GUEST_SESSION_COOKIE_NAME}=${value}`,
     'HttpOnly',
     'SameSite=Lax',
-    `Path=${attributes.path ?? '/'}`,
+    `Path=${attributes.path ?? GUEST_SESSION_COOKIE_PATH}`,
     `Max-Age=${maxAge}`,
   ];
   if (secureFlag) {
@@ -77,7 +78,7 @@ export function buildClearCookieHeader(attributes: GuestSessionCookieAttributes)
     `${GUEST_SESSION_COOKIE_NAME}=`,
     'HttpOnly',
     'SameSite=Lax',
-    `Path=${attributes.path ?? '/'}`,
+    `Path=${attributes.path ?? GUEST_SESSION_COOKIE_PATH}`,
     'Max-Age=0',
   ];
   if (secureFlag) {

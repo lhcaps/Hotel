@@ -811,6 +811,8 @@ export interface AdminBookingCancellationPreview {
   readonly refundBasis: 'PAID_AMOUNT';
   readonly refundPercent: 0 | 50 | 100;
   readonly estimatedRefundVnd: number;
+  readonly paidAmountVnd: number;
+  readonly retainedAmountVnd: number;
   readonly policy: {
     readonly code: string;
     readonly version: number;

@@ -6,6 +6,7 @@ import type { AdminMe } from '@room/contracts';
 import { useLocale } from '../../../../components/locale-provider';
 import { adminApi } from '../../../../lib/admin-api';
 import { translate } from '../../../../lib/i18n/messages';
+import { SessionLogoutButton } from '../../../../components/session-logout-button';
 
 export default function AdminProfilePage() {
   const locale = useLocale();
@@ -32,28 +33,33 @@ export default function AdminProfilePage() {
         <p>{translate(locale, 'admin.loading')}</p>
       ) : null}
       {profile ? (
-        <dl>
-          <dt>{translate(locale, 'admin.displayName')}</dt>
-          <dd>{profile.displayName}</dd>
-          <dt>{translate(locale, 'admin.email')}</dt>
-          <dd>{profile.email}</dd>
-          <dt>{translate(locale, 'admin.role')}</dt>
-          <dd>
-            {profile.role === 'SUPER_ADMIN'
-              ? translate(locale, 'admin.roleSuperAdmin')
-              : profile.role === 'ROOM_STATUS_VIEWER'
-                ? translate(locale, 'admin.roleRoomStatusViewer')
-                : 'ADMIN'}
-          </dd>
-          <dt>{translate(locale, 'admin.department')}</dt>
-          <dd>{profile.departments?.join(', ') || translate(locale, 'admin.noDepartments')}</dd>
-          <dt>{translate(locale, 'admin.permissions')}</dt>
-          <dd>
-            {profile.role === 'ROOM_STATUS_VIEWER'
-              ? translate(locale, 'admin.readOnlyScope')
-              : profile.permissions.join(', ')}
-          </dd>
-        </dl>
+        <>
+          <dl>
+            <dt>{translate(locale, 'admin.displayName')}</dt>
+            <dd>{profile.displayName}</dd>
+            <dt>{translate(locale, 'admin.email')}</dt>
+            <dd>{profile.emailMasked}</dd>
+            <dt>{translate(locale, 'admin.role')}</dt>
+            <dd>
+              {profile.role === 'SUPER_ADMIN'
+                ? translate(locale, 'admin.roleSuperAdmin')
+                : profile.role === 'ROOM_STATUS_VIEWER'
+                  ? translate(locale, 'admin.roleRoomStatusViewer')
+                  : 'ADMIN'}
+            </dd>
+            <dt>{translate(locale, 'admin.department')}</dt>
+            <dd>{profile.departments?.join(', ') || translate(locale, 'admin.noDepartments')}</dd>
+            <dt>{translate(locale, 'admin.permissions')}</dt>
+            <dd>
+              {profile.role === 'ROOM_STATUS_VIEWER'
+                ? translate(locale, 'admin.readOnlyScope')
+                : profile.permissions.join(', ')}
+            </dd>
+            <dt>{translate(locale, 'admin.session')}</dt>
+            <dd>{profile.sessionExpiresAt}</dd>
+          </dl>
+          <SessionLogoutButton redirectTo="/admin/login" />
+        </>
       ) : null}
     </main>
   );

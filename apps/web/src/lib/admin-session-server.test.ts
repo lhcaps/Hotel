@@ -36,7 +36,7 @@ describe('resolveAdminSessionFromHeaders', () => {
     const fetchMock = vi.fn(async () =>
       jsonResponse(200, {
         id: '550e8400-e29b-41d4-a716-446655440000',
-        email: 'admin@example.test',
+        emailMasked: 'a****r@example.test',
         displayName: 'Administrator',
         role: 'ADMIN',
         permissions: ['catalog.property.read'],
@@ -54,7 +54,7 @@ describe('resolveAdminSessionFromHeaders', () => {
     globalThis.fetch = vi.fn(async () =>
       jsonResponse(200, {
         id: '550e8400-e29b-41d4-a716-446655440000',
-        email: 'admin@example.test',
+        emailMasked: 'a****r@example.test',
         displayName: 'Administrator',
         role: 'ADMIN',
         permissions: ['catalog.property.read'],
@@ -69,7 +69,7 @@ describe('resolveAdminSessionFromHeaders', () => {
     expect(resolution.kind).toBe('admin');
     if (resolution.kind === 'admin') {
       expect(resolution.session.role).toBe('ADMIN');
-      expect(resolution.session.email).toBe('admin@example.test');
+      expect(resolution.session.emailMasked).toBe('a****r@example.test');
     }
   });
 
@@ -116,7 +116,7 @@ describe('resolveAdminSessionFromHeaders', () => {
     globalThis.fetch = vi.fn(async () =>
       jsonResponse(200, {
         id: 'not-a-uuid',
-        email: 'admin@example.test',
+        emailMasked: 'a****r@example.test',
         displayName: 'Administrator',
         role: 'ADMIN',
         permissions: ['catalog.property.read'],
@@ -154,7 +154,7 @@ describe('resolveAdminSessionFromHeaders', () => {
     const fetchMock = vi.fn(async () =>
       jsonResponse(200, {
         id: '550e8400-e29b-41d4-a716-446655440000',
-        email: 'admin@example.test',
+        emailMasked: 'a****r@example.test',
         displayName: 'Administrator',
         role: 'ADMIN',
         permissions: ['catalog.property.read'],
@@ -183,7 +183,7 @@ describe('resolveAdminSessionFromHeaders', () => {
     globalThis.fetch = vi.fn(async () =>
       jsonResponse(200, {
         id: '550e8400-e29b-41d4-a716-446655440000',
-        email: 'admin@example.test',
+        emailMasked: 'a****r@example.test',
         displayName: 'Administrator',
         // `role` is constrained by the Zod schema to the literal 'ADMIN'.
         role: 'CUSTOMER',

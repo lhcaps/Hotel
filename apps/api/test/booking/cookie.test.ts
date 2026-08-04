@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildClearCookieHeader,
+  GUEST_SESSION_COOKIE_PATH,
   GUEST_SESSION_COOKIE_NAME,
   parseGuestSessionCookie,
   serializeGuestSessionCookie,
@@ -20,7 +21,7 @@ describe('guest session cookie helpers', () => {
     expect(cookie.header).toContain('HttpOnly');
     expect(cookie.header).toContain('SameSite=Lax');
     expect(cookie.header).toContain('Secure');
-    expect(cookie.header).toContain('Path=/');
+    expect(cookie.header).toContain(`Path=${GUEST_SESSION_COOKIE_PATH}`);
     expect(cookie.header).toContain('Max-Age=1800');
 
     const parsed = parseGuestSessionCookie(cookie.value);

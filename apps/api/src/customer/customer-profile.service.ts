@@ -6,6 +6,7 @@ export interface CustomerProfile {
   readonly userId: string;
   readonly email: string;
   readonly name: string;
+  readonly accountStatus: 'ACTIVE' | 'DISABLED';
   readonly phone: string | null;
   readonly addressLine1: string | null;
   readonly addressLine2: string | null;
@@ -46,6 +47,7 @@ export class CustomerProfileService {
         userId: users.id,
         email: users.email,
         name: users.name,
+        accountStatus: users.status,
         phone: customerProfiles.normalizedPhoneE164,
         addressLine1: customerProfiles.addressLine1,
         addressLine2: customerProfiles.addressLine2,
@@ -152,6 +154,7 @@ export class CustomerProfileService {
     userId: string;
     email: string;
     name: string;
+    accountStatus: 'ACTIVE' | 'DISABLED';
     phone: string | null;
     addressLine1: string | null;
     addressLine2: string | null;
@@ -166,6 +169,7 @@ export class CustomerProfileService {
       userId: row.userId,
       email: row.email,
       name: row.name,
+      accountStatus: row.accountStatus,
       phone: row.phone,
       addressLine1: row.addressLine1,
       addressLine2: row.addressLine2,

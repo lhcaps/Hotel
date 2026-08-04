@@ -64,6 +64,24 @@ function currentOperationalInterval(): { readonly checkIn: string; readonly chec
   return { checkIn: checkIn.toISOString(), checkOut: checkOut.toISOString() };
 }
 
+function cancellationPolicySnapshot(checkIn: Date): Record<string, unknown> {
+  return {
+    code: 'PEACENEST_STANDARD_V1',
+    version: 1,
+    timezone: 'Asia/Ho_Chi_Minh',
+    refundBasis: 'PAID_AMOUNT',
+    capturedAt: new Date().toISOString(),
+    checkIn: checkIn.toISOString(),
+    sevenDayDeadline: new Date(checkIn.getTime() - 7 * 24 * 60 * 60_000).toISOString(),
+    threeDayDeadline: new Date(checkIn.getTime() - 3 * 24 * 60 * 60_000).toISOString(),
+    bands: [
+      { minimumSecondsBeforeCheckIn: 604800, refundPercent: 100 },
+      { minimumSecondsBeforeCheckIn: 259200, refundPercent: 50 },
+      { minimumSecondsBeforeCheckIn: 0, refundPercent: 0 },
+    ],
+  };
+}
+
 async function psql(sql: string): Promise<string> {
   const result = await databasePool.query(sql);
   return result.rows
@@ -81,8 +99,9 @@ async function insertHoldBooking(options: {
 }): Promise<{ bookingId: string; bookingCode: string }> {
   const bookingId = randomUUID();
   const bookingCode = `7G-${HOLD_PREFIX}-${bookingId.slice(0, 8).toUpperCase()}`;
+  const policySnapshot = cancellationPolicySnapshot(new Date(options.checkIn));
   await psql(
-    `INSERT INTO bookings (id, property_id, room_type_id, room_id, booking_code, status, check_in, check_out, adults, children, currency, gross_amount_vnd, discount_amount_vnd, final_amount_vnd, price_snapshot, hold_expires_at) VALUES ('${bookingId}', '${PROPERTY_ID}', '${ROOM_TYPE_ID}', '${options.roomId}', '${bookingCode}', 'HOLD', '${options.checkIn}', '${options.checkOut}', 1, 0, 'VND', 359000, 0, 359000, '{"ratePlanCode":"LUNCH_COMBO"}'::jsonb, '2027-02-10T05:00:00.000Z');`,
+    `INSERT INTO bookings (id, property_id, room_type_id, room_id, booking_code, status, check_in, check_out, adults, children, currency, gross_amount_vnd, discount_amount_vnd, final_amount_vnd, price_snapshot, cancellation_policy_snapshot, hold_expires_at) VALUES ('${bookingId}', '${PROPERTY_ID}', '${ROOM_TYPE_ID}', '${options.roomId}', '${bookingCode}', 'HOLD', '${options.checkIn}', '${options.checkOut}', 1, 0, 'VND', 359000, 0, 359000, '{"ratePlanCode":"LUNCH_COMBO"}'::jsonb, '${JSON.stringify(policySnapshot)}'::jsonb, '2027-02-10T05:00:00.000Z');`,
   );
   await psql(
     `INSERT INTO booking_contacts (booking_id, full_name, normalized_email, normalized_phone_e164, email_digest) VALUES ('${bookingId}', 'Phase 7G', 'phase7g@example.test', '+84909000007', decode('0000000000000000000000000000000000000000000000000000000000000000', 'hex'));`,

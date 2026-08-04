@@ -26,16 +26,30 @@ export default function AdminLoginPage() {
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isCustomerSession = searchParams?.get('customer') === '1';
+  const customerSessionDetected = searchParams?.get('customer') === '1';
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
   const [customerLogoutPending, setCustomerLogoutPending] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (searchParams?.get('customer') !== '1') return;
-    // Stash the URL flag in the page so the notice renders on first paint.
-  }, [searchParams]);
+    let cancelled = false;
+    void fetch('/api/admin/me', { credentials: 'same-origin' })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const parsed = adminMeSchema.safeParse(await response.json().catch(() => undefined));
+        if (cancelled || !parsed.success) return;
+        if (parsed.data.role === 'ADMIN' || parsed.data.role === 'SUPER_ADMIN') {
+          router.replace('/admin');
+          return;
+        }
+        if (parsed.data.role === 'ROOM_STATUS_VIEWER') router.replace('/admin/room-operations');
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams]);
 
   async function login(form: FormData) {
     setPending(true);
@@ -97,7 +111,7 @@ export default function AdminLoginPage() {
           <CardTitle>{translate(locale, 'admin.loginHeading')}</CardTitle>
           <CardDescription>{translate(locale, 'admin.loginAdminOnly')}</CardDescription>
         </CardHeader>
-        {isCustomerSession ? (
+        {customerSessionDetected ? (
           <Alert className="admin-login-customer-notice" variant="destructive">
             <AlertTitle>{translate(locale, 'admin.customerSessionTitle')}</AlertTitle>
             <AlertDescription>{translate(locale, 'admin.customerSessionHelp')}</AlertDescription>

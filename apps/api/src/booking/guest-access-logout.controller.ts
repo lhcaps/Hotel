@@ -5,6 +5,7 @@ import {
   buildClearCookieHeader,
   parseGuestSessionCookie,
   type GuestSessionCookieAttributes,
+  GUEST_SESSION_COOKIE_PATH,
 } from './cookie.js';
 import { GuestLogoutService } from './services/guest-logout.service.js';
 
@@ -27,6 +28,7 @@ export class GuestAccessLogoutController {
     const attributes: GuestSessionCookieAttributes = {
       nodeEnv: process.env.NODE_ENV === 'production' ? 'production' : 'development',
       ttlSeconds: 1800,
+      path: GUEST_SESSION_COOKIE_PATH,
     };
     const result = await this.service.logout(token, new Date());
     (reply as unknown as { header: (name: string, value: string) => void }).header(

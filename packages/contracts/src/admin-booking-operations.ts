@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { cancellationPolicySchema } from './pricing.js';
 
 const uuidSchema = z.uuid();
 const bookingCodeSchema = z.string().regex(/^[A-Z0-9-]{4,32}$/);
@@ -219,18 +220,9 @@ export const adminBookingCancellationPreviewSchema = z
     refundBasis: z.literal('PAID_AMOUNT'),
     refundPercent: z.union([z.literal(0), z.literal(50), z.literal(100)]),
     estimatedRefundVnd: z.number().int().min(0),
-    policy: z
-      .object({
-        code: z.string().min(1).max(80),
-        version: z.number().int().positive(),
-        timezone: z.string().min(1).max(64),
-        capturedAt: instantSchema,
-        checkIn: instantSchema,
-        sevenDayDeadline: instantSchema,
-        threeDayDeadline: instantSchema,
-      })
-      .strict()
-      .nullable(),
+    paidAmountVnd: z.number().int().min(0),
+    retainedAmountVnd: z.number().int().min(0),
+    policy: cancellationPolicySchema.nullable(),
     policyMessage: z.string().min(1).max(400),
   })
   .strict();

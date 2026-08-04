@@ -263,6 +263,19 @@ export const couponQuoteSummarySchema = z
   })
   .strict();
 
+export const cancellationPolicySchema = z
+  .object({
+    code: z.string().min(1).max(80),
+    version: z.number().int().positive(),
+    timezone: z.string().min(1).max(64),
+    refundBasis: z.literal('PAID_AMOUNT'),
+    capturedAt: instantSchema,
+    checkIn: instantSchema,
+    sevenDayDeadline: instantSchema,
+    threeDayDeadline: instantSchema,
+  })
+  .strict();
+
 export const quoteSchema = z
   .object({
     id: uuidSchema,
@@ -275,6 +288,7 @@ export const quoteSchema = z
     expiresAt: instantSchema,
     pricing: pricingBreakdownSchema,
     coupon: couponQuoteSummarySchema.optional(),
+    cancellationPolicy: cancellationPolicySchema.optional(),
   })
   .strict();
 

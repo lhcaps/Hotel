@@ -1,5 +1,6 @@
 import { Controller, Get, Req, UseGuards, Version } from '@nestjs/common';
 import { adminMeSchema } from '@room/contracts';
+import { maskEmailForDisplay } from '@room/booking';
 
 import { type ActorContext } from '../auth/actor-context.js';
 import { AdminPermissionGuard } from '../auth/admin-permission.guard.js';
@@ -15,7 +16,7 @@ export class AdminController {
     const actor = request.actor;
     return adminMeSchema.parse({
       id: actor.userId,
-      email: actor.email,
+      emailMasked: maskEmailForDisplay(actor.email),
       displayName: actor.displayName,
       role: actor.role,
       permissions: actor.permissions,

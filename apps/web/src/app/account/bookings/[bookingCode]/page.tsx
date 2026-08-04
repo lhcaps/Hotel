@@ -35,10 +35,18 @@ interface BookingDetail {
   readonly roomType: { readonly id: string; readonly name: string };
   readonly offer: { readonly code: string; readonly label: string } | null;
   readonly cancellationPolicy: {
+    readonly code: string;
+    readonly version: number;
+    readonly capturedAt: string;
+    readonly checkIn: string;
+    readonly refundBasis: 'PAID_AMOUNT';
     readonly timezone: string;
     readonly sevenDayDeadline: string;
     readonly threeDayDeadline: string;
   } | null;
+  readonly cancellationRefundState: string | null;
+  readonly cancellationRefundAmountVnd: string | null;
+  readonly cancellationRetainedAmountVnd: string | null;
   readonly createdAt: string;
 }
 
@@ -138,14 +146,25 @@ export default async function CustomerBookingDetailPage({ params }: PageProps) {
           {booking.cancellationPolicy === null ? (
             <p>{translate(locale, 'account.cancellationPolicyUnavailable')}</p>
           ) : (
-            <p>
-              {translate(locale, 'account.cancellationPolicyBasis')} ·{' '}
-              {translate(locale, 'account.cancellationBoundary7Days')}:{' '}
-              {formatDateTime(locale, booking.cancellationPolicy.sevenDayDeadline)} ·{' '}
-              {translate(locale, 'account.cancellationBoundary3Days')}:{' '}
-              {formatDateTime(locale, booking.cancellationPolicy.threeDayDeadline)} (
-              {booking.cancellationPolicy.timezone})
-            </p>
+            <div>
+              <p>{translate(locale, 'account.cancellationPolicyBasis')}</p>
+              <ul>
+                <li>{translate(locale, 'account.cancellationRule7Days')}</li>
+                <li>{translate(locale, 'account.cancellationRule3Days')}</li>
+                <li>{translate(locale, 'account.cancellationRuleUnder3Days')}</li>
+              </ul>
+              <p>
+                {translate(locale, 'account.cancellationBoundary7Days')}:{' '}
+                {formatDateTime(locale, booking.cancellationPolicy.sevenDayDeadline)} ·{' '}
+                {translate(locale, 'account.cancellationBoundary3Days')}:{' '}
+                {formatDateTime(locale, booking.cancellationPolicy.threeDayDeadline)} (
+                {booking.cancellationPolicy.timezone})
+              </p>
+              <p>
+                {booking.cancellationPolicy.code} v{booking.cancellationPolicy.version} ·{' '}
+                {formatDateTime(locale, booking.cancellationPolicy.capturedAt)}
+              </p>
+            </div>
           )}
         </section>
         {booking.status === 'HOLD' && Number(booking.finalAmountVnd) > 0 ? (

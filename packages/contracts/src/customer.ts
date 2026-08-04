@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { quoteSchema } from './pricing.js';
+import { cancellationPolicySchema, quoteSchema } from './pricing.js';
 
 const instantSchema = z.string().datetime({ offset: true });
 const bookingStatusSchema = z.enum([
@@ -20,18 +20,7 @@ export const customerBookingOfferSchema = z
   })
   .strict();
 
-export const customerCancellationPolicySchema = z
-  .object({
-    code: z.string().min(1).max(80),
-    version: z.number().int().positive(),
-    timezone: z.string().min(1).max(64),
-    refundBasis: z.literal('PAID_AMOUNT'),
-    capturedAt: instantSchema,
-    checkIn: instantSchema,
-    sevenDayDeadline: instantSchema,
-    threeDayDeadline: instantSchema,
-  })
-  .strict();
+export const customerCancellationPolicySchema = cancellationPolicySchema;
 
 export const customerBookingDetailSchema = z
   .object({
@@ -57,6 +46,11 @@ export const customerBookingDetailSchema = z
     roomType: z.object({ id: z.uuid(), name: z.string().trim().min(1).max(160) }).strict(),
     offer: customerBookingOfferSchema.nullable(),
     cancellationPolicy: customerCancellationPolicySchema.nullable(),
+    cancellationRefundState: z
+      .enum(['NO_REFUND', 'REVIEW_REQUIRED', 'REFUND_PENDING', 'REFUNDED'])
+      .nullable(),
+    cancellationRefundAmountVnd: z.string().regex(/^\d+$/).nullable(),
+    cancellationRetainedAmountVnd: z.string().regex(/^\d+$/).nullable(),
     createdAt: instantSchema,
   })
   .strict();
@@ -68,6 +62,8 @@ export const customerCancellationPreviewSchema = z
     eligible: z.boolean(),
     outcome: z.enum(['NO_CHARGE', 'REVIEW_REQUIRED', 'NO_REFUND', 'NOT_ELIGIBLE']),
     estimatedRefundVnd: z.string().regex(/^\d+$/),
+    paidAmountVnd: z.string().regex(/^\d+$/),
+    retainedAmountVnd: z.string().regex(/^\d+$/),
     refundPercent: z.union([z.literal(0), z.literal(50), z.literal(100)]),
     refundBasis: z.literal('PAID_AMOUNT'),
     policy: customerCancellationPolicySchema.nullable(),

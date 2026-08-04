@@ -6,6 +6,7 @@ import type { QuoteRepositoryPort } from './quote.service.js';
 import type { ProvisionalCouponEvaluation } from './coupon.repository.js';
 import { toCouponQuoteSummary } from './coupon.repository.js';
 import { isWithinPropertyStayPolicy, propertyStayPolicy } from './stay-policy.js';
+import { createCancellationPolicySnapshot } from '@room/booking';
 type Database = Pick<DatabaseClient, 'execute' | 'query' | 'insert'>;
 function databaseTimestamp(result: { readonly rows: readonly unknown[] }): Date {
   const value = (result.rows[0] as { now?: unknown } | undefined)?.now;
@@ -131,6 +132,11 @@ export class QuoteRepository implements QuoteRepositoryPort {
     const current = await this.database.execute(sql`SELECT CURRENT_TIMESTAMP AS now`);
     const now = databaseTimestamp(current);
     const expiresAt = new Date(now.getTime() + 900_000);
+    const cancellationPolicy = createCancellationPolicySnapshot({
+      checkIn: new Date(input.checkIn),
+      timezone: source.propertyTimezone,
+      capturedAt: now,
+    });
     const snapshot: Record<string, unknown> = {
       id: randomUUID(),
       roomTypeId: input.roomTypeId,
@@ -141,6 +147,16 @@ export class QuoteRepository implements QuoteRepositoryPort {
       children: input.children,
       expiresAt: expiresAt.toISOString(),
       pricing,
+      cancellationPolicy: {
+        code: cancellationPolicy.code,
+        version: cancellationPolicy.version,
+        timezone: cancellationPolicy.timezone,
+        refundBasis: cancellationPolicy.refundBasis,
+        capturedAt: cancellationPolicy.capturedAt,
+        checkIn: cancellationPolicy.checkIn,
+        sevenDayDeadline: cancellationPolicy.sevenDayDeadline,
+        threeDayDeadline: cancellationPolicy.threeDayDeadline,
+      },
       ...(coupon ? { coupon: toCouponQuoteSummary(coupon) } : {}),
     };
     await this.database.insert(quotes).values({

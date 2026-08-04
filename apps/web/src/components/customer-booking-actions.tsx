@@ -96,6 +96,14 @@ export function CustomerBookingActions({
               amount: formatVnd(locale, Number(cancellation.estimatedRefundVnd)),
             })}
           </p>
+          <p>
+            {translate(locale, 'account.cancellationPaidAmount')}:{' '}
+            {formatVnd(locale, Number(cancellation.paidAmountVnd))} ·{' '}
+            {translate(locale, 'account.cancellationRefundAmount')}:{' '}
+            {formatVnd(locale, Number(cancellation.estimatedRefundVnd))} ·{' '}
+            {translate(locale, 'account.cancellationRetainedAmount')}:{' '}
+            {formatVnd(locale, Number(cancellation.retainedAmountVnd))}
+          </p>
           {cancellation.policy ? (
             <p>
               {translate(locale, 'account.cancellationBoundary7Days')}:{' '}
@@ -108,6 +116,9 @@ export function CustomerBookingActions({
             <form
               onSubmit={(event) => {
                 event.preventDefault();
+                if (!globalThis.confirm(translate(locale, 'account.cancellationConfirmWarning'))) {
+                  return;
+                }
                 setPending('cancel-execute');
                 setError(undefined);
                 void bookingApi
