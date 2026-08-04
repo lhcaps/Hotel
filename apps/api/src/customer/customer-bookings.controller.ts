@@ -18,6 +18,8 @@ import { MomoPaymentInitiationService } from '../payment/services/momo-payment-i
 import { VnpayPaymentInitiationService } from '../payment/services/vnpay-payment-initiation.service.js';
 import { PaymentStatusService } from '../payment/services/payment-status.service.js';
 import {
+  CustomerCancellationConflictError,
+  CustomerCancellationPolicyError,
   CustomerBookingNotFoundError,
   CustomerBookingService,
 } from './customer-booking.service.js';
@@ -77,6 +79,31 @@ export class CustomerBookingsController {
   ) {
     const actor = await this.sessions.requireCustomer(request);
     return this.bookings.cancellationPreviewForCustomer(actor.userId, bookingCode);
+  }
+
+  @Post(':bookingCode/cancel')
+  @Version('1')
+  public async cancel(
+    @Req() request: RequestLike,
+    @Param('bookingCode') bookingCode: string,
+    @Body() body: unknown,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+  ) {
+    const actor = await this.sessions.requireCustomer(request);
+    try {
+      return await this.bookings.cancelForCustomer(actor.userId, bookingCode, body, idempotencyKey);
+    } catch (error) {
+      if (error instanceof CustomerBookingNotFoundError) {
+        throw new HttpException({ code: 'BOOKING_NOT_FOUND' }, HttpStatus.NOT_FOUND);
+      }
+      if (error instanceof CustomerCancellationPolicyError) {
+        throw new HttpException({ code: 'CANCELLATION_POLICY_UNAVAILABLE' }, HttpStatus.CONFLICT);
+      }
+      if (error instanceof CustomerCancellationConflictError) {
+        throw new HttpException({ code: 'CANCELLATION_CONFLICT' }, HttpStatus.CONFLICT);
+      }
+      throw error;
+    }
   }
 
   @Post(':bookingCode/alteration-preview')

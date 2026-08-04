@@ -14,6 +14,12 @@ import {
   translatePaymentStatus,
 } from '../../../../../lib/i18n/messages';
 
+const roomStatusLabels = {
+  ACTIVE: 'admin.roomStatusActive',
+  INACTIVE: 'admin.roomStatusInactive',
+  MAINTENANCE: 'admin.roomStatusMaintenance',
+} as const;
+
 export default function AdminBookingDetailPage() {
   const locale = useLocale();
   const params = useParams<{ bookingCode: string }>();
@@ -22,6 +28,8 @@ export default function AdminBookingDetailPage() {
   const [error, setError] = useState<string>();
   const [pendingAction, setPendingAction] = useState<string>();
   const [reason, setReason] = useState('');
+  const [cancellationPreview, setCancellationPreview] =
+    useState<Awaited<ReturnType<typeof adminApi.getAdminCancellationPreview>>>();
 
   const refresh = useCallback(() => {
     setError(undefined);
@@ -132,6 +140,12 @@ export default function AdminBookingDetailPage() {
           <dd>{detail.roomType.name}</dd>
           <dt>{translate(locale, 'admin.physicalRoom')}</dt>
           <dd>{detail.room?.roomNumber ?? translate(locale, 'admin.roomUnassigned')}</dd>
+          <dt>{translate(locale, 'admin.roomOperationalStatus')}</dt>
+          <dd>
+            {detail.roomStatus === undefined || detail.roomStatus === null
+              ? translate(locale, 'admin.roomUnassigned')
+              : translate(locale, roomStatusLabels[detail.roomStatus])}
+          </dd>
         </dl>
       </section>
 
@@ -201,6 +215,28 @@ export default function AdminBookingDetailPage() {
                   true,
                 )}
               >
+                <button
+                  disabled={pendingAction !== undefined}
+                  onClick={() => {
+                    setPendingAction('cancel-preview');
+                    setError(undefined);
+                    void adminApi
+                      .getAdminCancellationPreview(detail.bookingCode)
+                      .then(setCancellationPreview)
+                      .catch(() => setError(translate(locale, 'admin.actionError')))
+                      .finally(() => setPendingAction(undefined));
+                  }}
+                  type="button"
+                >
+                  {translate(locale, 'admin.previewCancellation')}
+                </button>
+                {cancellationPreview ? (
+                  <p role="status">
+                    {cancellationPreview.policyMessage} ·{' '}
+                    {translate(locale, 'admin.estimatedRefund')}:{' '}
+                    {formatVnd(locale, cancellationPreview.estimatedRefundVnd)}
+                  </p>
+                ) : null}
                 <label>
                   {translate(locale, 'admin.cancelReason')}
                   <input

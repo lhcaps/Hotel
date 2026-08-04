@@ -11,6 +11,13 @@ import {
   translate,
   translatePaymentStatus,
 } from '../../../../lib/i18n/messages';
+import { resolveInternalApiBaseUrl } from '../../../../lib/internal-api';
+
+/*
+ * The browser API base is public and points at Caddy. Server Components must
+ * use the private Compose API origin so a production render never depends on
+ * resolving the public hostname from inside the web container.
+ */
 
 interface BookingDetail {
   readonly bookingId: string;
@@ -27,6 +34,11 @@ interface BookingDetail {
   readonly children: number;
   readonly roomType: { readonly id: string; readonly name: string };
   readonly offer: { readonly code: string; readonly label: string } | null;
+  readonly cancellationPolicy: {
+    readonly timezone: string;
+    readonly sevenDayDeadline: string;
+    readonly threeDayDeadline: string;
+  } | null;
   readonly createdAt: string;
 }
 
@@ -37,8 +49,8 @@ interface PageProps {
 export default async function CustomerBookingDetailPage({ params }: PageProps) {
   const locale = resolveLocale((await cookies()).get('room_locale')?.value);
   const { bookingCode } = await params;
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (apiBase === undefined) {
+  const internalApiBase = resolveInternalApiBaseUrl();
+  if (internalApiBase === undefined) {
     return (
       <main>
         <p>{translate(locale, 'account.serverUnavailable')}</p>
@@ -47,13 +59,10 @@ export default async function CustomerBookingDetailPage({ params }: PageProps) {
   }
   const headersList = await headers();
   const cookieHeader = headersList.get('cookie') ?? '';
-  const response = await fetch(
-    `${new URL(apiBase).origin}/api/v1/customer/bookings/${bookingCode}`,
-    {
-      headers: { cookie: cookieHeader },
-      cache: 'no-store',
-    },
-  );
+  const response = await fetch(`${internalApiBase}/customer/bookings/${bookingCode}`, {
+    headers: { cookie: cookieHeader },
+    cache: 'no-store',
+  });
   if (response.status === 401) {
     return (
       <main>
@@ -122,6 +131,23 @@ export default async function CustomerBookingDetailPage({ params }: PageProps) {
             <dd>{formatVnd(locale, Number(booking.finalAmountVnd))}</dd>
           </div>
         </dl>
+        <section aria-labelledby="cancellation-policy-heading">
+          <h2 id="cancellation-policy-heading">
+            {translate(locale, 'account.cancellationPolicy')}
+          </h2>
+          {booking.cancellationPolicy === null ? (
+            <p>{translate(locale, 'account.cancellationPolicyUnavailable')}</p>
+          ) : (
+            <p>
+              {translate(locale, 'account.cancellationPolicyBasis')} ·{' '}
+              {translate(locale, 'account.cancellationBoundary7Days')}:{' '}
+              {formatDateTime(locale, booking.cancellationPolicy.sevenDayDeadline)} ·{' '}
+              {translate(locale, 'account.cancellationBoundary3Days')}:{' '}
+              {formatDateTime(locale, booking.cancellationPolicy.threeDayDeadline)} (
+              {booking.cancellationPolicy.timezone})
+            </p>
+          )}
+        </section>
         {booking.status === 'HOLD' && Number(booking.finalAmountVnd) > 0 ? (
           <PaymentProviderSelector bookingCode={booking.bookingCode} customer />
         ) : null}

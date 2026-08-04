@@ -1,5 +1,6 @@
 import { cookies, headers } from 'next/headers';
 
+import { resolveInternalApiBaseUrl } from '../../../lib/internal-api';
 import { resolveLocale, translate } from '../../../lib/i18n/messages';
 
 import { CustomerProfileClient } from './customer-profile-client';
@@ -21,8 +22,9 @@ interface ProfilePayload {
 
 export default async function CustomerProfilePage() {
   const locale = resolveLocale((await cookies()).get('room_locale')?.value);
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (apiBase === undefined) {
+  const browserApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const internalApiBase = resolveInternalApiBaseUrl();
+  if (browserApiBase === undefined || internalApiBase === undefined) {
     return (
       <main>
         <p>{translate(locale, 'account.serverUnavailable')}</p>
@@ -31,7 +33,7 @@ export default async function CustomerProfilePage() {
   }
   const headersList = await headers();
   const cookieHeader = headersList.get('cookie') ?? '';
-  const response = await fetch(`${new URL(apiBase).origin}/api/v1/customer/profile`, {
+  const response = await fetch(`${internalApiBase}/customer/profile`, {
     headers: { cookie: cookieHeader },
     cache: 'no-store',
   });
@@ -52,5 +54,5 @@ export default async function CustomerProfilePage() {
     );
   }
   const profile = (await response.json()) as ProfilePayload;
-  return <CustomerProfileClient initialProfile={profile} apiBase={apiBase} />;
+  return <CustomerProfileClient initialProfile={profile} apiBase={browserApiBase} />;
 }

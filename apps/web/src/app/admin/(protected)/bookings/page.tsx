@@ -29,6 +29,12 @@ const REVIEW_OPTIONS = ['', 'NONE', 'OPEN', 'RESOLVED'] as const;
 
 const PAGE_SIZE = 20;
 
+const roomStatusLabels = {
+  ACTIVE: 'admin.roomStatusActive',
+  INACTIVE: 'admin.roomStatusInactive',
+  MAINTENANCE: 'admin.roomStatusMaintenance',
+} as const;
+
 interface Filters {
   readonly bookingCode: string;
   readonly customerUserId: string;
@@ -223,6 +229,7 @@ export default function AdminBookingsPage() {
               <th>{translate(locale, 'admin.guest')}</th>
               <th>{translate(locale, 'admin.status')}</th>
               <th>{translate(locale, 'admin.room')}</th>
+              <th>{translate(locale, 'admin.roomOperationalStatus')}</th>
               <th>{translate(locale, 'account.checkIn')}</th>
               <th>{translate(locale, 'account.checkOut')}</th>
               <th>{translate(locale, 'admin.amount')}</th>
@@ -242,6 +249,11 @@ export default function AdminBookingsPage() {
                 <td>
                   {item.roomType.name}
                   {item.room === null ? '' : ` · ${item.room.roomNumber}`}
+                </td>
+                <td>
+                  {item.roomStatus === undefined || item.roomStatus === null
+                    ? translate(locale, 'admin.roomUnassigned')
+                    : translate(locale, roomStatusLabels[item.roomStatus])}
                 </td>
                 <td>{formatDateTime(locale, item.checkIn)}</td>
                 <td>{formatDateTime(locale, item.checkOut)}</td>

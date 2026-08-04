@@ -2,6 +2,7 @@ import { type DatabasePool, type DatabasePoolClient } from '@room/database';
 
 import {
   adminBookingCancelRequestSchema,
+  adminBookingCancellationPreviewSchema,
   adminBookingDetailSchema,
   adminBookingListResponseSchema,
   adminBookingListQuerySchema,
@@ -16,13 +17,19 @@ import {
   adminOperationalReviewResolveRequestSchema,
   type AdminBookingAction,
   type AdminBookingDetail,
+  type AdminBookingCancellationPreview,
   type AdminBookingListResponse,
   type AdminBookingSummary,
   type AdminOperationalReviewDetail,
   type AdminOperationalReviewListResponse,
 } from '@room/contracts';
 
-import { maskEmailForDisplay } from '@room/booking';
+import {
+  createCancellationPolicySnapshot,
+  evaluateCancellationPolicy,
+  maskEmailForDisplay,
+  type CancellationPolicySnapshot,
+} from '@room/booking';
 
 import type { ActorContext } from '../../auth/actor-context.js';
 import {
@@ -53,6 +60,29 @@ function maskPhone(value: string): string {
   return `${value.slice(0, 3)}••••${value.slice(-2)}`;
 }
 
+function readCancellationPolicySnapshot(value: unknown): CancellationPolicySnapshot | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const candidate = value as Partial<CancellationPolicySnapshot>;
+  if (
+    candidate.code !== 'PEACENEST_STANDARD_V1' ||
+    candidate.version !== 1 ||
+    typeof candidate.timezone !== 'string' ||
+    candidate.refundBasis !== 'PAID_AMOUNT' ||
+    typeof candidate.capturedAt !== 'string' ||
+    typeof candidate.checkIn !== 'string' ||
+    typeof candidate.sevenDayDeadline !== 'string' ||
+    typeof candidate.threeDayDeadline !== 'string'
+  ) {
+    return null;
+  }
+  return value as CancellationPolicySnapshot;
+}
+
+function toBigIntAmount(value: string | number | bigint | null | undefined): bigint {
+  if (value === null || value === undefined) return 0n;
+  return typeof value === 'bigint' ? value : BigInt(value);
+}
+
 function toAdminBookingSummary(
   row: Awaited<ReturnType<AdminBookingRepository['listBookings']>>['items'][number],
 ): AdminBookingSummary {
@@ -70,6 +100,7 @@ function toAdminBookingSummary(
       row.roomId === null || row.roomNumber === null
         ? null
         : { id: row.roomId, roomNumber: row.roomNumber },
+    roomStatus: row.roomStatus,
     guestName: row.fullName,
     finalAmountVnd: bigIntToNumber(row.finalAmountVnd),
     currency: 'VND',
@@ -121,6 +152,7 @@ function toAdminBookingDetail(
       row.roomId === null || row.roomNumber === null
         ? null
         : { id: row.roomId, roomNumber: row.roomNumber },
+    roomStatus: row.roomStatus,
     interval: {
       checkIn: row.checkIn.toISOString(),
       checkOut: row.checkOut.toISOString(),
@@ -232,6 +264,9 @@ interface BookingLifecycleRow {
   readonly id: string;
   readonly property_id: string;
   readonly room_id: string;
+  readonly property_timezone: string;
+  readonly cancellation_policy_snapshot: unknown;
+  readonly cancellation_idempotency_key: string | null;
   readonly booking_code: string;
   readonly status: AdminBookingStatus;
   readonly check_in: Date | string;
@@ -279,31 +314,130 @@ export class AdminBookingLifecycleService {
     return toAdminBookingDetail(detail, timeline, now);
   }
 
+  public async cancellationPreview(
+    bookingCode: string,
+    now: Date,
+  ): Promise<AdminBookingCancellationPreview> {
+    const result = await this.pool.query<{
+      booking_code: string;
+      status: AdminBookingStatus;
+      check_in: Date | string;
+      property_timezone: string;
+      cancellation_policy_snapshot: unknown;
+      paid_amount_vnd: string | number | bigint | null;
+    }>(
+      `SELECT b.booking_code,
+              b.status,
+              b.check_in,
+              p.timezone AS property_timezone,
+              b.cancellation_policy_snapshot,
+              pay.amount_vnd AS paid_amount_vnd
+         FROM bookings b
+         JOIN properties p ON p.id = b.property_id
+         LEFT JOIN payments pay
+           ON pay.booking_id = b.id AND pay.status = 'SUCCEEDED'
+        WHERE b.booking_code = $1
+        LIMIT 1`,
+      [bookingCode],
+    );
+    const row = result.rows[0];
+    if (row === undefined) throw new BookingNotFoundError();
+    const checkIn = asDate(row.check_in, 'check_in');
+    const snapshot =
+      readCancellationPolicySnapshot(row.cancellation_policy_snapshot) ??
+      createCancellationPolicySnapshot({
+        checkIn,
+        timezone: row.property_timezone,
+        capturedAt: now,
+      });
+    const evaluation = evaluateCancellationPolicy({
+      snapshot,
+      now,
+      paidAmountVnd: toBigIntAmount(row.paid_amount_vnd),
+      bookingEligible:
+        (row.status === 'HOLD' || row.status === 'CONFIRMED') && checkIn.getTime() > now.getTime(),
+    });
+    return adminBookingCancellationPreviewSchema.parse({
+      bookingCode: row.booking_code,
+      bookingStatus: row.status,
+      eligible: evaluation.eligible,
+      outcome: evaluation.outcome,
+      refundBasis: 'PAID_AMOUNT',
+      refundPercent: evaluation.refundPercent,
+      estimatedRefundVnd: bigIntToNumber(evaluation.refundAmountVnd),
+      policy: {
+        code: snapshot.code,
+        version: snapshot.version,
+        timezone: snapshot.timezone,
+        capturedAt: snapshot.capturedAt,
+        checkIn: snapshot.checkIn,
+        sevenDayDeadline: snapshot.sevenDayDeadline,
+        threeDayDeadline: snapshot.threeDayDeadline,
+      },
+      policyMessage: evaluation.policyMessage,
+    });
+  }
+
   public async cancel(
     actor: ActorContext,
     bookingCode: string,
     input: unknown,
     now: Date,
+    idempotencyKey?: string,
   ): Promise<AdminBookingDetail> {
     const command = adminBookingCancelRequestSchema.parse(input);
+    const cancellationKey = normalizeCancellationKey(
+      idempotencyKey ?? `legacy-admin:${actor.userId}:${bookingCode}:${now.getTime()}`,
+    );
     return this.runTransition(actor, bookingCode, now, async (client, row) => {
       if (row.status === 'CANCELLED') {
+        if (row.cancellation_idempotency_key === cancellationKey) return;
         throw new BookingTransitionError('Booking is already cancelled.');
       }
       if (row.status !== 'HOLD' && row.status !== 'CONFIRMED') {
         throw new BookingTransitionError(`Cannot cancel a booking in status ${row.status}.`);
       }
       const from = row.status;
-      const paid = await isPaymentSucceeded(client, row.id);
+      const succeededPayment = await getSucceededPayment(client, row.id);
+      const paid = succeededPayment !== null;
+      const checkIn = asDate(row.check_in, 'check_in');
+      const snapshot =
+        readCancellationPolicySnapshot(row.cancellation_policy_snapshot) ??
+        createCancellationPolicySnapshot({
+          checkIn,
+          timezone: row.property_timezone,
+          capturedAt: now,
+        });
+      const evaluation = evaluateCancellationPolicy({
+        snapshot,
+        now,
+        paidAmountVnd: succeededPayment?.amountVnd ?? 0n,
+        bookingEligible: checkIn.getTime() > now.getTime(),
+      });
 
       await client.query(
         `UPDATE bookings
             SET status = 'CANCELLED',
                 cancelled_at = $2,
                 cancellation_reason = $3,
+                cancellation_policy_snapshot = $4,
+                cancellation_idempotency_key = $5,
+                cancellation_requested_at = $2,
+                cancellation_refund_state = $6,
+                cancellation_refund_amount_vnd = $7,
+                cancellation_retained_amount_vnd = $8,
                 updated_at = $2
           WHERE id = $1`,
-        [row.id, now, command.reason],
+        [
+          row.id,
+          now,
+          command.reason,
+          JSON.stringify(snapshot),
+          cancellationKey,
+          evaluation.refundAmountVnd > 0n ? 'REVIEW_REQUIRED' : 'NO_REFUND',
+          evaluation.refundAmountVnd.toString(),
+          evaluation.retainedAmountVnd.toString(),
+        ],
       );
 
       await cancelFutureArrivalPreparation(client, row.id, now);
@@ -325,6 +459,13 @@ export class AdminBookingLifecycleService {
           from,
           reason: command.reason,
           paid,
+          policyCode: snapshot.code,
+          policyVersion: snapshot.version,
+          refundBasis: snapshot.refundBasis,
+          refundPercent: evaluation.refundPercent,
+          refundAmountVnd: evaluation.refundAmountVnd.toString(),
+          retainedAmountVnd: evaluation.retainedAmountVnd.toString(),
+          idempotencyKey: cancellationKey,
         },
       });
 
@@ -596,11 +737,15 @@ export class AdminBookingLifecycleService {
     try {
       await client.query('BEGIN');
       const lockResult = await client.query<BookingLifecycleRow>(
-        `SELECT id, property_id, room_id, booking_code, status,
+        `SELECT b.id, b.property_id, b.room_id, b.booking_code, b.status,
+                p.timezone AS property_timezone,
+                b.cancellation_policy_snapshot,
+                b.cancellation_idempotency_key,
                 check_in, check_out, cancelled_at, checked_in_at,
                 checked_out_at, no_show_at, cancellation_reason, hold_expires_at
-           FROM bookings
-          WHERE booking_code = $1
+           FROM bookings b
+           JOIN properties p ON p.id = b.property_id
+          WHERE b.booking_code = $1
           FOR UPDATE`,
         [bookingCode],
       );
@@ -695,11 +840,23 @@ async function assertCheckInReadiness(
 }
 
 async function isPaymentSucceeded(client: DatabasePoolClient, bookingId: string): Promise<boolean> {
-  const result = await client.query<{ count: string }>(
-    `SELECT COUNT(*)::text AS count FROM payments WHERE booking_id = $1 AND status = 'SUCCEEDED'`,
+  return (await getSucceededPayment(client, bookingId)) !== null;
+}
+
+async function getSucceededPayment(
+  client: DatabasePoolClient,
+  bookingId: string,
+): Promise<{ readonly id: string; readonly amountVnd: bigint } | null> {
+  const result = await client.query<{ id: string; amount_vnd: string }>(
+    `SELECT id, amount_vnd::text AS amount_vnd
+       FROM payments
+      WHERE booking_id = $1 AND status = 'SUCCEEDED'
+      ORDER BY succeeded_at DESC NULLS LAST, id DESC
+      LIMIT 1`,
     [bookingId],
   );
-  return Number(result.rows[0]?.count ?? '0') > 0;
+  const row = result.rows[0];
+  return row === undefined ? null : { id: row.id, amountVnd: BigInt(row.amount_vnd) };
 }
 
 async function releaseInventoryBlock(
@@ -826,6 +983,14 @@ async function appendAudit(
       JSON.stringify(input.payload),
     ],
   );
+}
+
+function normalizeCancellationKey(value: string): string {
+  const normalized = value.trim();
+  if (normalized.length < 8 || normalized.length > 200) {
+    throw new BookingTransitionError('A valid cancellation idempotency key is required.');
+  }
+  return normalized;
 }
 
 async function enqueueBookingOutbox(

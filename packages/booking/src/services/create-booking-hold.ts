@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 import type { Pool } from 'pg';
-import { createDatabaseClient, sql, type DatabaseClient } from '@room/database';
+import { createDatabaseClient, eq, properties, sql, type DatabaseClient } from '@room/database';
+import { createCancellationPolicySnapshot } from '../cancellation-policy.js';
 import { generateBookingCode, type RandomIndexSource } from '../booking-code.js';
 import { contactsAreEquivalent, type NormalizedContact } from '../contact.js';
 import {
@@ -159,6 +160,14 @@ async function attemptBookingHold(
     const quote = await lockQuote(tx, input.quoteId);
     if (quote === undefined) throw new QuoteNotFoundError('Quote not found');
 
+    const propertyRows = await tx
+      .select({ timezone: properties.timezone })
+      .from(properties)
+      .where(eq(properties.id, quote.propertyId))
+      .limit(1);
+    const property = propertyRows[0];
+    if (property === undefined) throw new Error('Booking property not found');
+
     const existingBooking = await findBookingByQuote(tx, input.quoteId);
     if (existingBooking !== undefined) {
       const existingContact = await findBookingContact(tx, existingBooking.id);
@@ -271,6 +280,11 @@ async function attemptBookingHold(
       finalAmountVnd,
       pricingRuleVersion,
       priceSnapshot: quote.pricingSnapshot,
+      cancellationPolicySnapshot: createCancellationPolicySnapshot({
+        checkIn: quote.checkIn,
+        timezone: property.timezone,
+        capturedAt: now,
+      }),
       holdExpiresAt,
       correlationId: input.correlationId,
       customerUserId: input.customerUserId ?? null,

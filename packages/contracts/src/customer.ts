@@ -20,6 +20,19 @@ export const customerBookingOfferSchema = z
   })
   .strict();
 
+export const customerCancellationPolicySchema = z
+  .object({
+    code: z.string().min(1).max(80),
+    version: z.number().int().positive(),
+    timezone: z.string().min(1).max(64),
+    refundBasis: z.literal('PAID_AMOUNT'),
+    capturedAt: instantSchema,
+    checkIn: instantSchema,
+    sevenDayDeadline: instantSchema,
+    threeDayDeadline: instantSchema,
+  })
+  .strict();
+
 export const customerBookingDetailSchema = z
   .object({
     bookingId: z.uuid(),
@@ -31,6 +44,8 @@ export const customerBookingDetailSchema = z
     grossAmountVnd: z.string().regex(/^\d+$/),
     discountAmountVnd: z.string().regex(/^\d+$/),
     finalAmountVnd: z.string().regex(/^\d+$/),
+    adults: z.number().int().min(1).max(20),
+    children: z.number().int().min(0).max(20),
     paymentStatus: z.enum([
       'NONE',
       'PENDING',
@@ -41,6 +56,7 @@ export const customerBookingDetailSchema = z
     ]),
     roomType: z.object({ id: z.uuid(), name: z.string().trim().min(1).max(160) }).strict(),
     offer: customerBookingOfferSchema.nullable(),
+    cancellationPolicy: customerCancellationPolicySchema.nullable(),
     createdAt: instantSchema,
   })
   .strict();
@@ -50,9 +66,29 @@ export const customerCancellationPreviewSchema = z
     bookingCode: z.string().trim().min(1).max(64),
     bookingStatus: bookingStatusSchema,
     eligible: z.boolean(),
-    outcome: z.enum(['NO_CHARGE', 'REVIEW_REQUIRED', 'NOT_ELIGIBLE']),
+    outcome: z.enum(['NO_CHARGE', 'REVIEW_REQUIRED', 'NO_REFUND', 'NOT_ELIGIBLE']),
     estimatedRefundVnd: z.string().regex(/^\d+$/),
+    refundPercent: z.union([z.literal(0), z.literal(50), z.literal(100)]),
+    refundBasis: z.literal('PAID_AMOUNT'),
+    policy: customerCancellationPolicySchema.nullable(),
     policyMessage: z.string().trim().min(1).max(400),
+  })
+  .strict();
+
+export const customerCancellationRequestSchema = z
+  .object({
+    reason: z.string().trim().min(1).max(500),
+  })
+  .strict();
+
+export const customerCancellationResponseSchema = z
+  .object({
+    bookingCode: z.string().trim().min(1).max(64),
+    status: bookingStatusSchema,
+    refundState: z.enum(['NO_REFUND', 'REVIEW_REQUIRED', 'REFUND_PENDING', 'REFUNDED']),
+    refundAmountVnd: z.string().regex(/^\d+$/),
+    retainedAmountVnd: z.string().regex(/^\d+$/),
+    idempotent: z.boolean(),
   })
   .strict();
 
@@ -83,7 +119,10 @@ export const customerAlterationPreviewSchema = z
   .strict();
 
 export type CustomerBookingDetail = z.infer<typeof customerBookingDetailSchema>;
+export type CustomerCancellationPolicy = z.infer<typeof customerCancellationPolicySchema>;
 export type CustomerCancellationPreview = z.infer<typeof customerCancellationPreviewSchema>;
+export type CustomerCancellationRequest = z.infer<typeof customerCancellationRequestSchema>;
+export type CustomerCancellationResponse = z.infer<typeof customerCancellationResponseSchema>;
 export type CustomerAlterationPreviewRequest = z.infer<
   typeof customerAlterationPreviewRequestSchema
 >;

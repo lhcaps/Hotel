@@ -1,12 +1,13 @@
 import { cookies, headers } from 'next/headers';
 
 import { AccountLanguageSettings } from '../../../components/account-language-settings';
+import { resolveInternalApiBaseUrl } from '../../../lib/internal-api';
 import { resolveLocale, translate } from '../../../lib/i18n/messages';
 
 export default async function AccountSettingsPage() {
   const locale = resolveLocale((await cookies()).get('room_locale')?.value);
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (apiBase === undefined) {
+  const internalApiBase = resolveInternalApiBaseUrl();
+  if (internalApiBase === undefined) {
     return (
       <main>
         <p>{translate(locale, 'account.serverUnavailable')}</p>
@@ -14,7 +15,7 @@ export default async function AccountSettingsPage() {
     );
   }
   const cookieHeader = (await headers()).get('cookie') ?? '';
-  const response = await fetch(`${new URL(apiBase).origin}/api/v1/customer/profile`, {
+  const response = await fetch(`${internalApiBase}/customer/profile`, {
     headers: { cookie: cookieHeader },
     cache: 'no-store',
   });

@@ -33,6 +33,12 @@ const operations: ReadonlyArray<Operation> = [
   },
   {
     method: 'post',
+    path: '/api/v1/admin/bookings/{bookingCode}/cancellation-preview',
+    operationId: 'previewAdminBookingCancellation',
+    summary: 'Preview the immutable cancellation policy and refund basis for a booking.',
+  },
+  {
+    method: 'post',
     path: '/api/v1/admin/bookings/{bookingCode}/check-in',
     operationId: 'checkInAdminBooking',
     summary: 'Check in a booking through the authorized operational workflow.',
@@ -108,6 +114,12 @@ const operations: ReadonlyArray<Operation> = [
     path: '/api/v1/customer/bookings/{bookingCode}/cancellation-preview',
     operationId: 'previewCustomerBookingCancellation',
     summary: 'Preview cancellation eligibility and the server-calculated outcome.',
+  },
+  {
+    method: 'post',
+    path: '/api/v1/customer/bookings/{bookingCode}/cancel',
+    operationId: 'cancelCustomerBooking',
+    summary: 'Cancel an owned booking with an idempotent customer command.',
   },
   {
     method: 'post',

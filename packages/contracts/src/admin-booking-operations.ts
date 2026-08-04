@@ -24,6 +24,7 @@ export const paymentStatusSummarySchema = z.enum([
 ]);
 
 export const reviewPresenceSchema = z.enum(['OPEN', 'RESOLVED', 'NONE']);
+export const adminRoomOperationalStatusSchema = z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE']);
 
 export const adminBookingActionSchema = z.enum(['cancel', 'check-in', 'check-out', 'no-show']);
 
@@ -76,6 +77,7 @@ export const adminBookingSummarySchema = z
       })
       .strict()
       .nullable(),
+    roomStatus: adminRoomOperationalStatusSchema.nullable(),
     guestName: z.string().min(1).max(160),
     finalAmountVnd: z.number().int().min(0),
     currency: z.literal('VND'),
@@ -186,6 +188,7 @@ export const adminBookingDetailSchema = z
       })
       .strict()
       .nullable(),
+    roomStatus: adminRoomOperationalStatusSchema.nullable(),
     interval: z
       .object({
         checkIn: instantSchema,
@@ -204,6 +207,31 @@ export const adminBookingDetailSchema = z
 export const adminBookingCancelRequestSchema = z
   .object({
     reason: z.string().trim().min(1).max(500),
+  })
+  .strict();
+
+export const adminBookingCancellationPreviewSchema = z
+  .object({
+    bookingCode: bookingCodeSchema,
+    bookingStatus: bookingStatusSchema,
+    eligible: z.boolean(),
+    outcome: z.enum(['NO_CHARGE', 'REVIEW_REQUIRED', 'NO_REFUND', 'NOT_ELIGIBLE']),
+    refundBasis: z.literal('PAID_AMOUNT'),
+    refundPercent: z.union([z.literal(0), z.literal(50), z.literal(100)]),
+    estimatedRefundVnd: z.number().int().min(0),
+    policy: z
+      .object({
+        code: z.string().min(1).max(80),
+        version: z.number().int().positive(),
+        timezone: z.string().min(1).max(64),
+        capturedAt: instantSchema,
+        checkIn: instantSchema,
+        sevenDayDeadline: instantSchema,
+        threeDayDeadline: instantSchema,
+      })
+      .strict()
+      .nullable(),
+    policyMessage: z.string().min(1).max(400),
   })
   .strict();
 
@@ -281,6 +309,7 @@ export type AdminBookingAccessPassScanResponse = z.infer<
   typeof adminBookingAccessPassScanResponseSchema
 >;
 export type AdminBookingCancelRequest = z.infer<typeof adminBookingCancelRequestSchema>;
+export type AdminBookingCancellationPreview = z.infer<typeof adminBookingCancellationPreviewSchema>;
 export type AdminBookingNoShowRequest = z.infer<typeof adminBookingNoShowRequestSchema>;
 export type AdminOperationalReviewListQuery = z.infer<typeof adminOperationalReviewListQuerySchema>;
 export type AdminOperationalReviewListResponse = z.infer<

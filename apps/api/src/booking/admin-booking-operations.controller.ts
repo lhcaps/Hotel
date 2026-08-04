@@ -1,5 +1,6 @@
 import {
   Body,
+  BadRequestException,
   Controller,
   Get,
   Headers,
@@ -100,9 +101,24 @@ export class AdminBookingOperationsController {
   public async cancelBooking(
     @Param('bookingCode') bookingCode: string,
     @Body() body: unknown,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Req() request: AdminRequest,
   ): Promise<AdminBookingDetail> {
-    return this.lifecycle.cancel(request.actor, bookingCode, body, new Date());
+    if (idempotencyKey === undefined || idempotencyKey.trim() === '') {
+      throw new BadRequestException({ code: 'IDEMPOTENCY_KEY_REQUIRED' });
+    }
+    return this.lifecycle.cancel(request.actor, bookingCode, body, new Date(), idempotencyKey);
+  }
+
+  @Post('bookings/:bookingCode/cancellation-preview')
+  @Version('1')
+  @RequirePermissions('booking.lifecycle.read')
+  public async cancellationPreview(
+    @Param('bookingCode') bookingCode: string,
+    @Req() request: AdminRequest,
+  ) {
+    void request;
+    return this.lifecycle.cancellationPreview(bookingCode, new Date());
   }
 
   @Post('bookings/:bookingCode/check-in')

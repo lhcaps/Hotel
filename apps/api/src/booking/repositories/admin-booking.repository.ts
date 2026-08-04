@@ -25,6 +25,7 @@ export interface AdminBookingListRow {
   readonly roomTypeName: string;
   readonly roomId: string | null;
   readonly roomNumber: string | null;
+  readonly roomStatus: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE' | null;
   readonly fullName: string;
   readonly paymentStatus: AdminPaymentStatusSummary;
   readonly reviewPresence: AdminReviewPresence;
@@ -122,6 +123,7 @@ interface AdminBookingListDbRow {
   room_type_name: string;
   room_id: string | null;
   room_number: string | null;
+  room_status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE' | null;
   full_name: string;
   payment_status: string | null;
   review_status: string | null;
@@ -287,6 +289,7 @@ function toAdminBookingListRow(row: AdminBookingListDbRow): AdminBookingListRow 
     roomTypeName: row.room_type_name,
     roomId: row.room_id,
     roomNumber: row.room_number,
+    roomStatus: row.room_status,
     fullName: row.full_name,
     paymentStatus: paymentStatusSummary(row.payment_status),
     reviewPresence: reviewPresence(row.review_status),
@@ -462,6 +465,7 @@ export class AdminBookingRepository {
              rt.name           AS room_type_name,
              r.id              AS room_id,
              r.room_number     AS room_number,
+             r.status          AS room_status,
              bc.full_name      AS full_name,
              pay.status        AS payment_status,
              rv.status         AS review_status
@@ -540,6 +544,7 @@ export class AdminBookingRepository {
               rt.max_occupancy           AS max_occupancy,
               r.id                       AS room_id,
               r.room_number              AS room_number,
+              r.status                   AS room_status,
               p.code                     AS property_code,
               p.name                     AS property_name,
               p.timezone                 AS property_timezone,

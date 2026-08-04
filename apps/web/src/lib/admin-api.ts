@@ -386,9 +386,21 @@ export const adminApi = {
   cancelAdminBooking: (bookingCode: string, reason: string) =>
     request<AdminBookingDetail>(`/admin/bookings/${bookingCode}/cancel`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        'idempotency-key': crypto.randomUUID(),
+      },
       body: JSON.stringify({ reason }),
     }),
+  getAdminCancellationPreview: (bookingCode: string) =>
+    request<AdminBookingCancellationPreview>(
+      `/admin/bookings/${bookingCode}/cancellation-preview`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      },
+    ),
   checkInAdminBooking: (bookingCode: string) =>
     request<AdminBookingDetail>(`/admin/bookings/${bookingCode}/check-in`, {
       method: 'POST',
@@ -538,6 +550,7 @@ export interface AdminBookingSummary {
   readonly checkOut: string;
   readonly roomType: { readonly id: string; readonly code: string; readonly name: string };
   readonly room: { readonly id: string; readonly roomNumber: string } | null;
+  readonly roomStatus: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE' | null;
   readonly finalAmountVnd: number;
   readonly currency: string;
   readonly paymentStatus: PaymentStatusSummary;
@@ -772,6 +785,7 @@ export interface AdminBookingDetail {
     readonly maxOccupancy: number;
   };
   readonly room: { readonly id: string; readonly roomNumber: string } | null;
+  readonly roomStatus: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE' | null;
   readonly interval: { readonly checkIn: string; readonly checkOut: string };
   readonly pricing: AdminBookingPricing;
   readonly payment: AdminBookingPaymentSummary;
@@ -787,6 +801,26 @@ export interface AdminBookingDetail {
   readonly timeline: readonly AdminBookingTimelineEntry[];
   readonly availableActions: readonly ('cancel' | 'check-in' | 'check-out' | 'no-show')[];
   readonly serverTime: string;
+}
+
+export interface AdminBookingCancellationPreview {
+  readonly bookingCode: string;
+  readonly bookingStatus: BookingStatus;
+  readonly eligible: boolean;
+  readonly outcome: 'NO_CHARGE' | 'REVIEW_REQUIRED' | 'NO_REFUND' | 'NOT_ELIGIBLE';
+  readonly refundBasis: 'PAID_AMOUNT';
+  readonly refundPercent: 0 | 50 | 100;
+  readonly estimatedRefundVnd: number;
+  readonly policy: {
+    readonly code: string;
+    readonly version: number;
+    readonly timezone: string;
+    readonly capturedAt: string;
+    readonly checkIn: string;
+    readonly sevenDayDeadline: string;
+    readonly threeDayDeadline: string;
+  } | null;
+  readonly policyMessage: string;
 }
 
 export interface AdminBookingAccessPassScanResult {

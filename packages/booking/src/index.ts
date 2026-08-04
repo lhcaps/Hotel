@@ -27,6 +27,18 @@ export { normalizeContact, contactsAreEquivalent, maskEmailForDisplay } from './
 
 export { collapseWhitespace, normalizeUnicode } from './strings.js';
 
+export {
+  CANCELLATION_POLICY_CODE,
+  CANCELLATION_POLICY_VERSION,
+  CANCELLATION_REFUND_BASIS,
+  CANCELLATION_SEVEN_DAY_SECONDS,
+  CANCELLATION_THREE_DAY_SECONDS,
+  createCancellationPolicySnapshot,
+  evaluateCancellationPolicy,
+  type CancellationEvaluation,
+  type CancellationPolicySnapshot,
+} from './cancellation-policy.js';
+
 export { DIGEST_DOMAIN_LABELS, type DigestDomainLabel } from './domain-labels.js';
 
 // Domain errors

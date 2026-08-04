@@ -160,7 +160,7 @@
       "index": 22,
       "fileName": "0022_booking_access_pass.sql",
       "sha256": "a2997266d83d921e8b146560ff0f5d45fa44c3361eb956561694cec97dfd1350",
-      "phase": "uncategorized",
+      "phase": "P0 immutable cancellation policy and refund review state",
       "previousIntroductionReference": null
     },
     {
@@ -189,6 +189,13 @@
       "fileName": "0026_outstanding_mimic.sql",
       "sha256": "439f81ba8238f1bb69a668f6e83a367903a383f12be82e6ac3913f673ecc4632",
       "phase": "Better Auth administrator account creation support",
+      "previousIntroductionReference": null
+    },
+    {
+      "index": 27,
+      "fileName": "0027_superb_sumo.sql",
+      "sha256": "3a7564e4aa5d31c1fb9cde9b0b6afd1faa8a9bb667dc24a3c542e88bd7a2b9ee",
+      "phase": "uncategorized",
       "previousIntroductionReference": null
     }
   ]

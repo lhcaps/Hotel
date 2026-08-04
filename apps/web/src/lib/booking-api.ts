@@ -4,6 +4,7 @@ import type {
   CustomerAlterationPreview,
   CustomerAlterationPreviewRequest,
   CustomerCancellationPreview,
+  CustomerCancellationResponse,
   BookingHoldResponse,
   BookingHoldStatusRequest,
   BookingHoldStatusResponse,
@@ -306,6 +307,26 @@ export const bookingApi = {
     return postJson<CustomerCancellationPreview, Record<string, never>>(
       `/customer/bookings/${encodeURIComponent(bookingCode)}/cancellation-preview`,
       {},
+      options,
+    );
+  },
+
+  cancelCustomerBooking(
+    bookingCode: string,
+    reason: string,
+    idempotencyKey: string,
+    options?: BookingApiRequestOptions,
+  ): Promise<CustomerCancellationResponse> {
+    return request<CustomerCancellationResponse>(
+      `/customer/bookings/${encodeURIComponent(bookingCode)}/cancel`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'idempotency-key': idempotencyKey,
+        },
+        body: JSON.stringify({ reason }),
+      },
       options,
     );
   },

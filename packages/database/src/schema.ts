@@ -785,6 +785,12 @@ export const bookings = pgTable(
     holdExpiresAt: timestamptz('hold_expires_at').notNull(),
     expiredAt: timestamptz('expired_at'),
     cancelledAt: timestamptz('cancelled_at'),
+    cancellationPolicySnapshot: jsonb('cancellation_policy_snapshot'),
+    cancellationIdempotencyKey: text('cancellation_idempotency_key'),
+    cancellationRequestedAt: timestamptz('cancellation_requested_at'),
+    cancellationRefundState: text('cancellation_refund_state').notNull().default('NOT_APPLICABLE'),
+    cancellationRefundAmountVnd: moneyVnd('cancellation_refund_amount_vnd'),
+    cancellationRetainedAmountVnd: moneyVnd('cancellation_retained_amount_vnd'),
     checkedInAt: timestamptz('checked_in_at'),
     checkedOutAt: timestamptz('checked_out_at'),
     noShowAt: timestamptz('no_show_at'),
@@ -859,6 +865,23 @@ export const bookings = pgTable(
                 OR (${table.status} <> 'CANCELLED' AND ${table.cancelledAt} IS NULL)`,
     ),
     check(
+      'bookings_cancellation_policy_snapshot_ck',
+      sql`${table.cancellationPolicySnapshot} IS NULL
+          OR (jsonb_typeof(${table.cancellationPolicySnapshot}) = 'object'
+              AND ${table.cancellationPolicySnapshot} <> '{}'::jsonb)`,
+    ),
+    check(
+      'bookings_cancellation_refund_state_ck',
+      sql`${table.cancellationRefundState} IN ('NOT_APPLICABLE', 'NO_REFUND', 'REVIEW_REQUIRED', 'REFUND_PENDING', 'REFUNDED')`,
+    ),
+    check(
+      'bookings_cancellation_refund_amounts_ck',
+      sql`(${table.cancellationRefundAmountVnd} IS NULL OR ${table.cancellationRefundAmountVnd} >= 0)
+          AND (${table.cancellationRetainedAmountVnd} IS NULL OR ${table.cancellationRetainedAmountVnd} >= 0)
+          AND (${table.status} = 'CANCELLED'
+               OR (${table.cancellationRefundAmountVnd} IS NULL AND ${table.cancellationRetainedAmountVnd} IS NULL))`,
+    ),
+    check(
       'bookings_checked_in_at_ck',
       sql`(${table.status} IN ('CHECKED_IN', 'CHECKED_OUT')
                   AND ${table.checkedInAt} IS NOT NULL)
@@ -890,6 +913,9 @@ export const bookings = pgTable(
       table.createdAt.desc(),
     ),
     index('bookings_property_check_in_idx').on(table.propertyId, table.checkIn),
+    uniqueIndex('bookings_cancellation_idempotency_uq')
+      .on(table.cancellationIdempotencyKey)
+      .where(sql`${table.cancellationIdempotencyKey} IS NOT NULL`),
   ],
 );
 

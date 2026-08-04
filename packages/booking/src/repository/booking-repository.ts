@@ -55,6 +55,7 @@ export interface BookingRow {
   readonly finalAmountVnd: bigint;
   readonly pricingRuleVersion: string | null;
   readonly priceSnapshot: unknown;
+  readonly cancellationPolicySnapshot: unknown;
   readonly holdExpiresAt: Date;
   readonly expiredAt: Date | null;
   readonly createdAt: Date;
@@ -99,6 +100,7 @@ export interface CreateBookingInput {
   readonly finalAmountVnd: bigint;
   readonly pricingRuleVersion: string;
   readonly priceSnapshot: unknown;
+  readonly cancellationPolicySnapshot: unknown;
   readonly holdExpiresAt: Date;
   readonly correlationId: string;
   readonly customerUserId?: string | null;
@@ -128,6 +130,7 @@ export async function insertBooking(tx: DbTransaction, input: CreateBookingInput
       finalAmountVnd: input.finalAmountVnd,
       pricingRuleVersion: input.pricingRuleVersion,
       priceSnapshot: input.priceSnapshot,
+      cancellationPolicySnapshot: input.cancellationPolicySnapshot,
       holdExpiresAt: input.holdExpiresAt,
       customerUserId: input.customerUserId ?? null,
     })
