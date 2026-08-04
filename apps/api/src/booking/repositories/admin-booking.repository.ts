@@ -401,6 +401,11 @@ function buildListFilters(propertyId: string, query: AdminBookingListQuery): Lis
       index += 1;
     }
   }
+  if (query.customerUserId !== undefined) {
+    conditions.push(`b.customer_user_id = $${index}`);
+    params.push(query.customerUserId);
+    index += 1;
+  }
   if (query.roomTypeId !== undefined) {
     conditions.push(`b.room_type_id = $${index}`);
     params.push(query.roomTypeId);

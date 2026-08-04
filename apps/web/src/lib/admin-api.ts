@@ -6,6 +6,10 @@ import {
 } from '@room/contracts/pricing';
 import type {
   AdminMe,
+  AdminAccount,
+  AdminAuditEntry,
+  AdminCustomerAccount,
+  AdminDepartment,
   AdminOperationalReport,
   Amenity,
   MaintenanceBlock,
@@ -75,6 +79,45 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const adminApi = {
+  listAdminAccounts: () => request<readonly AdminAccount[]>('/admin/accounts'),
+  createAdminAccount: (body: unknown) =>
+    request<AdminAccount>('/admin/accounts', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  listCustomerAccounts: () => request<readonly AdminCustomerAccount[]>('/admin/customer-accounts'),
+  updateAdminAccount: (id: string, body: unknown) =>
+    request<AdminAccount>(`/admin/accounts/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  revokeAdminSessions: (id: string) =>
+    request<{ userId: string; revokedSessions: number }>(`/admin/accounts/${id}/revoke-sessions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    }),
+  updateCustomerAccount: (id: string, body: { status: 'ACTIVE' | 'DISABLED' }) =>
+    request<AdminCustomerAccount>(`/admin/customer-accounts/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  revokeCustomerSessions: (id: string) =>
+    request<{ userId: string; revokedSessions: number }>(
+      `/admin/customer-accounts/${id}/revoke-sessions`,
+      { method: 'POST' },
+    ),
+  listAdminDepartments: () => request<readonly AdminDepartment[]>('/admin/departments'),
+  createAdminDepartment: (body: unknown) =>
+    request<AdminDepartment>('/admin/departments', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  listAdminAudit: () => request<{ items: readonly AdminAuditEntry[] }>('/admin/audit'),
   getRoomOperations: (query: { readonly from: string; readonly to: string }) =>
     request<AdminRoomOperationsResponse>(
       `/admin/room-operations?${new URLSearchParams(query).toString()}`,
@@ -507,9 +550,12 @@ export interface AdminRoomOperationsResponse {
   readonly items: readonly {
     readonly roomId: string;
     readonly roomNumber: string;
+    readonly roomConcept: string;
     readonly roomStatus: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
     readonly housekeepingStatus: 'CLEAN' | 'DIRTY' | 'CLEANING';
     readonly maintenanceState: 'ACTIVE' | 'NONE';
+    readonly currentOccupancy: 'OCCUPIED' | 'VACANT';
+    readonly nextBookingWindow: { readonly checkIn: string; readonly checkOut: string } | null;
     readonly freeWindows: readonly { readonly startsAt: string; readonly endsAt: string }[];
     readonly activeHousekeepingTask: {
       readonly type: 'ARRIVAL_PREP' | 'TURNOVER';

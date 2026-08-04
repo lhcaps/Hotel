@@ -1,13 +1,16 @@
 import { Module } from '@nestjs/common';
+import type { createRoomAuth } from '@room/auth';
 import { Reflector } from '@nestjs/core';
 import type { ApiEnvironment } from '@room/config';
 
 import { DatabaseProvider } from './database/database.provider.js';
 import { AppDatabaseModule } from './database/database.module.js';
 import { AuthModule } from './auth/auth.module.js';
-import { API_ENVIRONMENT } from './auth/auth.providers.js';
+import { API_ENVIRONMENT, ROOM_AUTH } from './auth/auth.providers.js';
 import { HealthController } from './health/health.controller.js';
 import { AdminController } from './admin/admin.controller.js';
+import { AdminAccessController } from './admin/admin-access.controller.js';
+import { AdminAccessService } from './admin/admin-access.service.js';
 import { AuditRepository } from './catalog/audit.repository.js';
 import { CatalogController } from './catalog/catalog.controller.js';
 import { CatalogRepository } from './catalog/catalog.repository.js';
@@ -50,6 +53,7 @@ import { ReportingModule } from './reporting/reporting.module.js';
   controllers: [
     HealthController,
     AdminController,
+    AdminAccessController,
     CatalogController,
     CouponController,
     RatePlanController,
@@ -70,6 +74,12 @@ import { ReportingModule } from './reporting/reporting.module.js';
           new CatalogRepository(database.client),
           new AuditRepository(),
         ),
+    },
+    {
+      provide: AdminAccessService,
+      inject: [DatabaseProvider, ROOM_AUTH],
+      useFactory: (database: DatabaseProvider, auth: ReturnType<typeof createRoomAuth>) =>
+        new AdminAccessService(database.client, auth),
     },
     {
       provide: CouponService,

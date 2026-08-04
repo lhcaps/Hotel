@@ -11,6 +11,7 @@ const catalogCodeSchema = z
 const nameSchema = z.string().trim().min(1).max(160);
 const optionalDescriptionSchema = z.string().trim().min(1).max(2_000).nullable().optional();
 const statusSchema = z.enum(['ACTIVE', 'INACTIVE']);
+export const adminRoleSchema = z.enum(['ADMIN', 'SUPER_ADMIN', 'ROOM_STATUS_VIEWER']);
 export const roomHousekeepingStatusSchema = z.enum(['CLEAN', 'DIRTY', 'CLEANING']);
 const instantSchema = z.string().datetime({ offset: true });
 
@@ -45,10 +46,94 @@ export const adminMeSchema = z
     id: uuidSchema,
     email: z.email(),
     displayName: nameSchema,
-    role: z.literal('ADMIN'),
+    role: adminRoleSchema,
     permissions: z.array(z.string().min(1)).readonly(),
     sessionExpiresAt: instantSchema,
+    departments: z.array(z.string().min(1).max(160)).readonly().optional(),
   })
+  .strict();
+
+export const adminDepartmentSchema = z
+  .object({
+    id: uuidSchema,
+    code: catalogCodeSchema,
+    name: nameSchema,
+    status: statusSchema,
+    memberCount: z.number().int().min(0),
+    createdAt: instantSchema,
+    updatedAt: instantSchema,
+  })
+  .strict();
+
+export const adminDepartmentCommandSchema = z
+  .object({ code: catalogCodeSchema, name: nameSchema })
+  .strict();
+
+export const adminAccountSchema = z
+  .object({
+    id: uuidSchema,
+    displayName: nameSchema,
+    emailMasked: z.string().trim().min(3).max(320),
+    status: z.enum(['ACTIVE', 'DISABLED']),
+    role: adminRoleSchema,
+    departments: z.array(z.string().min(1).max(160)).readonly(),
+    activeSessionCount: z.number().int().min(0),
+    lastActivityAt: instantSchema.nullable(),
+    createdAt: instantSchema,
+  })
+  .strict();
+
+export const adminAccountPatchSchema = z
+  .object({
+    status: z.enum(['ACTIVE', 'DISABLED']).optional(),
+    role: adminRoleSchema.optional(),
+    departmentIds: z.array(uuidSchema).max(20).optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, 'At least one account change is required.');
+
+export const adminAccountCreateSchema = z
+  .object({
+    displayName: nameSchema,
+    email: z.email(),
+    password: z.string().min(8).max(128),
+    role: adminRoleSchema,
+    departmentIds: z.array(uuidSchema).max(20).default([]),
+  })
+  .strict();
+
+export const adminCustomerAccountSchema = z
+  .object({
+    id: uuidSchema,
+    displayName: nameSchema,
+    emailMasked: z.string().trim().min(3).max(320),
+    providers: z.array(z.string().trim().min(1).max(160)).readonly(),
+    status: z.enum(['ACTIVE', 'DISABLED']),
+    bookingCount: z.number().int().min(0),
+    activeSessionCount: z.number().int().min(0),
+    lastActivityAt: instantSchema.nullable(),
+    createdAt: instantSchema,
+  })
+  .strict();
+
+export const adminCustomerAccountPatchSchema = z
+  .object({ status: z.enum(['ACTIVE', 'DISABLED']) })
+  .strict();
+
+export const adminAuditEntrySchema = z
+  .object({
+    id: uuidSchema,
+    eventType: z.string().trim().min(1).max(160),
+    actorId: uuidSchema.nullable(),
+    aggregateType: z.string().trim().min(1).max(160),
+    aggregateId: uuidSchema,
+    payload: z.record(z.string(), z.unknown()),
+    occurredAt: instantSchema,
+  })
+  .strict();
+
+export const adminAuditResponseSchema = z
+  .object({ items: z.array(adminAuditEntrySchema).max(100) })
   .strict();
 
 export const propertySchema = z
@@ -59,6 +144,11 @@ export const propertySchema = z
     timezone: z.string().trim().min(1).max(80),
     currency: z.literal('VND'),
     status: statusSchema,
+    minimumStayMinutes: z.number().int().min(1).max(44_640).optional(),
+    maximumStayMinutes: z.number().int().min(1).max(44_640).optional(),
+    minimumLeadTimeMinutes: z.number().int().min(0).max(44_640).optional(),
+    maximumAdvanceBookingDays: z.number().int().min(0).max(3_650).optional(),
+    defaultOvernightDurationMinutes: z.number().int().min(1).max(44_640).optional(),
     createdAt: instantSchema,
     updatedAt: instantSchema,
   })
@@ -68,8 +158,37 @@ export const propertyCommandSchema = z
   .object({
     code: catalogCodeSchema,
     name: nameSchema,
+    minimumStayMinutes: z.number().int().min(1).max(44_640).optional(),
+    maximumStayMinutes: z.number().int().min(1).max(44_640).optional(),
+    minimumLeadTimeMinutes: z.number().int().min(0).max(44_640).optional(),
+    maximumAdvanceBookingDays: z.number().int().min(0).max(3_650).optional(),
+    defaultOvernightDurationMinutes: z.number().int().min(1).max(44_640).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      value.minimumStayMinutes !== undefined &&
+      value.maximumStayMinutes !== undefined &&
+      value.maximumStayMinutes < value.minimumStayMinutes
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['maximumStayMinutes'],
+        message: 'Maximum stay must be at least the minimum stay.',
+      });
+    }
+    if (
+      value.defaultOvernightDurationMinutes !== undefined &&
+      value.maximumStayMinutes !== undefined &&
+      value.defaultOvernightDurationMinutes > value.maximumStayMinutes
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['defaultOvernightDurationMinutes'],
+        message: 'Default overnight duration must fit within the maximum stay.',
+      });
+    }
+  });
 
 export const priceTierSchema = z
   .object({
@@ -290,6 +409,15 @@ export const assignAmenityCommandSchema = z.object({ amenityId: uuidSchema }).st
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
 export type ProblemDetails = z.infer<typeof problemDetailsSchema>;
 export type AdminMe = z.infer<typeof adminMeSchema>;
+export type AdminRole = z.infer<typeof adminRoleSchema>;
+export type AdminDepartment = z.infer<typeof adminDepartmentSchema>;
+export type AdminDepartmentCommand = z.infer<typeof adminDepartmentCommandSchema>;
+export type AdminAccount = z.infer<typeof adminAccountSchema>;
+export type AdminAccountPatch = z.infer<typeof adminAccountPatchSchema>;
+export type AdminAccountCreate = z.infer<typeof adminAccountCreateSchema>;
+export type AdminCustomerAccount = z.infer<typeof adminCustomerAccountSchema>;
+export type AdminCustomerAccountPatch = z.infer<typeof adminCustomerAccountPatchSchema>;
+export type AdminAuditEntry = z.infer<typeof adminAuditEntrySchema>;
 export type Property = z.infer<typeof propertySchema>;
 export type PropertyCommand = z.infer<typeof propertyCommandSchema>;
 export type PriceTier = z.infer<typeof priceTierSchema>;

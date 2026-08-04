@@ -31,6 +31,7 @@ const PAGE_SIZE = 20;
 
 interface Filters {
   readonly bookingCode: string;
+  readonly customerUserId: string;
   readonly status: string;
   readonly paymentStatus: string;
   readonly reviewPresence: string;
@@ -40,6 +41,7 @@ interface Filters {
 
 const emptyFilters: Filters = {
   bookingCode: '',
+  customerUserId: '',
   status: '',
   paymentStatus: '',
   reviewPresence: '',
@@ -63,6 +65,7 @@ export default function AdminBookingsPage() {
         page: number;
         pageSize: number;
         q?: string;
+        customerUserId?: string;
         status?: string;
         paymentStatus?: string;
         reviewPresence?: string;
@@ -73,6 +76,7 @@ export default function AdminBookingsPage() {
       // Sending the UI field name (`bookingCode`) caused the API's strict
       // query schema to reject every filtered request.
       if (next.bookingCode !== '') params.q = next.bookingCode;
+      if (next.customerUserId !== '') params.customerUserId = next.customerUserId;
       if (next.status !== '') params.status = next.status;
       if (next.paymentStatus !== '') params.paymentStatus = next.paymentStatus;
       if (next.reviewPresence !== '') params.reviewPresence = next.reviewPresence;
@@ -100,6 +104,13 @@ export default function AdminBookingsPage() {
   useEffect(() => {
     refresh(1, filters);
   }, [refresh, filters]);
+
+  useEffect(() => {
+    const customerUserId = new URLSearchParams(window.location.search).get('customerUserId') ?? '';
+    if (customerUserId !== '' && filters.customerUserId !== customerUserId) {
+      setFilters((current) => ({ ...current, customerUserId }));
+    }
+  }, [filters.customerUserId]);
 
   function updateFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));

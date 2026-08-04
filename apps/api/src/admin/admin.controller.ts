@@ -20,6 +20,7 @@ export class AdminController {
       role: actor.role,
       permissions: actor.permissions,
       sessionExpiresAt: actor.sessionExpiresAt.toISOString(),
+      departments: actor.departments,
     });
   }
 }

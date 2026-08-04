@@ -1,0 +1,377 @@
+import {
+  adminAccountPatchSchema,
+  adminAccountCreateSchema,
+  adminAccountSchema,
+  adminAuditResponseSchema,
+  adminCustomerAccountPatchSchema,
+  adminCustomerAccountSchema,
+  adminDepartmentCommandSchema,
+  adminDepartmentSchema,
+} from '@room/contracts';
+import {
+  accounts,
+  adminDepartments,
+  adminMemberships,
+  auditEvents,
+  bookings,
+  eq,
+  inArray,
+  sessions,
+  sql,
+  users,
+  type DatabaseClient,
+} from '@room/database';
+import { createAuthAdminUser, type createRoomAuth } from '@room/auth';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+
+import type { ActorContext } from '../auth/actor-context.js';
+
+type AdminDatabase = Pick<
+  DatabaseClient,
+  'delete' | 'insert' | 'query' | 'select' | 'update' | 'transaction'
+>;
+
+const ADMIN_ROLES = ['ADMIN', 'SUPER_ADMIN', 'ROOM_STATUS_VIEWER'] as const;
+
+function isAdminRole(value: string): value is (typeof ADMIN_ROLES)[number] {
+  return ADMIN_ROLES.includes(value as (typeof ADMIN_ROLES)[number]);
+}
+
+function maskEmail(email: string): string {
+  const at = email.indexOf('@');
+  if (at <= 0) return '***';
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  if (local.length <= 2) return `${local[0] ?? '*'}***@${domain}`;
+  return `${local[0]}${'*'.repeat(Math.max(1, local.length - 2))}${local.at(-1)}@${domain}`;
+}
+
+export class AdminAccessService {
+  public constructor(
+    private readonly database: AdminDatabase,
+    private readonly auth?: ReturnType<typeof createRoomAuth>,
+  ) {}
+
+  public async listAccounts() {
+    const rows = await this.database.query.users.findMany({
+      where: (fields, { or, eq }) =>
+        or(
+          eq(fields.role, 'ADMIN'),
+          eq(fields.role, 'SUPER_ADMIN'),
+          eq(fields.role, 'ROOM_STATUS_VIEWER'),
+        ),
+      orderBy: (fields, { asc }) => [asc(fields.email), asc(fields.id)],
+    });
+    const items = await Promise.all(rows.map((row) => this.account(row)));
+    return items.map((item) => adminAccountSchema.parse(item));
+  }
+
+  public async updateAccount(actor: ActorContext, id: string, input: unknown) {
+    const patch = adminAccountPatchSchema.parse(input);
+    if (actor.userId === id && patch.status === 'DISABLED') {
+      throw new BadRequestException({ code: 'SELF_DISABLE_FORBIDDEN' });
+    }
+    const target = await this.database.query.users.findFirst({
+      where: (fields, { eq }) => eq(fields.id, id),
+    });
+    if (target === undefined || !isAdminRole(target.role)) {
+      throw new NotFoundException({ code: 'ADMIN_ACCOUNT_NOT_FOUND' });
+    }
+    const role = patch.role ?? target.role;
+    if (!isAdminRole(role)) {
+      throw new BadRequestException({ code: 'ADMIN_ROLE_REQUIRED' });
+    }
+    if (patch.departmentIds?.some((departmentId) => departmentId.trim() === '')) {
+      throw new BadRequestException({ code: 'INVALID_DEPARTMENT_ID' });
+    }
+    await this.database.transaction(async (transaction) => {
+      await transaction
+        .update(users)
+        .set({ role, status: patch.status ?? target.status, updatedAt: new Date() })
+        .where(eq(users.id, id));
+      if (patch.departmentIds !== undefined) {
+        await transaction.delete(adminMemberships).where(eq(adminMemberships.userId, id));
+        if (patch.departmentIds.length > 0) {
+          await transaction.insert(adminMemberships).values(
+            patch.departmentIds.map((departmentId) => ({
+              userId: id,
+              departmentId,
+              role,
+            })),
+          );
+        }
+      }
+      await this.writeAudit(transaction, actor, id, 'ADMIN_ACCOUNT_UPDATED', {
+        status: patch.status ?? target.status,
+        role,
+        departmentIds: patch.departmentIds ?? null,
+      });
+    });
+    return this.accountById(id);
+  }
+
+  public async listCustomerAccounts() {
+    const rows = await this.database
+      .select({
+        id: users.id,
+        displayName: users.name,
+        email: users.email,
+        status: users.status,
+        createdAt: users.createdAt,
+        bookingCount: sql<number>`count(distinct ${bookings.id})::int`,
+        activeSessionCount: sql<number>`count(distinct ${sessions.id}) filter (where ${sessions.expiresAt} > now())::int`,
+        lastActivityAt: sql<Date | null>`max(${sessions.updatedAt})`,
+        providers: sql<
+          string[]
+        >`coalesce(array_agg(distinct ${accounts.providerId}) filter (where ${accounts.providerId} is not null), ARRAY[]::text[])`,
+      })
+      .from(users)
+      .leftJoin(accounts, eq(accounts.userId, users.id))
+      .leftJoin(bookings, eq(bookings.customerUserId, users.id))
+      .leftJoin(sessions, eq(sessions.userId, users.id))
+      .where(eq(users.role, 'CUSTOMER'))
+      .groupBy(users.id, users.email, users.status, users.createdAt)
+      .orderBy(sql`lower(${users.email})`, users.id);
+
+    return rows.map((row) =>
+      adminCustomerAccountSchema.parse({
+        id: row.id,
+        displayName: row.displayName,
+        emailMasked: maskEmail(row.email),
+        providers: row.providers,
+        status: row.status,
+        bookingCount: row.bookingCount,
+        activeSessionCount: row.activeSessionCount,
+        lastActivityAt: row.lastActivityAt?.toISOString() ?? null,
+        createdAt: row.createdAt.toISOString(),
+      }),
+    );
+  }
+
+  public async createAccount(actor: ActorContext, input: unknown) {
+    if (actor.role !== 'SUPER_ADMIN') {
+      throw new BadRequestException({ code: 'SUPER_ADMIN_REQUIRED' });
+    }
+    const command = adminAccountCreateSchema.parse(input);
+    if (this.auth === undefined) {
+      throw new BadRequestException({ code: 'AUTH_ACCOUNT_CREATION_UNAVAILABLE' });
+    }
+    if (command.departmentIds.length > 0) {
+      const departments = await this.database.query.adminDepartments.findMany({
+        where: (fields, { and, eq }) =>
+          and(eq(fields.status, 'ACTIVE'), inArray(fields.id, command.departmentIds)),
+        columns: { id: true },
+      });
+      if (departments.length !== command.departmentIds.length) {
+        throw new BadRequestException({ code: 'DEPARTMENT_NOT_FOUND' });
+      }
+    }
+    const created = await createAuthAdminUser(this.auth, {
+      email: command.email,
+      name: command.displayName,
+      password: command.password,
+      role: command.role,
+    });
+    await this.database.transaction(async (transaction) => {
+      if (command.departmentIds.length > 0) {
+        await transaction.insert(adminMemberships).values(
+          command.departmentIds.map((departmentId) => ({
+            userId: created.id,
+            departmentId,
+            role: command.role,
+          })),
+        );
+      }
+      await this.writeAudit(transaction, actor, created.id, 'ADMIN_ACCOUNT_CREATED', {
+        role: command.role,
+        departmentIds: command.departmentIds,
+      });
+    });
+    return this.accountById(created.id);
+  }
+
+  public async updateCustomerAccount(actor: ActorContext, id: string, input: unknown) {
+    const patch = adminCustomerAccountPatchSchema.parse(input);
+    const target = await this.database.query.users.findFirst({
+      where: (fields, { eq }) => eq(fields.id, id),
+      columns: { id: true, role: true },
+    });
+    if (target === undefined || target.role !== 'CUSTOMER') {
+      throw new NotFoundException({ code: 'CUSTOMER_ACCOUNT_NOT_FOUND' });
+    }
+    await this.database
+      .update(users)
+      .set({ status: patch.status, updatedAt: new Date() })
+      .where(eq(users.id, id));
+    await this.writeAudit(this.database, actor, id, 'CUSTOMER_ACCOUNT_UPDATED', {
+      status: patch.status,
+    });
+    const updated = (await this.listCustomerAccounts()).find((item) => item.id === id);
+    if (updated === undefined) throw new NotFoundException({ code: 'CUSTOMER_ACCOUNT_NOT_FOUND' });
+    return updated;
+  }
+
+  public async revokeCustomerSessions(actor: ActorContext, id: string) {
+    const target = await this.database.query.users.findFirst({
+      where: (fields, { eq }) => eq(fields.id, id),
+      columns: { id: true, role: true },
+    });
+    if (target === undefined || target.role !== 'CUSTOMER') {
+      throw new NotFoundException({ code: 'CUSTOMER_ACCOUNT_NOT_FOUND' });
+    }
+    const deleted = await this.database.delete(sessions).where(eq(sessions.userId, id));
+    const revoked = deleted.rowCount ?? 0;
+    await this.writeAudit(this.database, actor, id, 'CUSTOMER_SESSIONS_REVOKED', { revoked });
+    return { userId: id, revokedSessions: revoked };
+  }
+
+  public async revokeSessions(actor: ActorContext, id: string) {
+    const target = await this.database.query.users.findFirst({
+      where: (fields, { eq }) => eq(fields.id, id),
+      columns: { id: true },
+    });
+    if (target === undefined) throw new NotFoundException({ code: 'ADMIN_ACCOUNT_NOT_FOUND' });
+    const deleted = await this.database.delete(sessions).where(eq(sessions.userId, id));
+    const revoked = deleted.rowCount ?? 0;
+    await this.writeAudit(this.database, actor, id, 'ADMIN_SESSIONS_REVOKED', { revoked });
+    return { userId: id, revokedSessions: revoked };
+  }
+
+  public async listDepartments() {
+    const rows = await this.database.query.adminDepartments.findMany({
+      orderBy: (fields, { asc }) => [asc(fields.name), asc(fields.id)],
+    });
+    return Promise.all(
+      rows.map(async (row) => {
+        const members = await this.database.query.adminMemberships.findMany({
+          where: (fields, { and, eq }) =>
+            and(eq(fields.departmentId, row.id), eq(fields.status, 'ACTIVE')),
+          columns: { id: true },
+        });
+        return adminDepartmentSchema.parse({
+          id: row.id,
+          code: row.code,
+          name: row.name,
+          status: row.status,
+          memberCount: members.length,
+          createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString(),
+        });
+      }),
+    );
+  }
+
+  public async createDepartment(actor: ActorContext, input: unknown) {
+    const command = adminDepartmentCommandSchema.parse(input);
+    const code = command.code.toUpperCase();
+    try {
+      const [created] = await this.database
+        .insert(adminDepartments)
+        .values({ code, name: command.name })
+        .returning();
+      if (created === undefined) throw new ConflictException({ code: 'DEPARTMENT_CREATE_FAILED' });
+      await this.writeAudit(this.database, actor, created.id, 'ADMIN_DEPARTMENT_CREATED', {
+        code,
+        name: command.name,
+      });
+      return adminDepartmentSchema.parse({
+        id: created.id,
+        code: created.code,
+        name: created.name,
+        status: created.status,
+        memberCount: 0,
+        createdAt: created.createdAt.toISOString(),
+        updatedAt: created.updatedAt.toISOString(),
+      });
+    } catch (error) {
+      if (error instanceof ConflictException) throw error;
+      throw new ConflictException({ code: 'DEPARTMENT_CODE_CONFLICT' });
+    }
+  }
+
+  public async listAudit() {
+    const rows = await this.database
+      .select({
+        id: auditEvents.id,
+        eventType: auditEvents.eventType,
+        actorId: auditEvents.actorId,
+        aggregateType: auditEvents.aggregateType,
+        aggregateId: auditEvents.aggregateId,
+        payload: auditEvents.payload,
+        occurredAt: auditEvents.occurredAt,
+      })
+      .from(auditEvents)
+      .where(sql`${auditEvents.eventType} LIKE 'ADMIN_%'`)
+      .orderBy(sql`${auditEvents.occurredAt} DESC`)
+      .limit(100);
+    return adminAuditResponseSchema.parse({
+      items: rows.map((row) => ({
+        ...row,
+        payload: row.payload as Record<string, unknown>,
+        occurredAt: row.occurredAt.toISOString(),
+      })),
+    });
+  }
+
+  private async accountById(id: string) {
+    const row = await this.database.query.users.findFirst({
+      where: (fields, { eq }) => eq(fields.id, id),
+    });
+    if (row === undefined) throw new NotFoundException({ code: 'ADMIN_ACCOUNT_NOT_FOUND' });
+    return adminAccountSchema.parse(await this.account(row));
+  }
+
+  private async account(row: typeof users.$inferSelect) {
+    const [memberships, activeSessions] = await Promise.all([
+      this.database.query.adminMemberships.findMany({
+        where: (fields, { and, eq }) => and(eq(fields.userId, row.id), eq(fields.status, 'ACTIVE')),
+      }),
+      this.database.query.sessions.findMany({
+        where: (fields, { and, eq, gt }) =>
+          and(eq(fields.userId, row.id), gt(fields.expiresAt, new Date())),
+        columns: { id: true, updatedAt: true },
+      }),
+    ]);
+    const departments = await Promise.all(
+      memberships.map(async (membership) => {
+        const department = await this.database.query.adminDepartments.findFirst({
+          where: (fields, { eq }) => eq(fields.id, membership.departmentId),
+          columns: { name: true },
+        });
+        return department?.name;
+      }),
+    );
+    return {
+      id: row.id,
+      displayName: row.name,
+      emailMasked: maskEmail(row.email),
+      status: row.status,
+      role: row.role,
+      departments: departments.filter((name): name is string => name !== undefined),
+      activeSessionCount: activeSessions.length,
+      lastActivityAt:
+        activeSessions
+          .map((session) => session.updatedAt)
+          .sort((left, right) => right.getTime() - left.getTime())[0]
+          ?.toISOString() ?? null,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  private async writeAudit(
+    database: Pick<DatabaseClient, 'insert'>,
+    actor: ActorContext,
+    aggregateId: string,
+    eventType: string,
+    payload: Record<string, unknown>,
+  ) {
+    await database.insert(auditEvents).values({
+      aggregateType: 'ADMIN_ACCESS',
+      aggregateId,
+      eventType,
+      actorType: 'ADMIN',
+      actorId: actor.userId,
+      payload,
+    });
+  }
+}

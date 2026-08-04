@@ -48,6 +48,7 @@ export const adminBookingListQuerySchema = z
     q: z.string().trim().min(1).max(64).optional(),
     status: bookingStatusSchema.optional(),
     paymentStatus: paymentStatusSummarySchema.optional(),
+    customerUserId: uuidSchema.optional(),
     roomTypeId: uuidSchema.optional(),
     checkInFrom: instantSchema.optional(),
     checkInTo: instantSchema.optional(),
