@@ -155,6 +155,20 @@ try {
       roomTypes.set(concept.name, id);
     }
 
+    const conceptCodes = concepts.map((concept) =>
+      concept.name === 'Phù Vân'
+        ? 'PHU_VAN'
+        : concept.name.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
+    );
+    await client.query(
+      `UPDATE room_types
+          SET status = 'INACTIVE', updated_at = CURRENT_TIMESTAMP
+        WHERE property_id = $1
+          AND code = ANY($2::text[])
+          AND NOT (code = ANY($3::text[]))`,
+      [propertyId, CLIENT_ROOM_MANIFEST.tiers.map((tier) => tier.code), conceptCodes],
+    );
+
     for (const room of CLIENT_ROOM_MANIFEST.rooms) {
       const roomTypeId = roomTypes.get(room.name);
       if (roomTypeId === undefined) throw new Error(`Room type ${room.tierCode} did not resolve`);

@@ -53,17 +53,21 @@ describe('client room import', () => {
     const second = await runImport(database.databaseUrl);
     expect(second.counts).toEqual({ created: 0, updated: 0, skipped: 60 });
 
-    const [rooms, concepts, prices] = await Promise.all([
+    const [rooms, concepts, legacyTypes, prices] = await Promise.all([
       database.pool.query(
         "SELECT physical_room_code FROM rooms WHERE physical_room_code LIKE '94BDT-%' ORDER BY physical_room_code",
       ),
       database.pool.query<{ count: number }>(
-        "SELECT count(*)::int AS count FROM room_types WHERE code IN ('ROSE', 'NAMI', 'PHU_VAN', 'SUNSET', 'YUKI', 'SABI', 'SUDAL', 'WABI', 'HAVEN')",
+        "SELECT count(*)::int AS count FROM room_types WHERE code IN ('ROSE', 'NAMI', 'PHU_VAN', 'SUNSET', 'YUKI', 'SABI', 'SUDAL', 'WABI', 'HAVEN') AND status = 'ACTIVE'",
+      ),
+      database.pool.query<{ count: number }>(
+        "SELECT count(*)::int AS count FROM room_types WHERE code IN ('STANDARD', 'DELUXE', 'SIGNATURE') AND status = 'INACTIVE'",
       ),
       database.pool.query<{ count: number }>('SELECT count(*)::int AS count FROM rate_plan_prices'),
     ]);
     expect(rooms.rowCount).toBe(23);
     expect(concepts.rows[0]?.count).toBe(9);
+    expect(legacyTypes.rows[0]?.count).toBe(0);
     expect(prices.rows[0]?.count).toBe(18);
   });
 });
