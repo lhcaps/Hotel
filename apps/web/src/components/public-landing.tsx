@@ -14,8 +14,13 @@ import {
 
 import type { PublicRoomCatalogResponse } from '@room/contracts/public-room-catalog';
 
-import { peaceHomeCommonImages, presentPhysicalRooms } from '../content/peace-home-physical-rooms';
-import { translate } from '../lib/i18n/messages';
+import {
+  peaceHomeCommonImages,
+  presentPhysicalRooms,
+  presentTierSummaries,
+  roomStartingPrice,
+} from '../content/peace-home-physical-rooms';
+import { formatVnd, translate } from '../lib/i18n/messages';
 import { toPublicCatalogState } from '../lib/public-catalog-state';
 import { LandingAvailabilitySearch } from './landing-availability-search';
 import { useLocale } from './locale-provider';
@@ -26,6 +31,7 @@ export function PublicLanding({
   const locale = useLocale();
   const state = toPublicCatalogState(catalog);
   const catalogRooms = state.kind === 'ready' ? presentPhysicalRooms(state.catalog) : [];
+  const tierSummaries = state.kind === 'ready' ? presentTierSummaries(state.catalog) : [];
 
   return (
     <main id="main-content">
@@ -69,6 +75,25 @@ export function PublicLanding({
         className="hospitality-section hospitality-section--rooms"
         aria-labelledby="featured-rooms-heading"
       >
+        {tierSummaries.length > 0 ? (
+          <div className="hospitality-tier-summary" data-testid="landing-tier-summary">
+            {tierSummaries.map((tier) => (
+              <article key={tier.code}>
+                <img
+                  alt={tier.name}
+                  src={tier.representative.gallery[0].replace('-hero.webp', '-card.webp')}
+                />
+                <div>
+                  <h3>{tier.name}</h3>
+                  <p>{translate(locale, 'catalog.conceptCount', { count: tier.rooms.length })}</p>
+                  <Link href={`/rooms?tier=${tier.code}`}>
+                    {translate(locale, 'catalog.viewTier')}
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
         <div className="hospitality-section__heading">
           <div>
             <p>{translate(locale, 'landing.roomsKicker')}</p>
@@ -91,7 +116,14 @@ export function PublicLanding({
                       {translate(locale, 'search.capacity', { count: room.roomType.maxOccupancy })}
                     </span>
                   </div>
-                  <p>{room.roomType.name}</p>
+                  <p>{room.roomType.priceTier?.name ?? room.roomType.name}</p>
+                  {roomStartingPrice(room) !== null ? (
+                    <p>
+                      {translate(locale, 'catalog.fromPrice', {
+                        price: formatVnd(locale, roomStartingPrice(room) ?? 0),
+                      })}
+                    </p>
+                  ) : null}
                   {room.roomType.amenities.length > 0 ? (
                     <ul aria-label={translate(locale, 'catalog.amenities')}>
                       {room.roomType.amenities.slice(0, 3).map((amenity) => (

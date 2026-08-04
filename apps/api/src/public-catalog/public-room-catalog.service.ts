@@ -10,6 +10,12 @@ export interface PublicRoomCatalogRepositoryPort {
       readonly maxChildren: number;
       readonly maxOccupancy: number;
       readonly amenities: readonly { readonly name: string }[];
+      readonly priceTier?: {
+        readonly code: string;
+        readonly name: string;
+        readonly sortOrder: number;
+      };
+      readonly startingFromVnd?: number | null;
     }[]
   >;
 }

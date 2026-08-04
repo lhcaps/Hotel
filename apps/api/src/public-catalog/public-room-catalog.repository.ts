@@ -14,7 +14,7 @@ export class PublicRoomCatalogRepository implements PublicRoomCatalogRepositoryP
     });
     if (property === undefined) return [];
 
-    const [types, assignments, amenities] = await Promise.all([
+    const [types, assignments, amenities, tiers, plans, prices] = await Promise.all([
       this.database.query.roomTypes.findMany({
         where: (item, operators) =>
           operators.and(
@@ -34,7 +34,30 @@ export class PublicRoomCatalogRepository implements PublicRoomCatalogRepositoryP
           ),
         orderBy: (item, operators) => [operators.asc(item.name), operators.asc(item.id)],
       }),
+      this.database.query.priceTiers.findMany({
+        where: (item, operators) => operators.eq(item.propertyId, property.id),
+      }),
+      this.database.query.ratePlans.findMany({
+        where: (item, operators) =>
+          operators.and(
+            operators.eq(item.propertyId, property.id),
+            operators.eq(item.status, 'ACTIVE'),
+          ),
+      }),
+      this.database.query.ratePlanPrices.findMany({
+        where: (item, operators) => operators.eq(item.propertyId, property.id),
+      }),
     ]);
+    const tierById = new Map(tiers.map((tier) => [tier.id, tier]));
+    const minPriceByTier = new Map<string, number>();
+    for (const price of prices) {
+      if (!plans.some((plan) => plan.id === price.ratePlanId)) continue;
+      const tier = tierById.get(price.priceTierId);
+      const amount = Number(price.amountVnd);
+      if (tier === undefined || !Number.isSafeInteger(amount) || amount <= 0) continue;
+      const current = minPriceByTier.get(tier.id);
+      if (current === undefined || amount < current) minPriceByTier.set(tier.id, amount);
+    }
     const amenityNames = new Map(amenities.map((amenity) => [amenity.id, amenity.name]));
     const amenitiesByType = new Map<string, { name: string }[]>();
     for (const assignment of assignments) {
@@ -53,6 +76,16 @@ export class PublicRoomCatalogRepository implements PublicRoomCatalogRepositoryP
       maxChildren: type.maxChildren,
       maxOccupancy: type.maxOccupancy,
       amenities: amenitiesByType.get(type.id) ?? [],
+      ...(tierById.get(type.priceTierId) !== undefined
+        ? {
+            priceTier: {
+              code: tierById.get(type.priceTierId)?.code ?? '',
+              name: tierById.get(type.priceTierId)?.name ?? '',
+              sortOrder: tierById.get(type.priceTierId)?.sortOrder ?? 0,
+            },
+          }
+        : {}),
+      startingFromVnd: minPriceByTier.get(type.priceTierId) ?? null,
     }));
   }
 }

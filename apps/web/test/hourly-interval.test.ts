@@ -33,14 +33,14 @@ describe('buildHourlyInterval', () => {
     expect(result.checkOut).toBe('2027-01-01T00:45:00+07:00');
   });
 
-  it('rounds the start time to the next quarter hour before computing checkout', () => {
+  it('preserves arbitrary start minutes and seconds before computing checkout', () => {
     const result = buildHourlyInterval({
       date: '2026-07-31',
       time: '23:53',
       durationMinutes: 60,
     });
-    expect(result.checkIn).toBe('2026-08-01T00:00:00+07:00');
-    expect(result.checkOut).toBe('2026-08-01T01:00:00+07:00');
+    expect(result.checkIn).toBe('2026-07-31T23:53:00+07:00');
+    expect(result.checkOut).toBe('2026-08-01T00:53:00+07:00');
   });
 
   it('rejects a duration below 60 minutes', () => {
@@ -55,10 +55,13 @@ describe('buildHourlyInterval', () => {
     ).toThrow();
   });
 
-  it('rejects a duration that is not divisible by 15', () => {
-    expect(() =>
-      buildHourlyInterval({ date: '2026-07-31', time: '20:00', durationMinutes: 61 }),
-    ).toThrow();
+  it('accepts a duration that is not divisible by 15', () => {
+    expect(
+      buildHourlyInterval({ date: '2026-07-31', time: '20:00:17', durationSeconds: 3661 }),
+    ).toEqual({
+      checkIn: '2026-07-31T20:00:17+07:00',
+      checkOut: '2026-07-31T21:01:18+07:00',
+    });
   });
 
   it('rejects an invalid date', () => {

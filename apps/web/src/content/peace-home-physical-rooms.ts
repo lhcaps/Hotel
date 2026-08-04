@@ -87,14 +87,43 @@ export const peaceHomePhysicalRooms: readonly PeaceHomePhysicalRoom[] = [
   },
 ];
 
-const tierNames: Record<PeaceHomeTierCode, string> = {
-  STANDARD: 'Standard',
-  DELUXE: 'Deluxe',
-  SIGNATURE: 'Signature',
-};
-
 export interface PresentedPhysicalRoom extends PeaceHomePhysicalRoom {
   readonly roomType: PublicRoomType;
+}
+
+export function roomStartingPrice(room: PresentedPhysicalRoom): number | null {
+  return room.roomType.startingFromVnd ?? room.startingFromVnd;
+}
+
+export interface PresentedTierSummary {
+  readonly code: PeaceHomeTierCode;
+  readonly name: string;
+  readonly rooms: readonly PresentedPhysicalRoom[];
+  readonly representative: PresentedPhysicalRoom;
+}
+
+export function presentTierSummaries(
+  catalog: PublicRoomCatalogResponse,
+): readonly PresentedTierSummary[] {
+  const groups = new Map<PeaceHomeTierCode, PresentedPhysicalRoom[]>();
+  for (const room of presentPhysicalRooms(catalog)) {
+    const group = groups.get(room.tierCode) ?? [];
+    group.push(room);
+    groups.set(room.tierCode, group);
+  }
+  return (['STANDARD', 'DELUXE', 'SIGNATURE'] as const).flatMap((code) => {
+    const rooms = groups.get(code) ?? [];
+    const representative = rooms[0];
+    if (representative === undefined) return [];
+    return [
+      {
+        code,
+        name: representative.roomType.priceTier?.name ?? code,
+        rooms,
+        representative,
+      },
+    ];
+  });
 }
 
 export function presentPhysicalRooms(
@@ -102,8 +131,7 @@ export function presentPhysicalRooms(
 ): readonly PresentedPhysicalRoom[] {
   return peaceHomePhysicalRooms.flatMap((room) => {
     const roomType = catalog.items.find(
-      (item) =>
-        item.name.trim().toLocaleUpperCase('en-US') === tierNames[room.tierCode].toUpperCase(),
+      (item) => item.name.trim().toLocaleUpperCase('en-US') === room.name.toUpperCase(),
     );
     return roomType === undefined ? [] : [{ ...room, roomType }];
   });

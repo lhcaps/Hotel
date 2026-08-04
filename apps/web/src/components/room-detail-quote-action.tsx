@@ -32,6 +32,7 @@ export function RoomDetailQuoteAction({
     setOffers(undefined);
     void publicApi
       .eligibleOffers({
+        mode: state.mode,
         roomTypeId,
         checkIn: state.checkIn,
         checkOut: state.checkOut,
@@ -57,6 +58,7 @@ export function RoomDetailQuoteAction({
     setFailed(false);
     try {
       const quote = await publicApi.issueQuote({
+        mode: state.mode,
         roomTypeId,
         checkIn: state.checkIn,
         checkOut: state.checkOut,

@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { notFound } from 'next/navigation';
 
 import { AvailabilitySearchForm } from '../../../components/availability-search-form';
 import { RoomDetailQuoteAction } from '../../../components/room-detail-quote-action';
-import { findPresentedPhysicalRoom } from '../../../content/peace-home-physical-rooms';
+import {
+  findPresentedPhysicalRoom,
+  roomStartingPrice,
+} from '../../../content/peace-home-physical-rooms';
 import { readBookingSearchQuery } from '../../../lib/booking-search-state';
 import { formatVnd, resolveLocale, translate } from '../../../lib/i18n/messages';
 import { loadPublicRoomCatalog } from '../../../lib/public-room-catalog';
@@ -22,6 +26,9 @@ export default async function PublicRoomDetailPage({
     loadPublicRoomCatalog(),
   ]);
   const room = catalog === null ? undefined : findPresentedPhysicalRoom(catalog, roomTypeId);
+  if (catalog !== null && room === undefined) {
+    notFound();
+  }
   const locale = resolveLocale(cookieStore.get('room_locale')?.value);
   const search = new URLSearchParams(
     Object.entries(query).flatMap(([key, value]) =>
@@ -48,11 +55,13 @@ export default async function PublicRoomDetailPage({
             <p className="room-detail__capacity">
               {translate(locale, 'search.capacity', { count: room.roomType.maxOccupancy })}
             </p>
-            <p className="room-detail__capacity">
-              {translate(locale, 'catalog.fromPrice', {
-                price: formatVnd(locale, room.startingFromVnd),
-              })}
-            </p>
+            {roomStartingPrice(room) !== null ? (
+              <p className="room-detail__capacity">
+                {translate(locale, 'catalog.fromPrice', {
+                  price: formatVnd(locale, roomStartingPrice(room) ?? 0),
+                })}
+              </p>
+            ) : null}
             <h2>{translate(locale, 'catalog.amenities')}</h2>
             {room.roomType.amenities.length > 0 ? (
               <ul className="room-detail__amenities">

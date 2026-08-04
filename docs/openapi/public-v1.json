@@ -540,6 +540,7 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
+          "mode": { "type": "string", "enum": ["hourly", "overnight"] },
           "adults": { "type": "integer", "minimum": 1, "maximum": 20 },
           "children": { "type": "integer", "minimum": 0, "maximum": 20 },
           "roomTypeId": {
@@ -613,6 +614,7 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
+          "mode": { "type": "string", "enum": ["hourly", "overnight"] },
           "adults": { "type": "integer", "minimum": 1, "maximum": 20 },
           "children": { "type": "integer", "minimum": 0, "maximum": 20 }
         },
@@ -697,6 +699,7 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
+          "mode": { "type": "string", "enum": ["hourly", "overnight"] },
           "adults": { "type": "integer", "minimum": 1, "maximum": 20 },
           "children": { "type": "integer", "minimum": 0, "maximum": 20 },
           "roomTypeId": {
@@ -1442,6 +1445,7 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
+          "mode": { "type": "string", "enum": ["hourly", "overnight"] },
           "adults": { "type": "integer", "minimum": 1, "maximum": 20 },
           "children": { "type": "integer", "minimum": 0, "maximum": 20 },
           "roomTypeId": {
@@ -1648,6 +1652,26 @@
                     "required": ["name"],
                     "additionalProperties": false
                   }
+                },
+                "priceTier": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "string", "minLength": 1, "maxLength": 64 },
+                    "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+                    "sortOrder": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": ["code", "name", "sortOrder"],
+                  "additionalProperties": false
+                },
+                "startingFromVnd": {
+                  "anyOf": [
+                    { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+                    { "type": "null" }
+                  ]
                 }
               },
               "required": [
@@ -1680,6 +1704,7 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
+          "mode": { "type": "string", "enum": ["hourly", "overnight"] },
           "adults": { "type": "integer", "minimum": 1, "maximum": 20 },
           "children": { "type": "integer", "minimum": 0, "maximum": 20 },
           "expandMinutes": { "default": 60, "type": "integer", "minimum": 0, "maximum": 120 },
@@ -1703,6 +1728,7 @@
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
           "durationMinutes": { "type": "integer", "minimum": 60, "maximum": 1440 },
+          "durationSeconds": { "type": "integer", "minimum": 3600, "maximum": 86400 },
           "candidates": {
             "maxItems": 12,
             "type": "array",

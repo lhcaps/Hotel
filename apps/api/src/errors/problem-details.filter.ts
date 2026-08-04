@@ -42,7 +42,10 @@ import { BookingAccessPassError } from '../booking/services/booking-access-pass.
 import { CouponDeliveryError } from '../booking/coupon-delivery.errors.js';
 import { PaymentInitiationError } from '../payment/payment.errors.js';
 import { PaymentProviderSettingsError } from '../payment/payment-provider-settings.errors.js';
-import { PricingConfigurationError } from '../pricing/pricing-engine.js';
+import {
+  InvalidPricingIntervalError,
+  PricingConfigurationError,
+} from '../pricing/pricing-engine.js';
 
 const logger = createLogger({ service: 'api', environment: process.env.NODE_ENV ?? 'unknown' });
 
@@ -77,17 +80,31 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     let status: number;
     if (error instanceof z.ZodError) {
       status = 400;
+      const overnightError = error.issues.some((issue) =>
+        issue.message.includes('Hệ thống hiện hỗ trợ đặt từng đêm.'),
+      );
       body = {
         type: 'validation-error',
         title: 'Invalid request',
         status,
-        code: 'VALIDATION_ERROR',
+        code: overnightError ? 'OVERNIGHT_ONE_NIGHT' : 'VALIDATION_ERROR',
         detail: 'One or more request fields are invalid.',
         ...base,
         errors: error.issues.map((issue) => ({
           field: issue.path.join('.') || 'body',
           message: issue.message,
         })),
+      };
+    } else if (error instanceof InvalidPricingIntervalError) {
+      status = 400;
+      body = {
+        type: 'validation-error',
+        title: 'Invalid request',
+        status,
+        code: 'INVALID_PRICING_INTERVAL',
+        detail: error.message,
+        ...base,
+        errors: [{ field: 'checkOut', message: error.message }],
       };
     } else if (error instanceof CatalogConflictError) {
       status = 409;

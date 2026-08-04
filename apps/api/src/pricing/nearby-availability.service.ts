@@ -3,18 +3,14 @@
  *
  * Pure-ish orchestration on top of the loaded {@link NearbyInventorySnapshot}.
  * The service:
- * 1. Walks the deterministic offset sequence (-15, +15, -30, +30, ...).
+ * 1. Walks the deterministic offset sequence (+15, -15, +30, -30, ...).
  * 2. Computes availability per room type using already loaded blocks (no extra
  *    round-trips).
  * 3. Reuses {@link evaluatePricingCandidates} and
  *    {@link selectCheapestEligibleCandidate} from the Phase 8B pricing
  *    selector to determine the cheapest eligible ACTIVE base plan.
- * 4. Orders candidates by:
- *    a. absolute `shiftMinutes` ascending,
- *    b. earlier shifts first when the absolute shift ties,
- *    c. offer amount ascending,
- *    d. offer plan code ascending (stable),
- *    e. room-type id ascending (stable final tie-breaker).
+ * 4. Preserves that offset sequence in the response so the first suggestion is
+ *    always the first bounded fallback that can actually be fulfilled.
  */
 
 import { calculatePricing, type PricingCatalog, type PricingInput } from './pricing-engine.js';
@@ -33,7 +29,7 @@ import type {
 
 export const NEARBY_STEP_MINUTES = 15;
 
-const OFFSET_SEQUENCE_BEFORE_EXPANSION = [-15, 15, -30, 30, -45, 45, -60, 60];
+const OFFSET_SEQUENCE_BEFORE_EXPANSION = [15, -15, 30, -30, 45, -45, 60, -60];
 
 export function buildNearbyShifts(expandMinutes: number): number[] {
   const upper = Math.min(120, Math.max(0, expandMinutes));
@@ -47,12 +43,7 @@ export function buildNearbyShifts(expandMinutes: number): number[] {
     unique.add(cursor);
     cursor += NEARBY_STEP_MINUTES;
   }
-  return [...unique].sort((a, b) => {
-    const absA = Math.abs(a);
-    const absB = Math.abs(b);
-    if (absA !== absB) return absA - absB;
-    return a - b;
-  });
+  return [...unique];
 }
 
 function shiftInstant(value: string, minutes: number): string {
@@ -116,11 +107,6 @@ function meetsCapacity(type: NearbyRoomTypeRow, adults: number, children: number
   );
 }
 
-interface OfferDescriptor {
-  readonly planCode: string;
-  readonly amountVnd: number;
-}
-
 function buildCatalog(snapshot: NearbyInventorySnapshot): PricingCatalog {
   const out: Record<
     string,
@@ -174,26 +160,28 @@ export class NearbyAvailabilityService {
       shifts,
     });
     if (snapshot === undefined) {
-      const durationMinutes = Math.round(
-        (new Date(input.checkOut).getTime() - new Date(input.checkIn).getTime()) / 60_000,
-      );
+      const durationSeconds =
+        (new Date(input.checkOut).getTime() - new Date(input.checkIn).getTime()) / 1_000;
+      const durationMinutes = Math.ceil(durationSeconds / 60);
       return nearbyAvailabilityResponseSchema.parse({
         requestedCheckIn: input.checkIn,
         requestedCheckOut: input.checkOut,
         durationMinutes,
+        durationSeconds,
         candidates: [],
       });
     }
     const catalog = buildCatalog(snapshot);
     const candidates = this.evaluateCandidates(input, snapshot, shifts, catalog);
     const ordered = orderCandidates(candidates, input.limit);
-    const durationMinutes = Math.round(
-      (new Date(input.checkOut).getTime() - new Date(input.checkIn).getTime()) / 60_000,
-    );
+    const durationSeconds =
+      (new Date(input.checkOut).getTime() - new Date(input.checkIn).getTime()) / 1_000;
+    const durationMinutes = Math.ceil(durationSeconds / 60);
     return nearbyAvailabilityResponseSchema.parse({
       requestedCheckIn: input.checkIn,
       requestedCheckOut: input.checkOut,
       durationMinutes,
+      durationSeconds,
       candidates: ordered,
     });
   }
@@ -244,45 +232,7 @@ function orderCandidates(
   candidates: readonly NearbyAvailabilityCandidate[],
   limit: number,
 ): readonly NearbyAvailabilityCandidate[] {
-  const decorated = candidates.map((candidate) => {
-    let bestOffer: OfferDescriptor | undefined;
-    for (const roomType of candidate.roomTypes) {
-      if (roomType.offer === null) continue;
-      const descriptor = {
-        planCode: roomType.offer.planLabel,
-        amountVnd: roomType.offer.amountVnd,
-      };
-      if (
-        bestOffer === undefined ||
-        descriptor.amountVnd < bestOffer.amountVnd ||
-        (descriptor.amountVnd === bestOffer.amountVnd && descriptor.planCode < bestOffer.planCode)
-      ) {
-        bestOffer = descriptor;
-      }
-    }
-    return {
-      candidate,
-      bestOfferAmount: bestOffer?.amountVnd ?? Number.MAX_SAFE_INTEGER,
-      bestOfferPlan: bestOffer?.planCode ?? '',
-      minRoomTypeId: candidate.roomTypes.map((roomType) => roomType.roomTypeId).sort()[0] ?? '',
-    };
-  });
-  decorated.sort((a, b) => {
-    const absA = Math.abs(a.candidate.shiftMinutes);
-    const absB = Math.abs(b.candidate.shiftMinutes);
-    if (absA !== absB) return absA - absB;
-    if (a.candidate.shiftMinutes !== b.candidate.shiftMinutes) {
-      return a.candidate.shiftMinutes - b.candidate.shiftMinutes;
-    }
-    if (a.bestOfferAmount !== b.bestOfferAmount) {
-      return a.bestOfferAmount - b.bestOfferAmount;
-    }
-    if (a.bestOfferPlan !== b.bestOfferPlan) {
-      return a.bestOfferPlan < b.bestOfferPlan ? -1 : 1;
-    }
-    return a.minRoomTypeId < b.minRoomTypeId ? -1 : a.minRoomTypeId > b.minRoomTypeId ? 1 : 0;
-  });
-  return decorated.slice(0, limit).map((entry) => entry.candidate);
+  return candidates.slice(0, limit);
 }
 
 export type { NearbyInventorySnapshot } from './nearby-availability.repository.js';

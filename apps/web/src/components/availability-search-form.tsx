@@ -18,15 +18,35 @@ import {
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 
-const QUARTER_HOUR_MS = 15 * 60_000;
 const FIVE_MINUTE_MS = 5 * 60_000;
+
+type OvernightWindow = '21-09' | '22-10';
+
+const OVERNIGHT_WINDOWS: Readonly<Record<OvernightWindow, { start: string; end: string }>> = {
+  '21-09': { start: '21:00', end: '09:00' },
+  '22-10': { start: '22:00', end: '10:00' },
+};
 
 function withOffset(value: string) {
   return `${value}:00+07:00`;
 }
 
-function inputDateTime(value: string | undefined) {
-  return value?.slice(0, 16) ?? '';
+function addDaysToDate(date: string, days: number) {
+  const [year, month, day] = date.split('-').map(Number);
+  if (year === undefined || month === undefined || day === undefined) return date;
+  const next = new Date(Date.UTC(year, month - 1, day));
+  next.setUTCDate(next.getUTCDate() + days);
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(
+    next.getUTCDate(),
+  ).padStart(2, '0')}`;
+}
+
+function overnightWindowFromTimes(checkInTime: string, checkOutTime: string): OvernightWindow {
+  return (
+    (Object.entries(OVERNIGHT_WINDOWS).find(
+      ([, window]) => window.start === checkInTime && window.end === checkOutTime,
+    )?.[0] as OvernightWindow | undefined) ?? '21-09'
+  );
 }
 
 function inputDate(value: string | undefined) {
@@ -34,58 +54,50 @@ function inputDate(value: string | undefined) {
 }
 
 function inputTime(value: string | undefined) {
-  return value?.slice(11, 16) ?? '';
+  return value?.slice(11, 19) ?? '';
 }
 
-function durationMinutes(checkIn: string | undefined, checkOut: string | undefined) {
-  if (!checkIn || !checkOut) return 180;
-  const duration = (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 60_000;
-  return Number.isFinite(duration) && duration >= 60 ? duration : 180;
+function durationSeconds(checkIn: string | undefined, checkOut: string | undefined) {
+  if (!checkIn || !checkOut) return 10_800;
+  const duration = (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 1_000;
+  return Number.isFinite(duration) && duration >= 3_600 ? duration : 10_800;
 }
 
-function isQuarterHour(time: string) {
-  const [hour = Number.NaN, minute = Number.NaN] = time.split(':').map(Number);
+function timeParts(time: string) {
+  const [hour = Number.NaN, minute = Number.NaN, second = 0] = time.split(':').map(Number);
   return (
     Number.isInteger(hour) &&
     hour >= 0 &&
     hour <= 23 &&
     Number.isInteger(minute) &&
-    minute % 15 === 0
+    minute >= 0 &&
+    minute <= 59 &&
+    Number.isInteger(second) &&
+    second >= 0 &&
+    second <= 59
   );
 }
 
-function minutesSinceMidnight(time: string) {
-  if (!isQuarterHour(time)) return undefined;
-  const [hour = 0, minute = 0] = time.split(':').map(Number);
-  return hour * 60 + minute;
+function secondsSinceMidnight(time: string) {
+  if (!timeParts(time)) return undefined;
+  const [hour = 0, minute = 0, second = 0] = time.split(':').map(Number);
+  return hour * 3_600 + minute * 60 + second;
 }
 
-function addMinutesToTime(time: string, duration: number) {
-  const start = minutesSinceMidnight(time);
+function addSecondsToTime(time: string, duration: number) {
+  const start = secondsSinceMidnight(time);
   if (start === undefined) return '';
-  const end = (start + duration) % (24 * 60);
-  return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
+  const end = (start + duration) % 86_400;
+  return `${String(Math.floor(end / 3_600)).padStart(2, '0')}:${String(Math.floor((end % 3_600) / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
 }
 
 function durationFromVisibleTimes(start: string, end: string) {
-  const startMinutes = minutesSinceMidnight(start);
-  const endMinutes = minutesSinceMidnight(end);
-  if (startMinutes === undefined || endMinutes === undefined || endMinutes <= startMinutes) {
+  const startSeconds = secondsSinceMidnight(start);
+  const endSeconds = secondsSinceMidnight(end);
+  if (startSeconds === undefined || endSeconds === undefined || endSeconds <= startSeconds) {
     return undefined;
   }
-  return endMinutes - startMinutes;
-}
-
-function roundUpToNextQuarterHour(time: string) {
-  const [hourStr, minuteStr] = time.split(':');
-  const hour = Number(hourStr);
-  const minute = Number(minuteStr);
-  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return '00:00';
-  const total = hour * 60 + minute;
-  const rounded = Math.ceil(total / 15) * 15;
-  const newHour = Math.floor(rounded / 60) % 24;
-  const newMinute = rounded % 60;
-  return `${String(newHour).padStart(2, '0')}:${String(newMinute).padStart(2, '0')}`;
+  return endSeconds - startSeconds;
 }
 
 export function AvailabilitySearchForm({
@@ -103,26 +115,30 @@ export function AvailabilitySearchForm({
   const queryKey = searchParams.toString();
   const queryState = readBookingSearchQuery(searchParams);
   const initialMode = queryState?.mode ?? 'overnight';
-  const initialDuration = String(durationMinutes(queryState?.checkIn, queryState?.checkOut));
-  const initialHourlyStart = useMemo(() => {
-    const raw = inputTime(queryState?.checkIn);
-    if (raw === '' || !isQuarterHour(raw)) return roundUpToNextQuarterHour(raw || '00:00');
-    return raw;
-  }, [queryState?.checkIn]);
+  const initialDuration = String(durationSeconds(queryState?.checkIn, queryState?.checkOut));
+  const initialHourlyStart = useMemo(
+    () => inputTime(queryState?.checkIn) || '00:00:00',
+    [queryState?.checkIn],
+  );
   const initialHourlyEnd = useMemo(() => {
     const raw = inputTime(queryState?.checkOut);
-    if (raw !== '' && isQuarterHour(raw)) return raw;
-    return addMinutesToTime(initialHourlyStart, Number(initialDuration));
+    if (raw !== '') return raw;
+    return addSecondsToTime(initialHourlyStart, Number(initialDuration));
   }, [initialDuration, initialHourlyStart, queryState?.checkOut]);
   const [bookingMode, setBookingMode] = useState<BookingMode>(initialMode);
   const [hourlyDate, setHourlyDate] = useState(inputDate(queryState?.checkIn));
   const [hourlyStart, setHourlyStart] = useState(initialHourlyStart);
   const [hourlyEnd, setHourlyEnd] = useState(initialHourlyEnd);
   const [hourlyDuration, setHourlyDuration] = useState(
-    initialDuration === '180' || initialDuration === '300' ? initialDuration : 'custom',
+    initialDuration === '10800' || initialDuration === '18000' ? initialDuration : 'custom',
   );
-  const [checkIn, setCheckIn] = useState(inputDateTime(queryState?.checkIn));
-  const [checkOut, setCheckOut] = useState(inputDateTime(queryState?.checkOut));
+  const [overnightDate, setOvernightDate] = useState(inputDate(queryState?.checkIn));
+  const [overnightWindow, setOvernightWindow] = useState<OvernightWindow>(
+    overnightWindowFromTimes(
+      inputTime(queryState?.checkIn) || '21:00',
+      inputTime(queryState?.checkOut) || '09:00',
+    ),
+  );
   const [adults, setAdults] = useState(String(queryState?.adults ?? 1));
   const [children, setChildren] = useState(String(queryState?.children ?? 0));
   const [isHydrated, setIsHydrated] = useState(false);
@@ -134,14 +150,21 @@ export function AvailabilitySearchForm({
 
   useEffect(() => {
     if (!queryState) return;
-    const nextDuration = String(durationMinutes(queryState.checkIn, queryState.checkOut));
+    const nextDuration = String(durationSeconds(queryState.checkIn, queryState.checkOut));
     setBookingMode(queryState.mode);
     setHourlyDate(inputDate(queryState.checkIn));
     setHourlyStart(inputTime(queryState.checkIn));
     setHourlyEnd(inputTime(queryState.checkOut));
-    setHourlyDuration(nextDuration === '180' || nextDuration === '300' ? nextDuration : 'custom');
-    setCheckIn(inputDateTime(queryState.checkIn));
-    setCheckOut(inputDateTime(queryState.checkOut));
+    setHourlyDuration(
+      nextDuration === '10800' || nextDuration === '18000' ? nextDuration : 'custom',
+    );
+    setOvernightDate(inputDate(queryState.checkIn));
+    setOvernightWindow(
+      overnightWindowFromTimes(
+        inputTime(queryState.checkIn) || '21:00',
+        inputTime(queryState.checkOut) || '09:00',
+      ),
+    );
     setAdults(String(queryState.adults));
     setChildren(String(queryState.children));
   }, [queryKey]);
@@ -152,14 +175,14 @@ export function AvailabilitySearchForm({
     const submittedHourlyDate = String(form.get('hourlyDate') ?? '');
     const submittedHourlyStart = String(form.get('hourlyStart') ?? '');
     const submittedHourlyEnd = String(form.get('hourlyEnd') ?? '');
-    const submittedCheckIn = String(form.get('checkIn') ?? '');
-    const submittedCheckOut = String(form.get('checkOut') ?? '');
+    const submittedOvernightDate = String(form.get('overnightDate') ?? '');
+    const submittedOvernightWindow = String(form.get('overnightWindow') ?? '') as OvernightWindow;
     const submittedAdults = Number(form.get('adults'));
     const submittedChildren = Number(form.get('children'));
     const submittedDuration = durationFromVisibleTimes(submittedHourlyStart, submittedHourlyEnd);
 
     if (bookingMode === 'hourly') {
-      if (!isQuarterHour(submittedHourlyStart) || !isQuarterHour(submittedHourlyEnd)) {
+      if (!timeParts(submittedHourlyStart) || !timeParts(submittedHourlyEnd)) {
         setError(translate(locale, 'search.invalidInterval'));
         return;
       }
@@ -167,6 +190,9 @@ export function AvailabilitySearchForm({
         setError(translate(locale, 'search.hourlyCrossesMidnight'));
         return;
       }
+    } else if (!OVERNIGHT_WINDOWS[submittedOvernightWindow]) {
+      setError(translate(locale, 'search.invalidInterval'));
+      return;
     }
 
     type IntervalResult = { readonly checkIn: string; readonly checkOut: string } | undefined;
@@ -178,13 +204,17 @@ export function AvailabilitySearchForm({
             ? buildHourlyInterval({
                 date: submittedHourlyDate,
                 time: submittedHourlyStart,
-                durationMinutes: submittedDuration,
+                durationSeconds: submittedDuration,
               })
             : undefined
-          : submittedCheckIn && submittedCheckOut
+          : submittedOvernightDate
             ? {
-                checkIn: withOffset(submittedCheckIn),
-                checkOut: withOffset(submittedCheckOut),
+                checkIn: withOffset(
+                  `${submittedOvernightDate}T${OVERNIGHT_WINDOWS[submittedOvernightWindow].start}`,
+                ),
+                checkOut: withOffset(
+                  `${addDaysToDate(submittedOvernightDate, 1)}T${OVERNIGHT_WINDOWS[submittedOvernightWindow].end}`,
+                ),
               }
             : undefined;
     } catch {
@@ -277,7 +307,7 @@ export function AvailabilitySearchForm({
                 {translate(locale, 'search.hourlyStart')}
               </FieldLabel>
               <Input
-                aria-invalid={hourlyStart !== '' && !isQuarterHour(hourlyStart)}
+                aria-invalid={hourlyStart !== '' && !timeParts(hourlyStart)}
                 id="hourly-start"
                 name="hourlyStart"
                 disabled={!isHydrated}
@@ -285,11 +315,11 @@ export function AvailabilitySearchForm({
                   const nextStart = event.target.value;
                   setHourlyStart(nextStart);
                   if (hourlyDuration !== 'custom') {
-                    setHourlyEnd(addMinutesToTime(nextStart, Number(hourlyDuration)));
+                    setHourlyEnd(addSecondsToTime(nextStart, Number(hourlyDuration)));
                   }
                 }}
                 required
-                step={60 * 15}
+                step={1}
                 type="time"
                 value={hourlyStart}
               />
@@ -297,7 +327,7 @@ export function AvailabilitySearchForm({
             <Field>
               <FieldLabel htmlFor="hourly-end">{translate(locale, 'search.hourlyEnd')}</FieldLabel>
               <Input
-                aria-invalid={hourlyEnd !== '' && !isQuarterHour(hourlyEnd)}
+                aria-invalid={hourlyEnd !== '' && !timeParts(hourlyEnd)}
                 id="hourly-end"
                 name="hourlyEnd"
                 disabled={!isHydrated}
@@ -306,11 +336,15 @@ export function AvailabilitySearchForm({
                   setHourlyEnd(nextEnd);
                   const nextDuration = durationFromVisibleTimes(hourlyStart, nextEnd);
                   setHourlyDuration(
-                    nextDuration === 180 ? '180' : nextDuration === 300 ? '300' : 'custom',
+                    nextDuration === 10_800
+                      ? '10800'
+                      : nextDuration === 18_000
+                        ? '18000'
+                        : 'custom',
                   );
                 }}
                 required
-                step={60 * 15}
+                step={1}
                 type="time"
                 value={hourlyEnd}
               />
@@ -323,20 +357,20 @@ export function AvailabilitySearchForm({
                   if (value.length === 0) return;
                   setHourlyDuration(nextDuration);
                   if (nextDuration !== 'custom') {
-                    setHourlyEnd(addMinutesToTime(hourlyStart, Number(nextDuration)));
+                    setHourlyEnd(addSecondsToTime(hourlyStart, Number(nextDuration)));
                   }
                 }}
                 value={[hourlyDuration]}
               >
                 <ToggleGroupItem
                   aria-label={translate(locale, 'search.quickThreeHours')}
-                  value="180"
+                  value="10800"
                 >
                   {translate(locale, 'search.quickThreeHours')}
                 </ToggleGroupItem>
                 <ToggleGroupItem
                   aria-label={translate(locale, 'search.quickFiveHours')}
-                  value="300"
+                  value="18000"
                 >
                   {translate(locale, 'search.quickFiveHours')}
                 </ToggleGroupItem>
@@ -352,30 +386,42 @@ export function AvailabilitySearchForm({
         ) : (
           <FieldGroup className="availability-search__fields">
             <Field>
-              <FieldLabel htmlFor="check-in">{translate(locale, 'search.checkIn')}</FieldLabel>
+              <FieldLabel htmlFor="overnight-date">
+                {translate(locale, 'search.checkIn')}
+              </FieldLabel>
               <Input
-                id="check-in"
-                name="checkIn"
+                id="overnight-date"
+                name="overnightDate"
                 disabled={!isHydrated}
-                onChange={(event) => setCheckIn(event.target.value)}
+                onChange={(event) => setOvernightDate(event.target.value)}
                 required
-                step={60 * 15}
-                type="datetime-local"
-                value={checkIn}
+                type="date"
+                value={overnightDate}
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="check-out">{translate(locale, 'search.checkOut')}</FieldLabel>
-              <Input
-                id="check-out"
-                name="checkOut"
-                disabled={!isHydrated}
-                onChange={(event) => setCheckOut(event.target.value)}
-                required
-                step={60 * 15}
-                type="datetime-local"
-                value={checkOut}
-              />
+              <FieldLabel>{translate(locale, 'search.overnightWindow')}</FieldLabel>
+              <input name="overnightWindow" type="hidden" value={overnightWindow} />
+              <ToggleGroup
+                aria-label={translate(locale, 'search.overnightWindow')}
+                onValueChange={(value) => {
+                  if (value.length > 0) setOvernightWindow(value[0] as OvernightWindow);
+                }}
+                value={[overnightWindow]}
+              >
+                <ToggleGroupItem
+                  aria-label={translate(locale, 'search.overnightWindow2109')}
+                  value="21-09"
+                >
+                  {translate(locale, 'search.overnightWindow2109')}
+                </ToggleGroupItem>
+                <ToggleGroupItem
+                  aria-label={translate(locale, 'search.overnightWindow2210')}
+                  value="22-10"
+                >
+                  {translate(locale, 'search.overnightWindow2210')}
+                </ToggleGroupItem>
+              </ToggleGroup>
             </Field>
           </FieldGroup>
         )}
@@ -422,4 +468,4 @@ export function AvailabilitySearchForm({
 }
 
 // Re-export so existing callers don't need to update imports.
-export { FIVE_MINUTE_MS, QUARTER_HOUR_MS };
+export { FIVE_MINUTE_MS };

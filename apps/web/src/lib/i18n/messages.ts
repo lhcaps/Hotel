@@ -97,6 +97,9 @@ const messages = {
     'search.results': 'Hạng phòng còn trống',
     'search.checkIn': 'Nhận phòng',
     'search.checkOut': 'Trả phòng',
+    'search.overnightWindow': 'Giờ nhận - trả phòng',
+    'search.overnightWindow2109': '21:00 - 09:00',
+    'search.overnightWindow2210': '22:00 - 10:00',
     'search.adults': 'Người lớn',
     'search.children': 'Trẻ em',
     'search.submit': 'Tìm phòng',
@@ -107,6 +110,10 @@ const messages = {
     'search.quoteError': 'Không thể lập báo giá cho hạng phòng này.',
     'search.invalidInterval': 'Vui lòng chọn khoảng thời gian hợp lệ.',
     'search.hourlyCrossesMidnight': 'Khung theo giờ không thể qua đêm. Hãy chọn Qua đêm.',
+    'search.overnightMaxDuration':
+      'Lưu trú qua đêm tối đa 24 giờ. Vui lòng chọn khoảng thời gian ngắn hơn.',
+    'search.overnightOneNightTitle': 'Chỉ hỗ trợ đặt từng đêm',
+    'search.overnightOneNightHelp': 'Hệ thống hiện hỗ trợ đặt từng đêm. Vui lòng chọn một đêm.',
     'search.intervalMustBeFuture': 'Vui lòng chọn thời gian trong tương lai.',
     'search.duration': 'Thời lượng',
     'search.quickThreeHours': '3 giờ',
@@ -117,6 +124,12 @@ const messages = {
     'search.emptyHelp': 'Chọn thời gian lưu trú để xem phòng còn trống và giá phù hợp.',
     'search.loadErrorTitle': 'Không tải được tình trạng phòng',
     'search.loadErrorHelp': 'Vui lòng thử lại hoặc chọn thời gian khác.',
+    'search.invalidIntervalErrorTitle': 'Khoảng thời gian không hợp lệ',
+    'search.invalidIntervalErrorHelp':
+      'Khoảng thời gian đã chọn không đúng định dạng (ví dụ vượt quá 24 giờ hoặc không đúng mốc 15 phút). Vui lòng chọn lại thời gian.',
+    'search.pricingUnavailableErrorTitle': 'Chưa thể tính giá cho khoảng thời gian này',
+    'search.pricingUnavailableErrorHelp':
+      'Hạng phòng này hiện chưa có cấu hình giá phù hợp cho khoảng thời gian đã chọn. Vui lòng chọn thời gian khác hoặc liên hệ lễ tân.',
     'search.retry': 'Thử lại',
     'search.openFullResults': 'Mở trang kết quả đầy đủ',
     'search.fromPrice': 'Giá đúng khung giờ đã chọn: {amount}',
@@ -784,6 +797,9 @@ const messages = {
     'search.results': 'Available room types',
     'search.checkIn': 'Check-in',
     'search.checkOut': 'Check-out',
+    'search.overnightWindow': 'Check-in / check-out window',
+    'search.overnightWindow2109': '9:00 PM - 9:00 AM',
+    'search.overnightWindow2210': '10:00 PM - 10:00 AM',
     'search.adults': 'Adults',
     'search.children': 'Children',
     'search.submit': 'Search rooms',
@@ -795,6 +811,11 @@ const messages = {
     'search.quoteError': 'A quote could not be created for this room type.',
     'search.invalidInterval': 'Please choose a valid stay interval.',
     'search.hourlyCrossesMidnight': 'Hourly stays cannot cross midnight. Please choose Overnight.',
+    'search.overnightMaxDuration':
+      'Overnight stays are limited to 24 hours. Please choose a shorter interval.',
+    'search.overnightOneNightTitle': 'One-night stays only',
+    'search.overnightOneNightHelp':
+      'This system currently supports one-night stays. Please choose one night.',
     'search.intervalMustBeFuture': 'Please choose a future stay time.',
     'search.duration': 'Duration',
     'search.quickThreeHours': '3 hours',
@@ -805,6 +826,12 @@ const messages = {
     'search.emptyHelp': 'Choose a stay time to see available rooms and applicable prices.',
     'search.loadErrorTitle': 'Room availability could not be loaded',
     'search.loadErrorHelp': 'Please try again or choose another time.',
+    'search.invalidIntervalErrorTitle': 'Invalid stay interval',
+    'search.invalidIntervalErrorHelp':
+      'The selected interval is not valid (for example it exceeds 24 hours or is not on a 15-minute mark). Please choose a different time.',
+    'search.pricingUnavailableErrorTitle': 'Pricing is not available for this interval',
+    'search.pricingUnavailableErrorHelp':
+      'This room type does not have a matching price configuration for the selected interval yet. Please choose another time or contact the front desk.',
     'search.retry': 'Try again',
     'search.openFullResults': 'Open full results page',
     'search.fromPrice': 'Exact price for selected time: {amount}',
@@ -1520,6 +1547,8 @@ const variableMessages = {
     'catalog.unavailableBody':
       'Hệ thống đang bận hoặc có lỗi kết nối. Vui lòng thử lại sau ít phút.',
     'catalog.retry': 'Thử lại',
+    'catalog.conceptCount': '{count} hạng phòng',
+    'catalog.viewTier': 'Xem các hạng phòng',
     'roomDetail.browseHeading': 'Kiểm tra tình trạng phòng',
     'roomDetail.browseHelp':
       'Chọn thời gian để kiểm tra tình trạng phòng. Hệ thống sẽ trả về báo giá chính thức dựa trên cơ sở dữ liệu.',
@@ -1738,6 +1767,8 @@ const variableMessages = {
     'catalog.unavailableBody':
       'The service is busy or there is a connection issue. Please try again in a moment.',
     'catalog.retry': 'Retry',
+    'catalog.conceptCount': '{count} room concepts',
+    'catalog.viewTier': 'View room concepts',
     'roomDetail.browseHeading': 'Check room availability',
     'roomDetail.browseHelp':
       'Choose a time to check room availability. The system will return an authoritative quote from the database.',

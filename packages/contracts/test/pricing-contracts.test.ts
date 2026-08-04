@@ -13,20 +13,24 @@ const interval = {
 };
 
 describe('pricing and availability contracts', () => {
-  it('accepts a quarter-hour public availability request and rejects unsafe inputs', () => {
+  it('accepts exact arbitrary minutes and seconds and rejects unsafe intervals', () => {
     expect(availabilitySearchRequestSchema.parse({ ...interval, adults: 1, children: 0 })).toEqual({
       ...interval,
       adults: 1,
       children: 0,
     });
-    expect(() =>
+    expect(
       availabilitySearchRequestSchema.parse({
         ...interval,
-        checkIn: '2026-07-22T11:07:00+07:00',
+        checkIn: '2026-07-22T11:07:17+07:00',
+        checkOut: '2026-07-22T14:22:46+07:00',
         adults: 1,
         children: 0,
       }),
-    ).toThrow();
+    ).toMatchObject({
+      checkIn: '2026-07-22T11:07:17+07:00',
+      checkOut: '2026-07-22T14:22:46+07:00',
+    });
     expect(() =>
       availabilitySearchRequestSchema.parse({
         ...interval,
@@ -35,6 +39,36 @@ describe('pricing and availability contracts', () => {
         children: 0,
       }),
     ).toThrow();
+  });
+
+  it('allows only the two supported overnight windows when overnight mode is explicit', () => {
+    expect(
+      availabilitySearchRequestSchema.parse({
+        checkIn: '2026-07-22T21:00:00+07:00',
+        checkOut: '2026-07-23T09:00:00+07:00',
+        mode: 'overnight',
+        adults: 1,
+        children: 0,
+      }).mode,
+    ).toBe('overnight');
+    expect(() =>
+      availabilitySearchRequestSchema.parse({
+        checkIn: '2026-07-22T20:59:00+07:00',
+        checkOut: '2026-07-23T09:00:00+07:00',
+        mode: 'overnight',
+        adults: 1,
+        children: 0,
+      }),
+    ).toThrow('Hệ thống hiện hỗ trợ đặt từng đêm. Vui lòng chọn một đêm.');
+    expect(() =>
+      availabilitySearchRequestSchema.parse({
+        checkIn: '2026-07-22T21:00:00+07:00',
+        checkOut: '2026-07-24T09:00:00+07:00',
+        mode: 'overnight',
+        adults: 1,
+        children: 0,
+      }),
+    ).toThrow('Hệ thống hiện hỗ trợ đặt từng đêm. Vui lòng chọn một đêm.');
   });
 
   it('accepts only server-authoritative quote inputs', () => {

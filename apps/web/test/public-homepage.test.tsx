@@ -66,10 +66,10 @@ describe('public booking entry', () => {
 
     fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
     fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '10:00' } });
-    expect(endTime).toHaveValue('13:00');
+    expect(endTime).toHaveValue('13:00:00');
 
     await user.click(screen.getByRole('button', { name: '5 giờ' }));
-    expect(endTime).toHaveValue('15:00');
+    expect(endTime).toHaveValue('15:00:00');
 
     fireEvent.change(endTime, { target: { value: '15:30' } });
     expect(screen.getByRole('button', { name: 'Tùy chỉnh' })).toHaveAttribute(
@@ -82,6 +82,26 @@ describe('public booking entry', () => {
       mode: 'hourly',
       checkIn: '2099-04-10T10:00:00+07:00',
       checkOut: '2099-04-10T15:30:00+07:00',
+      adults: 1,
+      children: 0,
+    });
+  });
+
+  it('submits arbitrary hourly minutes and seconds exactly', async () => {
+    const onSearch = vi.fn();
+    const user = userEvent.setup();
+    render(<AvailabilitySearchForm onSearch={onSearch} variant="home" />);
+
+    await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
+    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
+    fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '05:00:17' } });
+    fireEvent.change(screen.getByLabelText('Giờ kết thúc'), { target: { value: '08:15:46' } });
+    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
+
+    expect(onSearch).toHaveBeenCalledWith({
+      mode: 'hourly',
+      checkIn: '2099-04-10T05:00:17+07:00',
+      checkOut: '2099-04-10T08:15:46+07:00',
       adults: 1,
       children: 0,
     });
@@ -113,6 +133,24 @@ describe('public booking entry', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('trong tương lai');
   });
 
+  it('offers only fixed 21:00-09:00 and 22:00-10:00 overnight windows, always spanning one night', async () => {
+    const onSearch = vi.fn();
+    const user = userEvent.setup();
+    render(<AvailabilitySearchForm onSearch={onSearch} variant="home" />);
+
+    fireEvent.change(screen.getByLabelText('Nhận phòng'), { target: { value: '2099-04-10' } });
+    await user.click(screen.getByRole('button', { name: '22:00 - 10:00' }));
+    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
+
+    expect(onSearch).toHaveBeenCalledWith({
+      mode: 'overnight',
+      checkIn: '2099-04-10T22:00:00+07:00',
+      checkOut: '2099-04-11T10:00:00+07:00',
+      adults: 1,
+      children: 0,
+    });
+  });
+
   it('switches to overnight without retaining hourly fields in the search payload', async () => {
     const onSearch = vi.fn();
     const user = userEvent.setup();
@@ -126,15 +164,14 @@ describe('public booking entry', () => {
     expect(screen.getByRole('button', { name: 'Qua đêm' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByLabelText('Ngày')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Nhận phòng'), {
-      target: { value: '2099-04-10T18:00' },
+      target: { value: '2099-04-10' },
     });
-    fireEvent.change(screen.getByLabelText('Trả phòng'), { target: { value: '2099-04-11T08:00' } });
     await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
 
     expect(onSearch).toHaveBeenCalledWith({
       mode: 'overnight',
-      checkIn: '2099-04-10T18:00:00+07:00',
-      checkOut: '2099-04-11T08:00:00+07:00',
+      checkIn: '2099-04-10T21:00:00+07:00',
+      checkOut: '2099-04-11T09:00:00+07:00',
       adults: 1,
       children: 0,
     });
@@ -162,9 +199,8 @@ describe('public booking entry', () => {
       </LocaleProvider>,
     );
     fireEvent.change(screen.getByLabelText('Nhận phòng'), {
-      target: { value: '2099-04-10T11:00' },
+      target: { value: '2099-04-10' },
     });
-    fireEvent.change(screen.getByLabelText('Trả phòng'), { target: { value: '2099-04-10T14:00' } });
     await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
     expect(push).not.toHaveBeenCalled();
     expect(await screen.findByRole('heading', { name: 'Hạng phòng còn trống' })).toBeVisible();

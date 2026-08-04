@@ -196,6 +196,22 @@ const pricingMatrix = [
 ])[];
 
 describe('deterministic pricing engine', () => {
+  it('preserves arbitrary seconds while pricing by rounded-up billable minutes', () => {
+    const result = calculatePricing(
+      {
+        checkIn: '2027-01-10T08:00:17+07:00',
+        checkOut: '2027-01-10T11:15:46+07:00',
+        priceTierCode: 'TIER_1',
+        timezone: 'Asia/Ho_Chi_Minh',
+      },
+      catalog,
+    );
+
+    expect(result).toMatchObject({
+      selectedPlanCode: 'THREE_HOUR_COMBO',
+      extraUnits: 1,
+    });
+  });
   it.each(pricingMatrix)(
     '%s',
     (
@@ -239,18 +255,18 @@ describe('deterministic pricing engine', () => {
     );
   });
 
-  it('rejects invalid intervals and missing tier prices', () => {
-    expect(() =>
+  it('accepts arbitrary timestamps and rejects missing tier prices', () => {
+    expect(
       calculatePricing(
         {
-          checkIn: '2026-07-22T11:07:00+07:00',
-          checkOut: '2026-07-22T12:07:00+07:00',
+          checkIn: '2026-07-22T11:07:17+07:00',
+          checkOut: '2026-07-22T12:07:46+07:00',
           priceTierCode: 'TIER_1',
           timezone: 'Asia/Ho_Chi_Minh',
         },
         catalog,
       ),
-    ).toThrow();
+    ).toBeTruthy();
     expect(() =>
       calculatePricing({ ...timestamps(11, 0, 60), priceTierCode: 'TIER_4' }, catalog),
     ).toThrow(PricingConfigurationError);

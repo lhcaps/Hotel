@@ -17,6 +17,7 @@ export function LandingAvailabilitySearch() {
   const [state, setState] = useState<BookingSearchState>();
   const [exactStatus, setExactStatus] = useState<ExactStatus>('idle');
   const [exactResponse, setExactResponse] = useState<AvailabilitySearchResponse>();
+  const [exactError, setExactError] = useState<unknown>();
   const [nearbyStatus, setNearbyStatus] = useState<NearbyStatus>('idle');
   const [nearbyResponse, setNearbyResponse] = useState<NearbyAvailabilityResponse>();
   const [nearbyError, setNearbyError] = useState<unknown>();
@@ -26,11 +27,13 @@ export function LandingAvailabilitySearch() {
     setState(nextState);
     setExactStatus('loading');
     setExactResponse(undefined);
+    setExactError(undefined);
     setNearbyStatus('idle');
     setNearbyResponse(undefined);
     setNearbyError(undefined);
     try {
       const nextResponse = await publicApi.searchAvailability({
+        mode: nextState.mode,
         checkIn: nextState.checkIn,
         checkOut: nextState.checkOut,
         adults: nextState.adults,
@@ -38,7 +41,8 @@ export function LandingAvailabilitySearch() {
       });
       setExactResponse(nextResponse);
       setExactStatus(nextResponse.items.length === 0 ? 'empty' : 'success');
-    } catch {
+    } catch (cause) {
+      setExactError(cause);
       setExactStatus('error');
     }
   }
@@ -48,6 +52,7 @@ export function LandingAvailabilitySearch() {
     setNearbyError(undefined);
     try {
       const nextResponse = await publicApi.searchNearbyAvailability({
+        mode: nextState.mode,
         checkIn: nextState.checkIn,
         checkOut: nextState.checkOut,
         adults: nextState.adults,
@@ -103,6 +108,7 @@ export function LandingAvailabilitySearch() {
         <AvailabilitySearchResults
           {...(exactResponse !== undefined ? { exactResponse } : {})}
           exactStatus={exactStatus}
+          {...(exactError !== undefined ? { exactError } : {})}
           nearbyError={nearbyError}
           {...(nearbyResponse !== undefined ? { nearbyResponse } : {})}
           nearbyStatus={nearbyStatus}

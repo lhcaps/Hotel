@@ -106,13 +106,8 @@ export class PricingExtraPriceMissingError extends PricingConfigurationError {
 
 function parseInstant(value: string): Date {
   const date = new Date(value);
-  if (
-    !Number.isFinite(date.getTime()) ||
-    date.getUTCSeconds() !== 0 ||
-    date.getUTCMilliseconds() !== 0 ||
-    date.getUTCMinutes() % QUARTER_HOUR_MINUTES !== 0
-  ) {
-    throw new InvalidPricingIntervalError('Pricing timestamps must use a 15-minute increment.');
+  if (!Number.isFinite(date.getTime())) {
+    throw new InvalidPricingIntervalError('Pricing timestamps must be valid ISO-8601 instants.');
   }
   return date;
 }
@@ -276,9 +271,10 @@ export function activeBasePlanCodes(catalog: PricingCatalog): readonly BasePlanC
 export function calculatePricing(input: PricingInput, catalog: PricingCatalog): PricingBreakdown {
   const checkIn = parseInstant(input.checkIn);
   const checkOut = parseInstant(input.checkOut);
-  const durationMinutes = (checkOut.getTime() - checkIn.getTime()) / 60_000;
+  const durationSeconds = (checkOut.getTime() - checkIn.getTime()) / 1_000;
+  const durationMinutes = Math.ceil(durationSeconds / 60);
   if (
-    !Number.isInteger(durationMinutes) ||
+    !Number.isInteger(durationSeconds) ||
     durationMinutes < MIN_DURATION_MINUTES ||
     durationMinutes > MAX_DURATION_MINUTES
   ) {

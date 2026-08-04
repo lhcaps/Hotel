@@ -10,8 +10,8 @@ import type {
   NearbyAvailabilityResponse,
 } from '@room/contracts';
 
-import { publicApi } from '../lib/admin-api';
-import { formatDateTime, formatVnd, translate } from '../lib/i18n/messages';
+import { AdminApiError, publicApi } from '../lib/admin-api';
+import { formatDateTime, formatVnd, translate, type Locale } from '../lib/i18n/messages';
 import {
   readBookingSearchQuery,
   toBookingSearchQuery,
@@ -30,10 +30,64 @@ export type ExactStatus = 'error' | 'loading' | 'success' | 'empty';
 
 export type NearbyStatus = 'idle' | 'error' | 'loading' | 'success' | 'empty';
 
+const INVALID_INTERVAL_CODES = new Set([
+  'VALIDATION_ERROR',
+  'INVALID_PRICING_INTERVAL',
+  'OVERNIGHT_ONE_NIGHT',
+]);
+const PRICING_UNAVAILABLE_CODES = new Set([
+  'PRICING_CONFIGURATION_UNAVAILABLE',
+  'PRICING_RULE_NOT_FOUND',
+  'PRICING_RULE_AMBIGUOUS',
+  'PRICING_RULE_INVALID',
+  'PRICING_PRICE_MISSING',
+  'PRICING_EXTRA_PRICE_MISSING',
+]);
+
+interface AvailabilityErrorFallback {
+  readonly titleKey: 'search.loadErrorTitle' | 'search.nearbyErrorTitle';
+  readonly helpKey: 'search.loadErrorHelp' | 'search.nearbyErrorHelp';
+}
+
+function describeAvailabilityError(
+  locale: Locale,
+  error: unknown,
+  fallback: AvailabilityErrorFallback = {
+    titleKey: 'search.loadErrorTitle',
+    helpKey: 'search.loadErrorHelp',
+  },
+): { readonly title: string; readonly help: string } {
+  const code =
+    error instanceof AdminApiError ? (error.problem as { code?: string }).code : undefined;
+  if (code !== undefined && INVALID_INTERVAL_CODES.has(code)) {
+    if (code === 'OVERNIGHT_ONE_NIGHT') {
+      return {
+        title: translate(locale, 'search.overnightOneNightTitle'),
+        help: translate(locale, 'search.overnightOneNightHelp'),
+      };
+    }
+    return {
+      title: translate(locale, 'search.invalidIntervalErrorTitle'),
+      help: translate(locale, 'search.invalidIntervalErrorHelp'),
+    };
+  }
+  if (code !== undefined && PRICING_UNAVAILABLE_CODES.has(code)) {
+    return {
+      title: translate(locale, 'search.pricingUnavailableErrorTitle'),
+      help: translate(locale, 'search.pricingUnavailableErrorHelp'),
+    };
+  }
+  return {
+    title: translate(locale, fallback.titleKey),
+    help: translate(locale, fallback.helpKey),
+  };
+}
+
 export function AvailabilitySearchResults({
   state: controlledState,
   exactStatus: controlledExactStatus,
   exactResponse: controlledExactResponse,
+  exactError: controlledExactError,
   nearbyStatus: controlledNearbyStatus,
   nearbyResponse: controlledNearbyResponse,
   nearbyError,
@@ -45,6 +99,7 @@ export function AvailabilitySearchResults({
   state?: BookingSearchState;
   exactStatus?: ExactStatus;
   exactResponse?: AvailabilitySearchResponse;
+  exactError?: unknown;
   nearbyStatus?: NearbyStatus;
   nearbyResponse?: NearbyAvailabilityResponse;
   nearbyError?: unknown;
@@ -58,12 +113,12 @@ export function AvailabilitySearchResults({
   const queryState = readBookingSearchQuery(searchParams);
   const state = controlledState ?? queryState;
   const [exactResponse, setExactResponse] = useState<AvailabilitySearchResponse>();
-  const [exactFetchFailed, setExactFetchFailed] = useState(false);
+  const [exactFetchError, setExactFetchError] = useState<unknown>();
   const isControlled = controlledState !== undefined;
   const items = (controlledExactResponse ?? exactResponse)?.items;
   const exactStatus: ExactStatus | undefined = isControlled
     ? controlledExactStatus
-    : exactFetchFailed
+    : exactFetchError !== undefined
       ? 'error'
       : items
         ? items.length === 0
@@ -77,16 +132,17 @@ export function AvailabilitySearchResults({
     if (isControlled || !state) return;
     let active = true;
     setExactResponse(undefined);
-    setExactFetchFailed(false);
+    setExactFetchError(undefined);
     void publicApi
       .searchAvailability({
+        mode: state.mode,
         checkIn: state.checkIn,
         checkOut: state.checkOut,
         adults: state.adults,
         children: state.children,
       })
       .then((nextResponse) => active && setExactResponse(nextResponse))
-      .catch(() => active && setExactFetchFailed(true));
+      .catch((cause: unknown) => active && setExactFetchError(cause));
     return () => {
       active = false;
     };
@@ -104,10 +160,14 @@ export function AvailabilitySearchResults({
   }
 
   if (exactStatus === 'error') {
+    const { title, help } = describeAvailabilityError(
+      locale,
+      isControlled ? controlledExactError : exactFetchError,
+    );
     return (
       <Alert className="availability-results__error" variant="destructive">
-        <AlertTitle>{translate(locale, 'search.loadErrorTitle')}</AlertTitle>
-        <AlertDescription>{translate(locale, 'search.loadErrorHelp')}</AlertDescription>
+        <AlertTitle>{title}</AlertTitle>
+        <AlertDescription>{help}</AlertDescription>
         {onRetry ? (
           <Button onClick={onRetry} size="sm" type="button">
             {translate(locale, 'search.retry')}
@@ -292,7 +352,10 @@ function NearbySection({
   onRetryNearby?: () => void;
   locale: ReturnType<typeof useLocale>;
 }>) {
-  void nearbyError;
+  const nearbyErrorDescription = describeAvailabilityError(locale, nearbyError, {
+    titleKey: 'search.nearbyErrorTitle',
+    helpKey: 'search.nearbyErrorHelp',
+  });
   return (
     <section
       aria-label={translate(locale, 'search.nearbyHeading')}
@@ -317,9 +380,9 @@ function NearbySection({
       ) : null}
       {nearbyStatus === 'error' ? (
         <Alert variant="destructive">
-          <AlertTitle>{translate(locale, 'search.nearbyErrorTitle')}</AlertTitle>
+          <AlertTitle>{nearbyErrorDescription.title}</AlertTitle>
           <AlertDescription>
-            {translate(locale, 'search.nearbyErrorHelp')}
+            {nearbyErrorDescription.help}
             {onRetryNearby ? (
               <Button className="margin-top-sm" onClick={onRetryNearby} size="sm" type="button">
                 {translate(locale, 'search.retry')}

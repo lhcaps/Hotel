@@ -22,14 +22,18 @@ describe('public pricing accessibility', () => {
 
     await user.click(screen.getByRole('button', { name: 'Qua đêm' }));
     expect(screen.getByLabelText('Nhận phòng')).toBeTruthy();
-    expect(screen.getByLabelText('Trả phòng')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '21:00 - 09:00' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '22:00 - 10:00' })).toBeTruthy();
   });
 
-  it('provides labelled 15-minute availability controls without physical-room details', async () => {
+  it('provides labelled fixed-window availability controls without physical-room details', async () => {
     const { container } = render(<AvailabilitySearchForm />);
     expect(screen.getByRole('heading', { name: 'Tìm phòng' })).toBeTruthy();
-    expect(screen.getByLabelText('Nhận phòng').getAttribute('step')).toBe('900');
-    expect(screen.getByLabelText('Trả phòng').getAttribute('step')).toBe('900');
+    expect(screen.getByLabelText('Nhận phòng')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '21:00 - 09:00' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.getByRole('button', { name: 'Tìm phòng' })).toBeTruthy();
     expect(container.textContent).not.toMatch(/số phòng|room number|room id/i);
     expect((await axe(container)).violations).toHaveLength(0);

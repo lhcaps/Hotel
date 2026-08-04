@@ -33,49 +33,61 @@ const couponCodeSchema = z
   .max(32)
   .regex(/^[A-Za-z0-9-]{4,32}$/);
 
-function quarterHour(value: string): boolean {
-  const date = new Date(value);
-  return (
-    Number.isFinite(date.getTime()) &&
-    date.getUTCSeconds() === 0 &&
-    date.getUTCMilliseconds() === 0 &&
-    date.getUTCMinutes() % 15 === 0
-  );
+function validInterval(checkIn: string, checkOut: string): boolean {
+  const durationSeconds = (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 1_000;
+  return Number.isInteger(durationSeconds) && durationSeconds >= 3_600 && durationSeconds <= 86_400;
 }
 
-function validInterval(checkIn: string, checkOut: string): boolean {
-  const durationMinutes = (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 60_000;
-  return Number.isInteger(durationMinutes) && durationMinutes >= 60 && durationMinutes <= 1_440;
+const stayModeSchema = z.enum(['hourly', 'overnight']);
+
+function localTime(value: string): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hourCycle: 'h23',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).formatToParts(new Date(value));
+  const lookup = Object.fromEntries(
+    parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]),
+  );
+  return `${lookup.hour ?? '00'}:${lookup.minute ?? '00'}:${lookup.second ?? '00'}`;
+}
+
+function isSupportedOvernightWindow(checkIn: string, checkOut: string): boolean {
+  const start = localTime(checkIn);
+  const end = localTime(checkOut);
+  const durationSeconds = (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 1_000;
+  return (
+    durationSeconds === 43_200 &&
+    ((start === '21:00:00' && end === '09:00:00') || (start === '22:00:00' && end === '10:00:00'))
+  );
 }
 
 const publicIntervalSchema = z
   .object({
     checkIn: instantSchema,
     checkOut: instantSchema,
+    mode: stayModeSchema.optional(),
     adults: z.number().int().min(1).max(20),
     children: z.number().int().min(0).max(20),
   })
   .strict()
   .superRefine((value, context) => {
-    if (!quarterHour(value.checkIn)) {
-      context.addIssue({
-        code: 'custom',
-        path: ['checkIn'],
-        message: 'Check-in must use a 15-minute increment.',
-      });
-    }
-    if (!quarterHour(value.checkOut)) {
-      context.addIssue({
-        code: 'custom',
-        path: ['checkOut'],
-        message: 'Check-out must use a 15-minute increment.',
-      });
-    }
-    if (!validInterval(value.checkIn, value.checkOut)) {
+    const invalidOvernightWindow =
+      value.mode === 'overnight' && !isSupportedOvernightWindow(value.checkIn, value.checkOut);
+    if (!invalidOvernightWindow && !validInterval(value.checkIn, value.checkOut)) {
       context.addIssue({
         code: 'custom',
         path: ['checkOut'],
         message: 'Stay duration must be between 1 and 24 hours.',
+      });
+    }
+    if (invalidOvernightWindow) {
+      context.addIssue({
+        code: 'custom',
+        path: ['checkOut'],
+        message: 'Hệ thống hiện hỗ trợ đặt từng đêm. Vui lòng chọn một đêm.',
       });
     }
   });
@@ -199,6 +211,7 @@ export const nearbyAvailabilityRequestSchema = z
   .object({
     checkIn: instantSchema,
     checkOut: instantSchema,
+    mode: stayModeSchema.optional(),
     adults: z.number().int().min(1).max(20),
     children: z.number().int().min(0).max(20),
     expandMinutes: z.number().int().min(0).max(120).default(60),
@@ -206,20 +219,6 @@ export const nearbyAvailabilityRequestSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    if (!quarterHour(value.checkIn)) {
-      context.addIssue({
-        code: 'custom',
-        path: ['checkIn'],
-        message: 'Check-in must use a 15-minute increment.',
-      });
-    }
-    if (!quarterHour(value.checkOut)) {
-      context.addIssue({
-        code: 'custom',
-        path: ['checkOut'],
-        message: 'Check-out must use a 15-minute increment.',
-      });
-    }
     if (!validInterval(value.checkIn, value.checkOut)) {
       context.addIssue({
         code: 'custom',
@@ -227,11 +226,11 @@ export const nearbyAvailabilityRequestSchema = z
         message: 'Stay duration must be between 1 and 24 hours.',
       });
     }
-    if (value.expandMinutes % 15 !== 0) {
+    if (value.mode === 'overnight' && !isSupportedOvernightWindow(value.checkIn, value.checkOut)) {
       context.addIssue({
         code: 'custom',
-        path: ['expandMinutes'],
-        message: 'Expand window must be a 15-minute increment.',
+        path: ['checkOut'],
+        message: 'Hệ thống hiện hỗ trợ đặt từng đêm. Vui lòng chọn một đêm.',
       });
     }
   });
@@ -241,6 +240,7 @@ export const nearbyAvailabilityResponseSchema = z
     requestedCheckIn: instantSchema,
     requestedCheckOut: instantSchema,
     durationMinutes: z.number().int().min(60).max(1_440),
+    durationSeconds: z.number().int().min(3_600).max(86_400).optional(),
     candidates: z.array(nearbyAvailabilityCandidateSchema).max(12),
   })
   .strict();

@@ -15,6 +15,15 @@ export const publicRoomTypeSchema = z
     maxChildren: z.number().int().min(0),
     maxOccupancy: z.number().int().min(1),
     amenities: z.array(publicRoomAmenitySchema),
+    priceTier: z
+      .object({
+        code: z.string().trim().min(1).max(64),
+        name: z.string().trim().min(1).max(160),
+        sortOrder: z.number().int(),
+      })
+      .strict()
+      .optional(),
+    startingFromVnd: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).nullable().optional(),
   })
   .strict();
 

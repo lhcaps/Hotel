@@ -11,7 +11,8 @@ export interface BookingSearchState {
 export interface HourlyIntervalInput {
   readonly date: string;
   readonly time: string;
-  readonly durationMinutes: number;
+  readonly durationMinutes?: number;
+  readonly durationSeconds?: number;
 }
 
 export interface HourlyInterval {
@@ -19,7 +20,7 @@ export interface HourlyInterval {
   readonly checkOut: string;
 }
 
-const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/u;
+const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/u;
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/u;
 const HO_CHI_MINH_OFFSET_MINUTES = 7 * 60;
 
@@ -38,28 +39,25 @@ function ensureValidDate(parts: RegExpMatchArray): { year: number; month: number
   return { year, month, day };
 }
 
-function roundedDateParts(
+function exactDateParts(
   date: { year: number; month: number; day: number },
   time: string,
-): { year: number; month: number; day: number; minutesOfDay: number } {
+): { year: number; month: number; day: number; secondsOfDay: number } {
   const match = TIME_PATTERN.exec(time);
   if (match === null) throw new Error('interval.invalidTime');
   const hour = Number(match[1]);
   const minute = Number(match[2]);
-  const totalMinutes = hour * 60 + minute;
-  const roundedTotal =
-    totalMinutes === 0 || totalMinutes % 15 === 0
-      ? totalMinutes
-      : totalMinutes + (15 - (totalMinutes % 15));
-  const offsetDays = Math.floor(roundedTotal / 1440);
-  const minutesOfDay = roundedTotal % 1440;
+  const second = Number(match[3] ?? 0);
+  const totalSeconds = hour * 3_600 + minute * 60 + second;
+  const offsetDays = Math.floor(totalSeconds / 86_400);
+  const secondsOfDay = totalSeconds % 86_400;
   const next = new Date(Date.UTC(date.year, date.month - 1, date.day));
   next.setUTCDate(next.getUTCDate() + offsetDays);
   return {
     year: next.getUTCFullYear(),
     month: next.getUTCMonth() + 1,
     day: next.getUTCDate(),
-    minutesOfDay,
+    secondsOfDay,
   };
 }
 
@@ -67,28 +65,27 @@ export function buildHourlyInterval(input: HourlyIntervalInput): HourlyInterval 
   const dateMatch = DATE_PATTERN.exec(input.date);
   if (dateMatch === null) throw new Error('interval.invalidDate');
   const dateParts = ensureValidDate(dateMatch);
-  const startParts = roundedDateParts(dateParts, input.time);
-  const durationMinutes = input.durationMinutes;
-  if (!Number.isInteger(durationMinutes) || durationMinutes < 60 || durationMinutes > 1440) {
+  const startParts = exactDateParts(dateParts, input.time);
+  const durationSeconds = input.durationSeconds ?? (input.durationMinutes ?? Number.NaN) * 60;
+  if (!Number.isInteger(durationSeconds) || durationSeconds < 3_600 || durationSeconds > 86_400) {
     throw new Error('interval.invalidDuration');
   }
-  if (durationMinutes % 15 !== 0) {
-    throw new Error('interval.durationNotDivisibleBy15');
-  }
-  const endTotalMinutes = startParts.minutesOfDay + durationMinutes;
-  const endOffsetDays = Math.floor(endTotalMinutes / 1440);
-  const endMinutesOfDay = endTotalMinutes % 1440;
+  const endTotalSeconds = startParts.secondsOfDay + durationSeconds;
+  const endOffsetDays = Math.floor(endTotalSeconds / 86_400);
+  const endSecondsOfDay = endTotalSeconds % 86_400;
   const startInstant = utcFromHoChiMinhDate(
     { year: startParts.year, month: startParts.month, day: startParts.day },
     0,
-    startParts.minutesOfDay,
+    Math.floor(startParts.secondsOfDay / 60),
+    startParts.secondsOfDay % 60,
   );
   const endBase = new Date(Date.UTC(startParts.year, startParts.month - 1, startParts.day));
   endBase.setUTCDate(endBase.getUTCDate() + endOffsetDays);
   const endInstant = utcFromHoChiMinhDate(
     { year: endBase.getUTCFullYear(), month: endBase.getUTCMonth() + 1, day: endBase.getUTCDate() },
     0,
-    endMinutesOfDay,
+    Math.floor(endSecondsOfDay / 60),
+    endSecondsOfDay % 60,
   );
   if (endInstant.getTime() <= startInstant.getTime()) {
     throw new Error('interval.checkOutNotAfterCheckIn');
@@ -103,10 +100,13 @@ function utcFromHoChiMinhDate(
   base: { year: number; month: number; day: number },
   extraDays: number,
   minutesOfDay: number,
+  seconds = 0,
 ): Date {
   const dateOnlyUtc = new Date(Date.UTC(base.year, base.month - 1, base.day));
   dateOnlyUtc.setUTCDate(dateOnlyUtc.getUTCDate() + extraDays);
-  return new Date(dateOnlyUtc.getTime() + (minutesOfDay - HO_CHI_MINH_OFFSET_MINUTES) * 60_000);
+  return new Date(
+    dateOnlyUtc.getTime() + (minutesOfDay - HO_CHI_MINH_OFFSET_MINUTES) * 60_000 + seconds * 1_000,
+  );
 }
 
 function formatWithOffset(instant: Date): string {

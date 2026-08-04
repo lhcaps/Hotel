@@ -19,7 +19,10 @@ import {
   QuotePricingConfigurationError,
   QuoteUnavailableError,
 } from '../src/pricing/quote.service.js';
-import { PricingRuleNotFoundError } from '../src/pricing/pricing-engine.js';
+import {
+  InvalidPricingIntervalError,
+  PricingRuleNotFoundError,
+} from '../src/pricing/pricing-engine.js';
 
 function invoke(error: unknown) {
   const send = vi.fn();
@@ -86,6 +89,19 @@ describe('ProblemDetailsFilter', () => {
     );
     expect(invoke(new QuoteExpiredError()).send).toHaveBeenCalledWith(
       expect.objectContaining({ status: 409, code: 'QUOTE_EXPIRED' }),
+    );
+    expect(
+      invoke(new InvalidPricingIntervalError('Pricing duration must be between 1 and 24 hours.'))
+        .send,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 400,
+        code: 'INVALID_PRICING_INTERVAL',
+        detail: 'Pricing duration must be between 1 and 24 hours.',
+        errors: [
+          { field: 'checkOut', message: 'Pricing duration must be between 1 and 24 hours.' },
+        ],
+      }),
     );
   });
 

@@ -37,7 +37,13 @@ beforeAll(async () => {
   ]);
   apiProc = spawn(invocation.executable, invocation.args, {
     cwd: 'D:/Study/Project/Room Management/apps/api',
-    env: { ...process.env, API_PORT: String(FASTIFY_PORT), LOG_LEVEL: 'warn' },
+    env: {
+      ...process.env,
+      API_PORT: String(FASTIFY_PORT),
+      LOG_LEVEL: 'warn',
+      BOOKING_ACCESS_QR_SECRET:
+        process.env.BOOKING_ACCESS_QR_SECRET ?? 'local-test-booking-access-qr-secret-32-bytes',
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: false,
   });

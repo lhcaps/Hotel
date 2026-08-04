@@ -197,7 +197,7 @@ describe('nearby availability bounded search', () => {
     expect(afterQuotes.rows[0]?.count).toBe(beforeQuotes.rows[0]?.count);
   });
 
-  it('returns a -15 / +15 minute candidate pair when the exact interval is blocked for at least one room type', async () => {
+  it('returns the +15 / -15 minute candidate pair in deterministic fallback order', async () => {
     await resetBlocks();
     await addMaintenanceBlock(
       ids.room,
@@ -214,13 +214,11 @@ describe('nearby availability bounded search', () => {
     const shifts = result.candidates.map((candidate) => candidate.shiftMinutes);
     expect(shifts).toContain(-15);
     expect(shifts).toContain(15);
-    const first = shifts[0] as number;
-    const second = shifts[1] as number;
-    expect(Math.abs(first)).toBeLessThanOrEqual(Math.abs(second));
+    expect(shifts.slice(0, 2)).toEqual([15, -15]);
     for (const candidate of result.candidates) {
-      const duration =
-        (new Date(candidate.checkOut).getTime() - new Date(candidate.checkIn).getTime()) / 60_000;
-      expect(duration).toBe(180);
+      const durationSeconds =
+        (new Date(candidate.checkOut).getTime() - new Date(candidate.checkIn).getTime()) / 1_000;
+      expect(durationSeconds).toBe(10_800);
     }
     for (const candidate of result.candidates) {
       for (const roomType of candidate.roomTypes) {
@@ -278,11 +276,17 @@ describe('nearby availability bounded search', () => {
         new Date(exactRequest.checkOut),
       );
     }
-    const result = await service.search({ ...exactRequest, expandMinutes: 120, limit: 6 });
+    const exactSecondsRequest = {
+      ...exactRequest,
+      checkIn: '2027-01-10T04:00:17.000Z',
+      checkOut: '2027-01-10T07:00:34.000Z',
+    };
+    const result = await service.search({ ...exactSecondsRequest, expandMinutes: 120, limit: 6 });
+    expect(result.durationSeconds).toBe(10_817);
     for (const candidate of result.candidates) {
-      const duration =
-        (new Date(candidate.checkOut).getTime() - new Date(candidate.checkIn).getTime()) / 60_000;
-      expect(duration).toBe(180);
+      const durationSeconds =
+        (new Date(candidate.checkOut).getTime() - new Date(candidate.checkIn).getTime()) / 1_000;
+      expect(durationSeconds).toBe(10_817);
     }
   });
 
