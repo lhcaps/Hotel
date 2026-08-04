@@ -10,6 +10,11 @@ export function PropertyEditor() {
   const locale = useLocale();
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
+  const [minimumStayMinutes, setMinimumStayMinutes] = useState(60);
+  const [maximumStayMinutes, setMaximumStayMinutes] = useState(10080);
+  const [minimumLeadTimeMinutes, setMinimumLeadTimeMinutes] = useState(0);
+  const [maximumAdvanceBookingDays, setMaximumAdvanceBookingDays] = useState(365);
+  const [defaultOvernightDurationMinutes, setDefaultOvernightDurationMinutes] = useState(720);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string>();
@@ -22,6 +27,11 @@ export function PropertyEditor() {
         if (!active) return;
         setCode(property.code);
         setName(property.name);
+        setMinimumStayMinutes(property.minimumStayMinutes ?? 60);
+        setMaximumStayMinutes(property.maximumStayMinutes ?? 10080);
+        setMinimumLeadTimeMinutes(property.minimumLeadTimeMinutes ?? 0);
+        setMaximumAdvanceBookingDays(property.maximumAdvanceBookingDays ?? 365);
+        setDefaultOvernightDurationMinutes(property.defaultOvernightDurationMinutes ?? 720);
       })
       .catch((cause: unknown) => {
         if (!active) return;
@@ -44,9 +54,24 @@ export function PropertyEditor() {
     setPending(true);
     setMessage(undefined);
     try {
-      const property = await adminApi.updateProperty({ code, name });
+      const property = await adminApi.updateProperty({
+        code,
+        name,
+        minimumStayMinutes,
+        maximumStayMinutes,
+        minimumLeadTimeMinutes,
+        maximumAdvanceBookingDays,
+        defaultOvernightDurationMinutes,
+      });
       setCode(property.code);
       setName(property.name);
+      setMinimumStayMinutes(property.minimumStayMinutes ?? minimumStayMinutes);
+      setMaximumStayMinutes(property.maximumStayMinutes ?? maximumStayMinutes);
+      setMinimumLeadTimeMinutes(property.minimumLeadTimeMinutes ?? minimumLeadTimeMinutes);
+      setMaximumAdvanceBookingDays(property.maximumAdvanceBookingDays ?? maximumAdvanceBookingDays);
+      setDefaultOvernightDurationMinutes(
+        property.defaultOvernightDurationMinutes ?? defaultOvernightDurationMinutes,
+      );
       setMessage(translate(locale, 'property.saved'));
     } catch (cause) {
       setMessage(
@@ -79,6 +104,56 @@ export function PropertyEditor() {
             disabled={loading || pending}
             onChange={(event) => setName(event.target.value)}
             value={name}
+          />
+        </label>
+        <label>
+          {translate(locale, 'property.minimumStayMinutes')}
+          <input
+            disabled={loading || pending}
+            min={1}
+            onChange={(event) => setMinimumStayMinutes(Number(event.target.value))}
+            type="number"
+            value={minimumStayMinutes}
+          />
+        </label>
+        <label>
+          {translate(locale, 'property.maximumStayMinutes')}
+          <input
+            disabled={loading || pending}
+            min={1}
+            onChange={(event) => setMaximumStayMinutes(Number(event.target.value))}
+            type="number"
+            value={maximumStayMinutes}
+          />
+        </label>
+        <label>
+          {translate(locale, 'property.minimumLeadTimeMinutes')}
+          <input
+            disabled={loading || pending}
+            min={0}
+            onChange={(event) => setMinimumLeadTimeMinutes(Number(event.target.value))}
+            type="number"
+            value={minimumLeadTimeMinutes}
+          />
+        </label>
+        <label>
+          {translate(locale, 'property.maximumAdvanceBookingDays')}
+          <input
+            disabled={loading || pending}
+            min={0}
+            onChange={(event) => setMaximumAdvanceBookingDays(Number(event.target.value))}
+            type="number"
+            value={maximumAdvanceBookingDays}
+          />
+        </label>
+        <label>
+          {translate(locale, 'property.defaultOvernightDurationMinutes')}
+          <input
+            disabled={loading || pending}
+            min={1}
+            onChange={(event) => setDefaultOvernightDurationMinutes(Number(event.target.value))}
+            type="number"
+            value={defaultOvernightDurationMinutes}
           />
         </label>
         <button disabled={loading || pending} type="submit">

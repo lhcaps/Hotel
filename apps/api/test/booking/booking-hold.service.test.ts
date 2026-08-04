@@ -99,6 +99,26 @@ describe('BookingHoldService', () => {
     );
   });
 
+  it('accepts a Vietnamese local phone and forwards its canonical E.164 value', async () => {
+    const service = await setup(SUCCESS_RESULT);
+    const expectedContact = normalizeContact(
+      { ...baseRequest.contact, phone: '0909000000' },
+      IP_SECRET,
+    );
+    await service.issue(
+      '00000000-0000-0000-0000-000000000010',
+      { ...baseRequest, contact: { ...baseRequest.contact, phone: '0909000000' } },
+      'correlation-1',
+    );
+
+    expect(createBookingHoldWithRetry).toHaveBeenCalledWith(
+      pool,
+      expect.objectContaining<Partial<CreateBookingHoldInput>>({
+        contact: expectedContact,
+      }),
+    );
+  });
+
   it('rejects invalid input via Zod', async () => {
     const service = await setup(SUCCESS_RESULT);
     await expect(

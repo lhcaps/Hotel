@@ -41,6 +41,11 @@ export interface CatalogPropertyRecord {
   readonly name: string;
   readonly timezone: string;
   readonly status: 'ACTIVE' | 'INACTIVE';
+  readonly minimumStayMinutes?: number;
+  readonly maximumStayMinutes?: number;
+  readonly minimumLeadTimeMinutes?: number;
+  readonly maximumAdvanceBookingDays?: number;
+  readonly defaultOvernightDurationMinutes?: number;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
@@ -436,14 +441,37 @@ export class CatalogService {
     return this.database.transaction(async (transaction) => {
       const current = await this.repository.getCurrentProperty(transaction);
       if (current === undefined) throw new CatalogNotFoundError();
-      const property = await this.repository.updateProperty(transaction, current.id, command);
+      const normalizedCommand = propertyCommandSchema.parse({
+        ...command,
+        minimumStayMinutes: command.minimumStayMinutes ?? current.minimumStayMinutes ?? 60,
+        maximumStayMinutes: command.maximumStayMinutes ?? current.maximumStayMinutes ?? 10_080,
+        minimumLeadTimeMinutes:
+          command.minimumLeadTimeMinutes ?? current.minimumLeadTimeMinutes ?? 0,
+        maximumAdvanceBookingDays:
+          command.maximumAdvanceBookingDays ?? current.maximumAdvanceBookingDays ?? 365,
+        defaultOvernightDurationMinutes:
+          command.defaultOvernightDurationMinutes ?? current.defaultOvernightDurationMinutes ?? 720,
+      });
+      const property = await this.repository.updateProperty(
+        transaction,
+        current.id,
+        normalizedCommand,
+      );
       await this.audit.write(transaction, {
         propertyId: property.id,
         aggregateType: 'PROPERTY',
         aggregateId: property.id,
         eventType: 'PROPERTY_UPDATED',
         actorId: actor.userId,
-        payload: { code: property.code, name: property.name },
+        payload: {
+          code: property.code,
+          name: property.name,
+          minimumStayMinutes: normalizedCommand.minimumStayMinutes ?? 60,
+          maximumStayMinutes: normalizedCommand.maximumStayMinutes ?? 10_080,
+          minimumLeadTimeMinutes: normalizedCommand.minimumLeadTimeMinutes ?? 0,
+          maximumAdvanceBookingDays: normalizedCommand.maximumAdvanceBookingDays ?? 365,
+          defaultOvernightDurationMinutes: normalizedCommand.defaultOvernightDurationMinutes ?? 720,
+        },
       });
       return toProperty(property);
     });

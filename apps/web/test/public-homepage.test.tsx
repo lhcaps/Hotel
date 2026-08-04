@@ -107,9 +107,10 @@ describe('public booking entry', () => {
     });
   });
 
-  it('suggests overnight booking when an hourly shortcut crosses midnight', async () => {
+  it('submits a cross-midnight interval when an hourly shortcut crosses midnight', async () => {
     const user = userEvent.setup();
-    render(<AvailabilitySearchForm onSearch={vi.fn()} variant="home" />);
+    const onSearch = vi.fn();
+    render(<AvailabilitySearchForm onSearch={onSearch} variant="home" />);
 
     await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
     fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
@@ -117,7 +118,13 @@ describe('public booking entry', () => {
     await user.click(screen.getByRole('button', { name: '3 giờ' }));
     await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
 
-    expect(screen.getByRole('alert')).toHaveTextContent('qua đêm');
+    expect(onSearch).toHaveBeenCalledWith({
+      mode: 'hourly',
+      checkIn: '2099-04-10T23:00:00+07:00',
+      checkOut: '2099-04-11T02:00:00+07:00',
+      adults: 1,
+      children: 0,
+    });
   });
 
   it('rejects an hourly interval that is already in the past', async () => {

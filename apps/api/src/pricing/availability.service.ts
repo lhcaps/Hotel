@@ -1,6 +1,8 @@
 import {
   availabilitySearchRequestSchema,
   availabilitySearchResponseSchema,
+  type AvailabilityPolicy,
+  type AvailabilityState,
   type AvailabilitySearchRequest,
   type AvailabilitySearchResponse,
 } from '@room/contracts';
@@ -19,6 +21,11 @@ export interface AvailabilitySearchRoomType {
 
 export interface AvailabilityRepositoryPort {
   search(input: AvailabilitySearchRequest): Promise<readonly AvailabilitySearchRoomType[]>;
+  searchWithState?(input: AvailabilitySearchRequest): Promise<{
+    readonly state: AvailabilityState;
+    readonly items: readonly AvailabilitySearchRoomType[];
+    readonly policy?: AvailabilityPolicy;
+  }>;
 }
 
 export function offerSummary(
@@ -48,8 +55,19 @@ export function offerSummary(
 export class AvailabilityService {
   public constructor(private readonly repository: AvailabilityRepositoryPort) {}
   public async search(input: unknown): Promise<AvailabilitySearchResponse> {
+    const request = availabilitySearchRequestSchema.parse(input);
+    const result = this.repository.searchWithState
+      ? await this.repository.searchWithState(request)
+      : {
+          state: undefined,
+          policy: undefined,
+          items: await this.repository.search(request),
+        };
     return availabilitySearchResponseSchema.parse({
-      items: await this.repository.search(availabilitySearchRequestSchema.parse(input)),
+      state: result.state ?? (result.items.length > 0 ? 'AVAILABLE' : 'NO_EXACT_AVAILABILITY'),
+      ...(result.policy ? { policy: result.policy } : {}),
+      requestedInterval: { checkIn: request.checkIn, checkOut: request.checkOut },
+      items: result.items,
     });
   }
 }

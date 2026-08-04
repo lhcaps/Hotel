@@ -71,7 +71,26 @@ export class CatalogRepository implements CatalogRepositoryPort {
     const database = asCatalogDatabase(transaction, this.database);
     const [updated] = await database
       .update(properties)
-      .set({ code: command.code, name: command.name, updatedAt: new Date() })
+      .set({
+        code: command.code,
+        name: command.name,
+        ...(command.minimumStayMinutes === undefined
+          ? {}
+          : { minimumStayMinutes: command.minimumStayMinutes }),
+        ...(command.maximumStayMinutes === undefined
+          ? {}
+          : { maximumStayMinutes: command.maximumStayMinutes }),
+        ...(command.minimumLeadTimeMinutes === undefined
+          ? {}
+          : { minimumLeadTimeMinutes: command.minimumLeadTimeMinutes }),
+        ...(command.maximumAdvanceBookingDays === undefined
+          ? {}
+          : { maximumAdvanceBookingDays: command.maximumAdvanceBookingDays }),
+        ...(command.defaultOvernightDurationMinutes === undefined
+          ? {}
+          : { defaultOvernightDurationMinutes: command.defaultOvernightDurationMinutes }),
+        updatedAt: new Date(),
+      })
       .where(eq(properties.id, id))
       .returning();
     if (updated === undefined) throw new Error('Property disappeared during update.');

@@ -104,6 +104,38 @@ describe('QuoteContactForm', () => {
     expect(hold).toMatchObject({ bookingCode: 'RM-AB23-CD45-EF67', status: 'HOLD' });
   });
 
+  it('accepts a Vietnamese local phone and sends the canonical E.164 value', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          bookingId: '22222222-2222-4222-8222-222222222222',
+          bookingCode: 'RM-AB23-CD45-EF67',
+          status: 'HOLD',
+          checkIn: '2027-01-10T03:00:00.000Z',
+          checkOut: '2027-01-10T06:00:00.000Z',
+          holdExpiresAt: '2027-01-10T03:15:00.000Z',
+          amountVnd: 359000,
+          currency: 'VND',
+          idempotent: false,
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const user = userEvent.setup();
+    render(<QuoteContactForm quote={makeQuote()} onHoldCreated={vi.fn()} />);
+
+    await user.type(screen.getByLabelText('Họ và tên'), 'Nguyen Van A');
+    await user.type(screen.getByLabelText('Email'), 'guest@example.test');
+    await user.clear(screen.getByLabelText(/Số điện thoại/));
+    await user.type(screen.getByLabelText(/Số điện thoại/), '0901234567');
+    await user.click(screen.getByRole('button', { name: 'Giữ chỗ' }));
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      contact: { phone: '+84901234567' },
+    });
+  });
+
   it('keeps the reservation internal while starting the selected demo payment checkout', async () => {
     fetchMock
       .mockResolvedValueOnce(
@@ -168,11 +200,15 @@ describe('QuoteContactForm', () => {
     await user.type(screen.getByLabelText('Họ và tên'), 'Nguyen Van A');
     await user.type(screen.getByLabelText('Email'), 'guest@example.test');
     await user.clear(screen.getByLabelText(/Số điện thoại/));
-    await user.type(screen.getByLabelText(/Số điện thoại/), '+84909000000');
+    await user.type(screen.getByLabelText(/Số điện thoại/), '0901234567');
     await user.click(screen.getByRole('button', { name: 'Thanh toán & đặt phòng' }));
 
     await waitFor(() => expect(onCheckoutStarted).toHaveBeenCalledTimes(1));
     expect(fetchMock).toHaveBeenCalledTimes(3);
+    const holdInit = fetchMock.mock.calls[1]?.[1] as RequestInit;
+    expect(JSON.parse(String(holdInit.body))).toMatchObject({
+      contact: { phone: '+84901234567' },
+    });
     expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/public/quotes/quote-id-1/bookings');
     expect(String(fetchMock.mock.calls[2]?.[0])).toContain(
       '/public/bookings/RM-AB23-CD45-EF67/payments/momo/attempts',
@@ -235,9 +271,9 @@ describe('QuoteContactForm', () => {
     expect(onHoldCreated).not.toHaveBeenCalled();
   });
 
-  it('shows E.164 phone guidance', async () => {
+  it('shows both supported phone formats', async () => {
     render(<QuoteContactForm quote={makeQuote()} onHoldCreated={vi.fn()} />);
-    expect(screen.getByText(/Sử dụng định dạng E\.164/)).toBeInTheDocument();
+    expect(screen.getByText(/09xxxxxxxx/)).toBeInTheDocument();
     const phone = screen.getByLabelText(/Số điện thoại/);
     expect(phone.getAttribute('inputmode')).toBe('tel');
   });

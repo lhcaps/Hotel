@@ -7,6 +7,12 @@
 import { parsePhoneNumberWithError } from 'libphonenumber-js';
 import { computeDigest } from './digest.js';
 
+const VIETNAMESE_LOCAL_PHONE_PATTERN = /^0(?:3|5|7|8|9)\d{8}$/;
+
+function normalizePhoneInput(value: string): string {
+  return VIETNAMESE_LOCAL_PHONE_PATTERN.test(value) ? `+84${value.slice(1)}` : value;
+}
+
 export interface ContactInput {
   readonly fullName: string;
   readonly email: string;
@@ -30,9 +36,9 @@ export function normalizeContact(contact: ContactInput, digestSecret: Buffer): N
     throw new Error('Invalid email address');
   }
 
-  // Phone: E.164 via libphonenumber-js. No default region is assumed;
-  // callers must supply an explicit international number (+countrycode...).
-  const trimmedPhone = contact.phone.trim();
+  // Phone: Vietnamese local mobile input is converted to E.164 first; other
+  // numbers still require an explicit international country code.
+  const trimmedPhone = normalizePhoneInput(contact.phone.trim());
   let parsedPhone;
   try {
     parsedPhone = parsePhoneNumberWithError(trimmedPhone);

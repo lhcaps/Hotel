@@ -140,8 +140,8 @@ describe('cheapest pricing selector against real PostgreSQL', () => {
   it('selects THREE_HOUR_COMBO (300 000 VND) over LUNCH_COMBO (359 000 VND) at 11:00 + 1h using real catalog', async () => {
     const breakdown = await quoteService.issue({
       roomTypeId: ids.type,
-      checkIn: '2026-07-22T11:00:00+07:00',
-      checkOut: '2026-07-22T14:00:00+07:00',
+      checkIn: '2027-07-22T11:00:00+07:00',
+      checkOut: '2027-07-22T14:00:00+07:00',
       adults: 2,
       children: 0,
     });
@@ -153,8 +153,8 @@ describe('cheapest pricing selector against real PostgreSQL', () => {
   it('selects FIVE_HOUR_COMBO (450 000 VND) over NIGHT_COMBO (600 000 VND) at 17:45 + 5h using real catalog', async () => {
     const breakdown = await quoteService.issue({
       roomTypeId: ids.type,
-      checkIn: '2026-07-22T17:45:00+07:00',
-      checkOut: '2026-07-22T22:45:00+07:00',
+      checkIn: '2027-07-22T17:45:00+07:00',
+      checkOut: '2027-07-22T22:45:00+07:00',
       adults: 2,
       children: 0,
     });
@@ -173,8 +173,8 @@ describe('cheapest pricing selector against real PostgreSQL', () => {
     try {
       const breakdown = await quoteService.issue({
         roomTypeId: ids.type,
-        checkIn: '2026-07-22T13:00:00+07:00',
-        checkOut: '2026-07-22T19:00:00+07:00',
+        checkIn: '2027-07-22T13:00:00+07:00',
+        checkOut: '2027-07-22T19:00:00+07:00',
         adults: 2,
         children: 0,
       });
@@ -198,8 +198,8 @@ describe('cheapest pricing selector against real PostgreSQL', () => {
     const result = await handler({
       body: {
         roomTypeId: ids.type,
-        checkIn: '2026-07-22T11:00:00+07:00',
-        checkOut: '2026-07-22T14:00:00+07:00',
+        checkIn: '2027-07-22T11:00:00+07:00',
+        checkOut: '2027-07-22T14:00:00+07:00',
         adults: 2,
         children: 0,
       },
@@ -241,8 +241,8 @@ describe('cheapest pricing selector against real PostgreSQL', () => {
     const result = await handler({
       body: {
         roomTypeId: ids.type,
-        checkIn: '2026-07-22T15:00:00+07:00',
-        checkOut: '2026-07-22T20:00:00+07:00',
+        checkIn: '2027-07-22T15:00:00+07:00',
+        checkOut: '2027-07-22T20:00:00+07:00',
         adults: 2,
         children: 0,
       },

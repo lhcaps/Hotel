@@ -26,9 +26,17 @@ describe('booking database constraints', () => {
   it.each([
     ['less than 60 minutes', '2027-01-10T04:00:00Z', '2027-01-10T04:45:00Z'],
     ['more than 24 hours', '2027-01-10T04:00:00Z', '2027-01-11T04:15:00Z'],
-    ['non-quarter-hour start', '2027-01-10T04:01:00Z', '2027-01-10T05:01:00Z'],
-    ['non-quarter-hour end', '2027-01-10T04:00:00Z', '2027-01-10T05:01:00Z'],
-  ])('rejects %s', async (_label, checkIn, checkOut) => {
+    ['non-quarter-hour start', '2027-01-10T04:01:17Z', '2027-01-10T05:01:46Z'],
+    ['non-quarter-hour end', '2027-01-10T04:00:00Z', '2027-01-10T05:01:01Z'],
+  ])('accepts flexible %s', async (_label, checkIn, checkOut) => {
+    await insertBooking(database.pool, { id: randomUUID(), checkIn, checkOut });
+  });
+
+  it.each([
+    ['zero duration', '2027-01-10T04:00:00Z', '2027-01-10T04:00:00Z'],
+    ['negative duration', '2027-01-10T05:00:00Z', '2027-01-10T04:00:00Z'],
+    ['over safety maximum', '2027-01-10T04:00:00Z', '2027-02-11T04:00:00Z'],
+  ])('rejects unsafe interval %s', async (_label, checkIn, checkOut) => {
     const error = await insertBooking(database.pool, {
       id: randomUUID(),
       checkIn,

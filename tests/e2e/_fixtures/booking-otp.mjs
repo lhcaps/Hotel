@@ -37,13 +37,14 @@ async function fetchJson(url, init) {
 }
 
 export const DELUXE_ROOM_TYPE = '10000000-0000-4000-8000-000000000201';
+let bookingIntervalCounter = 0;
 
 function futureLunchIso(offsetMinutes = 0) {
   // Pick a future date with 11:00 UTC lunch pricing window. The
   // offsetMinutes parameter lets the caller stagger distinct holds onto
   // different physical rooms when the deterministic DELUXE seed has only
   // one room per slot.
-  const dayOffset = 3 + Math.floor(Math.random() * 6_000);
+  const dayOffset = 47 + (bookingIntervalCounter++ % 90);
   const target = new Date(Date.now() + dayOffset * 24 * 60 * 60_000);
   const lunch = new Date(
     Date.UTC(

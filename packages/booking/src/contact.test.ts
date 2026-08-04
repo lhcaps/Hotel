@@ -50,14 +50,14 @@ describe('normalizeContact', () => {
     expect(result.fullName).toBe('Nguyen Van A');
   });
 
-  it('validates phone number has country code', () => {
+  it('accepts a Vietnamese local phone and normalizes it to E.164', () => {
     const input: ContactInput = {
       fullName: 'Test User',
       email: 'test@example.com',
-      phone: '0901234567', // missing +
+      phone: '0901234567',
     };
 
-    expect(() => normalizeContact(input, testDigestSecret)).toThrow('Invalid phone number');
+    expect(normalizeContact(input, testDigestSecret).phoneE164).toBe('+84901234567');
   });
 
   it('normalizes a valid international phone number to E.164 via libphonenumber-js', () => {

@@ -8,6 +8,7 @@ import {
 import {
   calculatePricing,
   evaluatePricingCandidates,
+  InvalidPricingIntervalError,
   PricingConfigurationError,
   PricingRuleNotFoundError,
   type PricingCatalog,
@@ -161,7 +162,12 @@ export class QuoteService {
         await this.repository.issue(request, pricing, provisionalEvaluation),
       );
     } catch (error) {
-      if (error instanceof PricingConfigurationError) throw new QuotePricingConfigurationError();
+      if (
+        error instanceof PricingConfigurationError ||
+        error instanceof InvalidPricingIntervalError
+      ) {
+        throw new QuotePricingConfigurationError();
+      }
       if (error instanceof Error && error.name === 'CouponInvalidInputError') {
         throw new CouponInvalidInputError();
       }

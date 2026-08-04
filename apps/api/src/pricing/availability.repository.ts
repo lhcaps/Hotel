@@ -1,16 +1,63 @@
 import { type DatabaseClient } from '@room/database';
-import type { AvailabilitySearchRequest } from '@room/contracts';
-import { offerSummary, type AvailabilityRepositoryPort } from './availability.service.js';
-import type { PricingCatalog } from './pricing-engine.js';
+import type {
+  AvailabilityPolicy,
+  AvailabilitySearchRequest,
+  AvailabilityState,
+} from '@room/contracts';
+import {
+  offerSummary,
+  type AvailabilityRepositoryPort,
+  type AvailabilitySearchRoomType,
+} from './availability.service.js';
+import {
+  InvalidPricingIntervalError,
+  PricingConfigurationError,
+  type PricingCatalog,
+} from './pricing-engine.js';
+import { isWithinPropertyStayPolicy, propertyStayPolicy } from './stay-policy.js';
 
 type AvailabilityDatabase = Pick<DatabaseClient, 'query'>;
 export class AvailabilityRepository implements AvailabilityRepositoryPort {
   public constructor(private readonly database: AvailabilityDatabase) {}
-  public async search(input: AvailabilitySearchRequest) {
-    const property = await this.database.query.properties.findFirst({
+
+  private async activeProperty() {
+    return this.database.query.properties.findFirst({
       where: (item, operators) => operators.eq(item.status, 'ACTIVE'),
       orderBy: (item, operators) => [operators.asc(item.createdAt), operators.asc(item.id)],
     });
+  }
+
+  public async searchWithState(input: AvailabilitySearchRequest): Promise<{
+    readonly state: AvailabilityState;
+    readonly items: readonly AvailabilitySearchRoomType[];
+    readonly policy?: AvailabilityPolicy;
+  }> {
+    const property = await this.activeProperty();
+    if (property === undefined) return { state: 'CATALOG_UNAVAILABLE', items: [] };
+    const policy = propertyStayPolicy(property);
+    if (!isWithinPropertyStayPolicy(input.checkIn, input.checkOut, policy)) {
+      return { state: 'INVALID_INTERVAL', items: [], policy };
+    }
+    try {
+      const items = await this.search(input);
+      return {
+        state: items.length > 0 ? 'AVAILABLE' : 'NO_EXACT_AVAILABILITY',
+        items,
+        policy,
+      };
+    } catch (error) {
+      if (
+        error instanceof PricingConfigurationError ||
+        error instanceof InvalidPricingIntervalError
+      ) {
+        return { state: 'PRICING_CONFIGURATION_UNAVAILABLE', items: [], policy };
+      }
+      throw error;
+    }
+  }
+
+  public async search(input: AvailabilitySearchRequest) {
+    const property = await this.activeProperty();
     if (property === undefined) return [];
     const [roomTypes, rooms, blocks, plans, prices, tiers, assignments, amenities] =
       await Promise.all([
@@ -121,6 +168,7 @@ export class AvailabilityRepository implements AvailabilityRepositoryPort {
           amenities: amenitiesByRoomType.get(type.id) ?? [],
           availableRoomCount,
           offer,
+          offers: [offer],
         },
       ];
     });

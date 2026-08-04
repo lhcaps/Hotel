@@ -236,7 +236,7 @@ describe('Phase 2.1 customer booking accessibility evidence', () => {
     );
     expect(screen.getByLabelText('Họ và tên')).toBeVisible();
     expect(screen.getByLabelText('Email')).toBeVisible();
-    expect(screen.getByLabelText('Số điện thoại (E.164)')).toBeVisible();
+    expect(screen.getByLabelText('Số điện thoại')).toBeVisible();
     await expectNoSeriousOrCritical(container);
   });
 

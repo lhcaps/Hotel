@@ -46,14 +46,18 @@ describe('AvailabilityService', () => {
     ).toThrow(PricingRuleNotFoundError);
   });
 
-  it('rejects unaligned or over-24-hour intervals before database lookup', async () => {
-    const repository: AvailabilityRepositoryPort = { search: vi.fn() };
-    await expect(
-      new AvailabilityService(repository).search({
-        ...request,
-        checkOut: '2026-07-24T04:15:00.000Z',
-      }),
-    ).rejects.toThrow();
-    expect(repository.search).not.toHaveBeenCalled();
+  it('preserves arbitrary exact intervals and reports an explicit empty state', async () => {
+    const repository: AvailabilityRepositoryPort = { search: vi.fn().mockResolvedValue([]) };
+    const result = await new AvailabilityService(repository).search({
+      ...request,
+      checkIn: '2099-07-24T04:00:17.000Z',
+      checkOut: '2099-07-25T04:15:46.000Z',
+    });
+    expect(repository.search).toHaveBeenCalledOnce();
+    expect(result.state).toBe('NO_EXACT_AVAILABILITY');
+    expect(result.requestedInterval).toEqual({
+      checkIn: '2099-07-24T04:00:17.000Z',
+      checkOut: '2099-07-25T04:15:46.000Z',
+    });
   });
 });

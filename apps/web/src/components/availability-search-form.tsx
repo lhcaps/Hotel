@@ -134,6 +134,16 @@ export function AvailabilitySearchForm({
     initialDuration === '10800' || initialDuration === '18000' ? initialDuration : 'custom',
   );
   const [overnightDate, setOvernightDate] = useState(inputDate(queryState?.checkIn));
+  const [overnightStartTime, setOvernightStartTime] = useState(
+    inputTime(queryState?.checkIn).slice(0, 5) || '21:00',
+  );
+  const [overnightCheckOutDate, setOvernightCheckOutDate] = useState(
+    inputDate(queryState?.checkOut) ||
+      (inputDate(queryState?.checkIn) ? addDaysToDate(inputDate(queryState?.checkIn), 1) : ''),
+  );
+  const [overnightEndTime, setOvernightEndTime] = useState(
+    inputTime(queryState?.checkOut).slice(0, 5) || '09:00',
+  );
   const [overnightWindow, setOvernightWindow] = useState<OvernightWindow>(
     overnightWindowFromTimes(
       inputTime(queryState?.checkIn) || '21:00',
@@ -160,6 +170,11 @@ export function AvailabilitySearchForm({
       nextDuration === '10800' || nextDuration === '18000' ? nextDuration : 'custom',
     );
     setOvernightDate(inputDate(queryState.checkIn));
+    setOvernightStartTime(inputTime(queryState.checkIn).slice(0, 5));
+    setOvernightCheckOutDate(
+      inputDate(queryState.checkOut) || addDaysToDate(inputDate(queryState.checkIn), 1),
+    );
+    setOvernightEndTime(inputTime(queryState.checkOut).slice(0, 5));
     setOvernightWindow(
       overnightWindowFromTimes(
         inputTime(queryState.checkIn) || '21:00',
@@ -177,7 +192,9 @@ export function AvailabilitySearchForm({
     const submittedHourlyStart = String(form.get('hourlyStart') ?? '');
     const submittedHourlyEnd = String(form.get('hourlyEnd') ?? '');
     const submittedOvernightDate = String(form.get('overnightDate') ?? '');
-    const submittedOvernightWindow = String(form.get('overnightWindow') ?? '') as OvernightWindow;
+    const submittedOvernightStart = String(form.get('overnightStart') ?? '');
+    const submittedOvernightCheckOutDate = String(form.get('overnightCheckOutDate') ?? '');
+    const submittedOvernightEnd = String(form.get('overnightEnd') ?? '');
     const submittedAdults = Number(form.get('adults'));
     const submittedChildren = Number(form.get('children'));
     const submittedDuration = durationFromVisibleTimes(submittedHourlyStart, submittedHourlyEnd);
@@ -191,9 +208,16 @@ export function AvailabilitySearchForm({
         setError(translate(locale, 'search.hourlyCrossesMidnight'));
         return;
       }
-    } else if (!OVERNIGHT_WINDOWS[submittedOvernightWindow]) {
-      setError(translate(locale, 'search.invalidInterval'));
-      return;
+    } else {
+      if (
+        !submittedOvernightDate ||
+        !submittedOvernightCheckOutDate ||
+        !timeParts(submittedOvernightStart) ||
+        !timeParts(submittedOvernightEnd)
+      ) {
+        setError(translate(locale, 'search.invalidInterval'));
+        return;
+      }
     }
 
     type IntervalResult = { readonly checkIn: string; readonly checkOut: string } | undefined;
@@ -208,13 +232,13 @@ export function AvailabilitySearchForm({
                 durationSeconds: submittedDuration,
               })
             : undefined
-          : submittedOvernightDate
+          : submittedOvernightDate && submittedOvernightCheckOutDate
             ? {
                 checkIn: withOffset(
-                  `${submittedOvernightDate}T${OVERNIGHT_WINDOWS[submittedOvernightWindow].start}`,
+                  `${submittedOvernightDate}T${submittedOvernightStart.slice(0, 5)}`,
                 ),
                 checkOut: withOffset(
-                  `${addDaysToDate(submittedOvernightDate, 1)}T${OVERNIGHT_WINDOWS[submittedOvernightWindow].end}`,
+                  `${submittedOvernightCheckOutDate}T${submittedOvernightEnd.slice(0, 5)}`,
                 ),
               }
             : undefined;
@@ -283,6 +307,9 @@ export function AvailabilitySearchForm({
           <ToggleGroupItem
             aria-label={translate(locale, 'search.modeHourly')}
             data-testid="availability-mode-hourly"
+            onPressedChange={(pressed) => {
+              if (pressed) setBookingMode('hourly');
+            }}
             value="hourly"
           >
             {translate(locale, 'search.modeHourly')}
@@ -290,6 +317,9 @@ export function AvailabilitySearchForm({
           <ToggleGroupItem
             aria-label={translate(locale, 'search.modeOvernight')}
             data-testid="availability-mode-overnight"
+            onPressedChange={(pressed) => {
+              if (pressed) setBookingMode('overnight');
+            }}
             value="overnight"
           >
             {translate(locale, 'search.modeOvernight')}
@@ -376,18 +406,33 @@ export function AvailabilitySearchForm({
               >
                 <ToggleGroupItem
                   aria-label={translate(locale, 'search.quickThreeHours')}
+                  onPressedChange={(pressed) => {
+                    if (pressed) {
+                      setHourlyDuration('10800');
+                      setHourlyEnd(addSecondsToTime(hourlyStart, 10_800));
+                    }
+                  }}
                   value="10800"
                 >
                   {translate(locale, 'search.quickThreeHours')}
                 </ToggleGroupItem>
                 <ToggleGroupItem
                   aria-label={translate(locale, 'search.quickFiveHours')}
+                  onPressedChange={(pressed) => {
+                    if (pressed) {
+                      setHourlyDuration('18000');
+                      setHourlyEnd(addSecondsToTime(hourlyStart, 18_000));
+                    }
+                  }}
                   value="18000"
                 >
                   {translate(locale, 'search.quickFiveHours')}
                 </ToggleGroupItem>
                 <ToggleGroupItem
                   aria-label={translate(locale, 'search.customDuration')}
+                  onPressedChange={(pressed) => {
+                    if (pressed) setHourlyDuration('custom');
+                  }}
                   value="custom"
                 >
                   {translate(locale, 'search.customDuration')}
@@ -406,10 +451,63 @@ export function AvailabilitySearchForm({
                 id="overnight-date"
                 name="overnightDate"
                 disabled={!isHydrated}
-                onChange={(event) => setOvernightDate(event.target.value)}
+                onChange={(event) => {
+                  const nextDate = event.target.value;
+                  setOvernightDate(nextDate);
+                  if (nextDate && !overnightCheckOutDate) {
+                    setOvernightCheckOutDate(addDaysToDate(nextDate, 1));
+                  }
+                }}
                 required
                 type="date"
                 value={overnightDate}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="overnight-start">
+                {translate(locale, 'search.checkInTime')}
+              </FieldLabel>
+              <Input
+                data-testid="availability-overnight-start"
+                id="overnight-start"
+                name="overnightStart"
+                disabled={!isHydrated}
+                onChange={(event) => setOvernightStartTime(event.target.value)}
+                required
+                step={60}
+                type="time"
+                value={overnightStartTime}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="overnight-check-out-date">
+                {translate(locale, 'search.checkOutDate')}
+              </FieldLabel>
+              <Input
+                data-testid="availability-overnight-check-out-date"
+                id="overnight-check-out-date"
+                name="overnightCheckOutDate"
+                disabled={!isHydrated}
+                onChange={(event) => setOvernightCheckOutDate(event.target.value)}
+                required
+                type="date"
+                value={overnightCheckOutDate}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="overnight-end">
+                {translate(locale, 'search.checkOutTime')}
+              </FieldLabel>
+              <Input
+                data-testid="availability-overnight-end"
+                id="overnight-end"
+                name="overnightEnd"
+                disabled={!isHydrated}
+                onChange={(event) => setOvernightEndTime(event.target.value)}
+                required
+                step={60}
+                type="time"
+                value={overnightEndTime}
               />
             </Field>
             <Field>
@@ -418,18 +516,46 @@ export function AvailabilitySearchForm({
               <ToggleGroup
                 aria-label={translate(locale, 'search.overnightWindow')}
                 onValueChange={(value) => {
-                  if (value.length > 0) setOvernightWindow(value[0] as OvernightWindow);
+                  if (value.length === 0) return;
+                  const nextWindow = value[0] as OvernightWindow;
+                  const preset = OVERNIGHT_WINDOWS[nextWindow];
+                  setOvernightWindow(nextWindow);
+                  setOvernightStartTime(preset.start);
+                  setOvernightEndTime(preset.end);
+                  if (overnightDate) {
+                    setOvernightCheckOutDate(addDaysToDate(overnightDate, 1));
+                  }
                 }}
                 value={[overnightWindow]}
               >
                 <ToggleGroupItem
                   aria-label={translate(locale, 'search.overnightWindow2109')}
+                  onPressedChange={(pressed) => {
+                    if (pressed) {
+                      setOvernightWindow('21-09');
+                      setOvernightStartTime('21:00');
+                      setOvernightEndTime('09:00');
+                      if (overnightDate) {
+                        setOvernightCheckOutDate(addDaysToDate(overnightDate, 1));
+                      }
+                    }
+                  }}
                   value="21-09"
                 >
                   {translate(locale, 'search.overnightWindow2109')}
                 </ToggleGroupItem>
                 <ToggleGroupItem
                   aria-label={translate(locale, 'search.overnightWindow2210')}
+                  onPressedChange={(pressed) => {
+                    if (pressed) {
+                      setOvernightWindow('22-10');
+                      setOvernightStartTime('22:00');
+                      setOvernightEndTime('10:00');
+                      if (overnightDate) {
+                        setOvernightCheckOutDate(addDaysToDate(overnightDate, 1));
+                      }
+                    }
+                  }}
                   value="22-10"
                 >
                   {translate(locale, 'search.overnightWindow2210')}

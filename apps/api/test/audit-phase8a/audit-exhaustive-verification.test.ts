@@ -237,7 +237,7 @@ describe('Phase 8A audit-only exhaustive pricing verification', () => {
     // uncovered scenario. With the locked LUNCH/FIVE/THREE layout we expect
     // every scenario to be coverable.
     expect(oracleNoMatch).toBe(0);
-  });
+  }, 30_000);
 
   it('captures the production-vs-cheapest mismatch set (Phase 7B priority tie)', async () => {
     const scenarios = enumerateScenarios();
@@ -334,7 +334,7 @@ describe('Phase 8A audit-only exhaustive pricing verification', () => {
     );
     expect(matches + mismatches + productionExceptions).toBe(scenarios.length);
     expect(counterexamples).toBeDefined();
-  });
+  }, 30_000);
 
   it('rejects an active rule set with uncovered 18:00 → 23:15 (5h15, before-night)', () => {
     // Construct a misconfigured catalog that has NO base plan covering

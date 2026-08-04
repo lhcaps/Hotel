@@ -210,8 +210,9 @@ describe('availability inventory search', () => {
     });
   });
   it('returns no eligible room type for capacity beyond its public capacity', async () => {
-    await expect(service.search({ ...request, adults: 3, children: 1 })).resolves.toEqual({
-      items: [],
-    });
+    const result = await service.search({ ...request, adults: 3, children: 1 });
+    expect(result.items).toEqual([]);
+    expect(result.state).toBe('NO_EXACT_AVAILABILITY');
+    expect(result.policy?.minimumStayMinutes).toBe(60);
   });
 });

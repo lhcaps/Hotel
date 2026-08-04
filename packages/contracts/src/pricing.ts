@@ -35,34 +35,10 @@ const couponCodeSchema = z
 
 function validInterval(checkIn: string, checkOut: string): boolean {
   const durationSeconds = (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 1_000;
-  return Number.isInteger(durationSeconds) && durationSeconds >= 3_600 && durationSeconds <= 86_400;
+  return Number.isInteger(durationSeconds) && durationSeconds > 0 && durationSeconds <= 31 * 86_400;
 }
 
 const stayModeSchema = z.enum(['hourly', 'overnight']);
-
-function localTime(value: string): string {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    hourCycle: 'h23',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).formatToParts(new Date(value));
-  const lookup = Object.fromEntries(
-    parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]),
-  );
-  return `${lookup.hour ?? '00'}:${lookup.minute ?? '00'}:${lookup.second ?? '00'}`;
-}
-
-function isSupportedOvernightWindow(checkIn: string, checkOut: string): boolean {
-  const start = localTime(checkIn);
-  const end = localTime(checkOut);
-  const durationSeconds = (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 1_000;
-  return (
-    durationSeconds === 43_200 &&
-    ((start === '21:00:00' && end === '09:00:00') || (start === '22:00:00' && end === '10:00:00'))
-  );
-}
 
 const publicIntervalSchema = z
   .object({
@@ -74,20 +50,11 @@ const publicIntervalSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    const invalidOvernightWindow =
-      value.mode === 'overnight' && !isSupportedOvernightWindow(value.checkIn, value.checkOut);
-    if (!invalidOvernightWindow && !validInterval(value.checkIn, value.checkOut)) {
+    if (!validInterval(value.checkIn, value.checkOut)) {
       context.addIssue({
         code: 'custom',
         path: ['checkOut'],
-        message: 'Stay duration must be between 1 and 24 hours.',
-      });
-    }
-    if (invalidOvernightWindow) {
-      context.addIssue({
-        code: 'custom',
-        path: ['checkOut'],
-        message: 'Hệ thống hiện hỗ trợ đặt từng đêm. Vui lòng chọn một đêm.',
+        message: 'Stay duration must be greater than zero and no longer than 31 days.',
       });
     }
   });
@@ -106,7 +73,7 @@ export const pricingLineItemSchema = z
   .object({
     code: planCodeSchema,
     amountVnd: amountVndSchema,
-    units: z.number().int().min(1).max(24),
+    units: z.number().int().min(1).max(168),
   })
   .strict();
 
@@ -177,6 +144,24 @@ export const availabilityOfferSummarySchema = z
   })
   .strict();
 
+export const availabilityStateSchema = z.enum([
+  'AVAILABLE',
+  'NO_EXACT_AVAILABILITY',
+  'PRICING_CONFIGURATION_UNAVAILABLE',
+  'CATALOG_UNAVAILABLE',
+  'INVALID_INTERVAL',
+]);
+
+export const availabilityPolicySchema = z
+  .object({
+    minimumStayMinutes: z.number().int().min(1).max(44_640),
+    maximumStayMinutes: z.number().int().min(1).max(44_640),
+    minimumLeadTimeMinutes: z.number().int().min(0).max(44_640),
+    maximumAdvanceBookingDays: z.number().int().min(0).max(3_650),
+    defaultOvernightDurationMinutes: z.number().int().min(1).max(44_640),
+  })
+  .strict();
+
 export const availabilityRoomTypeSchema = z
   .object({
     roomTypeId: uuidSchema,
@@ -187,11 +172,20 @@ export const availabilityRoomTypeSchema = z
     amenities: z.array(z.string().trim().min(1).max(160)).max(12),
     availableRoomCount: z.number().int().min(0),
     offer: availabilityOfferSummarySchema.nullable(),
+    offers: z.array(availabilityOfferSummarySchema).max(24).optional(),
   })
   .strict();
 
 export const availabilitySearchResponseSchema = z
-  .object({ items: z.array(availabilityRoomTypeSchema) })
+  .object({
+    state: availabilityStateSchema.optional(),
+    policy: availabilityPolicySchema.optional(),
+    requestedInterval: z
+      .object({ checkIn: instantSchema, checkOut: instantSchema })
+      .strict()
+      .optional(),
+    items: z.array(availabilityRoomTypeSchema),
+  })
   .strict();
 
 const nearbyRoomTypeItemSchema = availabilityRoomTypeSchema.extend({
@@ -223,14 +217,7 @@ export const nearbyAvailabilityRequestSchema = z
       context.addIssue({
         code: 'custom',
         path: ['checkOut'],
-        message: 'Stay duration must be between 1 and 24 hours.',
-      });
-    }
-    if (value.mode === 'overnight' && !isSupportedOvernightWindow(value.checkIn, value.checkOut)) {
-      context.addIssue({
-        code: 'custom',
-        path: ['checkOut'],
-        message: 'Hệ thống hiện hỗ trợ đặt từng đêm. Vui lòng chọn một đêm.',
+        message: 'Stay duration must be greater than zero and no longer than 31 days.',
       });
     }
   });
@@ -239,8 +226,8 @@ export const nearbyAvailabilityResponseSchema = z
   .object({
     requestedCheckIn: instantSchema,
     requestedCheckOut: instantSchema,
-    durationMinutes: z.number().int().min(60).max(1_440),
-    durationSeconds: z.number().int().min(3_600).max(86_400).optional(),
+    durationMinutes: z.number().int().min(1).max(44_640),
+    durationSeconds: z.number().int().min(1).max(2_678_400).optional(),
     candidates: z.array(nearbyAvailabilityCandidateSchema).max(12),
   })
   .strict();
@@ -494,6 +481,8 @@ export const ratePlanCreateCommandSchema = z
 
 export type AvailabilitySearchRequest = z.infer<typeof availabilitySearchRequestSchema>;
 export type AvailabilitySearchResponse = z.infer<typeof availabilitySearchResponseSchema>;
+export type AvailabilityState = z.infer<typeof availabilityStateSchema>;
+export type AvailabilityPolicy = z.infer<typeof availabilityPolicySchema>;
 export type NearbyAvailabilityRequest = z.infer<typeof nearbyAvailabilityRequestSchema>;
 export type NearbyAvailabilityResponse = z.infer<typeof nearbyAvailabilityResponseSchema>;
 export type NearbyAvailabilityCandidate = z.infer<typeof nearbyAvailabilityCandidateSchema>;

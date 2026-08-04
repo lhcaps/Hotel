@@ -5,6 +5,7 @@ import type { PricingCatalog, PricingBreakdown } from './pricing-engine.js';
 import type { QuoteRepositoryPort } from './quote.service.js';
 import type { ProvisionalCouponEvaluation } from './coupon.repository.js';
 import { toCouponQuoteSummary } from './coupon.repository.js';
+import { isWithinPropertyStayPolicy, propertyStayPolicy } from './stay-policy.js';
 type Database = Pick<DatabaseClient, 'execute' | 'query' | 'insert'>;
 function databaseTimestamp(result: { readonly rows: readonly unknown[] }): Date {
   const value = (result.rows[0] as { now?: unknown } | undefined)?.now;
@@ -43,6 +44,9 @@ export class QuoteRepository implements QuoteRepositoryPort {
         })
       : undefined;
     if (!property || !roomType) return undefined;
+    if (!isWithinPropertyStayPolicy(input.checkIn, input.checkOut, propertyStayPolicy(property))) {
+      return undefined;
+    }
     const [tier, plans, prices, rooms, blocks] = await Promise.all([
       this.database.query.priceTiers.findFirst({
         where: (row, op) => op.eq(row.id, roomType.priceTierId),

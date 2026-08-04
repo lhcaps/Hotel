@@ -11,7 +11,7 @@ import { AvailabilitySearchForm } from './availability-search-form';
 import { AvailabilitySearchResults, type NearbyStatus } from './availability-search-results';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
-type ExactStatus = 'idle' | 'loading' | 'success' | 'empty' | 'error';
+type ExactStatus = 'idle' | 'loading' | 'success' | 'empty' | 'unavailable' | 'error';
 
 export function LandingAvailabilitySearch() {
   const [state, setState] = useState<BookingSearchState>();
@@ -40,7 +40,15 @@ export function LandingAvailabilitySearch() {
         children: nextState.children,
       });
       setExactResponse(nextResponse);
-      setExactStatus(nextResponse.items.length === 0 ? 'empty' : 'success');
+      setExactStatus(
+        nextResponse.state === 'PRICING_CONFIGURATION_UNAVAILABLE' ||
+          nextResponse.state === 'CATALOG_UNAVAILABLE' ||
+          nextResponse.state === 'INVALID_INTERVAL'
+          ? 'unavailable'
+          : nextResponse.items.length === 0
+            ? 'empty'
+            : 'success',
+      );
     } catch (cause) {
       setExactError(cause);
       setExactStatus('error');
@@ -79,8 +87,7 @@ export function LandingAvailabilitySearch() {
     if (exactStatus !== 'success' && exactStatus !== 'empty') return;
     const target = resultsRef.current?.querySelector<HTMLElement>('#availability-results-heading');
     if (target && 'scrollIntoView' in target) {
-      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+      target.scrollIntoView({ behavior: 'auto', block: 'start' });
     }
     target?.focus({ preventScroll: true });
   }, [exactStatus]);

@@ -26,9 +26,14 @@ type CheckoutStarted = Readonly<{
   payment: PaymentInitiationResponse;
 }>;
 
-const PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
+const PHONE_PATTERN = /^(?:\+[1-9]\d{7,14}|0(?:3|5|7|8|9)\d{8})$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NAME_PATTERN = /^.{1,160}$/;
+
+function normalizeBookingPhoneInput(value: string): string {
+  const trimmed = value.trim();
+  return /^0(?:3|5|7|8|9)\d{8}$/.test(trimmed) ? `+84${trimmed.slice(1)}` : trimmed;
+}
 
 type FieldErrors = {
   readonly fullName?: string;
@@ -150,7 +155,11 @@ export function QuoteContactForm({
     event.preventDefault();
     if (inFlight.current) return;
     setSubmitError(undefined);
-    const values = { fullName: fullName.trim(), email: email.trim(), phone: phone.trim() };
+    const values = {
+      fullName: fullName.trim(),
+      email: email.trim(),
+      phone: normalizeBookingPhoneInput(phone),
+    };
     const validation = validate(locale, values);
     setErrors(validation);
     if (Object.keys(validation).length > 0) return;
@@ -265,6 +274,7 @@ export function QuoteContactForm({
           </label>
           <input
             id={phoneId}
+            aria-label={translate(locale, 'hold.phoneAccessibleLabel')}
             aria-describedby={errors.phone !== undefined ? phoneErrorId : `${phoneId}-hint`}
             aria-invalid={errors.phone !== undefined}
             autoComplete="tel"

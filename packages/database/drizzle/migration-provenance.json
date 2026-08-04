@@ -169,6 +169,27 @@
       "sha256": "3994c28946d51325349c7e83ffcd3af7cb0cc565ba25fcaefefdd095f91ac70d",
       "phase": "authoritative physical inventory",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 24,
+      "fileName": "0024_nappy_rage.sql",
+      "sha256": "8d072da6268515d8c9b38bf04444395aeda405f2dffa0c73d3a0a93f453536e6",
+      "phase": "universal flexible booking intervals",
+      "previousIntroductionReference": null
+    },
+    {
+      "index": 25,
+      "fileName": "0025_chief_proemial_gods.sql",
+      "sha256": "30e1da42c02ba7a522deaf07db86c48f092cd6cf5038129e5ea5e51b02cf9f35",
+      "phase": "minimal admin RBAC and access management",
+      "previousIntroductionReference": null
+    },
+    {
+      "index": 26,
+      "fileName": "0026_outstanding_mimic.sql",
+      "sha256": "439f81ba8238f1bb69a668f6e83a367903a383f12be82e6ac3913f673ecc4632",
+      "phase": "Better Auth administrator account creation support",
+      "previousIntroductionReference": null
     }
   ]
 }

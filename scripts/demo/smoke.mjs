@@ -121,7 +121,7 @@ function futureIso() {
   // Each smoke run receives an independent future lunch slot. Reusing a
   // previously held interval makes a second smoke run test availability
   // contention rather than the public booking flow.
-  const target = new Date(Date.now() + (2 + Math.floor(Math.random() * 10_000)) * 24 * 60 * 60_000);
+  const target = new Date(Date.now() + (2 + Math.floor(Math.random() * 28)) * 24 * 60 * 60_000);
   const lunch = new Date(
     Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate() + 1, 11, 0, 0, 0),
   );

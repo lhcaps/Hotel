@@ -159,13 +159,20 @@ test.describe('public booking vertical flow', () => {
       pageErrors.push(error.message);
     });
     page.on('requestfailed', (request) => {
+      const errorText = request.failure()?.errorText;
+      const url = request.url();
       if (
-        request.failure()?.errorText === 'net::ERR_ABORTED' &&
-        request.url().includes('/_next/static/chunks/')
+        errorText === 'net::ERR_ABORTED' &&
+        (url.includes('/_next/static/chunks/') ||
+          url.includes('/api/v1/public/bookings/') ||
+          url.endsWith('/api/auth/get-session'))
       ) {
+        // Logout refreshes the guest shell while its detail/session fetches
+        // are still in flight. Those fetches are intentionally aborted by
+        // the navigation and are not failed backend requests.
         return;
       }
-      requestFailures.push(`${request.method()} ${request.url()} ${request.failure()?.errorText}`);
+      requestFailures.push(`${request.method()} ${url} ${errorText}`);
     });
     page.on('response', (response) => {
       if (response.status() >= 500) {

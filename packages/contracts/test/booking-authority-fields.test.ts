@@ -60,6 +60,13 @@ describe('Phase 5 contract authority-field rejection', () => {
       expect(() => createBookingHoldRequestSchema.parse(validHoldRequest)).not.toThrow();
     });
 
+    it('accepts a Vietnamese local phone and normalizes it to E.164', () => {
+      const parsed = createBookingHoldRequestSchema.parse({
+        contact: { ...validContact, phone: '0909000099' },
+      });
+      expect(parsed.contact.phone).toBe('+84909000099');
+    });
+
     for (const field of CLIENT_AUTHORITATIVE_FIELDS) {
       it(`rejects an injected top-level field "${field}"`, () => {
         const tampered = { ...validHoldRequest, [field]: 'attacker' };

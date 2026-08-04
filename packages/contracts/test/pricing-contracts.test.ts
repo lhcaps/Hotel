@@ -31,17 +31,25 @@ describe('pricing and availability contracts', () => {
       checkIn: '2026-07-22T11:07:17+07:00',
       checkOut: '2026-07-22T14:22:46+07:00',
     });
-    expect(() =>
+    expect(
       availabilitySearchRequestSchema.parse({
         ...interval,
         checkOut: '2026-07-23T12:00:00+07:00',
         adults: 1,
         children: 0,
       }),
+    ).toMatchObject({ checkOut: '2026-07-23T12:00:00+07:00' });
+    expect(() =>
+      availabilitySearchRequestSchema.parse({
+        ...interval,
+        checkOut: '2026-08-23T12:00:00+07:00',
+        adults: 1,
+        children: 0,
+      }),
     ).toThrow();
   });
 
-  it('allows only the two supported overnight windows when overnight mode is explicit', () => {
+  it('treats overnight as an editable convenience mode rather than a fixed window', () => {
     expect(
       availabilitySearchRequestSchema.parse({
         checkIn: '2026-07-22T21:00:00+07:00',
@@ -51,7 +59,7 @@ describe('pricing and availability contracts', () => {
         children: 0,
       }).mode,
     ).toBe('overnight');
-    expect(() =>
+    expect(
       availabilitySearchRequestSchema.parse({
         checkIn: '2026-07-22T20:59:00+07:00',
         checkOut: '2026-07-23T09:00:00+07:00',
@@ -59,8 +67,8 @@ describe('pricing and availability contracts', () => {
         adults: 1,
         children: 0,
       }),
-    ).toThrow('Hệ thống hiện hỗ trợ đặt từng đêm. Vui lòng chọn một đêm.');
-    expect(() =>
+    ).toMatchObject({ mode: 'overnight' });
+    expect(
       availabilitySearchRequestSchema.parse({
         checkIn: '2026-07-22T21:00:00+07:00',
         checkOut: '2026-07-24T09:00:00+07:00',
@@ -68,7 +76,7 @@ describe('pricing and availability contracts', () => {
         adults: 1,
         children: 0,
       }),
-    ).toThrow('Hệ thống hiện hỗ trợ đặt từng đêm. Vui lòng chọn một đêm.');
+    ).toMatchObject({ mode: 'overnight' });
   });
 
   it('accepts only server-authoritative quote inputs', () => {

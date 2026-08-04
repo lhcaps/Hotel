@@ -52,7 +52,14 @@ export const inventoryBlockType = pgEnum('inventory_block_type', ['BOOKING', 'MA
 export const inventoryBlockStatus = pgEnum('inventory_block_status', ['ACTIVE', 'RELEASED']);
 export const auditActorType = pgEnum('audit_actor_type', ['GUEST', 'CUSTOMER', 'ADMIN', 'SYSTEM']);
 export const outboxStatus = pgEnum('outbox_status', ['PENDING', 'PUBLISHED', 'FAILED']);
-export const userRole = pgEnum('user_role', ['ADMIN', 'CUSTOMER']);
+export const userRole = pgEnum('user_role', [
+  'ADMIN',
+  'SUPER_ADMIN',
+  'ROOM_STATUS_VIEWER',
+  'CUSTOMER',
+]);
+export const adminRole = pgEnum('admin_role', ['ADMIN', 'SUPER_ADMIN', 'ROOM_STATUS_VIEWER']);
+export const adminMembershipStatus = pgEnum('admin_membership_status', ['ACTIVE', 'REVOKED']);
 export const userStatus = pgEnum('user_status', ['ACTIVE', 'DISABLED']);
 export const couponStatus = pgEnum('coupon_status', ['ACTIVE', 'DISABLED']);
 export const couponDiscountType = pgEnum('coupon_discount_type', ['FIXED', 'PERCENTAGE']);
@@ -119,6 +126,9 @@ export const users = pgTable(
     image: text('image'),
     role: userRole('role').notNull().default('CUSTOMER'),
     status: userStatus('status').notNull().default('ACTIVE'),
+    banned: boolean('banned').notNull().default(false),
+    banReason: text('ban_reason'),
+    banExpires: timestamptz('ban_expires'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
     updatedAt: timestamptz('updated_at').notNull().defaultNow(),
   },
@@ -138,6 +148,7 @@ export const sessions = pgTable(
     updatedAt: timestamptz('updated_at').notNull().defaultNow(),
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
+    impersonatedBy: text('impersonated_by'),
     userId: uuid('user_id').notNull(),
   },
   (table) => [
@@ -178,6 +189,75 @@ export const accounts = pgTable(
   ],
 );
 
+export const adminDepartments = pgTable(
+  'admin_departments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    code: text('code').notNull(),
+    name: text('name').notNull(),
+    status: catalogStatus('status').notNull().default('ACTIVE'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('admin_departments_code_uq').on(sql`upper(${table.code})`),
+    check('admin_departments_code_nonempty_ck', sql`btrim(${table.code}) <> ''`),
+    check('admin_departments_name_nonempty_ck', sql`btrim(${table.name}) <> ''`),
+  ],
+);
+
+export const adminProfiles = pgTable(
+  'admin_profiles',
+  {
+    userId: uuid('user_id').primaryKey(),
+    jobTitle: text('job_title'),
+    phone: text('phone'),
+    notes: text('notes'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'admin_profiles_user_fk',
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+  ],
+);
+
+export const adminMemberships = pgTable(
+  'admin_memberships',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull(),
+    departmentId: uuid('department_id').notNull(),
+    role: adminRole('role').notNull(),
+    status: adminMembershipStatus('status').notNull().default('ACTIVE'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+    revokedAt: timestamptz('revoked_at'),
+  },
+  (table) => [
+    foreignKey({
+      name: 'admin_memberships_user_fk',
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'admin_memberships_department_fk',
+      columns: [table.departmentId],
+      foreignColumns: [adminDepartments.id],
+    }).onDelete('restrict'),
+    uniqueIndex('admin_memberships_user_department_uq').on(table.userId, table.departmentId),
+    index('admin_memberships_user_status_idx').on(table.userId, table.status),
+    check(
+      'admin_memberships_revoked_at_ck',
+      sql`(${table.status} = 'ACTIVE' AND ${table.revokedAt} IS NULL)
+          OR (${table.status} = 'REVOKED' AND ${table.revokedAt} IS NOT NULL)`,
+    ),
+  ],
+);
+
 export const verificationRecords = pgTable(
   'verification_records',
   {
@@ -200,6 +280,13 @@ export const properties = pgTable(
     code: text('code').notNull(),
     name: text('name').notNull(),
     timezone: text('timezone').notNull().default('Asia/Ho_Chi_Minh'),
+    minimumStayMinutes: integer('minimum_stay_minutes').notNull().default(60),
+    maximumStayMinutes: integer('maximum_stay_minutes').notNull().default(10_080),
+    minimumLeadTimeMinutes: integer('minimum_lead_time_minutes').notNull().default(0),
+    maximumAdvanceBookingDays: integer('maximum_advance_booking_days').notNull().default(365),
+    defaultOvernightDurationMinutes: integer('default_overnight_duration_minutes')
+      .notNull()
+      .default(720),
     status: catalogStatus('status').notNull().default('ACTIVE'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
     updatedAt: timestamptz('updated_at').notNull().defaultNow(),
@@ -208,6 +295,16 @@ export const properties = pgTable(
     uniqueIndex('properties_code_uq').on(table.code),
     check('properties_code_nonempty_ck', sql`btrim(${table.code}) <> ''`),
     check('properties_name_nonempty_ck', sql`btrim(${table.name}) <> ''`),
+    check(
+      'properties_stay_policy_ck',
+      sql`${table.minimumStayMinutes} >= 1
+        AND ${table.maximumStayMinutes} >= ${table.minimumStayMinutes}
+        AND ${table.maximumStayMinutes} <= 44640
+        AND ${table.minimumLeadTimeMinutes} >= 0
+        AND ${table.maximumAdvanceBookingDays} >= 0
+        AND ${table.defaultOvernightDurationMinutes} >= 1
+        AND ${table.defaultOvernightDurationMinutes} <= ${table.maximumStayMinutes}`,
+    ),
   ],
 );
 
@@ -634,15 +731,8 @@ export const quotes = pgTable(
     }).onDelete('restrict'),
     check(
       'quotes_duration_ck',
-      sql`${table.checkOut} >= ${table.checkIn} + interval '60 minutes'
-          AND ${table.checkOut} <= ${table.checkIn} + interval '24 hours'`,
-    ),
-    check(
-      'quotes_quarter_hour_ck',
-      sql`date_trunc('minute', ${table.checkIn}) = ${table.checkIn}
-          AND date_trunc('minute', ${table.checkOut}) = ${table.checkOut}
-          AND mod(extract(epoch FROM ${table.checkIn})::numeric, 900) = 0
-          AND mod(extract(epoch FROM ${table.checkOut})::numeric, 900) = 0`,
+      sql`${table.checkOut} > ${table.checkIn}
+          AND ${table.checkOut} <= ${table.checkIn} + interval '31 days'`,
     ),
     check('quotes_occupancy_ck', sql`${table.adults} >= 1 AND ${table.children} >= 0`),
     check('quotes_currency_vnd_ck', sql`${table.currency} = 'VND'`),
@@ -741,15 +831,8 @@ export const bookings = pgTable(
       .where(sql`${table.customerUserId} IS NOT NULL`),
     check(
       'bookings_duration_ck',
-      sql`${table.checkOut} >= ${table.checkIn} + interval '60 minutes'
-          AND ${table.checkOut} <= ${table.checkIn} + interval '24 hours'`,
-    ),
-    check(
-      'bookings_quarter_hour_ck',
-      sql`date_trunc('minute', ${table.checkIn}) = ${table.checkIn}
-          AND date_trunc('minute', ${table.checkOut}) = ${table.checkOut}
-          AND mod(extract(epoch FROM ${table.checkIn})::numeric, 900) = 0
-          AND mod(extract(epoch FROM ${table.checkOut})::numeric, 900) = 0`,
+      sql`${table.checkOut} > ${table.checkIn}
+          AND ${table.checkOut} <= ${table.checkIn} + interval '31 days'`,
     ),
     check('bookings_occupancy_ck', sql`${table.adults} >= 1 AND ${table.children} >= 0`),
     check('bookings_currency_vnd_ck', sql`${table.currency} = 'VND'`),
@@ -1741,6 +1824,9 @@ export const operationalReviews = pgTable(
 
 export const databaseSchema = {
   accounts,
+  adminDepartments,
+  adminMemberships,
+  adminProfiles,
   amenities,
   auditEvents,
   bookingContacts,

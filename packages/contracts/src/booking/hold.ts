@@ -2,12 +2,25 @@ import { z } from 'zod';
 
 const fullNameSchema = z.string().trim().min(1).max(160);
 const emailSchema = z.string().trim().email().max(254).toLowerCase();
+const VIETNAMESE_LOCAL_PHONE_PATTERN = /^0(?:3|5|7|8|9)\d{8}$/;
+const E164_PHONE_PATTERN = /^\+[1-9]\d{7,14}$/;
+
+export function normalizeBookingPhone(value: string): string {
+  const trimmed = value.trim();
+  return VIETNAMESE_LOCAL_PHONE_PATTERN.test(trimmed) ? `+84${trimmed.slice(1)}` : trimmed;
+}
+
 const phoneSchema = z
   .string()
   .trim()
   .min(8)
   .max(20)
-  .regex(/^\+[1-9]\d{7,14}$/, 'phone must be in E.164 format (e.g. +84901234567)');
+  .regex(
+    /^(?:\+[1-9]\d{7,14}|0(?:3|5|7|8|9)\d{8})$/,
+    'phone must be in +84 or Vietnamese local format (e.g. +84901234567 or 0901234567)',
+  )
+  .transform(normalizeBookingPhone)
+  .pipe(z.string().regex(E164_PHONE_PATTERN, 'phone must be in E.164 format (e.g. +84901234567)'));
 const instantSchema = z.string().datetime({ offset: true });
 const amountVndSchema = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 

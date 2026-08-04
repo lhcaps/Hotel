@@ -544,9 +544,9 @@ test.describe('Phase 2 customer browser vertical', () => {
     await expect(featured.locator('article')).not.toHaveCount(0);
 
     // 2. Fill the availability form on the landing page (overnight mode is
-    // the default in the form). Use a future date 24h+ from now so the
-    // bookable window stays well inside the simulator's reach.
-    const checkInDate = new Date(Date.now() + 7 * 24 * 60 * 60_000);
+    // the default in the form). Use a future date well inside the configured
+    // 365-day advance window and outside the other deterministic HOLD slots.
+    const checkInDate = new Date(Date.now() + 180 * 24 * 60 * 60_000);
     const checkOutDate = new Date(checkInDate.getTime() + 24 * 60 * 60_000);
     const checkInLocal = `${formatDateOnly(checkInDate)}T14:00`;
     const checkOutLocal = `${formatDateOnly(checkOutDate)}T12:00`;

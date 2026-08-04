@@ -92,18 +92,12 @@ function ensureValidDuration(checkIn: string, checkOut: string): number {
     throw new RecommendationInvalidIntervalError('Recommendation interval is invalid.');
   }
   const durationMs = end.getTime() - start.getTime();
-  if (durationMs <= 0 || durationMs % (15 * MINUTE) !== 0) {
+  if (durationMs <= 0 || durationMs > 31 * 24 * 60 * MINUTE) {
     throw new RecommendationInvalidIntervalError(
-      'Recommendation interval must use 15-minute increments.',
+      'Recommendation interval must be greater than zero and no longer than 31 days.',
     );
   }
-  const durationMinutes = durationMs / MINUTE;
-  if (durationMinutes < 60 || durationMinutes > 1440) {
-    throw new RecommendationInvalidIntervalError(
-      'Recommendation duration must be between 1 and 24 hours.',
-    );
-  }
-  return durationMinutes;
+  return Math.ceil(durationMs / MINUTE);
 }
 
 function shiftInstant(value: string, offsetMinutes: number): string {
@@ -261,22 +255,32 @@ export async function searchRecommendations(
   catalog: PricingCatalog,
   options: SearchRecommendationOptions,
 ): Promise<RecommendationResult> {
-  const exactPricingCandidates = evaluatePricingCandidates(
-    {
-      checkIn: input.checkIn,
-      checkOut: input.checkOut,
-      priceTierCode: input.priceTierCode,
-      timezone: input.timezone,
-    },
-    catalog,
-  );
+  ensureValidDuration(input.checkIn, input.checkOut);
+  let exactPricingCandidates: readonly PricingCandidate[];
+  try {
+    exactPricingCandidates = evaluatePricingCandidates(
+      {
+        checkIn: input.checkIn,
+        checkOut: input.checkOut,
+        priceTierCode: input.priceTierCode,
+        timezone: input.timezone,
+      },
+      catalog,
+    );
+  } catch (error) {
+    if (error instanceof InvalidPricingIntervalError) {
+      throw new RecommendationUnavailableError(
+        'Pricing is not configured for the requested interval.',
+      );
+    }
+    throw error;
+  }
   if (exactPricingCandidates.length === 0) {
     throw new RecommendationUnavailableError('No eligible base plan for the requested interval.');
   }
   const exactSelected = exactPricingCandidates.reduce((best, current) =>
     current.grossAmountVnd < best.grossAmountVnd ? current : best,
   );
-  ensureValidDuration(input.checkIn, input.checkOut);
   const offsetValues: number[] = [];
   for (
     let offset = -RECOMMENDATION_MAX_OFFSET_MINUTES;

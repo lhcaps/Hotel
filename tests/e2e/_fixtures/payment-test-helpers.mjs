@@ -14,6 +14,7 @@ const DEFAULT_SIMULATOR_BASE = 'http://127.0.0.1:3090';
 const MAILPIT_API = process.env.MAILPIT_API ?? 'http://127.0.0.1:8025';
 
 export const DELUXE_ROOM_TYPE = '10000000-0000-4000-8000-000000000201';
+let bookingIntervalCounter = 0;
 
 export async function fetchJson(url, init) {
   const response = await fetch(url, init);
@@ -116,7 +117,8 @@ export function futureLunchIso() {
   // Every payment test receives a distinct interval. A HOLD reserves one
   // physical room, so sharing an interval would turn sequential tests into
   // accidental availability conflicts before their short test hold expires.
-  const target = new Date(Date.now() + (2 + Math.floor(Math.random() * 10_000)) * 24 * 60 * 60_000);
+  const dayOffset = 2 + (bookingIntervalCounter++ % 40);
+  const target = new Date(Date.now() + dayOffset * 24 * 60 * 60_000);
   const lunch = new Date(
     Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate() + 1, 11, 0, 0, 0),
   );
@@ -134,18 +136,29 @@ export function futureLunchIso() {
 }
 
 export async function createQuote(apiBase = getApiBaseUrl()) {
-  const interval = futureLunchIso();
-  const response = await fetchJson(`${apiBase}/quotes`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ ...interval, roomTypeId: DELUXE_ROOM_TYPE }),
-  });
-  if (response.status !== 201 && response.status !== 200) {
-    throw new Error(
-      `quote failed: status=${response.status} body=${JSON.stringify(response.body)}`,
-    );
+  // A Playwright worker can load this module once per spec file, so a local
+  // counter alone cannot guarantee that another payment vertical has not
+  // already placed a HOLD on the same seeded room. Walk forward through the
+  // deterministic test window when the real availability authority rejects
+  // a candidate; the fixture never bypasses or fabricates availability.
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const interval = futureLunchIso();
+    const response = await fetchJson(`${apiBase}/quotes`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...interval, roomTypeId: DELUXE_ROOM_TYPE }),
+    });
+    if (response.status === 409 && response.body?.code === 'AVAILABILITY_UNAVAILABLE') {
+      continue;
+    }
+    if (response.status !== 201 && response.status !== 200) {
+      throw new Error(
+        `quote failed: status=${response.status} body=${JSON.stringify(response.body)}`,
+      );
+    }
+    return response.body;
   }
-  return response.body;
+  throw new Error('quote failed: no available deterministic interval remained');
 }
 
 export async function createBookingHold(apiBase = getApiBaseUrl()) {

@@ -26,7 +26,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from './ui/empty';
 import { Skeleton } from './ui/skeleton';
 import { useLocale } from './locale-provider';
 
-export type ExactStatus = 'error' | 'loading' | 'success' | 'empty';
+export type ExactStatus = 'error' | 'loading' | 'success' | 'empty' | 'unavailable';
 
 export type NearbyStatus = 'idle' | 'error' | 'loading' | 'success' | 'empty';
 
@@ -116,17 +116,22 @@ export function AvailabilitySearchResults({
   const [exactFetchError, setExactFetchError] = useState<unknown>();
   const isControlled = controlledState !== undefined;
   const items = (controlledExactResponse ?? exactResponse)?.items;
+  const responseState = (controlledExactResponse ?? exactResponse)?.state;
   const exactStatus: ExactStatus | undefined = isControlled
     ? controlledExactStatus
     : exactFetchError !== undefined
       ? 'error'
-      : items
-        ? items.length === 0
-          ? 'empty'
-          : 'success'
-        : state
-          ? 'loading'
-          : undefined;
+      : responseState === 'PRICING_CONFIGURATION_UNAVAILABLE' ||
+          responseState === 'CATALOG_UNAVAILABLE' ||
+          responseState === 'INVALID_INTERVAL'
+        ? 'unavailable'
+        : items
+          ? items.length === 0
+            ? 'empty'
+            : 'success'
+          : state
+            ? 'loading'
+            : undefined;
 
   useEffect(() => {
     if (isControlled || !state) return;
@@ -186,6 +191,34 @@ export function AvailabilitySearchResults({
     );
   }
 
+  if (exactStatus === 'unavailable') {
+    const unavailableState = (controlledExactResponse ?? exactResponse)?.state;
+    const pricingUnavailable = unavailableState === 'PRICING_CONFIGURATION_UNAVAILABLE';
+    return (
+      <Alert className="availability-results__error" variant="destructive">
+        <AlertTitle>
+          {pricingUnavailable
+            ? translate(locale, 'search.pricingUnavailableErrorTitle')
+            : unavailableState === 'INVALID_INTERVAL'
+              ? translate(locale, 'search.invalidIntervalErrorTitle')
+              : translate(locale, 'search.loadErrorTitle')}
+        </AlertTitle>
+        <AlertDescription>
+          {pricingUnavailable
+            ? translate(locale, 'search.pricingUnavailableErrorHelp')
+            : unavailableState === 'INVALID_INTERVAL'
+              ? translate(locale, 'search.invalidIntervalErrorHelp')
+              : translate(locale, 'search.loadErrorHelp')}
+        </AlertDescription>
+        {onRetry ? (
+          <Button onClick={onRetry} size="sm" type="button">
+            {translate(locale, 'search.retry')}
+          </Button>
+        ) : null}
+      </Alert>
+    );
+  }
+
   if (exactStatus === 'success' && items) {
     const totalAvailableRooms = items.reduce(
       (sum, item) => sum + (item.availableRoomCount > 0 ? item.availableRoomCount : 0),
@@ -219,7 +252,9 @@ export function AvailabilitySearchResults({
               amenities={room.amenities}
               availableRoomCount={room.availableRoomCount}
               maxOccupancy={room.maxOccupancy}
-              {...(room.offer !== undefined ? { offer: room.offer } : {})}
+              {...(room.offer !== undefined || room.offers !== undefined
+                ? { offer: room.offers?.[0] ?? room.offer }
+                : {})}
             />
           ))}
         </div>
@@ -464,7 +499,9 @@ function NearbyCandidateGroup({
             amenities={room.amenities}
             availableRoomCount={room.availableRoomCount}
             maxOccupancy={room.maxOccupancy}
-            {...(room.offer !== undefined ? { offer: room.offer } : {})}
+            {...(room.offer !== undefined || room.offers !== undefined
+              ? { offer: room.offers?.[0] ?? room.offer }
+              : {})}
           />
         ))}
       </div>
