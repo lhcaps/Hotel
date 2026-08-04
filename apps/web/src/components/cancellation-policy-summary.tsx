@@ -15,7 +15,7 @@ export interface CancellationPolicySummaryValue {
 }
 
 export interface CancellationPolicySummaryProps {
-  readonly policy: CancellationPolicySummaryValue | null;
+  readonly policy?: CancellationPolicySummaryValue | null;
   readonly className?: string;
 }
 
@@ -30,7 +30,7 @@ export function CancellationPolicySummary({ policy, className }: CancellationPol
       <h2 id="cancellation-policy-summary-heading">
         {translate(locale, 'account.cancellationPolicy')}
       </h2>
-      {policy === null ? (
+      {policy === null || policy === undefined ? (
         <p>{translate(locale, 'account.cancellationPolicyUnavailable')}</p>
       ) : (
         <div>

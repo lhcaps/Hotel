@@ -175,6 +175,7 @@ describe('Phase 5 contract authority-field rejection', () => {
         'adults',
         'amountVnd',
         'bookingCode',
+        'cancellationPolicy',
         'checkIn',
         'checkOut',
         'children',
