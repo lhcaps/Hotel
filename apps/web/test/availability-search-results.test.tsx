@@ -102,6 +102,36 @@ describe('AvailabilitySearchResults', () => {
     expect(screen.getByText('Pricing is not available for this interval')).toBeInTheDocument();
   });
 
+  it('shows the one-night message for a crafted invalid overnight response', () => {
+    render(
+      <LocaleProvider locale="en">
+        <AvailabilitySearchResults
+          exactResponse={{
+            state: 'INVALID_INTERVAL',
+            items: [],
+            requestedInterval: {
+              checkIn: '2027-01-10T21:00:00+07:00',
+              checkOut: '2027-01-12T09:00:00+07:00',
+            },
+          }}
+          exactStatus="unavailable"
+          state={{
+            checkIn: '2027-01-10T21:00:00+07:00',
+            checkOut: '2027-01-12T09:00:00+07:00',
+            adults: 2,
+            children: 0,
+            mode: 'overnight',
+          }}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText('One-night stays only')).toBeInTheDocument();
+    expect(
+      screen.getByText('This system currently supports one-night stays. Please choose one night.'),
+    ).toBeInTheDocument();
+  });
+
   it('falls back to the generic load-error message for unrecognized errors', () => {
     render(
       <LocaleProvider locale="en">

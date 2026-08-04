@@ -194,21 +194,26 @@ export function AvailabilitySearchResults({
   if (exactStatus === 'unavailable') {
     const unavailableState = (controlledExactResponse ?? exactResponse)?.state;
     const pricingUnavailable = unavailableState === 'PRICING_CONFIGURATION_UNAVAILABLE';
+    const invalidOvernight = state.mode === 'overnight' && unavailableState === 'INVALID_INTERVAL';
     return (
       <Alert className="availability-results__error" variant="destructive">
         <AlertTitle>
-          {pricingUnavailable
-            ? translate(locale, 'search.pricingUnavailableErrorTitle')
-            : unavailableState === 'INVALID_INTERVAL'
-              ? translate(locale, 'search.invalidIntervalErrorTitle')
-              : translate(locale, 'search.loadErrorTitle')}
+          {invalidOvernight
+            ? translate(locale, 'search.overnightOneNightTitle')
+            : pricingUnavailable
+              ? translate(locale, 'search.pricingUnavailableErrorTitle')
+              : unavailableState === 'INVALID_INTERVAL'
+                ? translate(locale, 'search.invalidIntervalErrorTitle')
+                : translate(locale, 'search.loadErrorTitle')}
         </AlertTitle>
         <AlertDescription>
-          {pricingUnavailable
-            ? translate(locale, 'search.pricingUnavailableErrorHelp')
-            : unavailableState === 'INVALID_INTERVAL'
-              ? translate(locale, 'search.invalidIntervalErrorHelp')
-              : translate(locale, 'search.loadErrorHelp')}
+          {invalidOvernight
+            ? translate(locale, 'search.overnightOneNightHelp')
+            : pricingUnavailable
+              ? translate(locale, 'search.pricingUnavailableErrorHelp')
+              : unavailableState === 'INVALID_INTERVAL'
+                ? translate(locale, 'search.invalidIntervalErrorHelp')
+                : translate(locale, 'search.loadErrorHelp')}
         </AlertDescription>
         {onRetry ? (
           <Button onClick={onRetry} size="sm" type="button">
