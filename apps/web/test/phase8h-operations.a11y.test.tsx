@@ -24,16 +24,23 @@ describe('Phase 8H operational accessibility', () => {
         {
           roomId: '10000000-0000-4000-8000-000000000101',
           roomNumber: '101',
+          roomConcept: 'Deluxe King',
           roomStatus: 'ACTIVE',
           housekeepingStatus: 'CLEAN',
           maintenanceState: 'NONE',
+          currentOccupancy: 'VACANT',
+          nextBookingWindow: null,
           bookings: [],
           freeWindows: [],
           activeHousekeepingTask: null,
         },
       ],
     });
-    const { container } = render(<RoomOperationsBoard />);
+    const { container } = render(
+      <LocaleProvider locale="en">
+        <RoomOperationsBoard />
+      </LocaleProvider>,
+    );
 
     await screen.findByText('Room 101');
     const result = await axe(container);

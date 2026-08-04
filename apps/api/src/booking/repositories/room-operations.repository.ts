@@ -9,6 +9,7 @@ import type {
 interface DbRow {
   room_id: string;
   room_number: string;
+  room_concept: string;
   room_status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
   housekeeping_status: 'CLEAN' | 'DIRTY' | 'CLEANING';
   maintenance_state: 'ACTIVE' | 'NONE';
@@ -25,7 +26,8 @@ export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
     query: AdminRoomOperationsQuery,
   ): Promise<readonly RoomOperationRow[]> {
     const result = await this.pool.query<DbRow>(
-      `SELECT r.id AS room_id, r.room_number, r.status AS room_status,
+      `SELECT r.id AS room_id, r.room_number, COALESCE(rt.name, rt.code, r.room_number) AS room_concept,
+              r.status AS room_status,
               r.housekeeping_status,
               CASE WHEN EXISTS (
                 SELECT 1 FROM maintenance_blocks mb
@@ -65,17 +67,19 @@ export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
                 'checkIn', b.check_in, 'checkOut', b.check_out
               ) ORDER BY b.check_in) FILTER (WHERE b.id IS NOT NULL), '[]'::jsonb) AS bookings
          FROM rooms r
+         JOIN room_types rt ON rt.id = r.room_type_id
          LEFT JOIN bookings b ON b.room_id = r.id AND b.property_id = r.property_id
           AND b.check_in < $3 AND b.check_out > $2
           AND b.status NOT IN ('CANCELLED', 'EXPIRED')
         WHERE r.property_id = $1
-        GROUP BY r.id
+        GROUP BY r.id, rt.name, rt.code
         ORDER BY r.room_number ASC`,
       [propertyId, new Date(query.from), new Date(query.to)],
     );
     return result.rows.map((row) => ({
       roomId: row.room_id,
       roomNumber: row.room_number,
+      roomConcept: row.room_concept,
       roomStatus: row.room_status,
       housekeepingStatus: row.housekeeping_status,
       maintenanceState: row.maintenance_state,

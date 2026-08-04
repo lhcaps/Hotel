@@ -218,6 +218,7 @@ export const GUEST_RATE_LIMIT_CONFIG = Symbol('GUEST_RATE_LIMIT_CONFIG');
   ],
   exports: [
     BookingDetailRepository,
+    BookingAccessPassService,
     GuestSessionService,
     AdminBookingLifecycleService,
     AdminBookingRepository,

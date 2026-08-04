@@ -10,8 +10,8 @@ test('ADMIN reads and refreshes the server-backed room operations board', async 
   await expect(page).toHaveURL(/\/admin$/);
 
   await page.goto('/admin/rooms');
-  await expect(page.getByRole('heading', { name: 'Room operations board' })).toBeVisible();
+  await expect(page.locator('#room-board-heading')).toBeVisible();
   await expect(page.locator('.room-board-list > li').first()).toBeVisible();
-  await page.getByRole('button', { name: 'Refresh board' }).click();
+  await page.locator('.room-operations-board button.primary-button').click();
   await expect(page.locator('.room-board-list > li').first()).toBeVisible();
 });

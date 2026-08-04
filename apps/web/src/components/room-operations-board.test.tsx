@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RoomOperationsBoard } from './room-operations-board';
+import { LocaleProvider } from './locale-provider';
 
 const { getRoomOperations } = vi.hoisted(() => ({ getRoomOperations: vi.fn() }));
 
@@ -17,9 +18,12 @@ describe('RoomOperationsBoard', () => {
         {
           roomId: '10000000-0000-4000-8000-000000000101',
           roomNumber: '101',
+          roomConcept: 'Deluxe King',
           roomStatus: 'ACTIVE',
           housekeepingStatus: 'DIRTY',
           maintenanceState: 'NONE',
+          currentOccupancy: 'VACANT',
+          nextBookingWindow: null,
           freeWindows: [],
           activeHousekeepingTask: null,
           bookings: [
@@ -34,10 +38,14 @@ describe('RoomOperationsBoard', () => {
       ],
     });
 
-    render(<RoomOperationsBoard />);
+    render(
+      <LocaleProvider locale="en">
+        <RoomOperationsBoard />
+      </LocaleProvider>,
+    );
 
     await screen.findByText('BK-101');
-    expect(screen.getByText(/Housekeeping: DIRTY/)).toBeTruthy();
+    expect(screen.getByText(/Housekeeping: Needs cleaning/)).toBeTruthy();
     expect(getRoomOperations).toHaveBeenCalledOnce();
   });
 });

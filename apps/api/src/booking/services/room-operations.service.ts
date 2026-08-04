@@ -26,6 +26,7 @@ export interface RoomOperationHousekeepingTask {
 export interface RoomOperationRow {
   roomId: string;
   roomNumber: string;
+  roomConcept: string;
   roomStatus: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
   housekeepingStatus: 'CLEAN' | 'DIRTY' | 'CLEANING';
   maintenanceState: 'ACTIVE' | 'NONE';
@@ -49,29 +50,50 @@ export class RoomOperationsService {
     const parsed = adminRoomOperationsQuerySchema.parse(query);
     const items = await this.repository.list(propertyId, parsed);
     return adminRoomOperationsResponseSchema.parse({
-      items: items.map(({ blockedIntervals, activeHousekeepingTask, ...room }) => ({
-        ...room,
-        bookings: room.bookings.map((booking) => ({
+      items: items.map(({ blockedIntervals, activeHousekeepingTask, ...room }) => {
+        const bookings = room.bookings.map((booking) => ({
           ...booking,
           checkIn: booking.checkIn.toISOString(),
           checkOut: booking.checkOut.toISOString(),
-        })),
-        freeWindows: computeFreeWindows(
-          new Date(parsed.from),
-          new Date(parsed.to),
-          blockedIntervals,
-        ).map((window) => ({
-          startsAt: window.startsAt.toISOString(),
-          endsAt: window.endsAt.toISOString(),
-        })),
-        activeHousekeepingTask:
-          activeHousekeepingTask === null
-            ? null
-            : {
-                ...activeHousekeepingTask,
-                dueAt: activeHousekeepingTask.dueAt.toISOString(),
-              },
-      })),
+        }));
+        const currentTime = now.getTime();
+        const currentOccupancy = room.bookings.some(
+          (booking) =>
+            booking.checkIn.getTime() <= currentTime && booking.checkOut.getTime() > currentTime,
+        )
+          ? 'OCCUPIED'
+          : 'VACANT';
+        const nextBooking = room.bookings.find(
+          (booking) => booking.checkIn.getTime() > currentTime,
+        );
+        return {
+          ...room,
+          currentOccupancy,
+          nextBookingWindow:
+            nextBooking === undefined
+              ? null
+              : {
+                  checkIn: nextBooking.checkIn.toISOString(),
+                  checkOut: nextBooking.checkOut.toISOString(),
+                },
+          bookings,
+          freeWindows: computeFreeWindows(
+            new Date(parsed.from),
+            new Date(parsed.to),
+            blockedIntervals,
+          ).map((window) => ({
+            startsAt: window.startsAt.toISOString(),
+            endsAt: window.endsAt.toISOString(),
+          })),
+          activeHousekeepingTask:
+            activeHousekeepingTask === null
+              ? null
+              : {
+                  ...activeHousekeepingTask,
+                  dueAt: activeHousekeepingTask.dueAt.toISOString(),
+                },
+        };
+      }),
       generatedAt: now.toISOString(),
     });
   }

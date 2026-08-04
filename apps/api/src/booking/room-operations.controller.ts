@@ -1,6 +1,10 @@
-import { Controller, Get, Inject, Query, UseGuards, Version } from '@nestjs/common';
-import type { AdminRoomOperationsResponse } from '@room/contracts';
+import { Controller, Get, Inject, Query, Req, UseGuards, Version } from '@nestjs/common';
+import {
+  adminRoomOperationsResponseSchema,
+  type AdminRoomOperationsResponse,
+} from '@room/contracts';
 
+import type { ActorContext } from '../auth/actor-context.js';
 import { AdminPermissionGuard } from '../auth/admin-permission.guard.js';
 import { RequirePermissions } from '../auth/permissions.decorator.js';
 import { PropertyContextService } from '../catalog/property-context.service.js';
@@ -17,8 +21,21 @@ export class RoomOperationsController {
   @Get()
   @Version('1')
   @RequirePermissions('catalog.room.read')
-  public async list(@Query() query: unknown): Promise<AdminRoomOperationsResponse> {
+  public async list(
+    @Req() request: { actor: ActorContext },
+    @Query() query: unknown,
+  ): Promise<AdminRoomOperationsResponse> {
     const property = await this.propertyContext.getCurrent();
-    return this.service.list(property.id, query, new Date());
+    const response = await this.service.list(property.id, query, new Date());
+    if (request.actor.role !== 'ROOM_STATUS_VIEWER') return response;
+    return adminRoomOperationsResponseSchema.parse({
+      ...response,
+      items: response.items.map((room) => ({
+        ...room,
+        bookings: [],
+        freeWindows: [],
+        activeHousekeepingTask: null,
+      })),
+    });
   }
 }

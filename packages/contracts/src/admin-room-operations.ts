@@ -45,13 +45,20 @@ export const adminRoomOperationHousekeepingTaskSchema = z
   })
   .strict();
 
+export const adminRoomOperationBookingWindowSchema = z
+  .object({ checkIn: instantSchema, checkOut: instantSchema })
+  .strict();
+
 export const adminRoomOperationRowSchema = z
   .object({
     roomId: z.uuid(),
     roomNumber: z.string().min(1).max(64),
+    roomConcept: z.string().min(1).max(200),
     roomStatus: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE']),
     housekeepingStatus: z.enum(['CLEAN', 'DIRTY', 'CLEANING']),
     maintenanceState: z.enum(['ACTIVE', 'NONE']),
+    currentOccupancy: z.enum(['OCCUPIED', 'VACANT']),
+    nextBookingWindow: adminRoomOperationBookingWindowSchema.nullable(),
     bookings: z.array(adminRoomOperationBookingSchema).readonly(),
     freeWindows: z.array(adminRoomOperationWindowSchema).readonly(),
     activeHousekeepingTask: adminRoomOperationHousekeepingTaskSchema.nullable(),

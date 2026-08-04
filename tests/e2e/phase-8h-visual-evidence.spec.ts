@@ -22,7 +22,7 @@ test('captures Phase 8H server-backed operations evidence', async ({ page }) => 
   await captureOnce(page, 'output/playwright/phase-8h-operational-report-desktop.png');
 
   await page.goto('/admin/rooms');
-  await expect(page.getByRole('heading', { name: 'Room operations board' })).toBeVisible();
+  await expect(page.locator('#room-board-heading')).toBeVisible();
   await captureOnce(page, 'output/playwright/phase-8h-room-operations-desktop.png');
 
   await page.setViewportSize({ width: 390, height: 844 });

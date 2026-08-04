@@ -42,6 +42,7 @@ describe('RoomOperationsService', () => {
         {
           roomId: '10000000-0000-4000-8000-000000000101',
           roomNumber: '101',
+          roomConcept: 'Deluxe King',
           roomStatus: 'ACTIVE',
           housekeepingStatus: 'DIRTY',
           maintenanceState: 'NONE',
@@ -67,7 +68,14 @@ describe('RoomOperationsService', () => {
       }),
     ).resolves.toMatchObject({
       items: [
-        { roomNumber: '101', housekeepingStatus: 'DIRTY', bookings: [{ bookingCode: 'BK-101' }] },
+        {
+          roomNumber: '101',
+          roomConcept: 'Deluxe King',
+          housekeepingStatus: 'DIRTY',
+          currentOccupancy: 'VACANT',
+          nextBookingWindow: null,
+          bookings: [{ bookingCode: 'BK-101' }],
+        },
       ],
     });
   });
