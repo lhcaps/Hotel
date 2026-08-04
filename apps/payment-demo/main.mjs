@@ -220,13 +220,13 @@ function json(response, status, body) {
   response.end(JSON.stringify(body));
 }
 
-function html(response, status, body, formActionOrigin = "'self'") {
+function html(response, status, body) {
   response.statusCode = status;
   response.setHeader('content-type', 'text/html; charset=utf-8');
   response.setHeader('cache-control', 'no-store');
   response.setHeader(
     'content-security-policy',
-    `default-src 'none'; img-src data:; style-src 'unsafe-inline'; form-action ${formActionOrigin}`,
+    `default-src 'none'; img-src data:; style-src 'unsafe-inline'; form-action *`,
   );
   response.end(body);
 }
@@ -671,7 +671,6 @@ export function createPaymentDemoServer(environment) {
             `${environment.publicOrigin}/momo-test/pay?orderId=${encodeURIComponent(order.orderId)}` +
             tokenSuffix,
         }),
-        environment.publicOrigin,
       );
       return;
     }
@@ -733,7 +732,6 @@ export function createPaymentDemoServer(environment) {
           confirmToken: token,
           checkoutUrl: `${environment.publicOrigin}${requestUrl.pathname}${requestUrl.search}`,
         }),
-        environment.publicOrigin,
       );
       return;
     }
