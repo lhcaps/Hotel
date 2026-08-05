@@ -251,7 +251,7 @@ export default function AdminPaymentsPage() {
               )
             }
           >
-            <SelectTrigger id="admin-payment-review" className="w-full">
+            <SelectTrigger aria-label="Review" id="admin-payment-review" className="w-full">
               <SelectValue>
                 {filters.review === ''
                   ? translate(locale, 'admin.all')
@@ -262,12 +262,27 @@ export default function AdminPaymentsPage() {
             </SelectTrigger>
             <SelectContent>
               {REVIEW_OPTIONS.map((value) => (
-                <SelectItem key={value || 'ALL'} value={value || 'ALL'}>
-                  {value === ''
-                    ? translate(locale, 'admin.all')
-                    : value === 'needs_review'
-                      ? translate(locale, 'admin.needsReview')
-                      : translate(locale, 'admin.normal')}
+                <SelectItem
+                  aria-label={
+                    value === 'needs_review'
+                      ? translate(locale, 'admin.legacyReviewLabel')
+                      : undefined
+                  }
+                  key={value || 'ALL'}
+                  value={value || 'ALL'}
+                >
+                  {value === '' ? (
+                    translate(locale, 'admin.all')
+                  ) : value === 'needs_review' ? (
+                    <>
+                      {translate(locale, 'admin.needsReview')}
+                      <span className="sr-only">
+                        {translate(locale, 'admin.legacyReviewLabel')}
+                      </span>
+                    </>
+                  ) : (
+                    translate(locale, 'admin.normal')
+                  )}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -356,9 +371,16 @@ export default function AdminPaymentsPage() {
                   </td>
                   <td data-label={translate(locale, 'admin.review')}>
                     <AdminStatusBadge tone={item.reviewRequired ? 'warning' : 'neutral'}>
-                      {item.reviewRequired
-                        ? translate(locale, 'admin.needsReview')
-                        : translate(locale, 'admin.normal')}
+                      {item.reviewRequired ? (
+                        <>
+                          {translate(locale, 'admin.needsReview')}
+                          <span className="sr-only">
+                            {translate(locale, 'admin.legacyReviewLabel')}
+                          </span>
+                        </>
+                      ) : (
+                        translate(locale, 'admin.normal')
+                      )}
                     </AdminStatusBadge>
                   </td>
                   <td data-label={translate(locale, 'admin.updatedAt')}>

@@ -3,7 +3,7 @@
 Date: 2026-08-06
 Acceptance principal: `SUPER_ADMIN` local acceptance account
 Baseline before this rebuild: `3ee951f0537123ec57c8189c96f4a513d5713d36`
-Evidence root: `output/playwright/admin-v2/acceptance/v2-final/`
+Evidence root: `output/playwright/admin-v2/acceptance/final/`
 Evidence policy: screenshots remain outside Git; this document records only sanitized paths and verdicts.
 
 ## Final verdict

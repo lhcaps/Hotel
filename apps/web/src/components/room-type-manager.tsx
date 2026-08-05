@@ -1,5 +1,5 @@
 'use client';
-import type { Amenity, PriceTier, RoomType } from '@room/contracts';
+import type { Amenity, PriceTier, Room, RoomType } from '@room/contracts';
 import { type FormEvent, useEffect, useState } from 'react';
 import { XIcon } from 'lucide-react';
 import { AdminApiError, adminApi, type CatalogPage } from '../lib/admin-api';
@@ -70,6 +70,7 @@ export function RoomTypeManager() {
   const [types, setTypes] = useState<CatalogPage<RoomType>>();
   const [tiers, setTiers] = useState<readonly PriceTier[]>([]);
   const [amenities, setAmenities] = useState<readonly Amenity[]>([]);
+  const [rooms, setRooms] = useState<readonly Pick<Room, 'roomTypeId' | 'status'>[]>([]);
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
   const [code, setCode] = useState('');
@@ -91,11 +92,13 @@ export function RoomTypeManager() {
       adminApi.listRoomTypes(),
       adminApi.listPriceTiers(),
       adminApi.listAmenities(),
+      adminApi.listRooms(),
     ])
-      .then(([roomTypes, priceTiers, amenityPage]) => {
+      .then(([roomTypes, priceTiers, amenityPage, roomPage]) => {
         setTypes(roomTypes);
         setTiers(priceTiers.items);
         setAmenities(amenityPage.items.filter((amenity) => amenity.status === 'ACTIVE'));
+        setRooms(roomPage.items);
         const firstTier = priceTiers.items[0]?.id ?? '';
         setPriceTierId(firstTier);
         setAmenityRoomTypeId(roomTypes.items[0]?.id ?? '');
@@ -491,9 +494,13 @@ export function RoomTypeManager() {
           <Table>
             <thead>
               <tr>
+                <th scope="col">{translate(locale, 'admin.thumbnail')}</th>
                 <th scope="col">{translate(locale, 'admin.code')}</th>
                 <th scope="col">{translate(locale, 'roomType.name')}</th>
+                <th scope="col">{translate(locale, 'roomType.priceTier')}</th>
+                <th scope="col">{translate(locale, 'admin.activeRooms')}</th>
                 <th scope="col">{translate(locale, 'roomType.capacity')}</th>
+                <th scope="col">{translate(locale, 'admin.publication')}</th>
                 <th scope="col">{translate(locale, 'admin.status')}</th>
                 <th scope="col">{translate(locale, 'admin.action')}</th>
               </tr>
@@ -502,12 +509,39 @@ export function RoomTypeManager() {
               {types.items.map((roomType) => {
                 return (
                   <tr key={roomType.id} data-testid={`room-type-row-${roomType.code}`}>
-                    <td>{roomType.code}</td>
-                    <td>{roomType.name}</td>
-                    <td>
+                    <td data-label={translate(locale, 'admin.thumbnail')}>
+                      <span
+                        className="admin-thumbnail-placeholder"
+                        aria-label={translate(locale, 'admin.thumbnail')}
+                      >
+                        —
+                      </span>
+                    </td>
+                    <td data-label={translate(locale, 'admin.code')}>{roomType.code}</td>
+                    <td data-label={translate(locale, 'roomType.name')}>
+                      <strong>{roomType.name}</strong>
+                    </td>
+                    <td data-label={translate(locale, 'roomType.priceTier')}>
+                      {tiers.find((tier) => tier.id === roomType.priceTierId)?.name ?? '—'}
+                    </td>
+                    <td data-label={translate(locale, 'admin.activeRooms')}>
+                      {
+                        rooms.filter(
+                          (room) => room.roomTypeId === roomType.id && room.status === 'ACTIVE',
+                        ).length
+                      }
+                    </td>
+                    <td data-label={translate(locale, 'roomType.capacity')}>
                       {roomType.maxAdults}/{roomType.maxChildren}/{roomType.maxOccupancy}
                     </td>
-                    <td>
+                    <td data-label={translate(locale, 'admin.publication')}>
+                      <AdminStatusBadge tone={roomType.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                        {roomType.status === 'ACTIVE'
+                          ? translate(locale, 'admin.published')
+                          : translate(locale, 'admin.archived')}
+                      </AdminStatusBadge>
+                    </td>
+                    <td data-label={translate(locale, 'admin.status')}>
                       <AdminStatusBadge tone={roomType.status === 'ACTIVE' ? 'success' : 'neutral'}>
                         {roomTypeStatusLabel(locale, roomType.status)}
                       </AdminStatusBadge>

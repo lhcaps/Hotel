@@ -182,7 +182,8 @@ export default function AdminBookingDetailPage() {
           <p>{translate(locale, 'admin.noReview')}</p>
         ) : (
           <p>
-            Review · {translateAdminStatus(locale, detail.operationalReview.status)} ·{' '}
+            {translate(locale, 'admin.review')} ·{' '}
+            {translateAdminStatus(locale, detail.operationalReview.status)} ·{' '}
             <Link href={`/admin/operational-reviews/${detail.operationalReview.reviewId}`}>
               {translate(locale, 'admin.openReview')}
             </Link>

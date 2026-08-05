@@ -113,7 +113,17 @@ export function AdminNavigation({
                     <SidebarMenuItem key={href}>
                       <SidebarMenuButton
                         isActive={current}
-                        render={<Link aria-current={current ? 'page' : undefined} href={href} />}
+                        render={
+                          <Link
+                            aria-current={current ? 'page' : undefined}
+                            aria-label={
+                              label === 'admin.reviews'
+                                ? translate(locale, 'admin.legacyReviewNavLabel')
+                                : undefined
+                            }
+                            href={href}
+                          />
+                        }
                       >
                         <Icon aria-hidden="true" />
                         {translate(locale, label)}

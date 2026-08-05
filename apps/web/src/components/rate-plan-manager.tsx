@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useMemo, useState } from 'react';
 import type {
   PriceTier,
@@ -6,100 +7,79 @@ import type {
   RatePlanCreateCommand,
   RatePlanSelectionRuleCommand,
 } from '@room/contracts';
+
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { formatVnd, translate, type Locale } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { Checkbox } from './ui/checkbox';
+import { Field, FieldLabel } from './ui/field';
+import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Table } from './ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import {
+  AdminDataTable,
   AdminEmptyState,
+  AdminFormSection,
   AdminFormSheet,
   AdminLoadingState,
   AdminPageHeader,
+  AdminRowActions,
   AdminStatusBadge,
 } from './admin/admin-ui';
 
-const QUARTER_HOUR_OPTIONS = (() => {
-  const options: string[] = [];
-  for (let hour = 0; hour <= 23; hour += 1) {
-    for (const minute of [0, 15, 30, 45]) {
-      const value = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-      options.push(value);
-    }
-  }
-  return options;
-})();
-
-const DURATION_OPTIONS = (() => {
-  const options: number[] = [];
-  for (let minutes = 60; minutes <= 1440; minutes += 15) {
-    options.push(minutes);
-  }
-  return options;
-})();
-
-const PRIORITY_OPTIONS = (() => {
-  const options: number[] = [];
-  for (let priority = 0; priority <= 1000; priority += 10) {
-    options.push(priority);
-  }
-  return options;
-})();
+const QUARTER_HOUR_OPTIONS = Array.from({ length: 96 }, (_, index) => {
+  const minutes = index * 15;
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+});
+const DURATION_OPTIONS = Array.from({ length: 93 }, (_, index) => 60 + index * 15);
+const PRIORITY_OPTIONS = Array.from({ length: 101 }, (_, index) => index * 10);
 
 function minutesToTime(minutes: number): string {
-  const hour = Math.floor(minutes / 60);
-  const minute = minutes % 60;
-  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
 function timeToMinutes(value: string): number | undefined {
   const match = /^(\d{2}):(\d{2})$/.exec(value);
   if (match === null) return undefined;
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  if (minute % 15 !== 0) return undefined;
-  return hour * 60 + minute;
+  return Number(match[1]) * 60 + Number(match[2]);
 }
 
 function formatDuration(locale: Locale, minutes: number): string {
-  const hour = Math.floor(minutes / 60);
-  const minute = minutes % 60;
-  return translate(locale, 'ratePlan.duration', { hours: hour, minutes: minute });
+  return translate(locale, 'ratePlan.duration', {
+    hours: Math.floor(minutes / 60),
+    minutes: minutes % 60,
+  });
 }
 
-function summarisePlan(locale: Locale, plan: RatePlan): string {
-  if (!plan.isBasePlan) {
-    return translate(locale, 'ratePlan.extraHourSummary');
-  }
-  const windowText =
-    plan.minCheckInMinuteInclusive === null || plan.maxCheckInMinuteExclusive === null
-      ? translate(locale, 'ratePlan.anyTime')
-      : translate(locale, 'ratePlan.checkInWindow', {
-          from: minutesToTime(plan.minCheckInMinuteInclusive),
-          to: minutesToTime(plan.maxCheckInMinuteExclusive),
-        });
-  const durationText = translate(locale, 'ratePlan.durationRange', {
-    min: formatDuration(locale, plan.minDurationMinutesInclusive ?? 60),
-    max: formatDuration(locale, plan.maxDurationMinutesInclusive ?? 1440),
-  });
-  const includedText = translate(locale, 'ratePlan.includedDuration', {
-    duration: formatDuration(locale, plan.includedDurationMinutes),
-  });
-  const extraText = translate(locale, 'ratePlan.extraHourSummary');
-  const priorityText = translate(locale, 'ratePlan.priorityValue', { priority: plan.priority });
-  return [windowText, durationText, includedText, extraText, priorityText].join(' ');
+function statusLabel(locale: Locale, status: RatePlan['status']): string {
+  return translate(locale, `ratePlan.status.${status}` as 'ratePlan.status.ACTIVE');
 }
 
-interface SelectionRuleDraft {
+const ratePlanNameKeys = {
+  DAY_COMBO: 'ratePlan.name.DAY_COMBO',
+  EARLY_BIRD_FLEX: 'ratePlan.name.EARLY_BIRD_FLEX',
+  EXTRA_HOUR: 'ratePlan.name.EXTRA_HOUR',
+  FIVE_HOUR_COMBO: 'ratePlan.name.FIVE_HOUR_COMBO',
+  LUNCH_COMBO: 'ratePlan.name.LUNCH_COMBO',
+  NIGHT_COMBO: 'ratePlan.name.NIGHT_COMBO',
+  THREE_HOUR_COMBO: 'ratePlan.name.THREE_HOUR_COMBO',
+} as const;
+
+function localizedPlanName(locale: Locale, plan: RatePlan): string {
+  const key = ratePlanNameKeys[plan.code as keyof typeof ratePlanNameKeys];
+  return key === undefined ? plan.name : translate(locale, key);
+}
+
+interface SelectionDraft {
   includedDurationMinutes: number;
   priority: number;
   minCheckInMinuteInclusive: string;
   maxCheckInMinuteExclusive: string;
   minDurationMinutesInclusive: number;
   maxDurationMinutesInclusive: number;
-  isDirty: boolean;
+  dirty: boolean;
 }
 
 interface CreateDraft {
@@ -126,7 +106,7 @@ const initialCreateDraft: CreateDraft = {
   maxDurationMinutesInclusive: 1440,
 };
 
-function draftFromPlan(plan: RatePlan): SelectionRuleDraft {
+function selectionDraftFromPlan(plan: RatePlan): SelectionDraft {
   return {
     includedDurationMinutes: plan.includedDurationMinutes,
     priority: plan.priority,
@@ -136,54 +116,30 @@ function draftFromPlan(plan: RatePlan): SelectionRuleDraft {
       plan.maxCheckInMinuteExclusive === null ? '' : minutesToTime(plan.maxCheckInMinuteExclusive),
     minDurationMinutesInclusive: plan.minDurationMinutesInclusive ?? 60,
     maxDurationMinutesInclusive: plan.maxDurationMinutesInclusive ?? 1440,
-    isDirty: false,
+    dirty: false,
   };
 }
 
-function draftsFromPlans(plans: readonly RatePlan[]): Record<string, SelectionRuleDraft> {
-  return Object.fromEntries(plans.map((plan) => [plan.id, draftFromPlan(plan)]));
-}
-
-function statusLabel(locale: Locale, status: RatePlan['status']): string {
-  switch (status) {
-    case 'DRAFT':
-      return translate(locale, 'ratePlan.status.DRAFT');
-    case 'ACTIVE':
-      return translate(locale, 'ratePlan.status.ACTIVE');
-    case 'INACTIVE':
-      return translate(locale, 'ratePlan.status.INACTIVE');
-  }
-}
-
-function draftToCommand(plan: RatePlan, draft: SelectionRuleDraft): RatePlanSelectionRuleCommand {
+function selectionCommand(plan: RatePlan, draft: SelectionDraft): RatePlanSelectionRuleCommand {
   const command: RatePlanSelectionRuleCommand = {};
-  if (draft.includedDurationMinutes !== plan.includedDurationMinutes) {
+  if (draft.includedDurationMinutes !== plan.includedDurationMinutes)
     command.includedDurationMinutes = draft.includedDurationMinutes;
-  }
-  if (draft.priority !== plan.priority) {
-    command.priority = draft.priority;
-  }
+  if (draft.priority !== plan.priority) command.priority = draft.priority;
   if (plan.isBasePlan) {
-    const nextMin =
+    const min =
       draft.minCheckInMinuteInclusive === ''
         ? null
-        : timeToMinutes(draft.minCheckInMinuteInclusive);
-    const nextMax =
+        : (timeToMinutes(draft.minCheckInMinuteInclusive) ?? null);
+    const max =
       draft.maxCheckInMinuteExclusive === ''
         ? null
-        : timeToMinutes(draft.maxCheckInMinuteExclusive);
-    if (nextMin !== plan.minCheckInMinuteInclusive) {
-      command.minCheckInMinuteInclusive = nextMin;
-    }
-    if (nextMax !== plan.maxCheckInMinuteExclusive) {
-      command.maxCheckInMinuteExclusive = nextMax;
-    }
-    if (draft.minDurationMinutesInclusive !== plan.minDurationMinutesInclusive) {
+        : (timeToMinutes(draft.maxCheckInMinuteExclusive) ?? null);
+    if (min !== plan.minCheckInMinuteInclusive) command.minCheckInMinuteInclusive = min;
+    if (max !== plan.maxCheckInMinuteExclusive) command.maxCheckInMinuteExclusive = max;
+    if (draft.minDurationMinutesInclusive !== plan.minDurationMinutesInclusive)
       command.minDurationMinutesInclusive = draft.minDurationMinutesInclusive;
-    }
-    if (draft.maxDurationMinutesInclusive !== plan.maxDurationMinutesInclusive) {
+    if (draft.maxDurationMinutesInclusive !== plan.maxDurationMinutesInclusive)
       command.maxDurationMinutesInclusive = draft.maxDurationMinutesInclusive;
-    }
   }
   return command;
 }
@@ -194,48 +150,52 @@ export function RatePlanManager() {
   const [priceTiers, setPriceTiers] = useState<readonly PriceTier[]>([]);
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
-  const [drafts, setDrafts] = useState<Record<string, SelectionRuleDraft>>({});
   const [creating, setCreating] = useState(false);
-  const [createDraft, setCreateDraft] = useState<CreateDraft>(initialCreateDraft);
   const [createOpen, setCreateOpen] = useState(false);
-  const [selectionEditId, setSelectionEditId] = useState<string>();
   const [priceEditId, setPriceEditId] = useState<string>();
-  const load = () =>
+  const [selectionEditId, setSelectionEditId] = useState<string>();
+  const [createDraft, setCreateDraft] = useState<CreateDraft>(initialCreateDraft);
+  const [selectionDrafts, setSelectionDrafts] = useState<Record<string, SelectionDraft>>({});
+
+  const load = () => {
     void Promise.all([adminApi.listRatePlans(), adminApi.listPriceTiers()])
-      .then(([result, tierPage]) => {
-        setPlans(result.items);
+      .then(([planPage, tierPage]) => {
+        setPlans(planPage.items);
         setPriceTiers(tierPage.items);
-        setDrafts(draftsFromPlans(result.items));
+        setSelectionDrafts(
+          Object.fromEntries(planPage.items.map((plan) => [plan.id, selectionDraftFromPlan(plan)])),
+        );
       })
-      .catch((error: unknown) =>
-        setMessage(
-          error instanceof AdminApiError
-            ? translate(locale, 'ratePlan.loadError')
-            : translate(locale, 'ratePlan.loadError'),
-        ),
-      );
+      .catch(() => setMessage(translate(locale, 'ratePlan.loadError')));
+  };
   useEffect(load, [locale]);
+
+  const sortedPlans = useMemo(
+    () =>
+      plans === undefined ? undefined : [...plans].sort((a, b) => a.code.localeCompare(b.code)),
+    [plans],
+  );
+  const priceTierById = useMemo(
+    () => new Map(priceTiers.map((tier) => [tier.id, tier] as const)),
+    [priceTiers],
+  );
 
   async function changeStatus(plan: RatePlan, activate: boolean) {
     setPending(true);
-    setMessage(undefined);
     try {
       const next = activate
         ? await adminApi.activateRatePlan(plan.id)
         : await adminApi.inactivateRatePlan(plan.id);
       setPlans((current) => current?.map((item) => (item.id === plan.id ? next : item)));
-    } catch (error) {
-      setMessage(
-        error instanceof AdminApiError
-          ? translate(locale, 'ratePlan.statusError')
-          : translate(locale, 'ratePlan.statusError'),
-      );
+    } catch {
+      setMessage(translate(locale, 'ratePlan.statusError'));
     } finally {
       setPending(false);
     }
   }
-  async function submitCreate() {
-    const code = createDraft.code.trim();
+
+  async function createPlan() {
+    const code = createDraft.code.trim().toUpperCase();
     if (!/^[A-Z0-9_]{1,64}$/.test(code)) {
       setMessage(translate(locale, 'ratePlan.invalidCode'));
       return;
@@ -266,25 +226,21 @@ export function RatePlanManager() {
         : null,
     };
     setCreating(true);
-    setMessage(undefined);
     try {
       await adminApi.createRatePlan(command);
       setCreateDraft(initialCreateDraft);
-      setMessage(translate(locale, 'ratePlan.created'));
       setCreateOpen(false);
+      setMessage(translate(locale, 'ratePlan.created'));
       load();
-    } catch (error) {
-      setMessage(
-        error instanceof AdminApiError
-          ? translate(locale, 'ratePlan.createError')
-          : translate(locale, 'ratePlan.createError'),
-      );
+    } catch {
+      setMessage(translate(locale, 'ratePlan.createError'));
     } finally {
       setCreating(false);
     }
   }
-  async function savePrice(planId: string, tierId: string, raw: string) {
-    const amountVnd = Number(raw);
+
+  async function savePrice(planId: string, tierId: string, rawAmount: string) {
+    const amountVnd = Number(rawAmount);
     if (!Number.isInteger(amountVnd) || amountVnd <= 0) {
       setMessage(translate(locale, 'ratePlan.invalidPrice'));
       return;
@@ -293,37 +249,26 @@ export function RatePlanManager() {
     try {
       await adminApi.updateRatePlanPrice(planId, tierId, amountVnd);
       load();
-    } catch (error) {
-      setMessage(
-        error instanceof AdminApiError
-          ? translate(locale, 'ratePlan.priceSaveError')
-          : translate(locale, 'ratePlan.priceSaveError'),
-      );
+    } catch {
+      setMessage(translate(locale, 'ratePlan.priceSaveError'));
     } finally {
       setPending(false);
     }
   }
-  function updateDraft(planId: string, patch: Partial<SelectionRuleDraft>) {
-    setDrafts((current) => {
-      const currentDraft = current[planId];
-      if (currentDraft === undefined) return current;
-      return { ...current, [planId]: { ...currentDraft, ...patch, isDirty: true } };
-    });
-  }
-  async function saveSelectionRule(plan: RatePlan): Promise<boolean> {
-    const draft = drafts[plan.id];
+
+  async function saveSelection(plan: RatePlan): Promise<boolean> {
+    const draft = selectionDrafts[plan.id];
     if (draft === undefined) return false;
-    const command = draftToCommand(plan, draft);
+    const command = selectionCommand(plan, draft);
     if (Object.keys(command).length === 0) {
       setMessage(translate(locale, 'ratePlan.noChanges'));
       return false;
     }
     setPending(true);
-    setMessage(undefined);
     try {
       const next = await adminApi.updateRatePlanSelectionRule(plan.id, command);
       setPlans((current) => current?.map((item) => (item.id === plan.id ? next : item)));
-      setDrafts((current) => ({ ...current, [plan.id]: draftFromPlan(next) }));
+      setSelectionDrafts((current) => ({ ...current, [plan.id]: selectionDraftFromPlan(next) }));
       setMessage(translate(locale, 'ratePlan.selectionSaved'));
       return true;
     } catch (error) {
@@ -337,15 +282,15 @@ export function RatePlanManager() {
       setPending(false);
     }
   }
-  const sortedPlans = useMemo(
-    () =>
-      plans === undefined ? undefined : [...plans].sort((a, b) => a.code.localeCompare(b.code)),
-    [plans],
-  );
-  const priceTierById = useMemo(
-    () => new Map(priceTiers.map((tier) => [tier.id, tier] as const)),
-    [priceTiers],
-  );
+
+  function patchSelection(id: string, patch: Partial<SelectionDraft>) {
+    setSelectionDrafts((current) =>
+      current[id] === undefined
+        ? current
+        : { ...current, [id]: { ...current[id], ...patch, dirty: true } },
+    );
+  }
+
   return (
     <section className="admin-page admin-page--rate-plans">
       <AdminPageHeader
@@ -364,312 +309,279 @@ export function RatePlanManager() {
         title={translate(locale, 'ratePlan.createLegend')}
         description={translate(locale, 'ratePlan.createHelp')}
       >
-        <fieldset className="admin-form-stack">
-          <legend>{translate(locale, 'ratePlan.createLegend')}</legend>
-          <p>{translate(locale, 'ratePlan.createHelp')}</p>
-          <label>
-            {translate(locale, 'ratePlan.code')}
-            <Input
-              aria-label={translate(locale, 'ratePlan.code')}
-              disabled={creating}
-              onChange={(event) =>
-                setCreateDraft((current) => ({ ...current, code: event.target.value }))
-              }
-              value={createDraft.code}
-            />
-          </label>{' '}
-          <label>
-            {translate(locale, 'ratePlan.name')}
-            <Input
-              aria-label={translate(locale, 'ratePlan.name')}
-              disabled={creating}
-              onChange={(event) =>
-                setCreateDraft((current) => ({ ...current, name: event.target.value }))
-              }
-              value={createDraft.name}
-            />
-          </label>{' '}
-          <label>
-            {translate(locale, 'ratePlan.basePlan')}
-            <Checkbox
-              aria-label={translate(locale, 'ratePlan.basePlan')}
-              checked={createDraft.isBasePlan}
-              disabled={creating}
-              onCheckedChange={(checked) =>
-                setCreateDraft((current) => ({ ...current, isBasePlan: checked === true }))
-              }
-            />
-          </label>{' '}
-          <label>
-            {translate(locale, 'ratePlan.includedDurationLabel')}
-            <Select
-              disabled={creating}
-              value={String(createDraft.includedDurationMinutes)}
-              onValueChange={(value) => {
-                if (value !== null)
-                  setCreateDraft((current) => ({
-                    ...current,
-                    includedDurationMinutes: Number(value),
-                  }));
-              }}
+        <Tabs defaultValue="overview" className="admin-form-tabs">
+          <TabsList>
+            <TabsTrigger value="overview">{translate(locale, 'ratePlan.overview')}</TabsTrigger>
+            <TabsTrigger value="rules">{translate(locale, 'ratePlan.selectionLegend')}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="overview">
+            <AdminFormSection
+              title={translate(locale, 'ratePlan.details')}
+              description={translate(locale, 'ratePlan.createHelp')}
             >
-              <SelectTrigger
-                className="w-full"
-                aria-label={translate(locale, 'ratePlan.includedDurationLabel')}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DURATION_OPTIONS.map((minutes) => (
-                  <SelectItem key={minutes} value={String(minutes)}>
-                    {formatDuration(locale, minutes)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>{' '}
-          <label>
-            {translate(locale, 'ratePlan.checkInStart')}
-            <Select
-              disabled={creating || !createDraft.isBasePlan}
-              value={createDraft.minCheckInMinuteInclusive || '__any__'}
-              onValueChange={(value) => {
-                if (value !== null)
-                  setCreateDraft((current) => ({
-                    ...current,
-                    minCheckInMinuteInclusive: value === '__any__' ? '' : value,
-                  }));
-              }}
-            >
-              <SelectTrigger
-                className="w-full"
-                aria-label={translate(locale, 'ratePlan.checkInStart')}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__any__">{translate(locale, 'ratePlan.anyTime')}</SelectItem>
-                {QUARTER_HOUR_OPTIONS.map((time) => (
-                  <SelectItem key={time} value={time}>
-                    {time}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>{' '}
-          <label>
-            {translate(locale, 'ratePlan.checkInEnd')}
-            <Select
-              disabled={creating || !createDraft.isBasePlan}
-              value={createDraft.maxCheckInMinuteExclusive || '__any__'}
-              onValueChange={(value) => {
-                if (value !== null)
-                  setCreateDraft((current) => ({
-                    ...current,
-                    maxCheckInMinuteExclusive: value === '__any__' ? '' : value,
-                  }));
-              }}
-            >
-              <SelectTrigger
-                className="w-full"
-                aria-label={translate(locale, 'ratePlan.checkInEnd')}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__any__">{translate(locale, 'ratePlan.anyTime')}</SelectItem>
-                {QUARTER_HOUR_OPTIONS.map((time) => (
-                  <SelectItem key={time} value={time}>
-                    {time}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>{' '}
-          <label>
-            {translate(locale, 'ratePlan.minimumDuration')}
-            <Select
-              disabled={creating || !createDraft.isBasePlan}
-              value={String(createDraft.minDurationMinutesInclusive)}
-              onValueChange={(value) => {
-                if (value !== null)
-                  setCreateDraft((current) => ({
-                    ...current,
-                    minDurationMinutesInclusive: Number(value),
-                  }));
-              }}
-            >
-              <SelectTrigger
-                className="w-full"
-                aria-label={translate(locale, 'ratePlan.minimumDuration')}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DURATION_OPTIONS.map((minutes) => (
-                  <SelectItem key={minutes} value={String(minutes)}>
-                    {formatDuration(locale, minutes)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>{' '}
-          <label>
-            {translate(locale, 'ratePlan.maximumDuration')}
-            <Select
-              disabled={creating || !createDraft.isBasePlan}
-              value={String(createDraft.maxDurationMinutesInclusive)}
-              onValueChange={(value) => {
-                if (value !== null)
-                  setCreateDraft((current) => ({
-                    ...current,
-                    maxDurationMinutesInclusive: Number(value),
-                  }));
-              }}
-            >
-              <SelectTrigger
-                className="w-full"
-                aria-label={translate(locale, 'ratePlan.maximumDuration')}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DURATION_OPTIONS.map((minutes) => (
-                  <SelectItem key={minutes} value={String(minutes)}>
-                    {formatDuration(locale, minutes)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>{' '}
-          <label>
-            {translate(locale, 'ratePlan.priority')}
-            <Select
-              disabled={creating}
-              value={String(createDraft.priority)}
-              onValueChange={(value) => {
-                if (value !== null)
-                  setCreateDraft((current) => ({ ...current, priority: Number(value) }));
-              }}
-            >
-              <SelectTrigger className="w-full" aria-label={translate(locale, 'ratePlan.priority')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRIORITY_OPTIONS.map((priority) => (
-                  <SelectItem key={priority} value={String(priority)}>
-                    {priority}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>{' '}
-          <Button disabled={creating} onClick={() => void submitCreate()} type="button">
-            {translate(locale, 'ratePlan.createDraft')}
-          </Button>
-        </fieldset>
+              <Field>
+                <FieldLabel htmlFor="rate-plan-code">
+                  {translate(locale, 'ratePlan.code')}
+                </FieldLabel>
+                <Input
+                  id="rate-plan-code"
+                  aria-label={translate(locale, 'ratePlan.code')}
+                  value={createDraft.code}
+                  disabled={creating}
+                  onChange={(event) =>
+                    setCreateDraft((current) => ({ ...current, code: event.target.value }))
+                  }
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="rate-plan-name">
+                  {translate(locale, 'ratePlan.name')}
+                </FieldLabel>
+                <Input
+                  id="rate-plan-name"
+                  aria-label={translate(locale, 'ratePlan.name')}
+                  value={createDraft.name}
+                  disabled={creating}
+                  onChange={(event) =>
+                    setCreateDraft((current) => ({ ...current, name: event.target.value }))
+                  }
+                />
+              </Field>
+              <Field>
+                <FieldLabel>{translate(locale, 'ratePlan.basePlan')}</FieldLabel>
+                <Checkbox
+                  aria-label={translate(locale, 'ratePlan.basePlan')}
+                  checked={createDraft.isBasePlan}
+                  onCheckedChange={(checked) =>
+                    setCreateDraft((current) => ({ ...current, isBasePlan: checked === true }))
+                  }
+                />
+              </Field>
+              <Field>
+                <FieldLabel>{translate(locale, 'ratePlan.includedDurationLabel')}</FieldLabel>
+                <DurationSelect
+                  ariaLabel={translate(locale, 'ratePlan.includedDurationLabel')}
+                  value={createDraft.includedDurationMinutes}
+                  onChange={(value) =>
+                    setCreateDraft((current) => ({ ...current, includedDurationMinutes: value }))
+                  }
+                  locale={locale}
+                />
+              </Field>
+              <Field>
+                <FieldLabel>{translate(locale, 'ratePlan.priority')}</FieldLabel>
+                <PrioritySelect
+                  ariaLabel={translate(locale, 'ratePlan.priority')}
+                  value={createDraft.priority}
+                  onChange={(value) =>
+                    setCreateDraft((current) => ({ ...current, priority: value }))
+                  }
+                />
+              </Field>
+            </AdminFormSection>
+          </TabsContent>
+          <TabsContent value="rules">
+            <AdminFormSection title={translate(locale, 'ratePlan.rulesHeading')}>
+              <TimeSelect
+                label={translate(locale, 'ratePlan.checkInStart')}
+                value={createDraft.minCheckInMinuteInclusive}
+                locale={locale}
+                disabled={!createDraft.isBasePlan}
+                onChange={(value) =>
+                  setCreateDraft((current) => ({ ...current, minCheckInMinuteInclusive: value }))
+                }
+              />
+              <TimeSelect
+                label={translate(locale, 'ratePlan.checkInEnd')}
+                value={createDraft.maxCheckInMinuteExclusive}
+                locale={locale}
+                disabled={!createDraft.isBasePlan}
+                onChange={(value) =>
+                  setCreateDraft((current) => ({ ...current, maxCheckInMinuteExclusive: value }))
+                }
+              />
+              <Field>
+                <FieldLabel>{translate(locale, 'ratePlan.minimumDuration')}</FieldLabel>
+                <DurationSelect
+                  value={createDraft.minDurationMinutesInclusive}
+                  disabled={!createDraft.isBasePlan}
+                  onChange={(value) =>
+                    setCreateDraft((current) => ({
+                      ...current,
+                      minDurationMinutesInclusive: value,
+                    }))
+                  }
+                  locale={locale}
+                />
+              </Field>
+              <Field>
+                <FieldLabel>{translate(locale, 'ratePlan.maximumDuration')}</FieldLabel>
+                <DurationSelect
+                  value={createDraft.maxDurationMinutesInclusive}
+                  disabled={!createDraft.isBasePlan}
+                  onChange={(value) =>
+                    setCreateDraft((current) => ({
+                      ...current,
+                      maxDurationMinutesInclusive: value,
+                    }))
+                  }
+                  locale={locale}
+                />
+              </Field>
+            </AdminFormSection>
+          </TabsContent>
+        </Tabs>
+        <Button disabled={creating} onClick={() => void createPlan()}>
+          {translate(locale, 'ratePlan.createDraft')}
+        </Button>
       </AdminFormSheet>
       {sortedPlans === undefined ? (
         <AdminLoadingState label={translate(locale, 'ratePlan.loading')} />
       ) : sortedPlans.length === 0 ? (
         <AdminEmptyState title={translate(locale, 'ratePlan.empty')} />
       ) : (
-        <div className="admin-rate-plan-list">
-          {sortedPlans.map((plan) => {
-            return (
-              <article
-                className="admin-rate-plan-row"
-                key={plan.id}
-                aria-labelledby={`rate-plan-${plan.id}`}
-              >
-                <h2 id={`rate-plan-${plan.id}`}>
-                  {plan.name}
-                  <span className="admin-muted">{plan.code}</span>
-                </h2>
-                <p>
-                  {translate(locale, 'admin.status')}:{' '}
-                  <AdminStatusBadge
-                    tone={
-                      plan.status === 'ACTIVE'
-                        ? 'success'
-                        : plan.status === 'DRAFT'
-                          ? 'warning'
-                          : 'neutral'
-                    }
+        <AdminDataTable className="admin-rate-plan-table">
+          <Table>
+            <thead>
+              <tr>
+                <th>{translate(locale, 'ratePlan.name')}</th>
+                <th>{translate(locale, 'ratePlan.code')}</th>
+                <th>{translate(locale, 'ratePlan.type')}</th>
+                <th>{translate(locale, 'ratePlan.timeWindow')}</th>
+                <th>{translate(locale, 'ratePlan.durationLabel')}</th>
+                <th>{translate(locale, 'admin.priceTiers')}</th>
+                <th>{translate(locale, 'admin.amount')}</th>
+                <th>{translate(locale, 'ratePlan.priority')}</th>
+                <th>{translate(locale, 'admin.status')}</th>
+                <th>{translate(locale, 'ratePlan.validation')}</th>
+                <th>{translate(locale, 'admin.action')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedPlans.map((plan) => {
+                const displayName = localizedPlanName(locale, plan);
+                const configured = plan.prices.filter((price) => price.amountVnd !== null).length;
+                const total = plan.prices.length;
+                return (
+                  <tr
+                    key={plan.id}
+                    role="article"
+                    aria-label={`${plan.code} ${plan.name} ${displayName}`}
                   >
-                    {statusLabel(locale, plan.status)}
-                  </AdminStatusBadge>
-                  {plan.isBasePlan ? null : ` — ${translate(locale, 'ratePlan.extraHourSummary')}`}
-                </p>
-                <p>{summarisePlan(locale, plan)}</p>
-                <ul>
-                  {plan.prices.map((price) => (
-                    <li key={price.priceTierId}>
-                      <label>
-                        {translate(locale, 'roomType.priceTier')}{' '}
-                        {priceTierById.get(price.priceTierId)?.name ??
-                          translate(locale, 'ratePlan.unknownPriceTier')}
-                        <Input
-                          key={`${plan.id}-${price.priceTierId}-${price.amountVnd ?? ''}`}
-                          aria-label={`${translate(locale, 'admin.amount')} ${plan.name} ${priceTierById.get(price.priceTierId)?.name ?? translate(locale, 'ratePlan.unknownPriceTier')}`}
-                          defaultValue={price.amountVnd ?? ''}
-                          disabled={pending || plan.status === 'INACTIVE'}
-                          inputMode="numeric"
-                          min="1"
-                          type="number"
-                        />
-                      </label>{' '}
-                      {price.amountVnd === null
+                    <td>
+                      <strong>{displayName}</strong>
+                    </td>
+                    <td>
+                      <span className="admin-code">{plan.code}</span>
+                    </td>
+                    <td>
+                      {translate(
+                        locale,
+                        plan.isBasePlan ? 'ratePlan.baseType' : 'ratePlan.extraHourType',
+                      )}
+                    </td>
+                    <td>
+                      {plan.isBasePlan &&
+                      plan.minCheckInMinuteInclusive !== null &&
+                      plan.maxCheckInMinuteExclusive !== null
+                        ? `${minutesToTime(plan.minCheckInMinuteInclusive)}–${minutesToTime(plan.maxCheckInMinuteExclusive)}`
+                        : translate(locale, 'ratePlan.anyTime')}
+                    </td>
+                    <td>{formatDuration(locale, plan.includedDurationMinutes)}</td>
+                    <td>{total}</td>
+                    <td>
+                      {configured === 0
                         ? translate(locale, 'ratePlan.unconfigured')
-                        : formatVnd(locale, price.amountVnd)}{' '}
-                      <Button
-                        disabled={pending || plan.status === 'INACTIVE'}
-                        onClick={(event) =>
-                          void savePrice(
-                            plan.id,
-                            price.priceTierId,
-                            (
-                              event.currentTarget.previousElementSibling?.querySelector(
-                                'input',
-                              ) as HTMLInputElement
-                            ).value,
-                          )
+                        : formatVnd(
+                            locale,
+                            Math.min(
+                              ...plan.prices
+                                .filter((price) => price.amountVnd !== null)
+                                .map((price) => price.amountVnd as number),
+                            ),
+                          )}
+                    </td>
+                    <td>{plan.priority}</td>
+                    <td>
+                      <AdminStatusBadge
+                        tone={
+                          plan.status === 'ACTIVE'
+                            ? 'success'
+                            : plan.status === 'DRAFT'
+                              ? 'warning'
+                              : 'neutral'
                         }
-                        type="button"
                       >
-                        {translate(locale, 'ratePlan.savePrice')}
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-                <div className="admin-rate-plan-actions">
-                  <Button onClick={() => setPriceEditId(plan.id)} size="sm" variant="outline">
-                    {translate(locale, 'ratePlan.savePrice')}
-                  </Button>
-                  {plan.isBasePlan ? (
-                    <Button onClick={() => setSelectionEditId(plan.id)} size="sm" variant="outline">
-                      {translate(locale, 'ratePlan.selectionLegend')}
-                    </Button>
-                  ) : null}
-                  <Button
-                    disabled={pending || plan.status === 'ACTIVE'}
-                    onClick={() => void changeStatus(plan, true)}
-                    type="button"
-                  >
-                    {translate(locale, 'ratePlan.activate')}
-                  </Button>{' '}
-                  <Button
-                    disabled={pending || plan.status === 'INACTIVE'}
-                    onClick={() => void changeStatus(plan, false)}
-                    type="button"
-                  >
-                    {translate(locale, 'ratePlan.deactivate')}
-                  </Button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+                        {statusLabel(locale, plan.status)}
+                      </AdminStatusBadge>
+                    </td>
+                    <td>
+                      <AdminStatusBadge
+                        tone={configured === total && total > 0 ? 'success' : 'warning'}
+                      >
+                        {translate(locale, 'ratePlan.pricesConfigured', { configured, total })}
+                      </AdminStatusBadge>
+                    </td>
+                    <td>
+                      <AdminRowActions
+                        actions={[
+                          {
+                            label: translate(locale, 'ratePlan.savePrice'),
+                            onSelect: () => setPriceEditId(plan.id),
+                          },
+                          ...(plan.isBasePlan
+                            ? [
+                                {
+                                  label: translate(locale, 'ratePlan.selectionLegend'),
+                                  onSelect: () => setSelectionEditId(plan.id),
+                                },
+                              ]
+                            : []),
+                          {
+                            label: translate(
+                              locale,
+                              plan.status === 'ACTIVE' ? 'admin.deactivate' : 'admin.activate',
+                            ),
+                            onSelect: () => void changeStatus(plan, plan.status !== 'ACTIVE'),
+                            disabled: pending,
+                          },
+                        ]}
+                      >
+                        <Button onClick={() => setPriceEditId(plan.id)} size="sm" variant="outline">
+                          {translate(locale, 'ratePlan.savePrice')}
+                        </Button>
+                        {plan.isBasePlan ? (
+                          <Button
+                            onClick={() => setSelectionEditId(plan.id)}
+                            size="sm"
+                            variant="outline"
+                          >
+                            {translate(locale, 'ratePlan.selectionLegend')}
+                          </Button>
+                        ) : null}
+                        <Button
+                          disabled={pending || plan.status === 'ACTIVE'}
+                          onClick={() => void changeStatus(plan, true)}
+                          size="sm"
+                        >
+                          {translate(locale, 'ratePlan.activate')}
+                        </Button>
+                        <Button
+                          disabled={pending || plan.status === 'INACTIVE'}
+                          onClick={() => void changeStatus(plan, false)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          {translate(locale, 'ratePlan.deactivate')}
+                        </Button>
+                      </AdminRowActions>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </AdminDataTable>
       )}
       {priceEditId !== undefined
         ? (() => {
@@ -678,58 +590,76 @@ export function RatePlanManager() {
             return (
               <AdminFormSheet
                 open
-                onOpenChange={(open) => {
-                  if (!open) setPriceEditId(undefined);
-                }}
+                onOpenChange={(open) => !open && setPriceEditId(undefined)}
                 title={translate(locale, 'ratePlan.savePrice')}
-                description={`${plan.name} · ${plan.code}`}
+                description={`${localizedPlanName(locale, plan)} · ${plan.code}`}
               >
-                <div className="admin-form-stack">
-                  <p className="admin-supporting-text">{summarisePlan(locale, plan)}</p>
-                  {plan.prices.map((price) => {
-                    const tierName =
-                      priceTierById.get(price.priceTierId)?.name ??
-                      translate(locale, 'ratePlan.unknownPriceTier');
-                    return (
-                      <div className="admin-price-editor" key={price.priceTierId}>
-                        <label>
-                          {tierName}
-                          <Input
-                            key={`${plan.id}-${price.priceTierId}-${price.amountVnd ?? ''}`}
-                            aria-label={`${translate(locale, 'admin.amount')} ${plan.name} ${tierName}`}
-                            defaultValue={price.amountVnd ?? ''}
-                            disabled={pending || plan.status === 'INACTIVE'}
-                            inputMode="numeric"
-                            min="1"
-                            type="number"
-                          />
-                        </label>
-                        <span className="admin-muted">
-                          {price.amountVnd === null
-                            ? translate(locale, 'ratePlan.unconfigured')
-                            : formatVnd(locale, price.amountVnd)}
-                        </span>
-                        <Button
-                          disabled={pending || plan.status === 'INACTIVE'}
-                          onClick={(event) =>
-                            void savePrice(
-                              plan.id,
-                              price.priceTierId,
-                              (
-                                event.currentTarget.previousElementSibling?.previousElementSibling?.querySelector(
-                                  'input',
-                                ) as HTMLInputElement
-                              ).value,
-                            )
-                          }
-                          type="button"
-                        >
-                          {translate(locale, 'ratePlan.savePrice')}
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
+                <Tabs defaultValue="price">
+                  <TabsList>
+                    <TabsTrigger value="price">
+                      {translate(locale, 'ratePlan.priceByTier')}
+                    </TabsTrigger>
+                    <TabsTrigger value="validation">
+                      {translate(locale, 'ratePlan.validation')}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="price">
+                    <AdminFormSection
+                      title={translate(locale, 'ratePlan.priceByTier')}
+                      description={translate(locale, 'ratePlan.priceDescription')}
+                    >
+                      {plan.prices.map((price) => {
+                        const tierName =
+                          priceTierById.get(price.priceTierId)?.name ??
+                          translate(locale, 'ratePlan.unknownPriceTier');
+                        return (
+                          <div className="admin-price-editor" key={price.priceTierId}>
+                            <Field>
+                              <FieldLabel>{tierName}</FieldLabel>
+                              <Input
+                                aria-label={`${translate(locale, 'admin.amount')} ${plan.name} ${tierName}`}
+                                defaultValue={price.amountVnd ?? ''}
+                                disabled={pending || plan.status === 'INACTIVE'}
+                                inputMode="numeric"
+                                min="1"
+                                type="number"
+                              />
+                            </Field>
+                            <span className="admin-muted">
+                              {price.amountVnd === null
+                                ? translate(locale, 'ratePlan.unconfigured')
+                                : formatVnd(locale, price.amountVnd)}
+                            </span>
+                            <Button
+                              disabled={pending || plan.status === 'INACTIVE'}
+                              onClick={(event) => {
+                                const input = event.currentTarget
+                                  .closest('.admin-price-editor')
+                                  ?.querySelector('input');
+                                if (input instanceof HTMLInputElement)
+                                  void savePrice(plan.id, price.priceTierId, input.value);
+                              }}
+                              type="button"
+                            >
+                              {translate(locale, 'ratePlan.savePrice')}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </AdminFormSection>
+                  </TabsContent>
+                  <TabsContent value="validation">
+                    <AdminFormSection title={translate(locale, 'ratePlan.validationHeading')}>
+                      <p>
+                        {plan.prices.filter((price) => price.amountVnd !== null).length ===
+                        plan.prices.length
+                          ? translate(locale, 'ratePlan.validationComplete')
+                          : translate(locale, 'ratePlan.validationIncomplete')}
+                      </p>
+                      <p className="admin-muted">{translate(locale, 'ratePlan.changeHistory')}</p>
+                    </AdminFormSection>
+                  </TabsContent>
+                </Tabs>
               </AdminFormSheet>
             );
           })()
@@ -737,175 +667,225 @@ export function RatePlanManager() {
       {selectionEditId !== undefined
         ? (() => {
             const plan = sortedPlans?.find((candidate) => candidate.id === selectionEditId);
-            if (plan === undefined || !plan.isBasePlan) return null;
-            const draft = drafts[plan.id] ?? draftFromPlan(plan);
+            const draft = plan === undefined ? undefined : selectionDrafts[plan.id];
+            if (plan === undefined || draft === undefined || !plan.isBasePlan) return null;
             return (
               <AdminFormSheet
                 open
-                onOpenChange={(open) => {
-                  if (!open) setSelectionEditId(undefined);
-                }}
+                onOpenChange={(open) => !open && setSelectionEditId(undefined)}
                 title={translate(locale, 'ratePlan.selectionLegend')}
-                description={plan.name}
+                description={localizedPlanName(locale, plan)}
                 footer={
                   <Button
-                    disabled={pending || !draft.isDirty}
+                    disabled={pending || !draft.dirty}
                     onClick={() =>
-                      void saveSelectionRule(plan).then((saved) => {
-                        if (saved) setSelectionEditId(undefined);
-                      })
+                      void saveSelection(plan).then(
+                        (saved) => saved && setSelectionEditId(undefined),
+                      )
                     }
                   >
                     {translate(locale, 'ratePlan.saveSelection')}
                   </Button>
                 }
               >
-                <div className="admin-form-stack">
-                  <label>
-                    {translate(locale, 'ratePlan.includedDurationLabel')}
-                    <Select
-                      value={String(draft.includedDurationMinutes)}
-                      onValueChange={(value) => {
-                        if (value !== null)
-                          updateDraft(plan.id, { includedDurationMinutes: Number(value) });
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DURATION_OPTIONS.map((minutes) => (
-                          <SelectItem key={minutes} value={String(minutes)}>
-                            {formatDuration(locale, minutes)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </label>
-                  <label>
-                    {translate(locale, 'ratePlan.checkInStart')}
-                    <Select
-                      value={draft.minCheckInMinuteInclusive || '__any__'}
-                      onValueChange={(value) => {
-                        if (value !== null)
-                          updateDraft(plan.id, {
-                            minCheckInMinuteInclusive: value === '__any__' ? '' : value,
-                          });
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__any__">
-                          {translate(locale, 'ratePlan.anyTime')}
-                        </SelectItem>
-                        {QUARTER_HOUR_OPTIONS.map((time) => (
-                          <SelectItem key={time} value={time}>
-                            {time}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </label>
-                  <label>
-                    {translate(locale, 'ratePlan.checkInEnd')}
-                    <Select
-                      value={draft.maxCheckInMinuteExclusive || '__any__'}
-                      onValueChange={(value) => {
-                        if (value !== null)
-                          updateDraft(plan.id, {
-                            maxCheckInMinuteExclusive: value === '__any__' ? '' : value,
-                          });
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__any__">
-                          {translate(locale, 'ratePlan.anyTime')}
-                        </SelectItem>
-                        {QUARTER_HOUR_OPTIONS.map((time) => (
-                          <SelectItem key={time} value={time}>
-                            {time}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </label>
-                  <label>
-                    {translate(locale, 'ratePlan.minimumDuration')}
-                    <Select
-                      value={String(draft.minDurationMinutesInclusive)}
-                      onValueChange={(value) => {
-                        if (value !== null)
-                          updateDraft(plan.id, { minDurationMinutesInclusive: Number(value) });
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DURATION_OPTIONS.map((minutes) => (
-                          <SelectItem key={minutes} value={String(minutes)}>
-                            {formatDuration(locale, minutes)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </label>
-                  <label>
-                    {translate(locale, 'ratePlan.maximumDuration')}
-                    <Select
-                      value={String(draft.maxDurationMinutesInclusive)}
-                      onValueChange={(value) => {
-                        if (value !== null)
-                          updateDraft(plan.id, { maxDurationMinutesInclusive: Number(value) });
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DURATION_OPTIONS.map((minutes) => (
-                          <SelectItem key={minutes} value={String(minutes)}>
-                            {formatDuration(locale, minutes)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </label>
-                  <label>
-                    {translate(locale, 'ratePlan.priority')}
-                    <Select
-                      value={String(draft.priority)}
-                      onValueChange={(value) => {
-                        if (value !== null) updateDraft(plan.id, { priority: Number(value) });
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRIORITY_OPTIONS.map((priority) => (
-                          <SelectItem key={priority} value={String(priority)}>
-                            {priority}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </label>
-                  {draft.isDirty ? (
-                    <span className="admin-muted" aria-live="polite">
-                      {translate(locale, 'ratePlan.unsavedChanges')}
-                    </span>
-                  ) : null}
-                </div>
+                <Tabs defaultValue="time">
+                  <TabsList>
+                    <TabsTrigger value="time">
+                      {translate(locale, 'ratePlan.timeWindow')}
+                    </TabsTrigger>
+                    <TabsTrigger value="duration">
+                      {translate(locale, 'ratePlan.durationLabel')}
+                    </TabsTrigger>
+                    <TabsTrigger value="priority">
+                      {translate(locale, 'ratePlan.priority')}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="time">
+                    <AdminFormSection title={translate(locale, 'ratePlan.checkInWindowHeading')}>
+                      <Field>
+                        <FieldLabel>
+                          {translate(locale, 'ratePlan.includedDurationLabel')}
+                        </FieldLabel>
+                        <DurationSelect
+                          value={draft.includedDurationMinutes}
+                          onChange={(value) =>
+                            patchSelection(plan.id, { includedDurationMinutes: value })
+                          }
+                          locale={locale}
+                        />
+                      </Field>
+                      <TimeSelect
+                        label={translate(locale, 'ratePlan.checkInStart')}
+                        value={draft.minCheckInMinuteInclusive}
+                        locale={locale}
+                        onChange={(value) =>
+                          patchSelection(plan.id, { minCheckInMinuteInclusive: value })
+                        }
+                      />
+                      <TimeSelect
+                        label={translate(locale, 'ratePlan.checkInEnd')}
+                        value={draft.maxCheckInMinuteExclusive}
+                        locale={locale}
+                        onChange={(value) =>
+                          patchSelection(plan.id, { maxCheckInMinuteExclusive: value })
+                        }
+                      />
+                      <Field>
+                        <FieldLabel>{translate(locale, 'ratePlan.priority')}</FieldLabel>
+                        <PrioritySelect
+                          value={draft.priority}
+                          onChange={(value) => patchSelection(plan.id, { priority: value })}
+                        />
+                      </Field>
+                    </AdminFormSection>
+                  </TabsContent>
+                  <TabsContent value="duration">
+                    <AdminFormSection title={translate(locale, 'ratePlan.durationLabel')}>
+                      <Field>
+                        <FieldLabel>
+                          {translate(locale, 'ratePlan.includedDurationLabel')}
+                        </FieldLabel>
+                        <DurationSelect
+                          value={draft.includedDurationMinutes}
+                          onChange={(value) =>
+                            patchSelection(plan.id, { includedDurationMinutes: value })
+                          }
+                          locale={locale}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel>{translate(locale, 'ratePlan.minimumDuration')}</FieldLabel>
+                        <DurationSelect
+                          value={draft.minDurationMinutesInclusive}
+                          onChange={(value) =>
+                            patchSelection(plan.id, { minDurationMinutesInclusive: value })
+                          }
+                          locale={locale}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel>{translate(locale, 'ratePlan.maximumDuration')}</FieldLabel>
+                        <DurationSelect
+                          value={draft.maxDurationMinutesInclusive}
+                          onChange={(value) =>
+                            patchSelection(plan.id, { maxDurationMinutesInclusive: value })
+                          }
+                          locale={locale}
+                        />
+                      </Field>
+                    </AdminFormSection>
+                  </TabsContent>
+                  <TabsContent value="priority">
+                    <AdminFormSection title={translate(locale, 'ratePlan.priority')}>
+                      <Field>
+                        <FieldLabel>{translate(locale, 'ratePlan.priority')}</FieldLabel>
+                        <PrioritySelect
+                          value={draft.priority}
+                          onChange={(value) => patchSelection(plan.id, { priority: value })}
+                        />
+                      </Field>
+                    </AdminFormSection>
+                  </TabsContent>
+                </Tabs>
               </AdminFormSheet>
             );
           })()
         : null}
     </section>
+  );
+}
+
+function DurationSelect({
+  value,
+  onChange,
+  disabled = false,
+  locale,
+  ariaLabel,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  disabled?: boolean;
+  locale: Locale;
+  ariaLabel?: string;
+}) {
+  return (
+    <Select
+      disabled={disabled}
+      value={String(value)}
+      onValueChange={(next) => next !== null && onChange(Number(next))}
+    >
+      <SelectTrigger className="w-full" aria-label={ariaLabel}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {DURATION_OPTIONS.map((minutes) => (
+          <SelectItem key={minutes} value={String(minutes)}>
+            {formatDuration(locale, minutes)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function PrioritySelect({
+  value,
+  onChange,
+  ariaLabel,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  ariaLabel?: string;
+}) {
+  return (
+    <Select value={String(value)} onValueChange={(next) => next !== null && onChange(Number(next))}>
+      <SelectTrigger className="w-full" aria-label={ariaLabel}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {PRIORITY_OPTIONS.map((priority) => (
+          <SelectItem key={priority} value={String(priority)}>
+            {priority}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function TimeSelect({
+  label,
+  value,
+  onChange,
+  locale,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  locale: Locale;
+  disabled?: boolean;
+}) {
+  return (
+    <Field>
+      <FieldLabel>{label}</FieldLabel>
+      <Select
+        disabled={disabled}
+        value={value || '__any__'}
+        onValueChange={(next) => next !== null && onChange(next === '__any__' ? '' : next)}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__any__">{translate(locale, 'ratePlan.anyTime')}</SelectItem>
+          {QUARTER_HOUR_OPTIONS.map((time) => (
+            <SelectItem key={time} value={time}>
+              {time}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Field>
   );
 }

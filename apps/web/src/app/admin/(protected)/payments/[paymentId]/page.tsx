@@ -367,6 +367,7 @@ export default function AdminPaymentDetailPage({
             ·{' '}
             <Link href={`/admin/operational-reviews/${detail.operationalReview.reviewId}`}>
               {translate(locale, 'admin.openReview')}
+              <span className="sr-only">{translate(locale, 'admin.legacyOpenReviewLabel')}</span>
             </Link>
           </p>
         )}

@@ -3,9 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import type { Room, RoomType } from '@room/contracts';
+import type { PriceTier, Room, RoomType } from '@room/contracts';
 
-import { AdminApiError, adminApi } from '../../../../lib/admin-api';
+import {
+  AdminApiError,
+  adminApi,
+  type AdminRoomOperationsResponse,
+} from '../../../../lib/admin-api';
 import { localizedCatalogSafetyReason } from '../../../../lib/catalog-safety';
 import { formatDateTime, translate, translateAdminStatus } from '../../../../lib/i18n/messages';
 import { useLocale } from '../../../../components/locale-provider';
@@ -51,6 +55,8 @@ export default function Rooms() {
   const locale = useLocale();
   const [rooms, setRooms] = useState<readonly Room[]>();
   const [types, setTypes] = useState<readonly RoomType[]>([]);
+  const [tiers, setTiers] = useState<readonly PriceTier[]>([]);
+  const [operations, setOperations] = useState<AdminRoomOperationsResponse['items']>([]);
   const [drafts, setDrafts] = useState<Record<string, RoomDraft>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [archiveErrors, setArchiveErrors] = useState<Record<string, string>>({});
@@ -61,14 +67,35 @@ export default function Rooms() {
   const [editRoomId, setEditRoomId] = useState<string>();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<Room['status'] | 'ALL'>('ALL');
+  const [conceptFilter, setConceptFilter] = useState('ALL');
+  const [tierFilter, setTierFilter] = useState('ALL');
+  const [housekeepingFilter, setHousekeepingFilter] = useState<'ALL' | Room['housekeepingStatus']>(
+    'ALL',
+  );
+  const [maintenanceFilter, setMaintenanceFilter] = useState<'ALL' | 'ACTIVE' | 'NONE'>('ALL');
 
   useEffect(() => {
     let active = true;
-    void Promise.all([adminApi.listRooms(), adminApi.listRoomTypes()])
-      .then(([roomPage, typePage]) => {
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+    const to = new Date(from);
+    to.setDate(to.getDate() + 7);
+    void Promise.all([
+      adminApi.listRooms(),
+      adminApi.listRoomTypes(),
+      adminApi.listPriceTiers(),
+      adminApi.getRoomOperations({
+        from: from.toISOString(),
+        to: to.toISOString(),
+        includeInactive: true,
+      }),
+    ])
+      .then(([roomPage, typePage, tierPage, operationPage]) => {
         if (!active) return;
         setRooms(roomPage.items);
         setTypes(typePage.items);
+        setTiers(tierPage.items);
+        setOperations(operationPage.items);
         setDrafts(
           Object.fromEntries(
             roomPage.items.map((room) => [
@@ -137,16 +164,36 @@ export default function Rooms() {
     }
   }
 
+  const operationsById = new Map(
+    operations.map((operation) => [operation.roomId, operation] as const),
+  );
+  const typeById = new Map(types.map((type) => [type.id, type] as const));
+  const tierById = new Map(tiers.map((tier) => [tier.id, tier] as const));
   const visibleRooms = (rooms ?? []).filter((room) => {
     const normalizedQuery = query.trim().toLocaleLowerCase(locale);
+    const operation = operationsById.get(room.id);
+    const roomType = typeById.get(room.roomTypeId);
     const matchesQuery =
       normalizedQuery === '' ||
       [room.roomNumber, room.physicalRoomCode]
         .join(' ')
         .toLocaleLowerCase(locale)
         .includes(normalizedQuery);
-    return matchesQuery && (statusFilter === 'ALL' || room.status === statusFilter);
+    return (
+      matchesQuery &&
+      (statusFilter === 'ALL' || room.status === statusFilter) &&
+      (conceptFilter === 'ALL' || roomType?.id === conceptFilter) &&
+      (tierFilter === 'ALL' || roomType?.priceTierId === tierFilter) &&
+      (housekeepingFilter === 'ALL' || room.housekeepingStatus === housekeepingFilter) &&
+      (maintenanceFilter === 'ALL' || operation?.maintenanceState === maintenanceFilter)
+    );
   });
+  const activeCount =
+    operations.filter((operation) => operation.roomStatus === 'ACTIVE').length ||
+    (rooms ?? []).filter((room) => room.status === 'ACTIVE').length;
+  const archivedCount = operations.filter(
+    (operation) => operation.roomStatus === 'INACTIVE',
+  ).length;
 
   return (
     <div className="admin-page">
@@ -202,8 +249,94 @@ export default function Rooms() {
           </Select>
         </Field>
         <div className="admin-filter-toolbar__summary">
-          {translate(locale, 'admin.activeRoomsSummary', { count: visibleRooms.length })}
+          {translate(locale, 'admin.activeRoomsSummary', { count: activeCount })} · {archivedCount}{' '}
+          {translate(locale, 'admin.archived')}
         </div>
+        <Field>
+          <FieldLabel htmlFor="admin-room-concept-filter">
+            {translate(locale, 'admin.roomType')}
+          </FieldLabel>
+          <Select
+            value={conceptFilter}
+            onValueChange={(value) => value !== null && setConceptFilter(value)}
+          >
+            <SelectTrigger id="admin-room-concept-filter" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
+              {types.map((type) => (
+                <SelectItem key={type.id} value={type.id}>
+                  {type.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-room-tier-filter">
+            {translate(locale, 'roomType.priceTier')}
+          </FieldLabel>
+          <Select
+            value={tierFilter}
+            onValueChange={(value) => value !== null && setTierFilter(value)}
+          >
+            <SelectTrigger id="admin-room-tier-filter" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
+              {tiers.map((tier) => (
+                <SelectItem key={tier.id} value={tier.id}>
+                  {tier.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-room-housekeeping-filter">
+            {translate(locale, 'admin.housekeeping')}
+          </FieldLabel>
+          <Select
+            value={housekeepingFilter}
+            onValueChange={(value) =>
+              value !== null && setHousekeepingFilter(value as typeof housekeepingFilter)
+            }
+          >
+            <SelectTrigger id="admin-room-housekeeping-filter" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
+              <SelectItem value="CLEAN">{translate(locale, 'admin.housekeepingClean')}</SelectItem>
+              <SelectItem value="DIRTY">{translate(locale, 'admin.housekeepingDirty')}</SelectItem>
+              <SelectItem value="CLEANING">
+                {translate(locale, 'admin.housekeepingCleaning')}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-room-maintenance-filter">
+            {translate(locale, 'admin.maintenance')}
+          </FieldLabel>
+          <Select
+            value={maintenanceFilter}
+            onValueChange={(value) =>
+              value !== null && setMaintenanceFilter(value as typeof maintenanceFilter)
+            }
+          >
+            <SelectTrigger id="admin-room-maintenance-filter" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
+              <SelectItem value="ACTIVE">{translate(locale, 'admin.maintenanceActive')}</SelectItem>
+              <SelectItem value="NONE">{translate(locale, 'admin.maintenanceNone')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
       </AdminFilterToolbar>
       {editRoomId !== undefined
         ? (() => {
@@ -301,14 +434,22 @@ export default function Rooms() {
                 <th scope="col">{translate(locale, 'room.number')}</th>
                 <th scope="col">{translate(locale, 'admin.code')}</th>
                 <th scope="col">{translate(locale, 'admin.roomType')}</th>
+                <th scope="col">{translate(locale, 'admin.floor', { floor: '#' })}</th>
+                <th scope="col">{translate(locale, 'roomType.priceTier')}</th>
                 <th scope="col">{translate(locale, 'admin.status')}</th>
                 <th scope="col">{translate(locale, 'admin.housekeeping')}</th>
+                <th scope="col">{translate(locale, 'admin.maintenance')}</th>
+                <th scope="col">{translate(locale, 'admin.nextBookingWindow')}</th>
                 <th scope="col">{translate(locale, 'admin.updatedAt')}</th>
                 <th scope="col">{translate(locale, 'admin.action')}</th>
               </tr>
             </thead>
             <tbody>
               {visibleRooms.map((room) => {
+                const operation = operationsById.get(room.id);
+                const roomType = typeById.get(room.roomTypeId);
+                const tier =
+                  roomType === undefined ? undefined : tierById.get(roomType.priceTierId);
                 return (
                   <tr key={room.id}>
                     <td data-label={translate(locale, 'room.number')}>
@@ -318,12 +459,41 @@ export default function Rooms() {
                       <span className="admin-muted">{room.physicalRoomCode}</span>
                     </td>
                     <td data-label={translate(locale, 'admin.roomType')}>
-                      {types.find((type) => type.id === room.roomTypeId)?.name ?? room.roomTypeId}
+                      {operation?.roomConcept ?? roomType?.name ?? room.roomTypeId}
+                    </td>
+                    <td data-label={translate(locale, 'admin.floor', { floor: '#' })}>
+                      {operation?.floor ?? '—'}
+                    </td>
+                    <td data-label={translate(locale, 'roomType.priceTier')}>
+                      {operation?.roomTier ?? tier?.name ?? '—'}
                     </td>
                     <td data-label={translate(locale, 'admin.status')}>
-                      <AdminStatusBadge tone={room.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                      <AdminStatusBadge
+                        tone={
+                          room.status === 'ACTIVE'
+                            ? 'success'
+                            : room.status === 'MAINTENANCE'
+                              ? 'warning'
+                              : 'neutral'
+                        }
+                      >
                         {translateAdminStatus(locale, room.status)}
                       </AdminStatusBadge>
+                    </td>
+                    <td data-label={translate(locale, 'admin.maintenance')}>
+                      <AdminStatusBadge
+                        tone={operation?.maintenanceState === 'ACTIVE' ? 'warning' : 'neutral'}
+                      >
+                        {operation?.maintenanceState === 'ACTIVE'
+                          ? translate(locale, 'admin.maintenanceActive')
+                          : translate(locale, 'admin.maintenanceNone')}
+                      </AdminStatusBadge>
+                    </td>
+                    <td data-label={translate(locale, 'admin.nextBookingWindow')}>
+                      {operation?.nextBookingWindow === null ||
+                      operation?.nextBookingWindow === undefined
+                        ? '—'
+                        : formatDateTime(locale, operation.nextBookingWindow.checkIn)}
                     </td>
                     <td data-label={translate(locale, 'admin.housekeeping')}>
                       <AdminStatusBadge
@@ -346,19 +516,27 @@ export default function Rooms() {
                       <AdminRowActions
                         actions={[
                           {
-                            label: translate(locale, 'roomType.saveChanges'),
+                            label: translate(locale, 'admin.edit'),
                             onSelect: () => setEditRoomId(room.id),
                           },
                           {
-                            label: translate(locale, 'catalog.archive'),
+                            label:
+                              room.status === 'INACTIVE'
+                                ? translate(locale, 'admin.activate')
+                                : translate(locale, 'admin.deactivate'),
                             destructive: true,
                             disabled: pending || room.status === 'INACTIVE',
                             onSelect: () => setArchiveConfirmId(room.id),
                           },
                         ]}
                       >
-                        <Button onClick={() => setEditRoomId(room.id)} size="sm" variant="outline">
-                          {translate(locale, 'roomType.saveChanges')}
+                        <Button
+                          aria-label={translate(locale, 'roomType.saveChanges')}
+                          onClick={() => setEditRoomId(room.id)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          {translate(locale, 'admin.edit')}
                         </Button>
                         <Button
                           aria-label={translate(locale, 'room.archive', {
@@ -373,7 +551,7 @@ export default function Rooms() {
                           type="button"
                           variant="destructive"
                         >
-                          {translate(locale, 'catalog.archive')}
+                          {translate(locale, 'admin.deactivate')}
                         </Button>
                       </AdminRowActions>
                       <AlertDialog

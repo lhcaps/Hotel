@@ -12,6 +12,14 @@ import {
 import { useLocale } from '../../../../../components/locale-provider';
 import { formatDateTime, translate, translateAdminStatus } from '../../../../../lib/i18n/messages';
 
+const reviewCategoryKeys = {
+  PAID_CANCELLATION: 'admin.reviewCategoryPaidCancellation',
+} as const;
+
+function reviewCategoryLabel(locale: 'vi' | 'en', category: 'PAID_CANCELLATION'): string {
+  return translate(locale, reviewCategoryKeys[category]);
+}
+
 export default function OperationalReviewDetailPage() {
   const locale = useLocale();
   const { reviewId } = useParams<{ reviewId: string }>();
@@ -97,7 +105,8 @@ export default function OperationalReviewDetailPage() {
       <p>
         {translate(locale, 'admin.status')}:{' '}
         <strong>{translateAdminStatus(locale, review.status)}</strong> ·{' '}
-        {translate(locale, 'admin.type')}: <strong>{review.category}</strong>
+        {translate(locale, 'admin.type')}:{' '}
+        <strong>{reviewCategoryLabel(locale, review.category)}</strong>
       </p>
       {error === undefined ? null : (
         <p role="alert" style={{ color: 'var(--color-danger)' }}>
