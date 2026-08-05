@@ -50,13 +50,17 @@ describe('resolveAdminSessionFromHeaders', () => {
     expect(fetchMock).toHaveBeenCalledWith('http://api:3001/api/v1/admin/me', expect.any(Object));
   });
 
-  it('returns an ADMIN session when /admin/me responds with the canonical shape', async () => {
+  it('returns a scoped administrator session when /admin/me responds with the canonical shape', async () => {
     globalThis.fetch = vi.fn(async () =>
       jsonResponse(200, {
         id: '550e8400-e29b-41d4-a716-446655440000',
         emailMasked: 'a****r@example.test',
         displayName: 'Administrator',
-        role: 'ADMIN',
+        role: 'SUPER_ADMIN',
+        profileCode: 'SUPER_ADMIN',
+        profileLabelVi: 'Tổng quản trị',
+        accountStatus: 'ACTIVE',
+        department: null,
         permissions: ['catalog.property.read'],
         sessionExpiresAt: '2027-01-01T00:00:00.000Z',
       }),
@@ -68,7 +72,7 @@ describe('resolveAdminSessionFromHeaders', () => {
 
     expect(resolution.kind).toBe('admin');
     if (resolution.kind === 'admin') {
-      expect(resolution.session.role).toBe('ADMIN');
+      expect(resolution.session.profileCode).toBe('SUPER_ADMIN');
       expect(resolution.session.emailMasked).toBe('a****r@example.test');
     }
   });

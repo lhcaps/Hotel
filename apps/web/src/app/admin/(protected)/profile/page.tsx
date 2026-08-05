@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import type { AdminMe } from '@room/contracts';
+import { Badge } from '../../../../components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../../../../components/ui/card';
 
 import { useLocale } from '../../../../components/locale-provider';
 import { adminApi } from '../../../../lib/admin-api';
@@ -25,40 +33,82 @@ export default function AdminProfilePage() {
   }, [locale]);
 
   return (
-    <main className="admin-page">
-      <h1>{translate(locale, 'admin.profileHeading')}</h1>
-      <p>{translate(locale, 'admin.profileHelp')}</p>
-      {error ? <p role="alert">{error}</p> : null}
+    <main className="admin-page admin-page--narrow">
+      <div className="admin-page-heading">
+        <div>
+          <p className="admin-eyebrow">{translate(locale, 'admin.session')}</p>
+          <h1>{translate(locale, 'admin.profileHeading')}</h1>
+          <p>{translate(locale, 'admin.profileHelp')}</p>
+        </div>
+      </div>
+      {error ? (
+        <p className="admin-alert admin-alert--error" role="alert">
+          {error}
+        </p>
+      ) : null}
       {profile === undefined && error === undefined ? (
-        <p>{translate(locale, 'admin.loading')}</p>
+        <Card>
+          <CardContent className="admin-state">{translate(locale, 'admin.loading')}</CardContent>
+        </Card>
       ) : null}
       {profile ? (
         <>
-          <dl>
-            <dt>{translate(locale, 'admin.displayName')}</dt>
-            <dd>{profile.displayName}</dd>
-            <dt>{translate(locale, 'admin.email')}</dt>
-            <dd>{profile.emailMasked}</dd>
-            <dt>{translate(locale, 'admin.role')}</dt>
-            <dd>
-              {profile.role === 'SUPER_ADMIN'
-                ? translate(locale, 'admin.roleSuperAdmin')
-                : profile.role === 'ROOM_STATUS_VIEWER'
-                  ? translate(locale, 'admin.roleRoomStatusViewer')
-                  : 'ADMIN'}
-            </dd>
-            <dt>{translate(locale, 'admin.department')}</dt>
-            <dd>{profile.departments?.join(', ') || translate(locale, 'admin.noDepartments')}</dd>
-            <dt>{translate(locale, 'admin.permissions')}</dt>
-            <dd>
-              {profile.role === 'ROOM_STATUS_VIEWER'
-                ? translate(locale, 'admin.readOnlyScope')
-                : profile.permissions.join(', ')}
-            </dd>
-            <dt>{translate(locale, 'admin.session')}</dt>
-            <dd>{profile.sessionExpiresAt}</dd>
-          </dl>
-          <SessionLogoutButton redirectTo="/admin/login" />
+          <div className="admin-profile-grid">
+            <Card>
+              <CardHeader>
+                <CardTitle>{profile.displayName}</CardTitle>
+                <CardDescription>{profile.emailMasked}</CardDescription>
+              </CardHeader>
+              <CardContent className="admin-profile-facts">
+                <div>
+                  <span>{translate(locale, 'admin.role')}</span>
+                  <strong>{profile.profileLabelVi}</strong>
+                </div>
+                <div>
+                  <span>{translate(locale, 'admin.status')}</span>
+                  <Badge variant={profile.accountStatus === 'ACTIVE' ? 'secondary' : 'destructive'}>
+                    {translate(
+                      locale,
+                      profile.accountStatus === 'ACTIVE'
+                        ? 'admin.statusActive'
+                        : 'admin.statusDisabled',
+                    )}
+                  </Badge>
+                </div>
+                <div>
+                  <span>{translate(locale, 'admin.department')}</span>
+                  <strong>
+                    {profile.department?.name ?? translate(locale, 'admin.noDepartments')}
+                  </strong>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>{translate(locale, 'admin.sessionScope')}</CardTitle>
+                <CardDescription>{translate(locale, 'admin.sessionScopeHelp')}</CardDescription>
+              </CardHeader>
+              <CardContent className="admin-permission-list">
+                {profile.profileCode === 'ROOM_STATUS_VIEWER' ? (
+                  <p>{translate(locale, 'admin.readOnlyScope')}</p>
+                ) : (
+                  <ul>
+                    {profile.permissions.map((permission) => (
+                      <li key={permission}>{permission}</li>
+                    ))}
+                  </ul>
+                )}
+                <p className="admin-muted">
+                  {translate(locale, 'admin.sessionExpiresAt', {
+                    time: new Date(profile.sessionExpiresAt).toLocaleString(locale),
+                  })}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="admin-page-actions">
+            <SessionLogoutButton redirectTo="/admin/login" />
+          </div>
         </>
       ) : null}
     </main>
