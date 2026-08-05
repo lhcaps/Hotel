@@ -211,7 +211,11 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue>
+                      {statusFilter === 'ALL'
+                        ? translate(locale, 'admin.all')
+                        : translate(locale, roomStatusLabels[statusFilter])}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>

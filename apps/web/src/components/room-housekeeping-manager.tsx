@@ -7,8 +7,17 @@ import { adminApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { AdminErrorState, AdminLoadingState, AdminPageHeader } from './admin/admin-ui';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 const states = ['CLEAN', 'DIRTY', 'CLEANING'] as const;
+
+function housekeepingStatusLabel(value: (typeof states)[number]) {
+  return value === 'CLEAN'
+    ? 'admin.housekeepingClean'
+    : value === 'DIRTY'
+      ? 'admin.housekeepingDirty'
+      : 'admin.housekeepingCleaning';
+}
 
 export function RoomHousekeepingManager() {
   const locale = useLocale();
@@ -58,26 +67,32 @@ export function RoomHousekeepingManager() {
                 </span>
                 <label>
                   <span className="sr-only">{housekeepingLabel}</span>
-                  <select
-                    aria-label={housekeepingLabel}
+                  <Select
                     value={room.housekeepingStatus}
-                    onChange={(event) => {
-                      void change(room, event.target.value as Room['housekeepingStatus']);
+                    onValueChange={(value) => {
+                      if (value !== null) void change(room, value as Room['housekeepingStatus']);
                     }}
                   >
-                    {states.map((state) => (
-                      <option key={state} value={state}>
-                        {translate(
-                          locale,
-                          state === 'CLEAN'
-                            ? 'admin.housekeepingClean'
-                            : state === 'DIRTY'
-                              ? 'admin.housekeepingDirty'
-                              : 'admin.housekeepingCleaning',
-                        )}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger aria-label={housekeepingLabel} className="w-full">
+                      <SelectValue>
+                        {translate(locale, housekeepingStatusLabel(room.housekeepingStatus))}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {states.map((state) => (
+                        <SelectItem key={state} value={state}>
+                          {translate(
+                            locale,
+                            state === 'CLEAN'
+                              ? 'admin.housekeepingClean'
+                              : state === 'DIRTY'
+                                ? 'admin.housekeepingDirty'
+                                : 'admin.housekeepingCleaning',
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </label>
               </li>
             );

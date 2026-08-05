@@ -87,7 +87,11 @@ export function CouponList() {
             }}
           >
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {lifecycle === 'ALL'
+                  ? translate(locale, 'admin.all')
+                  : lifecycleLabel(locale, lifecycle)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>

@@ -1,9 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontalIcon, XIcon } from 'lucide-react';
+import { CheckIcon, MoreHorizontalIcon, UserRoundIcon, XIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { translate } from '@/lib/i18n/messages';
+import { useLocale } from '@/components/locale-provider';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +52,7 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export function AdminAppShell({
   children,
@@ -67,15 +70,70 @@ export function AdminTopbar({
   identity,
   actions,
 }: Readonly<{ eyebrow?: React.ReactNode; identity?: React.ReactNode; actions?: React.ReactNode }>) {
+  const locale = useLocale();
   return (
     <header className="admin-topbar">
       <div className="admin-topbar__leading">
-        <SidebarTrigger aria-label="Toggle navigation" />
+        <SidebarTrigger aria-label={translate(locale, 'admin.toggleNavigation')} />
         {eyebrow ? <span className="admin-topbar__eyebrow">{eyebrow}</span> : null}
       </div>
       {identity ? <div className="admin-topbar__identity">{identity}</div> : null}
       {actions ? <div className="admin-topbar__actions">{actions}</div> : null}
     </header>
+  );
+}
+
+export function AdminProfileMenu({
+  displayName,
+  role,
+  department,
+  profileHref = '/admin/profile',
+  logout,
+}: Readonly<{
+  displayName: string;
+  role: string;
+  department?: string;
+  profileHref?: string;
+  logout: React.ReactNode;
+}>) {
+  const locale = useLocale();
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            className="admin-profile-trigger"
+            variant="ghost"
+            aria-label={translate(locale, 'admin.openProfile')}
+          />
+        }
+      >
+        <Avatar size="sm" className="admin-profile-avatar">
+          <AvatarFallback>{initials || <UserRoundIcon />}</AvatarFallback>
+        </Avatar>
+        <span className="admin-profile-trigger__copy">
+          <strong>{displayName}</strong>
+          <small>{role}</small>
+        </span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="admin-profile-menu">
+        <div className="admin-profile-menu__summary">
+          <strong>{displayName}</strong>
+          <span>{role}</span>
+          {department ? <span>{department}</span> : null}
+        </div>
+        <DropdownMenuItem render={<a href={profileHref} />}>
+          {translate(locale, 'admin.profileHeading')}
+        </DropdownMenuItem>
+        <div className="admin-profile-menu__logout">{logout}</div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -123,14 +181,21 @@ export function AdminFilterToolbar({
 export function AdminActiveFilters({
   filters,
   onClear,
+  label,
+  clearLabel,
 }: Readonly<{
   filters: readonly { id: string; label: string; value: string }[];
   onClear: (id: string) => void;
+  label?: string;
+  clearLabel?: string;
 }>) {
+  const locale = useLocale();
+  const resolvedLabel = label ?? translate(locale, 'admin.activeFilters');
+  const resolvedClearLabel = clearLabel ?? translate(locale, 'admin.clearFilter');
   if (filters.length === 0) return null;
   return (
-    <div className="admin-active-filters" aria-label="Active filters">
-      <span className="admin-active-filters__label">Active filters</span>
+    <div className="admin-active-filters" aria-label={resolvedLabel}>
+      <span className="admin-active-filters__label">{resolvedLabel}</span>
       {filters.map((filter) => (
         <Badge key={filter.id} variant="outline" className="admin-filter-chip">
           <span>
@@ -138,7 +203,7 @@ export function AdminActiveFilters({
           </span>
           <button
             type="button"
-            aria-label={`Clear ${filter.label}`}
+            aria-label={`${resolvedClearLabel}: ${filter.label}`}
             onClick={() => onClear(filter.id)}
           >
             <XIcon />
@@ -160,8 +225,8 @@ export function AdminTablePagination({
   page,
   pageCount,
   onPageChange,
-  previousLabel = 'Previous',
-  nextLabel = 'Next',
+  previousLabel,
+  nextLabel,
 }: Readonly<{
   page: number;
   pageCount: number;
@@ -169,12 +234,15 @@ export function AdminTablePagination({
   previousLabel?: string;
   nextLabel?: string;
 }>) {
+  const locale = useLocale();
+  const resolvedPreviousLabel = previousLabel ?? translate(locale, 'admin.previousPage');
+  const resolvedNextLabel = nextLabel ?? translate(locale, 'admin.nextPage');
   return (
     <Pagination className="admin-table-pagination">
       <PaginationContent>
         <PaginationItem>
           <PaginationPrevious
-            text={previousLabel}
+            text={resolvedPreviousLabel}
             disabled={page === 1}
             onClick={() => {
               if (page === 1 || onPageChange === undefined) return;
@@ -197,7 +265,7 @@ export function AdminTablePagination({
         ))}
         <PaginationItem>
           <PaginationNext
-            text={nextLabel}
+            text={resolvedNextLabel}
             disabled={page === pageCount}
             onClick={() => {
               if (page === pageCount || onPageChange === undefined) return;
@@ -218,6 +286,7 @@ export function AdminStatusBadge({
 }: Readonly<{ tone?: AdminStatusTone; children: React.ReactNode }>) {
   return (
     <Badge variant="outline" className={cn('admin-status-badge', `admin-status-badge--${tone}`)}>
+      <span className="admin-status-badge__dot" aria-hidden="true" />
       {children}
     </Badge>
   );
@@ -360,13 +429,20 @@ export function AdminResponsiveActions({
   actions,
   children,
 }: Readonly<{ actions: readonly AdminAction[]; children?: React.ReactNode }>) {
+  const locale = useLocale();
   return (
     <div className="admin-responsive-actions">
       <div className="admin-responsive-actions__wide">{children}</div>
       <div className="admin-responsive-actions__compact">
         <DropdownMenu>
           <DropdownMenuTrigger
-            render={<Button variant="outline" size="icon-sm" aria-label="More actions" />}
+            render={
+              <Button
+                variant="outline"
+                size="icon-sm"
+                aria-label={translate(locale, 'admin.otherActions')}
+              />
+            }
           >
             <MoreHorizontalIcon />
           </DropdownMenuTrigger>
@@ -405,7 +481,7 @@ export function AdminMultiSelect({
   options,
   value,
   onChange,
-  placeholder = 'Select options',
+  placeholder,
   ariaLabel,
   id,
 }: Readonly<{
@@ -416,6 +492,8 @@ export function AdminMultiSelect({
   ariaLabel?: string;
   id?: string;
 }>) {
+  const locale = useLocale();
+  const resolvedPlaceholder = placeholder ?? translate(locale, 'admin.chooseItem');
   const selected = new Set(value);
   const selectedLabels = options
     .filter((option) => selected.has(option.value))
@@ -434,17 +512,17 @@ export function AdminMultiSelect({
       >
         <span className={selectedLabels.length === 0 ? 'text-muted-foreground' : undefined}>
           {selectedLabels.length === 0
-            ? placeholder
+            ? resolvedPlaceholder
             : selectedLabels.length === 1
               ? selectedLabels[0]
-              : `${selectedLabels.length} selected`}
+              : translate(locale, 'admin.itemsSelected', { count: selectedLabels.length })}
         </span>
       </PopoverTrigger>
       <PopoverContent align="start" className="admin-multi-select__content">
         <Command>
-          <CommandInput placeholder="Search options" />
+          <CommandInput placeholder={translate(locale, 'admin.searchList')} />
           <CommandList>
-            <CommandEmpty>No matching options.</CommandEmpty>
+            <CommandEmpty>{translate(locale, 'admin.noItemsMatch')}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
                 const checked = selected.has(option.value);
@@ -466,6 +544,9 @@ export function AdminMultiSelect({
                   >
                     <Checkbox checked={checked} tabIndex={-1} aria-hidden="true" />
                     <span>{option.label}</span>
+                    {checked ? (
+                      <CheckIcon className="admin-multi-select__check" aria-hidden="true" />
+                    ) : null}
                   </CommandItem>
                 );
               })}

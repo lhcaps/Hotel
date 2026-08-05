@@ -174,7 +174,7 @@ export default function AdminBookingsPage() {
           <Input
             id="admin-booking-code"
             onChange={(event) => updateFilter('bookingCode', event.target.value)}
-            placeholder="BK-ABCDEF"
+            placeholder={translate(locale, 'admin.bookingCodePlaceholder')}
             type="search"
             value={filters.bookingCode}
           />
@@ -190,7 +190,11 @@ export default function AdminBookingsPage() {
             }
           >
             <SelectTrigger id="admin-booking-status" className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {filters.status === ''
+                  ? translate(locale, 'admin.all')
+                  : translatePaymentStatus(locale, filters.status)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((value) => (
@@ -214,7 +218,11 @@ export default function AdminBookingsPage() {
             }
           >
             <SelectTrigger id="admin-booking-payment-status" className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {filters.paymentStatus === ''
+                  ? translate(locale, 'admin.all')
+                  : translatePaymentStatus(locale, filters.paymentStatus)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {PAYMENT_OPTIONS.map((value) => (
@@ -238,7 +246,11 @@ export default function AdminBookingsPage() {
             }
           >
             <SelectTrigger id="admin-booking-review" className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {filters.reviewPresence === ''
+                  ? translate(locale, 'admin.all')
+                  : translateAdminStatus(locale, filters.reviewPresence)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {REVIEW_OPTIONS.map((value) => (
@@ -290,7 +302,7 @@ export default function AdminBookingsPage() {
         <AdminEmptyState title={translate(locale, 'admin.bookingsEmpty')} />
       ) : null}
       {items !== undefined && items.length > 0 ? (
-        <AdminDataTable>
+        <AdminDataTable className="admin-bookings-table">
           <table>
             <thead>
               <tr>

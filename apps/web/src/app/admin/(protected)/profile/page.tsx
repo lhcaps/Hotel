@@ -36,7 +36,7 @@ export default function AdminProfilePage() {
     <main className="admin-page admin-page--narrow">
       <div className="admin-page-heading">
         <div>
-          <p className="admin-eyebrow">{translate(locale, 'admin.session')}</p>
+          <p className="admin-eyebrow">{translate(locale, 'admin.accessScope')}</p>
           <h1>{translate(locale, 'admin.profileHeading')}</h1>
           <p>{translate(locale, 'admin.profileHelp')}</p>
         </div>

@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { AdminLogoutButton } from '../../../components/admin-logout-button';
 import { AdminNavigation } from '../../../components/admin-navigation';
 import { Sidebar, SidebarHeader, SidebarInset } from '../../../components/ui/sidebar';
-import { AdminAppShell, AdminTopbar } from '../../../components/admin/admin-ui';
+import { AdminAppShell, AdminProfileMenu, AdminTopbar } from '../../../components/admin/admin-ui';
 import { resolveLocale, translate } from '../../../lib/i18n/messages';
 import { resolveAdminSessionFromHeaders } from '../../../lib/admin-session-server';
 
@@ -74,17 +74,17 @@ export default async function AdminProtectedLayout({
       </Sidebar>
       <SidebarInset className="admin-workspace">
         <AdminTopbar
-          eyebrow={translate(locale, 'admin.session')}
-          identity={
-            <>
-              <Link href="/admin/profile">{resolution.session.displayName}</Link>
-              <span>{resolution.session.profileLabelVi}</span>
-              {resolution.session.department ? (
-                <span>{resolution.session.department.name}</span>
-              ) : null}
-            </>
+          identity={null}
+          actions={
+            <AdminProfileMenu
+              displayName={resolution.session.displayName}
+              role={resolution.session.profileLabelVi}
+              {...(resolution.session.department
+                ? { department: resolution.session.department.name }
+                : {})}
+              logout={<AdminLogoutButton />}
+            />
           }
-          actions={<AdminLogoutButton />}
         />
         <div id="admin-content" tabIndex={-1}>
           {children}

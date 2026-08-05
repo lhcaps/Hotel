@@ -33,6 +33,7 @@ import { adminApi } from '../../../../lib/admin-api';
 import { formatDateTime, translate, type MessageKey } from '../../../../lib/i18n/messages';
 import {
   AdminDataTable,
+  AdminFilterToolbar,
   AdminFormSheet,
   AdminMultiSelect,
   AdminPageHeader,
@@ -69,6 +70,7 @@ export default function AdminAccountsPage() {
   const [createMessage, setCreateMessage] = useState<string>();
   const [createOpen, setCreateOpen] = useState(false);
   const [editAccountId, setEditAccountId] = useState<string>();
+  const [query, setQuery] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -200,6 +202,20 @@ export default function AdminAccountsPage() {
     }
   }
 
+  const normalizedQuery = query.trim().toLocaleLowerCase(locale);
+  const visibleItems = items?.filter((item) =>
+    [item.displayName, item.emailMasked, item.profileCode ?? '', ...item.departments]
+      .join(' ')
+      .toLocaleLowerCase(locale)
+      .includes(normalizedQuery),
+  );
+  const visibleCustomers = customers?.filter((item) =>
+    [item.displayName, item.emailMasked, ...item.providers]
+      .join(' ')
+      .toLocaleLowerCase(locale)
+      .includes(normalizedQuery),
+  );
+
   return (
     <main className="admin-page">
       <AdminPageHeader
@@ -230,6 +246,24 @@ export default function AdminAccountsPage() {
           {error}
         </p>
       ) : null}
+      <AdminFilterToolbar>
+        <label>
+          {translate(locale, 'admin.search')}
+          <Input
+            type="search"
+            placeholder={translate(locale, 'admin.search')}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+        <div className="admin-filter-toolbar__summary">
+          {translate(locale, 'admin.adminProfilesCount', {
+            count: visibleItems?.length ?? 0,
+          })}
+          {' · '}
+          {translate(locale, 'admin.customerAccounts')}: {visibleCustomers?.length ?? 0}
+        </div>
+      </AdminFilterToolbar>
 
       {me?.profileCode === 'SUPER_ADMIN' ? (
         <AdminFormSheet
@@ -239,10 +273,16 @@ export default function AdminAccountsPage() {
           description={translate(locale, 'admin.createAccountHelp')}
           footer={createMessage ? <span role="status">{createMessage}</span> : null}
         >
-          <form className="admin-form-stack" onSubmit={(event) => void createAccount(event)}>
+          <form
+            autoComplete="off"
+            className="admin-form-stack"
+            onSubmit={(event) => void createAccount(event)}
+          >
             <label>
               {translate(locale, 'admin.displayName')}
               <Input
+                autoComplete="off"
+                name="new-admin-display-name"
                 required
                 value={createForm.displayName}
                 onChange={(event) =>
@@ -253,6 +293,8 @@ export default function AdminAccountsPage() {
             <label>
               Email
               <Input
+                autoComplete="off"
+                name="new-admin-email"
                 required
                 type="email"
                 value={createForm.email}
@@ -264,6 +306,8 @@ export default function AdminAccountsPage() {
             <label>
               {translate(locale, 'admin.password')}
               <Input
+                autoComplete="new-password"
+                name="new-admin-password"
                 required
                 minLength={8}
                 type="password"
@@ -397,10 +441,10 @@ export default function AdminAccountsPage() {
         <CardContent>
           {items === undefined ? (
             <p className="admin-state">{translate(locale, 'admin.loading')}</p>
-          ) : items.length === 0 ? (
+          ) : visibleItems?.length === 0 ? (
             <p className="admin-state">{translate(locale, 'admin.noAccounts')}</p>
           ) : (
-            <AdminDataTable>
+            <AdminDataTable className="admin-accounts-table">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -413,7 +457,7 @@ export default function AdminAccountsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => {
+                  {visibleItems?.map((item) => {
                     const draft = draftFor(item);
                     return (
                       <TableRow key={item.id}>
@@ -508,10 +552,10 @@ export default function AdminAccountsPage() {
         <CardContent>
           {customers === undefined ? (
             <p className="admin-state">{translate(locale, 'admin.loading')}</p>
-          ) : customers.length === 0 ? (
+          ) : visibleCustomers?.length === 0 ? (
             <p className="admin-state">{translate(locale, 'admin.noCustomerAccounts')}</p>
           ) : (
-            <AdminDataTable>
+            <AdminDataTable className="admin-customer-accounts-table">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -525,7 +569,7 @@ export default function AdminAccountsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {customers.map((item) => (
+                  {visibleCustomers?.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell data-label={translate(locale, 'admin.reportCustomers')}>
                         <strong>{item.displayName}</strong>

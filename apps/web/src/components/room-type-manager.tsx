@@ -1,6 +1,7 @@
 'use client';
 import type { Amenity, PriceTier, RoomType } from '@room/contracts';
 import { type FormEvent, useEffect, useState } from 'react';
+import { XIcon } from 'lucide-react';
 import { AdminApiError, adminApi, type CatalogPage } from '../lib/admin-api';
 import { localizedCatalogSafetyReason } from '../lib/catalog-safety';
 import { translate } from '../lib/i18n/messages';
@@ -82,6 +83,7 @@ export function RoomTypeManager() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createOpen, setCreateOpen] = useState(false);
   const [editId, setEditId] = useState<string>();
+  const [amenityOpen, setAmenityOpen] = useState(false);
 
   useEffect(() => {
     void Promise.all([
@@ -531,93 +533,109 @@ export function RoomTypeManager() {
           </table>
         </AdminDataTable>
       )}
-      <form onSubmit={assignAmenity}>
-        <h2>{translate(locale, 'roomType.assignAmenity')}</h2>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="room-type-assign-target">
-              {translate(locale, 'roomType.assignTarget')}
-            </FieldLabel>
-            <Select
-              disabled={pending || types?.items.length === 0}
-              value={amenityRoomTypeId}
-              onValueChange={(value) => {
-                if (value !== null) setAmenityRoomTypeId(value);
-              }}
-            >
-              <SelectTrigger id="room-type-assign-target" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(types?.items ?? [])
-                  .filter((type) => type.status === 'ACTIVE')
-                  .map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
+      <div className="admin-secondary-action">
+        <Button type="button" variant="outline" onClick={() => setAmenityOpen(true)}>
+          {translate(locale, 'roomType.assignAmenity')}
+        </Button>
+      </div>
+      <AdminFormSheet
+        open={amenityOpen}
+        onOpenChange={setAmenityOpen}
+        title={translate(locale, 'roomType.assignAmenity')}
+        description={translate(locale, 'roomType.removeAmenity')}
+      >
+        <form onSubmit={assignAmenity} className="admin-form-stack">
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="room-type-assign-target">
+                {translate(locale, 'roomType.assignTarget')}
+              </FieldLabel>
+              <Select
+                disabled={pending || types?.items.length === 0}
+                value={amenityRoomTypeId}
+                onValueChange={(value) => {
+                  if (value !== null) setAmenityRoomTypeId(value);
+                }}
+              >
+                <SelectTrigger id="room-type-assign-target" className="w-full">
+                  <SelectValue>
+                    {types?.items.find((type) => type.id === amenityRoomTypeId)?.name ??
+                      translate(locale, 'roomType.assignTarget')}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {(types?.items ?? [])
+                    .filter((type) => type.status === 'ACTIVE')
+                    .map((type) => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="room-type-assign-amenity">
+                {translate(locale, 'admin.amenities')}
+              </FieldLabel>
+              <Select
+                disabled={pending || amenities.length === 0}
+                value={amenityId}
+                onValueChange={(value) => {
+                  if (value !== null) setAmenityId(value);
+                }}
+              >
+                <SelectTrigger id="room-type-assign-amenity" className="w-full">
+                  <SelectValue>
+                    {amenities.find((amenity) => amenity.id === amenityId)?.name ??
+                      translate(locale, 'admin.amenities')}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {amenities.map((amenity) => (
+                    <SelectItem key={amenity.id} value={amenity.id}>
+                      {amenity.name}
                     </SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="room-type-assign-amenity">
-              {translate(locale, 'admin.amenities')}
-            </FieldLabel>
-            <Select
-              disabled={pending || amenities.length === 0}
-              value={amenityId}
-              onValueChange={(value) => {
-                if (value !== null) setAmenityId(value);
-              }}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Button
+              disabled={pending || amenityRoomTypeId === '' || amenityId === ''}
+              type="submit"
             >
-              <SelectTrigger id="room-type-assign-amenity" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {amenities.map((amenity) => (
-                  <SelectItem key={amenity.id} value={amenity.id}>
-                    {amenity.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Button disabled={pending || amenityRoomTypeId === '' || amenityId === ''} type="submit">
-            {translate(locale, 'roomType.assignAmenity')}
-          </Button>
-        </FieldGroup>
-      </form>
-      {types === undefined ? null : (
-        <section>
+              {translate(locale, 'roomType.assignAmenity')}
+            </Button>
+          </FieldGroup>
+        </form>
+        <div className="admin-form-section">
           <h2>{translate(locale, 'roomType.removeAmenity')}</h2>
-          <ul>
-            {types.items
+          <div className="admin-amenity-removal-list">
+            {types?.items
               .filter((type) => type.status === 'ACTIVE')
               .map((type) => (
-                <li key={type.id}>
+                <div key={type.id}>
                   <strong>{type.name}</strong>
-                  <ul>
+                  <div className="admin-row-actions">
                     {amenities.map((amenity) => (
-                      <li key={amenity.id}>
-                        {amenity.name}
-                        <Button
-                          aria-label={translate(locale, 'roomType.removeAmenity')}
-                          disabled={pending}
-                          onClick={() => void removeAmenity(type.id, amenity.id)}
-                          size="sm"
-                          type="button"
-                          variant="ghost"
-                        >
-                          {translate(locale, 'roomType.removeAmenity')}
-                        </Button>
-                      </li>
+                      <Button
+                        key={`${type.id}-${amenity.id}`}
+                        aria-label={translate(locale, 'roomType.removeAmenity')}
+                        disabled={pending}
+                        onClick={() => void removeAmenity(type.id, amenity.id)}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        {amenity.name} <XIcon aria-hidden="true" />
+                      </Button>
                     ))}
-                  </ul>
-                </li>
+                  </div>
+                </div>
               ))}
-          </ul>
-        </section>
-      )}
+          </div>
+        </div>
+      </AdminFormSheet>
     </section>
   );
 }

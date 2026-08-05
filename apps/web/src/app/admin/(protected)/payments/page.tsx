@@ -13,6 +13,13 @@ import {
 import { useLocale } from '../../../../components/locale-provider';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../../components/ui/select';
 import { Field, FieldLabel } from '../../../../components/ui/field';
 import {
   AdminDataTable,
@@ -64,8 +71,11 @@ const emptyFilters: Filters = {
   createdTo: '',
 };
 
-function providerLabel(value: AdminPaymentProvider | null): string {
-  if (value === null) return '—';
+function providerLabel(
+  locale: ReturnType<typeof useLocale>,
+  value: AdminPaymentProvider | null,
+): string {
+  if (value === null) return translate(locale, 'admin.unknownProvider');
   return value === 'MOMO' ? 'MoMo' : 'VNPay';
 }
 
@@ -156,7 +166,7 @@ export default function AdminPaymentsPage() {
           <Input
             id="admin-payment-booking-code"
             onChange={(event) => updateFilter('bookingCode', event.target.value)}
-            placeholder="BK-ABCDEF"
+            placeholder={translate(locale, 'admin.bookingCodePlaceholder')}
             type="search"
             value={filters.bookingCode}
           />
@@ -165,77 +175,102 @@ export default function AdminPaymentsPage() {
           <FieldLabel htmlFor="admin-payment-status">
             {translate(locale, 'admin.status')}
           </FieldLabel>
-          <select
-            id="admin-payment-status"
-            aria-label={translate(locale, 'admin.status')}
-            onChange={(event) =>
+          <Select
+            value={filters.status || 'ALL'}
+            onValueChange={(value) =>
               updateFilter(
                 'status',
-                (event.target.value === 'ALL' ? '' : event.target.value) as Filters['status'],
+                (value === null || value === 'ALL' ? '' : value) as Filters['status'],
               )
             }
-            value={filters.status || 'ALL'}
           >
-            {STATUS_OPTIONS.map((value) => (
-              <option key={value || 'ALL'} value={value || 'ALL'}>
-                {value === ''
+            <SelectTrigger id="admin-payment-status" className="w-full">
+              <SelectValue>
+                {filters.status === ''
                   ? translate(locale, 'admin.all')
-                  : translatePaymentStatus(locale, value)}
-              </option>
-            ))}
-          </select>
+                  : translatePaymentStatus(locale, filters.status)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((value) => (
+                <SelectItem key={value || 'ALL'} value={value || 'ALL'}>
+                  {value === ''
+                    ? translate(locale, 'admin.all')
+                    : translatePaymentStatus(locale, value)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field>
           <FieldLabel htmlFor="admin-payment-provider">
             {translate(locale, 'admin.provider')}
           </FieldLabel>
-          <select
-            id="admin-payment-provider"
-            aria-label={translate(locale, 'admin.provider')}
-            onChange={(event) =>
+          <Select
+            value={filters.provider || 'ALL'}
+            onValueChange={(value) =>
               updateFilter(
                 'provider',
-                (event.target.value === 'ALL' ? '' : event.target.value) as Filters['provider'],
+                (value === null || value === 'ALL' ? '' : value) as Filters['provider'],
               )
             }
-            value={filters.provider || 'ALL'}
           >
-            {PROVIDER_OPTIONS.map((value) => (
-              <option key={value || 'ALL'} value={value || 'ALL'}>
-                {value === ''
+            <SelectTrigger id="admin-payment-provider" className="w-full">
+              <SelectValue>
+                {filters.provider === ''
                   ? translate(locale, 'admin.all')
-                  : value === 'MOMO'
+                  : filters.provider === 'MOMO'
                     ? 'MoMo'
                     : 'VNPay'}
-              </option>
-            ))}
-          </select>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {PROVIDER_OPTIONS.map((value) => (
+                <SelectItem key={value || 'ALL'} value={value || 'ALL'}>
+                  {value === ''
+                    ? translate(locale, 'admin.all')
+                    : value === 'MOMO'
+                      ? 'MoMo'
+                      : 'VNPay'}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field>
           <FieldLabel htmlFor="admin-payment-review">
             {translate(locale, 'admin.review')}
           </FieldLabel>
-          <select
-            id="admin-payment-review"
-            aria-label={translate(locale, 'admin.review')}
-            onChange={(event) =>
+          <Select
+            value={filters.review || 'ALL'}
+            onValueChange={(value) =>
               updateFilter(
                 'review',
-                (event.target.value === 'ALL' ? '' : event.target.value) as Filters['review'],
+                (value === null || value === 'ALL' ? '' : value) as Filters['review'],
               )
             }
-            value={filters.review || 'ALL'}
           >
-            {REVIEW_OPTIONS.map((value) => (
-              <option key={value || 'ALL'} value={value || 'ALL'}>
-                {value === ''
+            <SelectTrigger id="admin-payment-review" className="w-full">
+              <SelectValue>
+                {filters.review === ''
                   ? translate(locale, 'admin.all')
-                  : value === 'needs_review'
+                  : filters.review === 'needs_review'
                     ? translate(locale, 'admin.needsReview')
                     : translate(locale, 'admin.normal')}
-              </option>
-            ))}
-          </select>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {REVIEW_OPTIONS.map((value) => (
+                <SelectItem key={value || 'ALL'} value={value || 'ALL'}>
+                  {value === ''
+                    ? translate(locale, 'admin.all')
+                    : value === 'needs_review'
+                      ? translate(locale, 'admin.needsReview')
+                      : translate(locale, 'admin.normal')}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field>
           <FieldLabel htmlFor="admin-payment-created-from">
@@ -303,7 +338,7 @@ export default function AdminPaymentsPage() {
                     </Link>
                   </td>
                   <td data-label={translate(locale, 'admin.provider')}>
-                    {providerLabel(item.provider)}
+                    {providerLabel(locale, item.provider)}
                   </td>
                   <td data-label={translate(locale, 'admin.status')}>
                     <AdminStatusBadge tone={statusTone(item.status)}>
@@ -316,7 +351,7 @@ export default function AdminPaymentsPage() {
                   <td data-label={translate(locale, 'payment.attempt')}>
                     {item.latestAttempt === null
                       ? '—'
-                      : `${translatePaymentStatus(locale, item.latestAttempt.status)} · ${providerLabel(item.latestAttempt.provider)}`}
+                      : `${translatePaymentStatus(locale, item.latestAttempt.status)} · ${providerLabel(locale, item.latestAttempt.provider)}`}
                   </td>
                   <td data-label={translate(locale, 'admin.review')}>
                     <AdminStatusBadge tone={item.reviewRequired ? 'warning' : 'neutral'}>

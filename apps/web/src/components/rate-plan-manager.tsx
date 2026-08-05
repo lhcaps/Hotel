@@ -199,6 +199,7 @@ export function RatePlanManager() {
   const [createDraft, setCreateDraft] = useState<CreateDraft>(initialCreateDraft);
   const [createOpen, setCreateOpen] = useState(false);
   const [selectionEditId, setSelectionEditId] = useState<string>();
+  const [priceEditId, setPriceEditId] = useState<string>();
   const load = () =>
     void Promise.all([adminApi.listRatePlans(), adminApi.listPriceTiers()])
       .then(([result, tierPage]) => {
@@ -573,12 +574,17 @@ export function RatePlanManager() {
       ) : sortedPlans.length === 0 ? (
         <AdminEmptyState title={translate(locale, 'ratePlan.empty')} />
       ) : (
-        <div>
+        <div className="admin-rate-plan-list">
           {sortedPlans.map((plan) => {
             return (
-              <article key={plan.id} aria-labelledby={`rate-plan-${plan.id}`}>
+              <article
+                className="admin-rate-plan-row"
+                key={plan.id}
+                aria-labelledby={`rate-plan-${plan.id}`}
+              >
                 <h2 id={`rate-plan-${plan.id}`}>
-                  {plan.name} ({plan.code})
+                  {plan.name}
+                  <span className="admin-muted">{plan.code}</span>
                 </h2>
                 <p>
                   {translate(locale, 'admin.status')}:{' '}
@@ -636,30 +642,98 @@ export function RatePlanManager() {
                     </li>
                   ))}
                 </ul>
-                {plan.isBasePlan ? (
-                  <Button onClick={() => setSelectionEditId(plan.id)} size="sm" variant="outline">
-                    {translate(locale, 'ratePlan.selectionLegend')}
+                <div className="admin-rate-plan-actions">
+                  <Button onClick={() => setPriceEditId(plan.id)} size="sm" variant="outline">
+                    {translate(locale, 'ratePlan.savePrice')}
                   </Button>
-                ) : null}
-                <Button
-                  disabled={pending || plan.status === 'ACTIVE'}
-                  onClick={() => void changeStatus(plan, true)}
-                  type="button"
-                >
-                  {translate(locale, 'ratePlan.activate')}
-                </Button>{' '}
-                <Button
-                  disabled={pending || plan.status === 'INACTIVE'}
-                  onClick={() => void changeStatus(plan, false)}
-                  type="button"
-                >
-                  {translate(locale, 'ratePlan.deactivate')}
-                </Button>
+                  {plan.isBasePlan ? (
+                    <Button onClick={() => setSelectionEditId(plan.id)} size="sm" variant="outline">
+                      {translate(locale, 'ratePlan.selectionLegend')}
+                    </Button>
+                  ) : null}
+                  <Button
+                    disabled={pending || plan.status === 'ACTIVE'}
+                    onClick={() => void changeStatus(plan, true)}
+                    type="button"
+                  >
+                    {translate(locale, 'ratePlan.activate')}
+                  </Button>{' '}
+                  <Button
+                    disabled={pending || plan.status === 'INACTIVE'}
+                    onClick={() => void changeStatus(plan, false)}
+                    type="button"
+                  >
+                    {translate(locale, 'ratePlan.deactivate')}
+                  </Button>
+                </div>
               </article>
             );
           })}
         </div>
       )}
+      {priceEditId !== undefined
+        ? (() => {
+            const plan = sortedPlans?.find((candidate) => candidate.id === priceEditId);
+            if (plan === undefined) return null;
+            return (
+              <AdminFormSheet
+                open
+                onOpenChange={(open) => {
+                  if (!open) setPriceEditId(undefined);
+                }}
+                title={translate(locale, 'ratePlan.savePrice')}
+                description={`${plan.name} · ${plan.code}`}
+              >
+                <div className="admin-form-stack">
+                  <p className="admin-supporting-text">{summarisePlan(locale, plan)}</p>
+                  {plan.prices.map((price) => {
+                    const tierName =
+                      priceTierById.get(price.priceTierId)?.name ??
+                      translate(locale, 'ratePlan.unknownPriceTier');
+                    return (
+                      <div className="admin-price-editor" key={price.priceTierId}>
+                        <label>
+                          {tierName}
+                          <Input
+                            key={`${plan.id}-${price.priceTierId}-${price.amountVnd ?? ''}`}
+                            aria-label={`${translate(locale, 'admin.amount')} ${plan.name} ${tierName}`}
+                            defaultValue={price.amountVnd ?? ''}
+                            disabled={pending || plan.status === 'INACTIVE'}
+                            inputMode="numeric"
+                            min="1"
+                            type="number"
+                          />
+                        </label>
+                        <span className="admin-muted">
+                          {price.amountVnd === null
+                            ? translate(locale, 'ratePlan.unconfigured')
+                            : formatVnd(locale, price.amountVnd)}
+                        </span>
+                        <Button
+                          disabled={pending || plan.status === 'INACTIVE'}
+                          onClick={(event) =>
+                            void savePrice(
+                              plan.id,
+                              price.priceTierId,
+                              (
+                                event.currentTarget.previousElementSibling?.previousElementSibling?.querySelector(
+                                  'input',
+                                ) as HTMLInputElement
+                              ).value,
+                            )
+                          }
+                          type="button"
+                        >
+                          {translate(locale, 'ratePlan.savePrice')}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </AdminFormSheet>
+            );
+          })()
+        : null}
       {selectionEditId !== undefined
         ? (() => {
             const plan = sortedPlans?.find((candidate) => candidate.id === selectionEditId);

@@ -290,7 +290,7 @@ export function OperationalReportDashboard() {
   return (
     <section className="admin-overview" aria-labelledby="operational-report-heading">
       <AdminPageHeader
-        eyebrow={translate(locale, 'admin.session')}
+        eyebrow={translate(locale, 'admin.overview')}
         title={translate(locale, 'admin.dashboardHeading')}
         description={translate(locale, 'admin.dashboardHelp')}
         className="admin-overview__header"

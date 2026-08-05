@@ -7,10 +7,8 @@ import type { Room, RoomType } from '@room/contracts';
 
 import { AdminApiError, adminApi } from '../../../../lib/admin-api';
 import { localizedCatalogSafetyReason } from '../../../../lib/catalog-safety';
-import { translate, translateAdminStatus } from '../../../../lib/i18n/messages';
+import { formatDateTime, translate, translateAdminStatus } from '../../../../lib/i18n/messages';
 import { useLocale } from '../../../../components/locale-provider';
-import { RoomHousekeepingManager } from '../../../../components/room-housekeeping-manager';
-import { RoomOperationsBoard } from '../../../../components/room-operations-board';
 import { Alert, AlertDescription, AlertTitle } from '../../../../components/ui/alert';
 import { Button } from '../../../../components/ui/button';
 import { Field, FieldLabel } from '../../../../components/ui/field';
@@ -25,11 +23,23 @@ import {
 import {
   AdminDataTable,
   AdminEmptyState,
+  AdminFilterToolbar,
   AdminFormSheet,
   AdminLoadingState,
   AdminPageHeader,
+  AdminRowActions,
   AdminStatusBadge,
 } from '../../../../components/admin/admin-ui';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../../../components/ui/alert-dialog';
 
 interface RoomDraft {
   readonly roomNumber: string;
@@ -48,6 +58,8 @@ export default function Rooms() {
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
   const [editRoomId, setEditRoomId] = useState<string>();
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<Room['status'] | 'ALL'>('ALL');
 
   useEffect(() => {
     let active = true;
@@ -124,6 +136,17 @@ export default function Rooms() {
     }
   }
 
+  const visibleRooms = (rooms ?? []).filter((room) => {
+    const normalizedQuery = query.trim().toLocaleLowerCase(locale);
+    const matchesQuery =
+      normalizedQuery === '' ||
+      [room.roomNumber, room.physicalRoomCode]
+        .join(' ')
+        .toLocaleLowerCase(locale)
+        .includes(normalizedQuery);
+    return matchesQuery && (statusFilter === 'ALL' || room.status === statusFilter);
+  });
+
   return (
     <div className="admin-page">
       <AdminPageHeader
@@ -137,6 +160,50 @@ export default function Rooms() {
         }
       />
       {message === undefined ? null : <p role="alert">{message}</p>}
+      <AdminFilterToolbar>
+        <Field>
+          <FieldLabel htmlFor="admin-room-search">
+            {translate(locale, 'admin.roomSearch')}
+          </FieldLabel>
+          <Input
+            id="admin-room-search"
+            type="search"
+            placeholder={translate(locale, 'admin.roomSearchPlaceholder')}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-room-status-filter">
+            {translate(locale, 'admin.status')}
+          </FieldLabel>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              if (value !== null) setStatusFilter(value as Room['status'] | 'ALL');
+            }}
+          >
+            <SelectTrigger id="admin-room-status-filter" className="w-full">
+              <SelectValue>
+                {statusFilter === 'ALL'
+                  ? translate(locale, 'admin.all')
+                  : translateAdminStatus(locale, statusFilter)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
+              <SelectItem value="ACTIVE">{translateAdminStatus(locale, 'ACTIVE')}</SelectItem>
+              <SelectItem value="MAINTENANCE">
+                {translateAdminStatus(locale, 'MAINTENANCE')}
+              </SelectItem>
+              <SelectItem value="INACTIVE">{translateAdminStatus(locale, 'INACTIVE')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <div className="admin-filter-toolbar__summary">
+          {translate(locale, 'admin.activeRoomsSummary', { count: visibleRooms.length })}
+        </div>
+      </AdminFilterToolbar>
       {editRoomId !== undefined
         ? (() => {
             const room = rooms?.find((candidate) => candidate.id === editRoomId);
@@ -223,25 +290,31 @@ export default function Rooms() {
         : null}
       {rooms === undefined ? (
         <AdminLoadingState label={translate(locale, 'admin.loadingData')} />
-      ) : rooms.length === 0 ? (
+      ) : visibleRooms.length === 0 ? (
         <AdminEmptyState title={translate(locale, 'room.empty')} />
       ) : (
-        <AdminDataTable>
+        <AdminDataTable className="admin-physical-rooms-table">
           <table>
             <thead>
               <tr>
                 <th scope="col">{translate(locale, 'room.number')}</th>
+                <th scope="col">{translate(locale, 'admin.code')}</th>
                 <th scope="col">{translate(locale, 'admin.roomType')}</th>
                 <th scope="col">{translate(locale, 'admin.status')}</th>
+                <th scope="col">{translate(locale, 'admin.housekeeping')}</th>
+                <th scope="col">{translate(locale, 'admin.updatedAt')}</th>
                 <th scope="col">{translate(locale, 'admin.action')}</th>
               </tr>
             </thead>
             <tbody>
-              {rooms.map((room) => {
+              {visibleRooms.map((room) => {
                 return (
                   <tr key={room.id}>
                     <td data-label={translate(locale, 'room.number')}>
                       <strong>{room.roomNumber}</strong>
+                    </td>
+                    <td data-label={translate(locale, 'admin.code')}>
+                      <span className="admin-muted">{room.physicalRoomCode}</span>
                     </td>
                     <td data-label={translate(locale, 'admin.roomType')}>
                       {types.find((type) => type.id === room.roomTypeId)?.name ?? room.roomTypeId}
@@ -251,8 +324,38 @@ export default function Rooms() {
                         {translateAdminStatus(locale, room.status)}
                       </AdminStatusBadge>
                     </td>
+                    <td data-label={translate(locale, 'admin.housekeeping')}>
+                      <AdminStatusBadge
+                        tone={room.housekeepingStatus === 'CLEAN' ? 'success' : 'warning'}
+                      >
+                        {translate(
+                          locale,
+                          room.housekeepingStatus === 'CLEAN'
+                            ? 'admin.housekeepingClean'
+                            : room.housekeepingStatus === 'DIRTY'
+                              ? 'admin.housekeepingDirty'
+                              : 'admin.housekeepingCleaning',
+                        )}
+                      </AdminStatusBadge>
+                    </td>
+                    <td data-label={translate(locale, 'admin.updatedAt')}>
+                      {formatDateTime(locale, room.updatedAt)}
+                    </td>
                     <td data-label={translate(locale, 'admin.action')}>
-                      <div className="admin-row-actions">
+                      <AdminRowActions
+                        actions={[
+                          {
+                            label: translate(locale, 'roomType.saveChanges'),
+                            onSelect: () => setEditRoomId(room.id),
+                          },
+                          {
+                            label: translate(locale, 'catalog.archive'),
+                            destructive: true,
+                            disabled: pending || room.status === 'INACTIVE',
+                            onSelect: () => setArchiveConfirmId(room.id),
+                          },
+                        ]}
+                      >
                         <Button onClick={() => setEditRoomId(room.id)} size="sm" variant="outline">
                           {translate(locale, 'roomType.saveChanges')}
                         </Button>
@@ -271,28 +374,38 @@ export default function Rooms() {
                         >
                           {translate(locale, 'catalog.archive')}
                         </Button>
-                      </div>
-                      {archiveConfirmId === room.id ? (
-                        <div className="admin-confirm-inline" role="group">
-                          <Button
-                            disabled={archivePending[room.id] === true}
-                            onClick={() => void archiveRoom(room.id)}
-                            size="sm"
-                            variant="destructive"
-                          >
-                            {archivePending[room.id] === true
-                              ? translate(locale, 'admin.cancelling')
-                              : translate(locale, 'catalog.archive')}
-                          </Button>
-                          <Button
-                            onClick={() => setArchiveConfirmId(undefined)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            {translate(locale, 'admin.cancel')}
-                          </Button>
-                        </div>
-                      ) : null}
+                      </AdminRowActions>
+                      <AlertDialog
+                        open={archiveConfirmId === room.id}
+                        onOpenChange={(open) => {
+                          if (!open) setArchiveConfirmId(undefined);
+                        }}
+                      >
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {translate(locale, 'catalog.archive')}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {translate(locale, 'room.archive', { number: room.roomNumber })}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>
+                              {translate(locale, 'admin.cancel')}
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              disabled={archivePending[room.id] === true}
+                              variant="destructive"
+                              onClick={() => void archiveRoom(room.id)}
+                            >
+                              {archivePending[room.id] === true
+                                ? translate(locale, 'admin.cancelling')
+                                : translate(locale, 'catalog.archive')}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                       {archiveErrors[room.id] !== undefined && archiveErrors[room.id] !== '' ? (
                         <Alert variant="destructive">
                           <AlertTitle>{translate(locale, 'room.archiveError')}</AlertTitle>
@@ -307,8 +420,6 @@ export default function Rooms() {
           </table>
         </AdminDataTable>
       )}
-      <RoomHousekeepingManager />
-      <RoomOperationsBoard />
     </div>
   );
 }

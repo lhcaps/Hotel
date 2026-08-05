@@ -2203,6 +2203,320 @@ a:focus {
   }
 }
 
+/* Rate-plan rows deliberately outrank the legacy page selector above. Price
+   inputs belong in the dedicated Sheet, while the list remains scannable. */
+.admin-page.admin-page--rate-plans .admin-rate-plan-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.1fr) minmax(14rem, 2fr) auto;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.75rem;
+  background: var(--admin-surface);
+  padding: 1rem 1.1rem;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row > ul {
+  display: none !important;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row > p {
+  margin: 0;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row h2 {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  font-size: 0.96rem;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row h2 .admin-muted {
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row > p:nth-of-type(2) {
+  color: var(--admin-ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row > button {
+  justify-self: end;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  justify-self: end;
+}
+
+.room-board-toolbar .admin-filter-toolbar__controls {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.9fr) minmax(12rem, 1.5fr) minmax(9rem, 0.8fr) auto;
+  align-items: end;
+}
+
+.room-board-toolbar {
+  display: block;
+}
+
+.room-board-toolbar > .admin-filter-toolbar__summary {
+  grid-column: 1 / -1;
+  margin-top: 0.55rem;
+}
+
+@media (max-width: 56rem) {
+  .room-board-toolbar .admin-filter-toolbar__controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .room-board-toolbar .admin-filter-toolbar__controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 100rem) {
+  .admin-bookings-table,
+  .admin-payments-table,
+  .admin-reviews-table {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .admin-bookings-table [data-slot='table-container'],
+  .admin-payments-table [data-slot='table-container'],
+  .admin-reviews-table [data-slot='table-container'] {
+    overflow: visible;
+  }
+
+  .admin-bookings-table table,
+  .admin-payments-table table,
+  .admin-reviews-table table {
+    display: block;
+  }
+
+  .admin-bookings-table thead,
+  .admin-payments-table thead,
+  .admin-reviews-table thead {
+    display: none;
+  }
+
+  .admin-bookings-table tbody,
+  .admin-payments-table tbody,
+  .admin-reviews-table tbody {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .admin-bookings-table tr,
+  .admin-payments-table tr,
+  .admin-reviews-table tr {
+    display: grid;
+    gap: 0.1rem;
+    border: 1px solid var(--admin-border);
+    border-radius: 0.75rem;
+    background: var(--admin-surface);
+    padding: 0.4rem;
+  }
+
+  .admin-bookings-table td,
+  .admin-payments-table td,
+  .admin-reviews-table td {
+    display: grid;
+    grid-template-columns: minmax(7.5rem, 34%) minmax(0, 1fr);
+    gap: 0.6rem;
+    width: 100% !important;
+    max-width: none;
+    border: 0;
+    padding: 0.5rem;
+  }
+
+  .admin-bookings-table td::before,
+  .admin-payments-table td::before,
+  .admin-reviews-table td::before {
+    color: var(--admin-ink-muted);
+    content: attr(data-label);
+    font-size: 0.67rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .admin-bookings-table td:last-child,
+  .admin-payments-table td:last-child,
+  .admin-reviews-table td:last-child {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .admin-page .admin-accounts-table,
+  .admin-page .admin-customer-accounts-table {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .admin-page .admin-accounts-table table,
+  .admin-page .admin-customer-accounts-table table {
+    display: block;
+  }
+
+  .admin-page .admin-accounts-table thead,
+  .admin-page .admin-customer-accounts-table thead {
+    display: none;
+  }
+
+  .admin-page .admin-accounts-table tbody,
+  .admin-page .admin-customer-accounts-table tbody {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .admin-page .admin-accounts-table tr,
+  .admin-page .admin-customer-accounts-table tr {
+    display: grid;
+    gap: 0.1rem;
+    border: 1px solid var(--admin-border);
+    border-radius: 0.75rem;
+    background: var(--admin-surface);
+    padding: 0.4rem;
+  }
+
+  .admin-page .admin-accounts-table td,
+  .admin-page .admin-customer-accounts-table td {
+    display: grid;
+    grid-template-columns: minmax(7.5rem, 34%) minmax(0, 1fr);
+    gap: 0.6rem;
+    width: 100% !important;
+    max-width: none;
+    border: 0;
+    padding: 0.5rem;
+  }
+
+  .admin-page .admin-accounts-table td::before,
+  .admin-page .admin-customer-accounts-table td::before {
+    color: var(--admin-ink-muted);
+    content: attr(data-label);
+    font-size: 0.67rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+}
+
+@media (max-width: 100rem) {
+  .admin-bookings-table,
+  .admin-payments-table,
+  .admin-reviews-table {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .admin-bookings-table [data-slot='table-container'],
+  .admin-payments-table [data-slot='table-container'],
+  .admin-reviews-table [data-slot='table-container'] {
+    overflow: visible;
+  }
+
+  .admin-bookings-table table,
+  .admin-payments-table table,
+  .admin-reviews-table table {
+    display: block;
+  }
+
+  .admin-bookings-table thead,
+  .admin-payments-table thead,
+  .admin-reviews-table thead {
+    display: none;
+  }
+
+  .admin-bookings-table tbody,
+  .admin-payments-table tbody,
+  .admin-reviews-table tbody {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .admin-bookings-table tr,
+  .admin-payments-table tr,
+  .admin-reviews-table tr {
+    display: grid;
+    gap: 0.1rem;
+    border: 1px solid var(--admin-border);
+    border-radius: 0.75rem;
+    background: var(--admin-surface);
+    padding: 0.4rem;
+  }
+
+  .admin-bookings-table td,
+  .admin-payments-table td,
+  .admin-reviews-table td {
+    display: grid;
+    grid-template-columns: minmax(7.5rem, 34%) minmax(0, 1fr);
+    gap: 0.6rem;
+    width: 100% !important;
+    max-width: none;
+    border: 0;
+    padding: 0.5rem;
+  }
+
+  .admin-bookings-table td::before,
+  .admin-payments-table td::before,
+  .admin-reviews-table td::before {
+    color: var(--admin-ink-muted);
+    content: attr(data-label);
+    font-size: 0.67rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .admin-bookings-table td:last-child,
+  .admin-payments-table td:last-child,
+  .admin-reviews-table td:last-child {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 64rem) {
+  .admin-page.admin-page--rate-plans .admin-rate-plan-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-page.admin-page--rate-plans .admin-rate-plan-row > p:nth-of-type(2) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 40rem) {
+  .admin-page.admin-page--rate-plans .admin-rate-plan-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-page.admin-page--rate-plans .admin-rate-plan-row > button {
+    justify-self: stretch;
+  }
+
+  .admin-page.admin-page--rate-plans .admin-rate-plan-actions {
+    justify-self: stretch;
+  }
+}
+
 /* ADMIN V2 shared Base UI contract. Route components consume these tokens and
    primitives so the workspace keeps one shell, one density, and one status language. */
 :root {
@@ -5193,5 +5507,764 @@ body {
   .admin-data-table > table,
   .admin-data-table [data-slot='table-container'] > table {
     min-width: 78rem;
+  }
+}
+
+/* ADMIN V2 final composition contract. This block is intentionally shared by
+   every protected route: the shell, filter density, data surfaces, and status
+   language should not drift page by page. */
+:root {
+  --admin-sidebar-bg: #102a43;
+  --admin-sidebar-bg-strong: #0c2137;
+  --admin-sidebar-active: #1e4d76;
+  --admin-sidebar-text: #e7f0f8;
+  --admin-sidebar-muted: #a9bfd4;
+  --admin-accent: #d29a3b;
+  --admin-workspace-bg: #f4f7fa;
+  --admin-surface: #ffffff;
+  --admin-surface-subtle: #f8fafc;
+  --admin-border: #d8e1eb;
+  --admin-ink-strong: #132238;
+  --admin-ink-muted: #5d6d80;
+  --admin-success-bg: #e8f6ed;
+  --admin-success-fg: #17643d;
+  --admin-info-bg: #eaf2ff;
+  --admin-info-fg: #1e5aa8;
+  --admin-warning-bg: #fff4dc;
+  --admin-warning-fg: #95620c;
+  --admin-danger-bg: #feeceb;
+  --admin-danger-fg: #a82722;
+  --admin-neutral-bg: #eef2f6;
+  --admin-neutral-fg: #526174;
+}
+
+.admin-app-shell {
+  display: flex;
+  min-height: 100svh;
+  width: 100%;
+  min-width: 0;
+  background: var(--admin-workspace-bg);
+  color: var(--admin-ink-strong);
+}
+
+.admin-app-shell .admin-nav {
+  flex: 0 0 16rem;
+  width: 16rem;
+}
+
+.admin-app-shell .admin-nav [data-slot='sidebar-inner'] {
+  width: 16rem;
+  border-right: 1px solid rgb(255 255 255 / 10%);
+  background: var(--admin-sidebar-bg);
+  color: var(--admin-sidebar-text);
+}
+
+.admin-app-shell .admin-nav [data-slot='sidebar-header'] {
+  min-height: 4.25rem;
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
+  padding: 0.85rem 1rem;
+}
+
+.admin-app-shell .admin-nav [data-slot='sidebar-content'] {
+  padding: 0.75rem 0.65rem 1rem;
+}
+
+.admin-app-shell .admin-nav [data-slot='sidebar-group'] {
+  padding: 0.35rem 0;
+}
+
+.admin-app-shell .admin-nav [data-slot='sidebar-group-label'] {
+  height: auto;
+  margin: 0 0.6rem 0.35rem;
+  color: var(--admin-sidebar-muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.admin-app-shell .admin-nav [data-slot='sidebar-menu-button'] {
+  min-height: 2.45rem;
+  border-left: 2px solid transparent;
+  border-radius: 0.45rem;
+  color: var(--admin-sidebar-text);
+  font-size: 0.86rem;
+}
+
+.admin-app-shell .admin-nav [data-slot='sidebar-menu-button']:hover,
+.admin-app-shell .admin-nav [data-slot='sidebar-menu-button']:focus-visible {
+  background: rgb(255 255 255 / 8%);
+}
+
+.admin-app-shell .admin-nav [data-slot='sidebar-menu-button'][data-active='true'] {
+  border-left-color: var(--admin-accent);
+  background: var(--admin-sidebar-active);
+  color: #ffffff;
+  font-weight: 750;
+}
+
+.admin-brand {
+  min-width: 0;
+  color: #ffffff;
+}
+
+.admin-brand span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-radius: 0.55rem;
+  background: var(--admin-sidebar-bg-strong);
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+}
+
+.admin-brand strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-app-shell .admin-workspace,
+.admin-app-shell [data-slot='sidebar-inset'] {
+  min-width: 0;
+  flex: 1 1 auto;
+  background: var(--admin-workspace-bg);
+}
+
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  min-height: 4.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--admin-border);
+  background: rgb(255 255 255 / 96%);
+  padding: 0.65rem clamp(1rem, 2.5vw, 2.5rem);
+}
+
+.admin-topbar__leading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.admin-topbar__leading > button {
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-ink-strong);
+}
+
+.admin-topbar__eyebrow {
+  display: none;
+}
+
+.admin-topbar__identity {
+  display: none;
+}
+
+.admin-topbar__actions {
+  display: flex;
+  margin-inline-start: auto;
+  align-items: center;
+}
+
+.admin-profile-trigger {
+  min-width: 0;
+  height: auto;
+  gap: 0.6rem;
+  border: 1px solid transparent;
+  padding: 0.25rem 0.4rem;
+  text-align: left;
+  background: transparent !important;
+  color: var(--admin-ink-strong);
+}
+
+.admin-profile-trigger:hover,
+.admin-profile-trigger:focus-visible {
+  border-color: var(--admin-border);
+  background: var(--admin-surface-subtle);
+}
+
+.admin-profile-avatar {
+  background: var(--admin-sidebar-active);
+  color: #ffffff;
+}
+
+.admin-profile-trigger__copy,
+.admin-profile-menu__summary {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.admin-profile-trigger__copy strong {
+  overflow: hidden;
+  color: var(--admin-ink-strong);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-profile-trigger__copy small,
+.admin-profile-menu__summary span {
+  overflow: hidden;
+  color: var(--admin-ink-muted);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-profile-menu {
+  min-width: 14rem;
+}
+
+.admin-profile-menu__summary {
+  border-bottom: 1px solid var(--admin-border);
+  margin: -0.25rem -0.25rem 0.25rem;
+  padding: 0.7rem;
+}
+
+.admin-profile-menu__summary strong {
+  color: var(--admin-ink-strong);
+  font-size: 0.82rem;
+}
+
+.admin-profile-menu__logout {
+  border-top: 1px solid var(--admin-border);
+  margin: 0.25rem -0.25rem -0.25rem;
+  padding: 0.25rem;
+}
+
+.admin-profile-menu__logout .admin-logout-button,
+.admin-profile-menu__logout button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.admin-page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin-inline: auto;
+  padding: clamp(1.2rem, 2.4vw, 2.25rem) clamp(1rem, 2.5vw, 2.75rem) 4rem;
+}
+
+.admin-page-header {
+  align-items: end;
+  gap: 1rem 2rem;
+  margin-block-end: 1.25rem;
+}
+
+.admin-page-header h1 {
+  font-size: clamp(1.55rem, 2.2vw, 2.2rem);
+  letter-spacing: -0.035em;
+}
+
+.admin-page-header__copy > p:last-child {
+  max-width: 62rem;
+  margin-top: 0.5rem;
+  line-height: 1.45;
+}
+
+.admin-filter-toolbar {
+  display: block;
+  margin-block-end: 1rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.75rem;
+  background: var(--admin-surface);
+  box-shadow: 0 0.45rem 1.2rem rgb(15 23 42 / 3%);
+  padding: 0.85rem;
+}
+
+.admin-filter-toolbar > .admin-filter-toolbar__controls {
+  width: 100%;
+}
+
+.admin-filter-toolbar__controls {
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.7rem;
+}
+
+.report-filters {
+  display: block;
+}
+
+.report-filters > .admin-filter-toolbar__controls {
+  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+.admin-filter-toolbar [data-slot='field-label'],
+.admin-filter-toolbar label {
+  color: var(--admin-ink-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.admin-filter-toolbar [data-slot='input'],
+.admin-filter-toolbar [data-slot='select-trigger'],
+.admin-filter-toolbar .admin-multi-select__trigger {
+  min-height: 2.45rem;
+  border-color: var(--admin-border);
+  background: #ffffff;
+}
+
+.admin-filter-toolbar__summary {
+  margin-top: 0.65rem;
+  color: var(--admin-ink-muted);
+  font-size: 0.75rem;
+}
+
+.admin-data-table {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.75rem;
+  background: var(--admin-surface);
+}
+
+.admin-data-table [data-slot='table-container'] {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-data-table > table,
+.admin-data-table [data-slot='table-container'] > table {
+  width: 100%;
+  min-width: 0 !important;
+  table-layout: auto !important;
+}
+
+.admin-data-table th {
+  height: 2.65rem;
+  border-bottom: 1px solid var(--admin-border);
+  background: var(--admin-surface-subtle);
+  color: var(--admin-ink-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.admin-data-table td {
+  max-width: 22rem;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.admin-data-table th:last-child,
+.admin-data-table td:last-child {
+  width: 7rem;
+  min-width: 7rem;
+  white-space: nowrap;
+}
+
+.admin-status-badge {
+  gap: 0.4rem;
+  border-color: transparent;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.admin-status-badge__dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.admin-status-badge--success {
+  background: var(--admin-success-bg);
+  color: var(--admin-success-fg);
+}
+.admin-status-badge--info {
+  background: var(--admin-info-bg);
+  color: var(--admin-info-fg);
+}
+.admin-status-badge--warning {
+  background: var(--admin-warning-bg);
+  color: var(--admin-warning-fg);
+}
+.admin-status-badge--danger {
+  background: var(--admin-danger-bg);
+  color: var(--admin-danger-fg);
+}
+.admin-status-badge--neutral {
+  background: var(--admin-neutral-bg);
+  color: var(--admin-neutral-fg);
+}
+
+.admin-metric {
+  min-height: 6.9rem;
+  border: 1px solid var(--admin-border);
+  border-top: 3px solid var(--admin-info-fg);
+  border-radius: 0.75rem;
+  box-shadow: 0 0.35rem 1rem rgb(15 23 42 / 3%);
+}
+
+.admin-metric--success {
+  border-top-color: var(--admin-success-fg);
+}
+.admin-metric--warning {
+  border-top-color: var(--admin-warning-fg);
+}
+.admin-metric--danger {
+  border-top-color: var(--admin-danger-fg);
+}
+
+.admin-detail-sheet {
+  width: min(100%, 42rem);
+}
+
+.admin-detail-sheet__body,
+.admin-form-sheet {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.admin-form-section {
+  border-bottom: 1px solid var(--admin-border);
+  padding-block: 1rem;
+}
+
+.admin-empty-state {
+  min-height: 11rem;
+  border: 1px dashed var(--admin-border);
+  border-radius: 0.75rem;
+  background: var(--admin-surface-subtle);
+}
+
+.admin-page .admin-empty-state {
+  min-height: 8rem !important;
+}
+
+.admin-multi-select__trigger {
+  justify-content: space-between;
+  text-align: left;
+}
+
+.admin-multi-select__check {
+  margin-inline-start: auto;
+  color: var(--admin-success-fg);
+}
+
+.admin-rate-plan-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.admin-rate-plan-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.1fr) minmax(14rem, 2fr) auto;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.75rem;
+  background: var(--admin-surface);
+  padding: 1rem 1.1rem;
+}
+
+.admin-rate-plan-row h2,
+.admin-rate-plan-row p {
+  margin: 0;
+}
+
+.admin-rate-plan-row h2 {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--admin-ink-strong);
+  font-size: 0.96rem;
+}
+
+.admin-rate-plan-row > p:nth-of-type(2) {
+  color: var(--admin-ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.admin-rate-plan-row > ul {
+  display: none;
+}
+
+.admin-rate-plan-row > button,
+.admin-rate-plan-row > .admin-row-actions,
+.admin-rate-plan-row > div {
+  justify-self: end;
+}
+
+.admin-price-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
+  gap: 0.7rem;
+  border-bottom: 1px solid var(--admin-border);
+  padding-block: 0.8rem;
+}
+
+.admin-price-editor label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--admin-ink-muted);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+@media (max-width: 64rem) {
+  .admin-rate-plan-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-rate-plan-row > p:nth-of-type(2) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 40rem) {
+  .admin-rate-plan-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-rate-plan-row > button {
+    justify-self: stretch;
+  }
+
+  .admin-price-editor {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-app-shell *,
+.admin-app-shell *::before,
+.admin-app-shell *::after {
+  animation-duration: 0s !important;
+  animation-iteration-count: 1 !important;
+}
+
+@media (max-width: 68rem) {
+  .admin-data-table {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .admin-data-table [data-slot='table-container'] {
+    overflow: visible;
+  }
+
+  .admin-data-table table {
+    display: block;
+  }
+
+  .admin-data-table thead {
+    display: none;
+  }
+
+  .admin-data-table tbody {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .admin-data-table tr {
+    display: grid;
+    gap: 0.1rem;
+    border: 1px solid var(--admin-border);
+    border-radius: 0.75rem;
+    background: var(--admin-surface);
+    padding: 0.4rem;
+  }
+
+  .admin-data-table td {
+    display: grid;
+    grid-template-columns: minmax(7.5rem, 34%) minmax(0, 1fr);
+    gap: 0.6rem;
+    width: 100% !important;
+    max-width: none;
+    border: 0;
+    padding: 0.5rem;
+  }
+
+  .admin-data-table td::before {
+    color: var(--admin-ink-muted);
+    content: attr(data-label);
+    font-size: 0.67rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .admin-data-table td:last-child {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 48rem) {
+  .admin-app-shell .admin-nav {
+    width: auto;
+    flex-basis: auto;
+  }
+
+  .admin-page {
+    padding-inline: 1rem;
+  }
+
+  .admin-topbar {
+    min-height: 3.75rem;
+    padding-inline: 0.85rem;
+  }
+
+  .admin-profile-trigger__copy {
+    display: none;
+  }
+
+  .admin-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-page-header__actions {
+    width: 100%;
+  }
+
+  .admin-page-header__actions > * {
+    width: 100%;
+  }
+}
+
+@media (max-width: 30rem) {
+  .admin-page {
+    padding-inline: 0.75rem;
+  }
+
+  .admin-data-table td {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+}
+
+/* Final route-neutral admin overrides. These are kept at EOF so older route
+   selectors cannot reintroduce blank filter canvases or expanded price walls. */
+.admin-page .admin-filter-toolbar,
+.admin-overview .admin-filter-toolbar,
+.room-operations-board .admin-filter-toolbar {
+  display: block;
+}
+
+.admin-page .admin-filter-toolbar > .admin-filter-toolbar__controls,
+.admin-overview .admin-filter-toolbar > .admin-filter-toolbar__controls,
+.room-operations-board .admin-filter-toolbar > .admin-filter-toolbar__controls {
+  width: 100%;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.1fr) minmax(14rem, 2fr) auto;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.75rem;
+  background: var(--admin-surface);
+  padding: 1rem 1.1rem;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row > ul {
+  display: none !important;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row > p {
+  margin: 0;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row h2 {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  font-size: 0.96rem;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row h2 .admin-muted {
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-row > p:nth-of-type(2) {
+  color: var(--admin-ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.admin-page.admin-page--rate-plans .admin-rate-plan-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  justify-self: end;
+}
+
+.room-board-toolbar {
+  display: block;
+}
+
+.room-board-toolbar .admin-filter-toolbar__controls {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(8rem, 0.9fr) minmax(12rem, 1.5fr) minmax(9rem, 0.8fr) auto;
+  align-items: end;
+}
+
+.room-board-toolbar > .admin-filter-toolbar__summary {
+  grid-column: 1 / -1;
+  margin-top: 0.55rem;
+}
+
+@media (max-width: 64rem) {
+  .admin-page.admin-page--rate-plans .admin-rate-plan-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+@media (max-width: 56rem) {
+  .room-board-toolbar .admin-filter-toolbar__controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .admin-page.admin-page--rate-plans .admin-rate-plan-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-page.admin-page--rate-plans .admin-rate-plan-actions {
+    justify-self: stretch;
+  }
+
+  .room-board-toolbar .admin-filter-toolbar__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-page .report-filters > .admin-filter-toolbar__controls > button {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 }

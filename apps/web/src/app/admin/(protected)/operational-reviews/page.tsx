@@ -117,7 +117,11 @@ export default function OperationalReviewsPage() {
             }
           >
             <SelectTrigger id="admin-review-status" className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {filters.status === ''
+                  ? translate(locale, 'admin.all')
+                  : translateAdminStatus(locale, filters.status)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((value) => (
@@ -139,7 +143,7 @@ export default function OperationalReviewsPage() {
             onChange={(event) =>
               setFilters((current) => ({ ...current, bookingCode: event.target.value }))
             }
-            placeholder="BK-ABCDEF"
+            placeholder={translate(locale, 'admin.bookingCodePlaceholder')}
             type="search"
             value={filters.bookingCode}
           />
@@ -161,7 +165,7 @@ export default function OperationalReviewsPage() {
         <AdminEmptyState title={translate(locale, 'admin.reviewsEmpty')} />
       ) : null}
       {items !== undefined && items.length > 0 ? (
-        <AdminDataTable>
+        <AdminDataTable className="admin-reviews-table">
           <table>
             <thead>
               <tr>
