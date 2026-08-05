@@ -37,7 +37,13 @@ describe('AdminPermissionGuard', () => {
       ForbiddenException,
     );
 
-    const actor = { role: 'ADMIN', permissions: ['catalog.room.manage'], userId: 'admin-id' };
+    const actor = {
+      role: 'SUPER_ADMIN',
+      profileCode: 'SUPER_ADMIN',
+      accountStatus: 'ACTIVE',
+      permissions: ['catalog.room.manage'],
+      userId: 'admin-id',
+    };
     const permitted = new AdminPermissionGuard(reflector as never, {
       getActor: vi.fn().mockResolvedValue(actor),
     });

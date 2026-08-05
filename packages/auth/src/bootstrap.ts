@@ -6,7 +6,7 @@ export interface BootstrapAdminInput {
   readonly productionAcknowledged?: boolean;
 }
 
-export type BootstrapAdminRole = 'ADMIN' | 'SUPER_ADMIN';
+export type BootstrapAdminRole = 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
 
 export interface BootstrapAdminDependencies {
   readonly createAdmin: (input: {
@@ -41,9 +41,9 @@ function validatePassword(password: string): void {
 }
 
 function normalizeRole(role: BootstrapAdminRole | undefined): BootstrapAdminRole {
-  if (role === undefined) return 'ADMIN';
-  if (role === 'ADMIN' || role === 'SUPER_ADMIN') return role;
-  throw new BootstrapAdminError('ADMIN bootstrap role must be ADMIN or SUPER_ADMIN.');
+  if (role === undefined) return 'SUPER_ADMIN';
+  if (role === 'SUPER_ADMIN' || role === 'ROOM_STATUS_VIEWER') return role;
+  throw new BootstrapAdminError('ADMIN bootstrap role must be SUPER_ADMIN or ROOM_STATUS_VIEWER.');
 }
 
 export async function bootstrapAdmin(

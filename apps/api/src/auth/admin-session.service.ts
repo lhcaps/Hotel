@@ -1,4 +1,12 @@
-import type { HumanRole, Permission } from '@room/auth';
+import type { AdminProfileCode, HumanRole, Permission } from '@room/auth';
+
+export interface AdminAccess {
+  readonly role: Extract<HumanRole, 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER'>;
+  readonly profileCode: AdminProfileCode;
+  readonly profileLabelVi: string;
+  readonly permissions: readonly Permission[];
+  readonly departments: readonly { readonly id: string; readonly name: string }[];
+}
 
 import { createActorContext, type ActorContext } from './actor-context.js';
 
@@ -17,11 +25,7 @@ export interface AuthUserReader {
     role: HumanRole;
     status: 'ACTIVE' | 'DISABLED';
   } | null>;
-  findAdminAccess?(userId: string): Promise<{
-    readonly role: HumanRole;
-    readonly permissions: readonly Permission[];
-    readonly departments: readonly string[];
-  } | null>;
+  findAdminAccess?(userId: string): Promise<AdminAccess | null>;
 }
 
 export class AdminSessionService {
@@ -48,7 +52,10 @@ export class AdminSessionService {
     return createActorContext({
       user: { ...user, role: effectiveRole },
       session: session.session,
-      ...(access ? { permissions: access.permissions, departments: access.departments } : {}),
+      permissions: user.status === 'ACTIVE' ? (access?.permissions ?? []) : [],
+      profileCode: access?.profileCode ?? null,
+      profileLabelVi: access?.profileLabelVi ?? null,
+      departments: access?.departments ?? [],
       requestId: request.id,
       ...(typeof correlation === 'string' ? { correlationId: correlation } : {}),
     });

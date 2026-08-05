@@ -7,9 +7,9 @@ import { createDatabaseBootstrapDependencies } from '../src/database-bootstrap.j
 const environment = requireApiEnvironment();
 const email = process.env.ADMIN_BOOTSTRAP_EMAIL;
 const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
-const requestedRole = process.env.ADMIN_BOOTSTRAP_ROLE ?? 'ADMIN';
-if (requestedRole !== 'ADMIN' && requestedRole !== 'SUPER_ADMIN') {
-  throw new Error('ADMIN_BOOTSTRAP_ROLE must be ADMIN or SUPER_ADMIN.');
+const requestedRole = process.env.ADMIN_BOOTSTRAP_ROLE ?? 'SUPER_ADMIN';
+if (requestedRole !== 'SUPER_ADMIN' && requestedRole !== 'ROOM_STATUS_VIEWER') {
+  throw new Error('ADMIN_BOOTSTRAP_ROLE must be SUPER_ADMIN or ROOM_STATUS_VIEWER.');
 }
 const role: BootstrapAdminRole = requestedRole;
 if (email === undefined || password === undefined) {

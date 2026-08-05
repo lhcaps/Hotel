@@ -1,4 +1,4 @@
-import { createRoomAuth, ROLE_PERMISSIONS, type HumanRole } from '@room/auth';
+import { ADMIN_PROFILE_LABELS_VI, createRoomAuth, ROLE_PERMISSIONS } from '@room/auth';
 import { fromNodeHeaders } from 'better-auth/node';
 
 import {
@@ -39,45 +39,39 @@ export function createAuthUserReader(database: DatabaseProvider): AuthUserReader
       const memberships = await database.client.query.adminMemberships.findMany({
         where: (fields, { and, eq }) => and(eq(fields.userId, userId), eq(fields.status, 'ACTIVE')),
       });
-      if (memberships.length === 0) {
-        const legacyUser = await database.client.query.users.findFirst({
-          where: (fields, { eq }) => eq(fields.id, userId),
-          columns: { role: true },
-        });
-        if (
-          legacyUser?.role === 'ADMIN' ||
-          legacyUser?.role === 'SUPER_ADMIN' ||
-          legacyUser?.role === 'ROOM_STATUS_VIEWER'
-        ) {
-          return {
-            role: legacyUser.role,
-            permissions: ROLE_PERMISSIONS[legacyUser.role],
-            departments: [],
-          };
-        }
-        return null;
-      }
-      const rank = { ROOM_STATUS_VIEWER: 1, ADMIN: 2, SUPER_ADMIN: 3 } as const;
-      const role = memberships.reduce<HumanRole>((current, membership) => {
-        const candidate = membership.role as HumanRole;
-        return (rank[candidate as keyof typeof rank] ?? 0) >
-          (rank[current as keyof typeof rank] ?? 0)
-          ? candidate
-          : current;
-      }, 'ROOM_STATUS_VIEWER');
+      const scopedMemberships = memberships.filter(
+        (
+          membership,
+        ): membership is typeof membership & {
+          role: 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
+        } => membership.role === 'SUPER_ADMIN' || membership.role === 'ROOM_STATUS_VIEWER',
+      );
+      if (scopedMemberships.length === 0) return null;
+      const rank = { ROOM_STATUS_VIEWER: 1, SUPER_ADMIN: 2 } as const;
+      const role = scopedMemberships.reduce<'ROOM_STATUS_VIEWER' | 'SUPER_ADMIN'>(
+        (current, membership) =>
+          rank[membership.role] > rank[current] ? membership.role : current,
+        'ROOM_STATUS_VIEWER',
+      );
       const departments = await Promise.all(
-        memberships.map(async (membership) => {
+        scopedMemberships.map(async (membership) => {
           const department = await database.client.query.adminDepartments.findFirst({
             where: (fields, { eq }) => eq(fields.id, membership.departmentId),
             columns: { name: true },
           });
-          return department?.name;
+          return department === undefined
+            ? undefined
+            : { id: membership.departmentId, name: department.name };
         }),
       );
       return {
         role,
+        profileCode: role,
+        profileLabelVi: ADMIN_PROFILE_LABELS_VI[role],
         permissions: ROLE_PERMISSIONS[role],
-        departments: departments.filter((name): name is string => name !== undefined),
+        departments: departments.filter(
+          (department): department is { id: string; name: string } => department !== undefined,
+        ),
       };
     },
   };

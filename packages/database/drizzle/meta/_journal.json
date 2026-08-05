@@ -197,6 +197,13 @@
       "when": 1785860921052,
       "tag": "0027_superb_sumo",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1785911756387,
+      "tag": "0028_admin_v2_membership_bootstrap",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ const nameSchema = z.string().trim().min(1).max(160);
 const optionalDescriptionSchema = z.string().trim().min(1).max(2_000).nullable().optional();
 const statusSchema = z.enum(['ACTIVE', 'INACTIVE']);
 export const adminRoleSchema = z.enum(['ADMIN', 'SUPER_ADMIN', 'ROOM_STATUS_VIEWER']);
+export const adminProfileCodeSchema = z.enum(['SUPER_ADMIN', 'ROOM_STATUS_VIEWER']);
 export const roomHousekeepingStatusSchema = z.enum(['CLEAN', 'DIRTY', 'CLEANING']);
 const instantSchema = z.string().datetime({ offset: true });
 
@@ -47,6 +48,10 @@ export const adminMeSchema = z
     emailMasked: z.string().trim().min(3).max(320),
     displayName: nameSchema,
     role: adminRoleSchema,
+    profileCode: adminProfileCodeSchema,
+    profileLabelVi: z.string().trim().min(1).max(160),
+    accountStatus: z.enum(['ACTIVE', 'DISABLED']),
+    department: z.object({ id: uuidSchema, name: nameSchema }).nullable(),
     permissions: z.array(z.string().min(1)).readonly(),
     sessionExpiresAt: instantSchema,
     departments: z.array(z.string().min(1).max(160)).readonly().optional(),
@@ -76,6 +81,8 @@ export const adminAccountSchema = z
     emailMasked: z.string().trim().min(3).max(320),
     status: z.enum(['ACTIVE', 'DISABLED']),
     role: adminRoleSchema,
+    profileCode: adminProfileCodeSchema.nullable(),
+    profileLabelVi: z.string().trim().min(1).max(160).nullable(),
     departments: z.array(z.string().min(1).max(160)).readonly(),
     activeSessionCount: z.number().int().min(0),
     lastActivityAt: instantSchema.nullable(),
@@ -86,8 +93,8 @@ export const adminAccountSchema = z
 export const adminAccountPatchSchema = z
   .object({
     status: z.enum(['ACTIVE', 'DISABLED']).optional(),
-    role: adminRoleSchema.optional(),
-    departmentIds: z.array(uuidSchema).max(20).optional(),
+    role: adminProfileCodeSchema.optional(),
+    departmentIds: z.array(uuidSchema).min(1).max(20).optional(),
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, 'At least one account change is required.');
@@ -97,8 +104,8 @@ export const adminAccountCreateSchema = z
     displayName: nameSchema,
     email: z.email(),
     password: z.string().min(8).max(128),
-    role: adminRoleSchema,
-    departmentIds: z.array(uuidSchema).max(20).default([]),
+    role: adminProfileCodeSchema,
+    departmentIds: z.array(uuidSchema).min(1).max(20),
   })
   .strict();
 
@@ -125,6 +132,7 @@ export const adminAuditEntrySchema = z
     id: uuidSchema,
     eventType: z.string().trim().min(1).max(160),
     actorId: uuidSchema.nullable(),
+    actorName: z.string().trim().min(1).max(160).nullable(),
     aggregateType: z.string().trim().min(1).max(160),
     aggregateId: uuidSchema,
     payload: z.record(z.string(), z.unknown()),

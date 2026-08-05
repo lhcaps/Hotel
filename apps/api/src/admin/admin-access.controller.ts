@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards, Version } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+  Version,
+} from '@nestjs/common';
 
 import type { ActorContext } from '../auth/actor-context.js';
 import { AdminPermissionGuard } from '../auth/admin-permission.guard.js';
@@ -8,7 +19,7 @@ import { AdminAccessService } from './admin-access.service.js';
 @Controller('admin')
 @UseGuards(AdminPermissionGuard)
 export class AdminAccessController {
-  public constructor(private readonly access: AdminAccessService) {}
+  public constructor(@Inject(AdminAccessService) private readonly access: AdminAccessService) {}
 
   @Get('accounts')
   @Version('1')

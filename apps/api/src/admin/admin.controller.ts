@@ -19,9 +19,13 @@ export class AdminController {
       emailMasked: maskEmailForDisplay(actor.email),
       displayName: actor.displayName,
       role: actor.role,
+      profileCode: actor.profileCode,
+      profileLabelVi: actor.profileLabelVi,
+      accountStatus: actor.accountStatus,
+      department: actor.departments?.[0] ?? null,
       permissions: actor.permissions,
       sessionExpiresAt: actor.sessionExpiresAt.toISOString(),
-      departments: actor.departments,
+      departments: actor.departments?.map((department) => department.name) ?? [],
     });
   }
 }

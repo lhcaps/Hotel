@@ -38,6 +38,9 @@ export class AdminPermissionGuard implements CanActivate {
     if (actor === null) {
       throw new UnauthorizedException({ code: 'AUTHENTICATION_REQUIRED' });
     }
+    if (actor.accountStatus === 'DISABLED' || actor.profileCode == null) {
+      throw new ForbiddenException({ code: 'ADMIN_PROFILE_REQUIRED' });
+    }
     if (!required.every((permission) => actor.permissions.includes(permission))) {
       throw new ForbiddenException({ code: 'PERMISSION_DENIED' });
     }

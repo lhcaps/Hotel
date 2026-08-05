@@ -30,7 +30,7 @@ export interface AdminUserCreationInput {
   readonly email: string;
   readonly name: string;
   readonly password: string;
-  readonly role: 'ADMIN' | 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
+  readonly role: 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
 }
 
 const roomAdminRole = defaultAc.newRole({

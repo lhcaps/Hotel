@@ -27,7 +27,7 @@ describe('AdminAccessService', () => {
     };
 
     await expect(
-      service.updateAccount(actor, customerId, { role: 'ADMIN' }),
+      service.updateAccount(actor, customerId, { role: 'SUPER_ADMIN' }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -53,5 +53,36 @@ describe('AdminAccessService', () => {
         role: 'ADMIN',
       }),
     ).rejects.toMatchObject({ response: { code: 'SUPER_ADMIN_REQUIRED' } });
+  });
+
+  it('requires a department when assigning a V2 profile to a legacy ADMIN', async () => {
+    const database = {
+      query: {
+        users: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ id: 'legacy-id', role: 'ADMIN', status: 'ACTIVE' }),
+        },
+      },
+    };
+    const service = new AdminAccessService(database as never);
+    const actor = {
+      userId: 'super-admin-id',
+      email: 'admin@example.test',
+      displayName: 'Super Admin',
+      role: 'SUPER_ADMIN' as const,
+      profileCode: 'SUPER_ADMIN' as const,
+      permissions: [],
+      departments: [],
+      sessionId: 'session-id',
+      sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+      requestId: 'request-id',
+    };
+
+    await expect(
+      service.updateAccount(actor, 'legacy-id', { role: 'ROOM_STATUS_VIEWER' }),
+    ).rejects.toMatchObject({
+      response: { code: 'DEPARTMENT_REQUIRED' },
+    });
   });
 });

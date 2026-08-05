@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   archiveCommandSchema,
+  adminMeSchema,
   maintenanceBlockCommandSchema,
   paginationQuerySchema,
   problemDetailsSchema,
@@ -11,6 +12,24 @@ import {
 } from '../src/index.js';
 
 describe('admin catalog contracts', () => {
+  it('requires the server-derived profile label and department-safe session fields', () => {
+    expect(
+      adminMeSchema.parse({
+        id: 'f0db7698-6995-4c8e-a6cb-0d82e6f8281c',
+        emailMasked: 'a***@example.test',
+        displayName: 'Quản trị viên',
+        role: 'SUPER_ADMIN',
+        profileCode: 'SUPER_ADMIN',
+        profileLabelVi: 'Tổng quản trị',
+        accountStatus: 'ACTIVE',
+        department: { id: '72fec1a4-4df0-4c43-a7d4-a4f622d79e0a', name: 'Vận hành' },
+        permissions: ['admin.account.manage'],
+        sessionExpiresAt: '2027-01-01T00:00:00.000Z',
+        departments: ['Vận hành'],
+      }),
+    ).toMatchObject({ profileCode: 'SUPER_ADMIN', profileLabelVi: 'Tổng quản trị' });
+  });
+
   it('exposes a truthful housekeeping state for a room', () => {
     expect(
       roomSchema.parse({

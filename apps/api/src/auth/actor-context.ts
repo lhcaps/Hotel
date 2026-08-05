@@ -1,12 +1,20 @@
-import { ROLE_PERMISSIONS, type HumanRole, type Permission } from '@room/auth';
+import type { AdminProfileCode, HumanRole, Permission } from '@room/auth';
+
+export interface ActorDepartment {
+  readonly id: string;
+  readonly name: string;
+}
 
 export interface ActorContext {
   readonly userId: string;
   readonly email: string;
   readonly displayName: string;
   readonly role: HumanRole;
+  readonly profileCode?: AdminProfileCode | null;
+  readonly profileLabelVi?: string | null;
+  readonly accountStatus?: 'ACTIVE' | 'DISABLED';
   readonly permissions: readonly Permission[];
-  readonly departments?: readonly string[];
+  readonly departments?: readonly ActorDepartment[];
   readonly sessionId: string;
   readonly sessionExpiresAt: Date;
   readonly requestId: string;
@@ -23,7 +31,9 @@ export function createActorContext(input: {
   };
   readonly session: { readonly id: string; readonly expiresAt: Date };
   readonly permissions?: readonly Permission[];
-  readonly departments?: readonly string[];
+  readonly profileCode?: AdminProfileCode | null;
+  readonly profileLabelVi?: string | null;
+  readonly departments?: readonly ActorDepartment[];
   readonly requestId: string;
   readonly correlationId?: string;
 }): ActorContext {
@@ -32,7 +42,10 @@ export function createActorContext(input: {
     email: input.user.email,
     displayName: input.user.name,
     role: input.user.role,
-    permissions: input.permissions ?? ROLE_PERMISSIONS[input.user.role],
+    profileCode: input.profileCode ?? null,
+    profileLabelVi: input.profileLabelVi ?? null,
+    accountStatus: input.user.status,
+    permissions: input.permissions ?? [],
     departments: input.departments ?? [],
     sessionId: input.session.id,
     sessionExpiresAt: input.session.expiresAt,

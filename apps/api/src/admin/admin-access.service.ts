@@ -21,7 +21,12 @@ import {
   users,
   type DatabaseClient,
 } from '@room/database';
-import { createAuthAdminUser, type createRoomAuth } from '@room/auth';
+import {
+  ADMIN_PROFILE_LABELS_VI,
+  createAuthAdminUser,
+  type AdminProfileCode,
+  type createRoomAuth,
+} from '@room/auth';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 
 import type { ActorContext } from '../auth/actor-context.js';
@@ -32,9 +37,17 @@ type AdminDatabase = Pick<
 >;
 
 const ADMIN_ROLES = ['ADMIN', 'SUPER_ADMIN', 'ROOM_STATUS_VIEWER'] as const;
+const ADMIN_PROFILE_RANK: Readonly<Record<AdminProfileCode, number>> = {
+  ROOM_STATUS_VIEWER: 1,
+  SUPER_ADMIN: 2,
+};
 
 function isAdminRole(value: string): value is (typeof ADMIN_ROLES)[number] {
   return ADMIN_ROLES.includes(value as (typeof ADMIN_ROLES)[number]);
+}
+
+function isAdminProfile(value: string): value is AdminProfileCode {
+  return value === 'SUPER_ADMIN' || value === 'ROOM_STATUS_VIEWER';
 }
 
 function maskEmail(email: string): string {
@@ -44,6 +57,10 @@ function maskEmail(email: string): string {
   const domain = email.slice(at + 1);
   if (local.length <= 2) return `${local[0] ?? '*'}***@${domain}`;
   return `${local[0]}${'*'.repeat(Math.max(1, local.length - 2))}${local.at(-1)}@${domain}`;
+}
+
+function toIso(value: Date | string | null | undefined): string | null {
+  return value === null || value === undefined ? null : new Date(value).toISOString();
 }
 
 export class AdminAccessService {
@@ -71,15 +88,29 @@ export class AdminAccessService {
     if (actor.userId === id && patch.status === 'DISABLED') {
       throw new BadRequestException({ code: 'SELF_DISABLE_FORBIDDEN' });
     }
+    if (actor.userId === id && patch.role !== undefined) {
+      throw new BadRequestException({ code: 'SELF_PROFILE_CHANGE_FORBIDDEN' });
+    }
     const target = await this.database.query.users.findFirst({
       where: (fields, { eq }) => eq(fields.id, id),
     });
     if (target === undefined || !isAdminRole(target.role)) {
       throw new NotFoundException({ code: 'ADMIN_ACCOUNT_NOT_FOUND' });
     }
-    const role = patch.role ?? target.role;
-    if (!isAdminRole(role)) {
-      throw new BadRequestException({ code: 'ADMIN_ROLE_REQUIRED' });
+    const role = patch.role ?? (isAdminProfile(target.role) ? target.role : null);
+    if (patch.role === undefined && target.role === 'ADMIN' && patch.departmentIds !== undefined) {
+      throw new BadRequestException({ code: 'ADMIN_PROFILE_REQUIRED' });
+    }
+    if (role === null) {
+      if (patch.role !== undefined) {
+        throw new BadRequestException({ code: 'ADMIN_PROFILE_REQUIRED' });
+      }
+      if (patch.departmentIds !== undefined) {
+        throw new BadRequestException({ code: 'ADMIN_PROFILE_REQUIRED' });
+      }
+    }
+    if (target.role === 'ADMIN' && patch.role !== undefined && patch.departmentIds === undefined) {
+      throw new BadRequestException({ code: 'DEPARTMENT_REQUIRED' });
     }
     if (patch.departmentIds?.some((departmentId) => departmentId.trim() === '')) {
       throw new BadRequestException({ code: 'INVALID_DEPARTMENT_ID' });
@@ -87,23 +118,30 @@ export class AdminAccessService {
     await this.database.transaction(async (transaction) => {
       await transaction
         .update(users)
-        .set({ role, status: patch.status ?? target.status, updatedAt: new Date() })
+        .set({
+          role: role ?? target.role,
+          status: patch.status ?? target.status,
+          updatedAt: new Date(),
+        })
         .where(eq(users.id, id));
       if (patch.departmentIds !== undefined) {
         await transaction.delete(adminMemberships).where(eq(adminMemberships.userId, id));
-        if (patch.departmentIds.length > 0) {
-          await transaction.insert(adminMemberships).values(
-            patch.departmentIds.map((departmentId) => ({
-              userId: id,
-              departmentId,
-              role,
-            })),
-          );
-        }
+        await transaction.insert(adminMemberships).values(
+          patch.departmentIds.map((departmentId) => ({
+            userId: id,
+            departmentId,
+            role: role as 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER',
+          })),
+        );
+      } else if (patch.role !== undefined) {
+        await transaction
+          .update(adminMemberships)
+          .set({ role: patch.role, updatedAt: new Date() })
+          .where(eq(adminMemberships.userId, id));
       }
       await this.writeAudit(transaction, actor, id, 'ADMIN_ACCOUNT_UPDATED', {
         status: patch.status ?? target.status,
-        role,
+        role: role ?? target.role,
         departmentIds: patch.departmentIds ?? null,
       });
     });
@@ -142,14 +180,14 @@ export class AdminAccessService {
         status: row.status,
         bookingCount: row.bookingCount,
         activeSessionCount: row.activeSessionCount,
-        lastActivityAt: row.lastActivityAt?.toISOString() ?? null,
-        createdAt: row.createdAt.toISOString(),
+        lastActivityAt: toIso(row.lastActivityAt),
+        createdAt: new Date(row.createdAt).toISOString(),
       }),
     );
   }
 
   public async createAccount(actor: ActorContext, input: unknown) {
-    if (actor.role !== 'SUPER_ADMIN') {
+    if (actor.profileCode !== 'SUPER_ADMIN') {
       throw new BadRequestException({ code: 'SUPER_ADMIN_REQUIRED' });
     }
     const command = adminAccountCreateSchema.parse(input);
@@ -295,12 +333,14 @@ export class AdminAccessService {
         id: auditEvents.id,
         eventType: auditEvents.eventType,
         actorId: auditEvents.actorId,
+        actorName: users.name,
         aggregateType: auditEvents.aggregateType,
         aggregateId: auditEvents.aggregateId,
         payload: auditEvents.payload,
         occurredAt: auditEvents.occurredAt,
       })
       .from(auditEvents)
+      .leftJoin(users, eq(users.id, auditEvents.actorId))
       .where(sql`${auditEvents.eventType} LIKE 'ADMIN_%'`)
       .orderBy(sql`${auditEvents.occurredAt} DESC`)
       .limit(100);
@@ -341,12 +381,19 @@ export class AdminAccessService {
         return department?.name;
       }),
     );
+    const profileCode =
+      memberships
+        .map((membership) => membership.role)
+        .filter((role): role is AdminProfileCode => isAdminProfile(role))
+        .sort((left, right) => ADMIN_PROFILE_RANK[right] - ADMIN_PROFILE_RANK[left])[0] ?? null;
     return {
       id: row.id,
       displayName: row.name,
       emailMasked: maskEmail(row.email),
       status: row.status,
       role: row.role,
+      profileCode,
+      profileLabelVi: profileCode === null ? null : ADMIN_PROFILE_LABELS_VI[profileCode],
       departments: departments.filter((name): name is string => name !== undefined),
       activeSessionCount: activeSessions.length,
       lastActivityAt:

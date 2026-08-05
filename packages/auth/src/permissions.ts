@@ -1,4 +1,47 @@
+export const ADMIN_PROFILE_CODES = ['SUPER_ADMIN', 'ROOM_STATUS_VIEWER'] as const;
+export type AdminProfileCode = (typeof ADMIN_PROFILE_CODES)[number];
+
+export const ADMIN_PROFILE_LABELS_VI: Readonly<Record<AdminProfileCode, string>> = {
+  SUPER_ADMIN: 'Tổng quản trị',
+  ROOM_STATUS_VIEWER: 'Nhân viên theo dõi phòng',
+};
+
 export const PERMISSIONS = [
+  'dashboard.read',
+  'bookings.read',
+  'bookings.manage',
+  'bookings.checkin',
+  'bookings.checkout',
+  'bookings.cancel',
+  'customers.read',
+  'customers.manage',
+  'customers.sessions.revoke',
+  'rooms.read',
+  'rooms.manage',
+  'room_operations.read',
+  'room_operations.manage',
+  'maintenance.read',
+  'maintenance.manage',
+  'payments.read',
+  'payments.reconcile',
+  'payments.refund',
+  'reviews.read',
+  'reviews.manage',
+  'catalog.read',
+  'catalog.manage',
+  'amenities.manage',
+  'pricing.read',
+  'pricing.manage',
+  'coupons.manage',
+  'providers.read',
+  'providers.manage',
+  'admin_accounts.read',
+  'admin_accounts.manage',
+  'departments.read',
+  'departments.manage',
+  'audit.read',
+  'property.read',
+  'property.manage',
   'catalog.property.read',
   'catalog.property.manage',
   'catalog.price_tier.read',
@@ -16,7 +59,6 @@ export const PERMISSIONS = [
   'coupon.manage',
   'pricing.rate_plan.read',
   'pricing.rate_plan.manage',
-  'audit.read',
   'booking.lifecycle.read',
   'booking.lifecycle.manage',
   'booking.review.read',
@@ -34,9 +76,19 @@ export type Permission = (typeof PERMISSIONS)[number];
 export type HumanRole = 'ADMIN' | 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER' | 'CUSTOMER';
 
 export const ROLE_PERMISSIONS: Readonly<Record<HumanRole, readonly Permission[]>> = {
-  ADMIN: PERMISSIONS,
+  // Legacy ADMIN rows remain a top-level role for compatibility but do not
+  // acquire an ADMIN V2 profile without an active membership.
+  ADMIN: [],
   SUPER_ADMIN: PERMISSIONS,
-  ROOM_STATUS_VIEWER: ['catalog.property.read', 'catalog.room.read', 'catalog.room.status.read'],
+  ROOM_STATUS_VIEWER: [
+    'catalog.property.read',
+    'catalog.room.read',
+    'catalog.room.status.read',
+    'catalog.maintenance.read',
+    'rooms.read',
+    'room_operations.read',
+    'maintenance.read',
+  ],
   CUSTOMER: [],
 };
 

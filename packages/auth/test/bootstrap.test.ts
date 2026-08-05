@@ -7,7 +7,7 @@ import { bootstrapAdmin, BootstrapAdminError } from '../src/bootstrap.js';
 const testPassword = `Aa1-${randomBytes(32).toString('base64url')}`;
 
 describe('bootstrapAdmin', () => {
-  it('creates an active ADMIN once and never includes the password in output', async () => {
+  it('creates an active SUPER_ADMIN by default and never includes the password in output', async () => {
     const createAdmin = vi.fn().mockResolvedValue({ id: 'admin-id', created: true });
 
     const result = await bootstrapAdmin(
@@ -22,30 +22,30 @@ describe('bootstrapAdmin', () => {
     expect(createAdmin).toHaveBeenCalledWith({
       email: 'admin@example.test',
       password: testPassword,
-      role: 'ADMIN',
+      role: 'SUPER_ADMIN',
       status: 'ACTIVE',
     });
     expect(result).toEqual({ email: 'admin@example.test', created: true });
     expect(JSON.stringify(result)).not.toContain(testPassword);
   });
 
-  it('creates an explicitly requested SUPER_ADMIN without changing the default role', async () => {
-    const createAdmin = vi.fn().mockResolvedValue({ id: 'super-admin-id', created: true });
+  it('creates an explicitly requested room-status viewer', async () => {
+    const createAdmin = vi.fn().mockResolvedValue({ id: 'viewer-id', created: true });
 
     await bootstrapAdmin(
       {
-        email: 'superadmin@example.test',
+        email: 'viewer@example.test',
         password: testPassword,
-        role: 'SUPER_ADMIN',
+        role: 'ROOM_STATUS_VIEWER',
         environment: 'development',
       },
       { createAdmin },
     );
 
     expect(createAdmin).toHaveBeenCalledWith({
-      email: 'superadmin@example.test',
+      email: 'viewer@example.test',
       password: testPassword,
-      role: 'SUPER_ADMIN',
+      role: 'ROOM_STATUS_VIEWER',
       status: 'ACTIVE',
     });
   });
