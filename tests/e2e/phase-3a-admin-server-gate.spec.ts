@@ -111,6 +111,7 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
     }
 
     // Logout via the dedicated ADMIN button.
+    await page.getByRole('button', { name: 'Mở hồ sơ quản trị' }).click();
     await page.getByRole('button', { name: 'Đăng xuất' }).click();
     await page.waitForURL(/\/admin\/login$/);
 

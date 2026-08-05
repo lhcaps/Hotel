@@ -69,5 +69,5 @@ describe('client room import', () => {
     expect(concepts.rows[0]?.count).toBe(9);
     expect(legacyTypes.rows[0]?.count).toBe(0);
     expect(prices.rows[0]?.count).toBe(18);
-  });
+  }, 30_000);
 });

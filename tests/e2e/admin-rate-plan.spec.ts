@@ -2,6 +2,33 @@ import { expect, test } from '@playwright/test';
 
 import { playwrightAdminEmail, playwrightAdminPassword } from './admin-credentials';
 
+async function savePlanPrice(
+  page: import('@playwright/test').Page,
+  plan: import('@playwright/test').Locator,
+  tierName: string,
+  amount: number,
+): Promise<void> {
+  await plan.getByRole('button', { name: 'Lưu giá' }).click();
+  const sheet = page.getByRole('dialog');
+  const input = sheet.getByRole('spinbutton', { name: new RegExp(`${tierName}$`, 'i') });
+  await input.fill(String(amount));
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (candidate) =>
+        candidate.request().method() === 'PATCH' &&
+        /\/admin\/rate-plans\/[^/]+\/prices\/[^/]+$/.test(candidate.url()),
+    ),
+    input
+      .locator('xpath=ancestor::div[contains(@class, "admin-price-editor")]')
+      .getByRole('button', { name: 'Lưu giá' })
+      .click(),
+  ]);
+  expect(response.ok()).toBeTruthy();
+  await expect(input).toHaveValue(String(amount));
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+}
+
 async function issueQuoteAt(
   page: import('@playwright/test').Page,
   checkIn: string,
@@ -34,20 +61,9 @@ test('ADMIN updates an active rate-plan price and sees the persisted value after
 
   await page.goto('/admin/rate-plans');
   const plan = page.getByRole('article', { name: /Lunch combo/i });
-  const price = plan.getByRole('spinbutton', { name: /Deluxe$/i });
-  await expect(price).toBeEnabled();
-  await price.fill('369000');
-  await price.locator('xpath=ancestor::li').getByRole('button').click();
-  await expect(price).toHaveValue('369000');
+  await savePlanPrice(page, plan, 'Deluxe', 369000);
   await page.reload();
-  await expect(
-    page
-      .getByRole('article', { name: /Lunch combo/i })
-      .getByRole('spinbutton', { name: /Deluxe$/i }),
-  ).toHaveValue('369000');
-  await price.fill('359000');
-  await price.locator('xpath=ancestor::li').getByRole('button').click();
-  await expect(price).toHaveValue('359000');
+  await savePlanPrice(page, page.getByRole('article', { name: /Lunch combo/i }), 'Deluxe', 359000);
 });
 
 test('ADMIN changes the lunch boundary through the UI and historical quotes remain immutable', async ({
@@ -62,18 +78,7 @@ test('ADMIN changes the lunch boundary through the UI and historical quotes rema
   await page.goto('/admin/rate-plans');
   const lunch = page.getByRole('article', { name: /Lunch combo/i });
   await expect(lunch).toBeVisible();
-  const lunchPrice = lunch.getByRole('spinbutton', { name: /Deluxe$/i });
-  await lunchPrice.fill('200000');
-  const [priceResponse] = await Promise.all([
-    page.waitForResponse(
-      (response) =>
-        response.request().method() === 'PATCH' &&
-        /\/admin\/rate-plans\/[^/]+\/prices\/[^/]+$/.test(response.url()),
-    ),
-    lunchPrice.locator('xpath=ancestor::li').getByRole('button').click(),
-  ]);
-  expect(priceResponse.ok()).toBeTruthy();
-  await expect(lunch.getByRole('spinbutton', { name: /Deluxe$/i })).toHaveValue('200000');
+  await savePlanPrice(page, lunch, 'Deluxe', 200000);
   await lunch.getByRole('button', { name: 'Điều kiện áp dụng' }).click();
   let selectionDialog = page.getByRole('dialog');
   const rules = selectionDialog.getByRole('combobox');
@@ -115,15 +120,5 @@ test('ADMIN changes the lunch boundary through the UI and historical quotes rema
     pricing: { selectedPlanCode: 'LUNCH_COMBO' },
   });
 
-  const restoredLunchPrice = lunch.getByRole('spinbutton', { name: /Deluxe$/i });
-  await restoredLunchPrice.fill('359000');
-  const [restoreResponse] = await Promise.all([
-    page.waitForResponse(
-      (response) =>
-        response.request().method() === 'PATCH' &&
-        /\/admin\/rate-plans\/[^/]+\/prices\/[^/]+$/.test(response.url()),
-    ),
-    restoredLunchPrice.locator('xpath=ancestor::li').getByRole('button').click(),
-  ]);
-  expect(restoreResponse.ok()).toBeTruthy();
+  await savePlanPrice(page, lunch, 'Deluxe', 359000);
 });

@@ -9,7 +9,7 @@ test('ADMIN reads and refreshes the server-backed room operations board', async 
   await page.getByRole('button', { name: 'Đăng nhập' }).click();
   await expect(page).toHaveURL(/\/admin$/);
 
-  await page.goto('/admin/rooms');
+  await page.goto('/admin/room-operations');
   await expect(page.locator('#room-board-heading')).toBeVisible();
   await expect(page.locator('.room-board-group tbody tr').first()).toBeVisible();
   await page.getByRole('button', { name: /Refresh board|Làm mới bảng/ }).click();

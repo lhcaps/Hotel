@@ -27,11 +27,14 @@ test('ADMIN creates a room type', async ({ page }) => {
   const editDialog = page.getByRole('dialog');
   await expect(editDialog.locator('#room-type-edit-name')).toHaveValue('Suite');
   await editDialog.getByRole('button', { name: 'Lưu thay đổi' }).click();
-  const amenitySelect = page.locator('#room-type-assign-amenity');
-  await amenitySelect.click();
+  await page.getByRole('button', { name: 'Gán tiện nghi' }).first().click();
+  const amenitySheet = page.getByRole('dialog');
+  await amenitySheet.getByRole('combobox', { name: 'Tiện nghi' }).click();
   await page.getByRole('option', { name: 'Wi-Fi Suite' }).click();
-  await page.getByRole('button', { name: 'Gán tiện nghi' }).click();
+  await amenitySheet.getByRole('button', { name: 'Gán tiện nghi' }).click();
   await expect(page.getByText('Đã gán tiện nghi cho loại phòng.')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Lưu trữ Suite' }).click();
   await expect(suiteRow.getByRole('cell', { name: 'Đang hoạt động', exact: true })).toBeVisible();
 });

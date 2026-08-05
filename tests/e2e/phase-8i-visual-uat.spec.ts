@@ -93,7 +93,7 @@ test('captures 13 Phase 8I client-UAT surfaces with isolated synthetic data', as
   await expect(page.getByRole('heading', { name: 'Daily revenue' })).toBeVisible();
   await capture(page, '06-admin-report-nonempty-desktop');
 
-  await page.goto('/admin/rooms');
+  await page.goto('/admin/room-operations');
   await expect(
     page.getByRole('heading', { name: /Room operations board|Tình trạng phòng/ }),
   ).toBeVisible();
@@ -116,7 +116,7 @@ test('captures 13 Phase 8I client-UAT surfaces with isolated synthetic data', as
   await capture(page, '11-admin-operational-reviews-desktop');
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/admin/rooms');
+  await page.goto('/admin/room-operations');
   await expect(
     page.getByRole('heading', { name: /Room operations board|Tình trạng phòng/ }),
   ).toBeVisible();

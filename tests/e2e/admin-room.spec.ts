@@ -13,5 +13,7 @@ test('ADMIN creates a physical room', async ({ page }) => {
   await page.getByRole('button', { name: 'Tạo phòng' }).click();
   await expect(page.getByText('Đã tạo phòng 102.')).toBeVisible();
   await page.goto('/admin/rooms');
-  await expect(page.getByRole('cell', { name: '102', exact: true })).toBeVisible();
+  await expect(
+    page.locator('tr', { has: page.getByRole('cell', { name: '102', exact: true }).first() }),
+  ).toBeVisible();
 });

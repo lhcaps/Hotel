@@ -21,7 +21,7 @@ test('captures Phase 8H server-backed operations evidence', async ({ page }) => 
   await expect(page.getByText('Doanh thu gộp')).toBeVisible();
   await captureOnce(page, 'output/playwright/phase-8h-operational-report-desktop.png');
 
-  await page.goto('/admin/rooms');
+  await page.goto('/admin/room-operations');
   await expect(page.locator('#room-board-heading')).toBeVisible();
   await captureOnce(page, 'output/playwright/phase-8h-room-operations-desktop.png');
 

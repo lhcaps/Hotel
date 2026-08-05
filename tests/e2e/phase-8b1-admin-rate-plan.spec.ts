@@ -32,6 +32,39 @@ import { fillHourlySearch } from './public-search-helpers';
 const ROOM_TYPE_ID = '10000000-0000-4000-8000-000000000201';
 const API_BASE = 'http://127.0.0.1:3101/api/v1';
 
+async function savePlanPrice(
+  page: import('@playwright/test').Page,
+  plan: import('@playwright/test').Locator,
+  tierName: string,
+  amount: number,
+): Promise<void> {
+  await plan.getByRole('button', { name: 'Lưu giá' }).click();
+  const sheet = page.getByRole('dialog');
+  const input = sheet.getByRole('spinbutton', { name: new RegExp(`${tierName}$`, 'i') });
+  await input.fill(String(amount));
+  const [priceResponse, reloadedPlansResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.request().method() === 'PATCH' &&
+        /\/admin\/rate-plans\/[^/]+\/prices\/[^/]+$/.test(response.url()),
+    ),
+    page.waitForResponse(
+      (response) =>
+        response.request().method() === 'GET' &&
+        response.url().endsWith('/api/v1/admin/rate-plans'),
+    ),
+    input
+      .locator('xpath=ancestor::div[contains(@class, "admin-price-editor")]')
+      .getByRole('button', { name: 'Lưu giá' })
+      .click(),
+  ]);
+  expect(priceResponse.ok()).toBeTruthy();
+  expect(reloadedPlansResponse.ok()).toBeTruthy();
+  await expect(input).toHaveValue(String(amount));
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+}
+
 interface QuoteSummary {
   id: string;
   pricing: {
@@ -106,40 +139,11 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
     const planRow = page.getByRole('article', { name: new RegExp(planCode) });
     await expect(planRow).toBeVisible();
 
-    // Step 4: configure the price.
-    const priceInput = planRow.getByRole('spinbutton', { name: /Deluxe$/i });
-    await priceInput.fill('259000');
-    const [priceResponse, reloadedPlansResponse] = await Promise.all([
-      page.waitForResponse(
-        (response) =>
-          response.request().method() === 'PATCH' &&
-          /\/admin\/rate-plans\/[^/]+\/prices\/[^/]+$/.test(response.url()),
-      ),
-      page.waitForResponse(
-        (response) =>
-          response.request().method() === 'GET' &&
-          response.url().endsWith('/api/v1/admin/rate-plans'),
-      ),
-      priceInput.locator('xpath=ancestor::li').getByRole('button').click(),
-    ]);
-    expect(priceResponse.ok()).toBeTruthy();
-    expect(reloadedPlansResponse.ok()).toBeTruthy();
-    await expect(priceInput).toHaveValue('259000');
+    // Step 4: configure the price through the dedicated price sheet.
+    await savePlanPrice(page, planRow, 'Deluxe', 259000);
 
     for (const priceTierName of ['Standard', 'Signature']) {
-      const tierPrice = planRow.getByRole('spinbutton', {
-        name: new RegExp(`${priceTierName}$`),
-      });
-      await tierPrice.fill('259000');
-      const [tierPriceResponse] = await Promise.all([
-        page.waitForResponse(
-          (response) =>
-            response.request().method() === 'PATCH' &&
-            /\/admin\/rate-plans\/[^/]+\/prices\/[^/]+$/.test(response.url()),
-        ),
-        tierPrice.locator('xpath=ancestor::li').getByRole('button').click(),
-      ]);
-      expect(tierPriceResponse.ok()).toBeTruthy();
+      await savePlanPrice(page, planRow, priceTierName, 259000);
     }
 
     // The default priority (30) conflicts with LUNCH_COMBO in its window;
@@ -205,13 +209,7 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
     // Step 7: edit price; new quote reflects the change, old is immutable.
     await page.goto('/admin/rate-plans');
     const planRowAfter = page.getByRole('article', { name: new RegExp(planCode) });
-    await planRowAfter.getByRole('spinbutton', { name: /Deluxe$/i }).fill('279000');
-    await planRowAfter
-      .getByRole('spinbutton', { name: /Deluxe$/i })
-      .locator('xpath=ancestor::li')
-      .getByRole('button')
-      .click();
-    await expect(planRowAfter.getByRole('spinbutton', { name: /Deluxe$/i })).toHaveValue('279000');
+    await savePlanPrice(page, planRowAfter, 'Deluxe', 279000);
 
     const reQuoteResponsePromise = page.waitForResponse(
       (response) =>

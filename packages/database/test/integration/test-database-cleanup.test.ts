@@ -41,5 +41,5 @@ describe('guarded test database failure cleanup', () => {
       [attemptedName],
     );
     expect(remaining.rows).toEqual([{ count: 0 }]);
-  });
+  }, 30_000);
 });

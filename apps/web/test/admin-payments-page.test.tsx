@@ -174,9 +174,14 @@ describe('AdminPaymentsPage', () => {
     render(<AdminPaymentsPage />);
     await screen.findByText('BK-ABCDEF');
 
-    await user.selectOptions(screen.getByLabelText('Trạng thái'), 'REVIEW_REQUIRED');
-    await user.selectOptions(screen.getByLabelText('Nhà cung cấp'), 'MOMO');
-    await user.selectOptions(screen.getByLabelText('Review'), 'needs_review');
+    const choose = async (label: string, option: string) => {
+      await user.click(screen.getByRole('combobox', { name: label }));
+      await user.click(await screen.findByRole('option', { name: option }));
+    };
+
+    await choose('Trạng thái', 'Cần xem xét');
+    await choose('Nhà cung cấp', 'MoMo');
+    await choose('Review', 'Cần review');
     await user.click(screen.getByRole('button', { name: 'Áp dụng' }));
 
     await waitFor(() => {

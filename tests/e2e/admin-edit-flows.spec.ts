@@ -87,6 +87,7 @@ test('ADMIN shell never exposes a public header before authentication', async ({
 
 test('Sign out control is rendered in Vietnamese', async ({ page }) => {
   await loginAsAdmin(page);
+  await page.getByRole('button', { name: 'Mở hồ sơ quản trị' }).click();
   const signOut = page.getByRole('button', { name: 'Đăng xuất' });
   await expect(signOut).toBeVisible();
   const text = await signOut.innerText();
