@@ -18,44 +18,44 @@ const groups = [
   {
     label: 'admin.navReservations',
     links: [
-      ['admin.overview', '/admin'],
-      ['admin.bookings', '/admin/bookings'],
-      ['admin.scanner', '/admin/scanner'],
-      ['admin.payments', '/admin/payments'],
-      ['admin.reviews', '/admin/operational-reviews'],
+      ['admin.overview', '/admin', 'dashboard.read'],
+      ['admin.bookings', '/admin/bookings', 'booking.lifecycle.read'],
+      ['admin.scanner', '/admin/scanner', 'booking.lifecycle.read'],
+      ['admin.payments', '/admin/payments', 'payment.reconciliation.read'],
+      ['admin.reviews', '/admin/operational-reviews', 'booking.review.read'],
     ],
   },
   {
     label: 'admin.navOperations',
     links: [
-      ['admin.rooms', '/admin/rooms'],
-      ['admin.maintenance', '/admin/maintenance'],
-      ['admin.roomTypes', '/admin/room-types'],
-      ['admin.amenities', '/admin/amenities'],
+      ['admin.roomOperations', '/admin/room-operations', 'room_operations.read'],
+      ['admin.rooms', '/admin/rooms', 'catalog.room.read'],
+      ['admin.maintenance', '/admin/maintenance', 'catalog.maintenance.read'],
+      ['admin.roomTypes', '/admin/room-types', 'catalog.room_type.read'],
+      ['admin.amenities', '/admin/amenities', 'catalog.amenity.read'],
     ],
   },
   {
     label: 'admin.navSetup',
     links: [
-      ['admin.property', '/admin/property'],
-      ['admin.priceTiers', '/admin/price-tiers'],
-      ['admin.ratePlans', '/admin/rate-plans'],
-      ['admin.coupons', '/admin/coupons'],
-      ['admin.providers', '/admin/payment-providers'],
+      ['admin.property', '/admin/property', 'catalog.property.read'],
+      ['admin.priceTiers', '/admin/price-tiers', 'catalog.price_tier.read'],
+      ['admin.ratePlans', '/admin/rate-plans', 'pricing.rate_plan.read'],
+      ['admin.coupons', '/admin/coupons', 'coupon.read'],
+      ['admin.providers', '/admin/payment-providers', 'providers.read'],
     ],
   },
   {
     label: 'admin.accounts',
     links: [
-      ['admin.accounts', '/admin/accounts'],
-      ['admin.customerAccounts', '/admin/customer-accounts'],
-      ['admin.departments', '/admin/departments'],
-      ['admin.audit', '/admin/audit'],
+      ['admin.accounts', '/admin/accounts', 'admin.account.read'],
+      ['admin.departments', '/admin/departments', 'admin.department.read'],
+      ['admin.audit', '/admin/audit', 'admin.audit.read'],
     ],
   },
 ] as const satisfies readonly {
   readonly label: MessageKey;
-  readonly links: readonly (readonly [MessageKey, string])[];
+  readonly links: readonly (readonly [MessageKey, string, string])[];
 }[];
 
 function isCurrent(pathname: string, href: string) {
@@ -64,47 +64,19 @@ function isCurrent(pathname: string, href: string) {
     : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-const requiredPermissionByPath: Readonly<Record<string, string>> = {
-  '/admin/property': 'catalog.property.read',
-  '/admin/rooms': 'catalog.room.read',
-  '/admin/maintenance': 'catalog.maintenance.read',
-  '/admin/room-types': 'catalog.room_type.read',
-  '/admin/amenities': 'catalog.amenity.read',
-  '/admin/accounts': 'admin.account.read',
-  '/admin/customer-accounts': 'admin.account.read',
-  '/admin/departments': 'admin.department.read',
-  '/admin/audit': 'admin.audit.read',
-  '/admin/room-operations': 'catalog.room.read',
-};
-
 export function AdminNavigation({
   locale,
   permissions,
-  role,
 }: Readonly<{
   locale: Locale;
   permissions?: readonly string[];
-  role?: 'ADMIN' | 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
 }>) {
   const pathname = usePathname();
-  const navigationGroups =
-    role === 'ROOM_STATUS_VIEWER'
-      ? [
-          {
-            label: 'admin.navOperations' as const,
-            links: [['admin.roomOperations', '/admin/room-operations']] as const,
-          },
-        ]
-      : groups;
-  const visibleGroups = navigationGroups
+  const visibleGroups = groups
     .map((group) => ({
       ...group,
-      links: group.links.filter(([label, href]) => {
-        void label;
-        const required = requiredPermissionByPath[href];
-        return (
-          required === undefined || permissions === undefined || permissions.includes(required)
-        );
+      links: group.links.filter(([, , required]) => {
+        return permissions?.includes(required) ?? false;
       }),
     }))
     .filter((group) => group.links.length > 0);

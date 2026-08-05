@@ -72,6 +72,7 @@ export const adminOperationalReportSchema = z
     bookingCount: z.number().int().nonnegative(),
     confirmedCount: z.number().int().nonnegative(),
     cancellationCount: z.number().int().nonnegative(),
+    paymentReviewCount: z.number().int().nonnegative(),
     customerCount: z.number().int().nonnegative(),
     returningCustomerCount: z.number().int().nonnegative(),
     daily: z.array(adminOperationalReportSeriesPointSchema).readonly(),

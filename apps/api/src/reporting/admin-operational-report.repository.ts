@@ -14,6 +14,7 @@ interface MetricRow {
   booking_count: string | number | bigint;
   confirmed_count: string | number | bigint;
   cancellation_count: string | number | bigint;
+  payment_review_count: string | number | bigint;
   customer_count: string | number | bigint;
   returning_customer_count: string | number | bigint;
 }
@@ -161,6 +162,7 @@ export class AdminOperationalReportRepository implements AdminOperationalReportR
              COUNT(*)::text AS booking_count,
              COUNT(*) FILTER (WHERE status = 'CONFIRMED')::text AS confirmed_count,
              COUNT(*) FILTER (WHERE status = 'CANCELLED')::text AS cancellation_count,
+             COUNT(*) FILTER (WHERE payment_status = 'REVIEW_REQUIRED')::text AS payment_review_count,
              COUNT(DISTINCT customer_user_id)::text AS customer_count,
              (SELECT COUNT(*)::text FROM returning_customers) AS returning_customer_count
         FROM base`;
@@ -212,6 +214,7 @@ export class AdminOperationalReportRepository implements AdminOperationalReportR
       bookingCount: asCount(metrics.booking_count),
       confirmedCount: asCount(metrics.confirmed_count),
       cancellationCount: asCount(metrics.cancellation_count),
+      paymentReviewCount: asCount(metrics.payment_review_count),
       customerCount: asCount(metrics.customer_count),
       returningCustomerCount: asCount(metrics.returning_customer_count),
       daily: dailyResult.rows.map(toSeriesPoint),

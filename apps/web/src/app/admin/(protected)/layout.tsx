@@ -10,6 +10,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
+  SidebarTrigger,
 } from '../../../components/ui/sidebar';
 import { resolveLocale, translate } from '../../../lib/i18n/messages';
 import { resolveAdminSessionFromHeaders } from '../../../lib/admin-session-server';
@@ -50,7 +51,7 @@ export default async function AdminProtectedLayout({
 
   const pathname = headerStore.get(PATHNAME_HEADER) ?? '';
   if (
-    resolution.session.role === 'ROOM_STATUS_VIEWER' &&
+    resolution.session.profileCode === 'ROOM_STATUS_VIEWER' &&
     pathname !== '' &&
     pathname !== '/admin/room-operations' &&
     pathname !== '/admin/profile'
@@ -74,16 +75,19 @@ export default async function AdminProtectedLayout({
             <strong>Room Management</strong>
           </Link>
         </SidebarHeader>
-        <AdminNavigation
-          locale={locale}
-          permissions={resolution.session.permissions}
-          role={resolution.session.role}
-        />
+        <AdminNavigation locale={locale} permissions={resolution.session.permissions} />
       </Sidebar>
       <SidebarInset className="admin-workspace">
         <header className="admin-topbar">
+          <SidebarTrigger aria-label={translate(locale, 'admin.toggleNavigation')} />
           <span className="admin-topbar__eyebrow">{translate(locale, 'admin.session')}</span>
-          <Link href="/admin/profile">{translate(locale, 'admin.profile')}</Link>
+          <div className="admin-topbar__identity">
+            <Link href="/admin/profile">{resolution.session.displayName}</Link>
+            <span>{resolution.session.profileLabelVi}</span>
+            {resolution.session.department ? (
+              <span>{resolution.session.department.name}</span>
+            ) : null}
+          </div>
           <AdminLogoutButton />
         </header>
         <div id="admin-content" tabIndex={-1}>

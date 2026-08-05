@@ -31,6 +31,7 @@ export interface AdminOperationalReportAggregate {
   bookingCount: number;
   confirmedCount: number;
   cancellationCount: number;
+  paymentReviewCount: number;
   customerCount: number;
   returningCustomerCount: number;
   daily: readonly OperationalReportSeriesPoint[];
@@ -76,6 +77,7 @@ export class AdminOperationalReportService {
       bookingCount: report.bookingCount,
       confirmedCount: report.confirmedCount,
       cancellationCount: report.cancellationCount,
+      paymentReviewCount: report.paymentReviewCount,
       customerCount: report.customerCount,
       returningCustomerCount: report.returningCustomerCount,
       daily: report.daily.map((point) => ({

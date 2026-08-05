@@ -38,6 +38,7 @@ describe('Phase 8I sanitized UAT reporting fixtures', () => {
       bookingCount: 5,
       confirmedCount: 2,
       cancellationCount: 1,
+      paymentReviewCount: 1,
       customerCount: 2,
       returningCustomerCount: 1,
       daily: [

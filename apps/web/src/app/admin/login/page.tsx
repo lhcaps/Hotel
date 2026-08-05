@@ -39,11 +39,12 @@ export default function AdminLoginPage() {
         if (!response.ok) return;
         const parsed = adminMeSchema.safeParse(await response.json().catch(() => undefined));
         if (cancelled || !parsed.success) return;
-        if (parsed.data.role === 'ADMIN' || parsed.data.role === 'SUPER_ADMIN') {
+        if (parsed.data.profileCode === 'SUPER_ADMIN') {
           router.replace('/admin');
           return;
         }
-        if (parsed.data.role === 'ROOM_STATUS_VIEWER') router.replace('/admin/room-operations');
+        if (parsed.data.profileCode === 'ROOM_STATUS_VIEWER')
+          router.replace('/admin/room-operations');
       })
       .catch(() => undefined);
     return () => {
@@ -74,7 +75,9 @@ export default function AdminLoginPage() {
       }
       const me = adminMeSchema.safeParse(await meResponse.json());
       router.replace(
-        me.success && me.data.role === 'ROOM_STATUS_VIEWER' ? '/admin/room-operations' : '/admin',
+        me.success && me.data.profileCode === 'ROOM_STATUS_VIEWER'
+          ? '/admin/room-operations'
+          : '/admin',
       );
       router.refresh();
     } catch {

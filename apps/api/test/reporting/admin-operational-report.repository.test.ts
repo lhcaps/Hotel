@@ -14,6 +14,7 @@ describe('AdminOperationalReportRepository', () => {
             booking_count: '3',
             confirmed_count: '2',
             cancellation_count: '1',
+            payment_review_count: '1',
             customer_count: '2',
             returning_customer_count: '1',
           },

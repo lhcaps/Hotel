@@ -11,6 +11,7 @@ describe('AdminOperationalReportService', () => {
         bookingCount: 3,
         confirmedCount: 2,
         cancellationCount: 1,
+        paymentReviewCount: 1,
         customerCount: 2,
         returningCustomerCount: 1,
         daily: [{ date: '2026-07-29', revenueVnd: 900_000n, bookingCount: 3 }],
