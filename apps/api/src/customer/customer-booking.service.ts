@@ -199,7 +199,7 @@ export class CustomerBookingService {
         cancellationPolicy === null
           ? null
           : toCancellationPolicyDisplaySnapshot(cancellationPolicy),
-      cancellationRefundState: row.cancellationRefundState,
+      cancellationRefundState: normalizeCustomerDetailRefundState(row.cancellationRefundState),
       cancellationRefundAmountVnd: row.cancellationRefundAmountVnd?.toString() ?? null,
       cancellationRetainedAmountVnd: row.cancellationRetainedAmountVnd?.toString() ?? null,
       createdAt: row.createdAt.toISOString(),
@@ -544,6 +544,13 @@ function normalizeRefundState(
     return value;
   }
   return 'NO_REFUND';
+}
+
+function normalizeCustomerDetailRefundState(
+  value: string | null,
+): 'NO_REFUND' | 'REVIEW_REQUIRED' | 'REFUND_PENDING' | 'REFUNDED' | null {
+  if (value === null || value === 'NOT_APPLICABLE') return null;
+  return normalizeRefundState(value);
 }
 
 function readOffer(snapshot: unknown): { code: string; label: string } | null {

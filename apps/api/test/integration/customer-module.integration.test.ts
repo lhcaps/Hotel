@@ -355,6 +355,33 @@ describe('customer module — profile, ownership, claim, payment status', () => 
     expect(after.finalAmountVnd).toBe('359000');
   });
 
+  it('STAGE J-detail: detailForCustomer maps the storage-only NOT_APPLICABLE refund state', async () => {
+    const customer = await insertCustomerUser(pool, 'refund-state@example.test');
+    const seeded = await seedBookingHold(pool, {
+      contact: {
+        fullName: 'Refund State Test',
+        email: 'refund-state@example.test',
+        phoneE164: '+84909000301',
+      },
+      emailDigest: computeDigest({
+        secretKey: SECRETS.ipDigestSecret,
+        domainLabel: DIGEST_DOMAIN_LABELS.emailLookup,
+        parts: [Buffer.from('refund-state@example.test', 'utf8')],
+      }),
+    });
+    await pool.query(
+      `UPDATE bookings
+       SET customer_user_id = $1, status = 'CONFIRMED', cancellation_refund_state = 'NOT_APPLICABLE'
+       WHERE booking_code = $2`,
+      [customer.id, seeded.bookingCode],
+    );
+
+    const detail = await bookingService.detailForCustomer(customer.id, seeded.bookingCode);
+
+    expect(detail.status).toBe('CONFIRMED');
+    expect(detail.cancellationRefundState).toBeNull();
+  });
+
   it('STAGE I: claim links the booking to the CUSTOMER and rejects a foreign CUSTOMER', async () => {
     const alice = await insertCustomerUser(pool, 'alice@example.test');
     const bob = await insertCustomerUser(pool, 'bob@example.test');
