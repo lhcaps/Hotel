@@ -1703,6 +1703,26 @@
           "emailMasked": { "type": "string", "minLength": 3, "maxLength": 320 },
           "displayName": { "type": "string", "minLength": 1, "maxLength": 160 },
           "role": { "type": "string", "enum": ["ADMIN", "SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
+          "profileCode": { "type": "string", "enum": ["SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
+          "profileLabelVi": { "type": "string", "minLength": 1, "maxLength": 160 },
+          "accountStatus": { "type": "string", "enum": ["ACTIVE", "DISABLED"] },
+          "department": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "name": { "type": "string", "minLength": 1, "maxLength": 160 }
+                },
+                "required": ["id", "name"]
+              },
+              { "type": "null" }
+            ]
+          },
           "permissions": {
             "readOnly": true,
             "type": "array",
@@ -1719,7 +1739,18 @@
             "items": { "type": "string", "minLength": 1, "maxLength": 160 }
           }
         },
-        "required": ["id", "emailMasked", "displayName", "role", "permissions", "sessionExpiresAt"],
+        "required": [
+          "id",
+          "emailMasked",
+          "displayName",
+          "role",
+          "profileCode",
+          "profileLabelVi",
+          "accountStatus",
+          "department",
+          "permissions",
+          "sessionExpiresAt"
+        ],
         "additionalProperties": false
       },
       "Amenity": {
@@ -3125,6 +3156,15 @@
           "emailMasked": { "type": "string", "minLength": 3, "maxLength": 320 },
           "status": { "type": "string", "enum": ["ACTIVE", "DISABLED"] },
           "role": { "type": "string", "enum": ["ADMIN", "SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
+          "profileCode": {
+            "anyOf": [
+              { "type": "string", "enum": ["SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
+              { "type": "null" }
+            ]
+          },
+          "profileLabelVi": {
+            "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 160 }, { "type": "null" }]
+          },
           "departments": {
             "readOnly": true,
             "type": "array",
@@ -3153,6 +3193,8 @@
           "emailMasked",
           "status",
           "role",
+          "profileCode",
+          "profileLabelVi",
           "departments",
           "activeSessionCount",
           "lastActivityAt",
@@ -3165,8 +3207,9 @@
         "type": "object",
         "properties": {
           "status": { "type": "string", "enum": ["ACTIVE", "DISABLED"] },
-          "role": { "type": "string", "enum": ["ADMIN", "SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
+          "role": { "type": "string", "enum": ["SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
           "departmentIds": {
+            "minItems": 1,
             "maxItems": 20,
             "type": "array",
             "items": {
@@ -3189,9 +3232,9 @@
             "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
           "password": { "type": "string", "minLength": 8, "maxLength": 128 },
-          "role": { "type": "string", "enum": ["ADMIN", "SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
+          "role": { "type": "string", "enum": ["SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
           "departmentIds": {
-            "default": [],
+            "minItems": 1,
             "maxItems": 20,
             "type": "array",
             "items": {
@@ -3201,7 +3244,7 @@
             }
           }
         },
-        "required": ["displayName", "email", "password", "role"],
+        "required": ["displayName", "email", "password", "role", "departmentIds"],
         "additionalProperties": false
       },
       "AdminCustomerAccount": {
@@ -3285,6 +3328,12 @@
                     { "type": "null" }
                   ]
                 },
+                "actorName": {
+                  "anyOf": [
+                    { "type": "string", "minLength": 1, "maxLength": 160 },
+                    { "type": "null" }
+                  ]
+                },
                 "aggregateType": { "type": "string", "minLength": 1, "maxLength": 160 },
                 "aggregateId": {
                   "type": "string",
@@ -3306,6 +3355,7 @@
                 "id",
                 "eventType",
                 "actorId",
+                "actorName",
                 "aggregateType",
                 "aggregateId",
                 "payload",
@@ -4120,6 +4170,7 @@
           "bookingCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
           "confirmedCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
           "cancellationCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "paymentReviewCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
           "customerCount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
           "returningCustomerCount": {
             "type": "integer",
@@ -4185,6 +4236,7 @@
           "bookingCount",
           "confirmedCount",
           "cancellationCount",
+          "paymentReviewCount",
           "customerCount",
           "returningCustomerCount",
           "daily",
@@ -4207,7 +4259,8 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-          }
+          },
+          "includeInactive": { "type": "boolean" }
         },
         "required": ["from", "to"],
         "additionalProperties": false
@@ -4228,6 +4281,14 @@
                   "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                 },
                 "roomNumber": { "type": "string", "minLength": 1, "maxLength": 64 },
+                "physicalRoomCode": { "type": "string", "minLength": 1, "maxLength": 128 },
+                "roomTier": { "type": "string", "minLength": 1, "maxLength": 160 },
+                "floor": {
+                  "anyOf": [
+                    { "type": "string", "minLength": 1, "maxLength": 32 },
+                    { "type": "null" }
+                  ]
+                },
                 "roomConcept": { "type": "string", "minLength": 1, "maxLength": 200 },
                 "roomStatus": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "MAINTENANCE"] },
                 "housekeepingStatus": { "type": "string", "enum": ["CLEAN", "DIRTY", "CLEANING"] },
@@ -4336,6 +4397,9 @@
               "required": [
                 "roomId",
                 "roomNumber",
+                "physicalRoomCode",
+                "roomTier",
+                "floor",
                 "roomConcept",
                 "roomStatus",
                 "housekeepingStatus",
