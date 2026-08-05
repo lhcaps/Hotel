@@ -26,6 +26,9 @@ export interface RoomOperationHousekeepingTask {
 export interface RoomOperationRow {
   roomId: string;
   roomNumber: string;
+  physicalRoomCode: string;
+  roomTier: string;
+  floor: string | null;
   roomConcept: string;
   roomStatus: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
   housekeepingStatus: 'CLEAN' | 'DIRTY' | 'CLEANING';

@@ -4,6 +4,11 @@ import {
   nearbyAvailabilityRequestSchema,
   nearbyAvailabilityResponseSchema,
 } from '@room/contracts/pricing';
+import {
+  adminPaymentDetailSchema,
+  adminPaymentListResponseSchema,
+  adminPaymentReconcileResponseSchema,
+} from '@room/contracts/admin-payment-reconciliation';
 import type {
   AdminMe,
   AdminAccount,
@@ -118,9 +123,17 @@ export const adminApi = {
       body: JSON.stringify(body),
     }),
   listAdminAudit: () => request<{ items: readonly AdminAuditEntry[] }>('/admin/audit'),
-  getRoomOperations: (query: { readonly from: string; readonly to: string }) =>
+  getRoomOperations: (query: {
+    readonly from: string;
+    readonly to: string;
+    readonly includeInactive?: boolean;
+  }) =>
     request<AdminRoomOperationsResponse>(
-      `/admin/room-operations?${new URLSearchParams(query).toString()}`,
+      `/admin/room-operations?${new URLSearchParams({
+        from: query.from,
+        to: query.to,
+        ...(query.includeInactive === true ? { includeInactive: 'true' } : {}),
+      }).toString()}`,
     ),
   getOperationalReport: (query: {
     readonly from: string;
@@ -358,7 +371,6 @@ export const adminApi = {
       page: number;
       pageSize: number;
       totalItems: number;
-      totalPages: number;
       items: readonly AdminBookingSummary[];
     }>(`/admin/bookings${qs === '' ? '' : `?${qs}`}`);
   },
@@ -435,7 +447,6 @@ export const adminApi = {
       page: number;
       pageSize: number;
       totalItems: number;
-      totalPages: number;
       items: readonly AdminOperationalReviewSummary[];
     }>(`/admin/operational-reviews${qs === '' ? '' : `?${qs}`}`);
   },
@@ -454,7 +465,7 @@ export const adminApi = {
       readonly status?: AdminPaymentStatus | '';
       readonly provider?: AdminPaymentProvider | '';
       readonly bookingCode?: string;
-      readonly needsReview?: boolean;
+      readonly reviewRequired?: boolean;
       readonly createdFrom?: string;
       readonly createdTo?: string;
     } = {},
@@ -469,7 +480,9 @@ export const adminApi = {
     if (query.bookingCode !== undefined && query.bookingCode !== '') {
       params.set('bookingCode', query.bookingCode);
     }
-    if (query.needsReview !== undefined) params.set('needsReview', String(query.needsReview));
+    if (query.reviewRequired !== undefined) {
+      params.set('reviewRequired', String(query.reviewRequired));
+    }
     if (query.createdFrom !== undefined && query.createdFrom !== '') {
       params.set('createdFrom', query.createdFrom);
     }
@@ -477,21 +490,20 @@ export const adminApi = {
       params.set('createdTo', query.createdTo);
     }
     const qs = params.toString();
-    return request<{
-      page: number;
-      pageSize: number;
-      totalItems: number;
-      totalPages: number;
-      items: readonly AdminPaymentSummary[];
-    }>(`/admin/payments${qs === '' ? '' : `?${qs}`}`);
+    return request<unknown>(`/admin/payments${qs === '' ? '' : `?${qs}`}`).then((response) =>
+      adminPaymentListResponseSchema.parse(response),
+    );
   },
-  getPayment: (paymentId: string) => request<AdminPaymentDetail>(`/admin/payments/${paymentId}`),
-  queryPaymentStatus: (paymentId: string) =>
-    request<AdminPaymentStatusQueryResult>(`/admin/payments/${paymentId}/status-query`, {
+  getPayment: (paymentId: string) =>
+    request<unknown>(`/admin/payments/${paymentId}`).then((response) =>
+      adminPaymentDetailSchema.parse(response),
+    ),
+  queryPaymentStatus: (paymentId: string, expectedUpdatedAt: string) =>
+    request<unknown>(`/admin/payments/${paymentId}/reconcile`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({}),
-    }),
+      body: JSON.stringify({ expectedUpdatedAt }),
+    }).then((response) => adminPaymentReconcileResponseSchema.parse(response)),
 };
 
 export const publicApi = {
@@ -563,6 +575,9 @@ export interface AdminRoomOperationsResponse {
   readonly items: readonly {
     readonly roomId: string;
     readonly roomNumber: string;
+    readonly physicalRoomCode: string;
+    readonly roomTier: string;
+    readonly floor: string | null;
     readonly roomConcept: string;
     readonly roomStatus: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
     readonly housekeepingStatus: 'CLEAN' | 'DIRTY' | 'CLEANING';
@@ -658,119 +673,20 @@ export interface AdminOperationalReviewSummary {
   readonly amountVnd: number;
 }
 
-export type AdminPaymentProvider = 'MOMO' | 'VNPAY';
+export type {
+  AdminPaymentAttemptRef as AdminPaymentAttempt,
+  AdminPaymentAuditEntry,
+  AdminPaymentDetail,
+  AdminPaymentEvent,
+  AdminPaymentOperationalReview,
+  AdminPaymentReconcileResponse as AdminPaymentStatusQueryResult,
+  AdminPaymentReconciliationState as AdminPaymentReconciliation,
+  AdminPaymentSummary,
+} from '@room/contracts';
 
+export type AdminPaymentProvider = 'MOMO' | 'VNPAY';
 export type AdminPaymentStatus =
   'PENDING' | 'SUCCEEDED' | 'REVIEW_REQUIRED' | 'CANCELLED' | 'EXPIRED';
-
-export type AdminPaymentAttemptStatus =
-  'PENDING' | 'SUCCEEDED' | 'FAILED' | 'REVIEW_REQUIRED' | 'EXPIRED' | 'CANCELLED';
-
-export type AdminPaymentReconciliationStatus =
-  'IN_PROGRESS' | 'MATCHED' | 'MISMATCH' | 'AWAITING_REVIEW';
-
-export interface AdminPaymentSummary {
-  readonly paymentId: string;
-  readonly bookingCode: string;
-  readonly provider: AdminPaymentProvider | null;
-  readonly status: AdminPaymentStatus;
-  readonly amountVnd: number;
-  readonly currency: string;
-  readonly attemptCount: number;
-  readonly needsReview: boolean;
-  readonly reconciliationStatus: AdminPaymentReconciliationStatus;
-  readonly lastEventAt: string;
-  readonly createdAt: string;
-}
-
-export interface AdminPaymentAttempt {
-  readonly attemptId: string;
-  readonly sequence: number;
-  readonly provider: AdminPaymentProvider | null;
-  readonly status: AdminPaymentAttemptStatus;
-  readonly amountVnd: number;
-  readonly createdAt: string;
-  readonly completedAt: string | null;
-  readonly failureReason: string | null;
-}
-
-export interface AdminPaymentEvent {
-  readonly eventId: string;
-  readonly eventType: string;
-  readonly provider: AdminPaymentProvider | null;
-  readonly actorType: 'GUEST' | 'CUSTOMER' | 'ADMIN' | 'SYSTEM' | 'PROVIDER';
-  readonly occurredAt: string;
-  readonly summary: string;
-}
-
-export interface AdminPaymentReconciliation {
-  readonly status: AdminPaymentReconciliationStatus;
-  readonly lastCheckedAt: string;
-  readonly lastReconciledAt: string | null;
-  readonly mismatchedFields: readonly string[];
-  readonly note: string | null;
-}
-
-export interface AdminPaymentAuditEntry {
-  readonly id: string;
-  readonly eventType: string;
-  readonly actorType: 'GUEST' | 'CUSTOMER' | 'ADMIN' | 'SYSTEM';
-  readonly actorId: string | null;
-  readonly occurredAt: string;
-  readonly summary: string;
-}
-
-export interface AdminPaymentOperationalReview {
-  readonly reviewId: string;
-  readonly category: 'PAID_CANCELLATION';
-  readonly status: 'OPEN' | 'RESOLVED';
-  readonly openedAt: string;
-  readonly openedReason: string;
-}
-
-export interface AdminPaymentBooking {
-  readonly bookingCode: string;
-  readonly status:
-    'HOLD' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED' | 'NO_SHOW' | 'CHECKED_IN' | 'CHECKED_OUT';
-  readonly checkIn: string;
-  readonly checkOut: string;
-  readonly guestName: string;
-  readonly finalAmountVnd: number;
-  readonly currency: string;
-}
-
-export interface AdminPaymentDetail {
-  readonly paymentId: string;
-  readonly bookingCode: string;
-  readonly provider: AdminPaymentProvider | null;
-  readonly status: AdminPaymentStatus;
-  readonly amountVnd: number;
-  readonly currency: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-  readonly confirmedAt: string | null;
-  readonly cancelledAt: string | null;
-  readonly needsReview: boolean;
-  readonly booking: AdminPaymentBooking;
-  readonly attempts: readonly AdminPaymentAttempt[];
-  readonly events: readonly AdminPaymentEvent[];
-  readonly reconciliation: AdminPaymentReconciliation;
-  readonly auditTrail: readonly AdminPaymentAuditEntry[];
-  readonly operationalReview: AdminPaymentOperationalReview | null;
-  readonly serverTime: string;
-}
-
-export interface AdminPaymentStatusQueryResult {
-  readonly paymentId: string;
-  readonly provider: AdminPaymentProvider | null;
-  readonly status: AdminPaymentStatus;
-  readonly previousStatus: AdminPaymentStatus;
-  readonly authoritative: boolean;
-  readonly providerReportedAt: string;
-  readonly amountVnd: number;
-  readonly currency: string;
-  readonly message: string;
-}
 
 export interface AdminBookingDetail {
   readonly bookingCode: string;

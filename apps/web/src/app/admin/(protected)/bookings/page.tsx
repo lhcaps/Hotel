@@ -93,7 +93,7 @@ export default function AdminBookingsPage() {
         .then((response) => {
           setItems(response.items);
           setPage(response.page);
-          setTotalPages(Math.max(1, response.totalPages));
+          setTotalPages(Math.max(1, Math.ceil(response.totalItems / response.pageSize)));
         })
         .catch((cause: unknown) => {
           setItems([]);

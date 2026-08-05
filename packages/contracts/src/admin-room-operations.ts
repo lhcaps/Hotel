@@ -3,7 +3,13 @@ import { z } from 'zod';
 const instantSchema = z.string().datetime({ offset: true });
 
 export const adminRoomOperationsQuerySchema = z
-  .object({ from: instantSchema, to: instantSchema })
+  .object({
+    from: instantSchema,
+    to: instantSchema,
+    includeInactive: z
+      .preprocess((value) => value === true || value === 'true', z.boolean())
+      .default(false),
+  })
   .strict()
   .superRefine((value, context) => {
     const duration = new Date(value.to).getTime() - new Date(value.from).getTime();
@@ -53,6 +59,9 @@ export const adminRoomOperationRowSchema = z
   .object({
     roomId: z.uuid(),
     roomNumber: z.string().min(1).max(64),
+    physicalRoomCode: z.string().min(1).max(128),
+    roomTier: z.string().min(1).max(160),
+    floor: z.string().min(1).max(32).nullable(),
     roomConcept: z.string().min(1).max(200),
     roomStatus: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE']),
     housekeepingStatus: z.enum(['CLEAN', 'DIRTY', 'CLEANING']),

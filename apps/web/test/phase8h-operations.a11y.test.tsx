@@ -24,6 +24,9 @@ describe('Phase 8H operational accessibility', () => {
         {
           roomId: '10000000-0000-4000-8000-000000000101',
           roomNumber: '101',
+          physicalRoomCode: 'ROOM-101',
+          roomTier: 'Standard',
+          floor: '1',
           roomConcept: 'Deluxe King',
           roomStatus: 'ACTIVE',
           housekeepingStatus: 'CLEAN',
@@ -57,6 +60,7 @@ describe('Phase 8H operational accessibility', () => {
       bookingCount: 3,
       confirmedCount: 2,
       cancellationCount: 1,
+      paymentReviewCount: 1,
       customerCount: 2,
       returningCustomerCount: 1,
       daily: [{ date: '2026-07-29', revenueVnd: 900_000, bookingCount: 3 }],

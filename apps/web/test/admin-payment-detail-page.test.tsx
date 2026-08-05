@@ -30,64 +30,81 @@ function problemResponse(status: number, code: string, detail: string): Response
 
 const DETAIL: AdminPaymentDetail = {
   paymentId: '11111111-1111-4111-8111-111111111111',
-  bookingCode: 'BK-ABCDEF',
-  provider: 'MOMO',
   status: 'REVIEW_REQUIRED',
   amountVnd: 500000,
   currency: 'VND',
+  confirmationSource: null,
+  succeededAt: null,
+  reviewRequiredAt: '2027-01-10T03:05:00.000Z',
+  expiredAt: null,
   createdAt: '2027-01-10T03:00:00.000Z',
   updatedAt: '2027-01-10T03:05:00.000Z',
-  confirmedAt: null,
   cancelledAt: null,
   booking: {
+    bookingId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     bookingCode: 'BK-ABCDEF',
-    status: 'CONFIRMED',
-    checkIn: '2027-01-12T03:00:00.000Z',
-    checkOut: '2027-01-13T03:00:00.000Z',
-    guestName: 'Nguyen Van A',
+    bookingStatus: 'CONFIRMED',
     finalAmountVnd: 500000,
     currency: 'VND',
+    contact: {
+      fullName: 'Nguyen Van A',
+      emailMasked: 'n*********@example.test',
+      phoneMasked: '+84••••00',
+    },
+  },
+  providerRef: {
+    provider: 'MOMO',
+    displayName: 'MoMo',
+    configured: true,
+    enabled: true,
+    environment: 'sandbox',
+    checkoutExpiryMinutes: 15,
   },
   attempts: [
     {
-      attemptId: 'attempt-1',
-      sequence: 1,
+      paymentAttemptId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       provider: 'MOMO',
       status: 'REVIEW_REQUIRED',
+      initiatedAt: '2027-01-10T03:00:00.000Z',
+      currency: 'VND',
       amountVnd: 500000,
-      createdAt: '2027-01-10T03:00:00.000Z',
       completedAt: null,
-      failureReason: 'Provider reported ambiguous status',
+      idempotencyKeyMasked: 'payatt_123456',
+      providerOrderIdMasked: 'po_123456',
+      providerTransactionIdMasked: null,
     },
   ],
-  events: [
+  timeline: [
     {
-      eventId: 'event-1',
+      id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
       eventType: 'PAYMENT_ATTEMPT_REQUESTED',
-      provider: 'MOMO',
       actorType: 'GUEST',
+      actorId: null,
       occurredAt: '2027-01-10T03:00:00.000Z',
       summary: 'Khách yêu cầu attempt thanh toán qua MOMO.',
     },
     {
-      eventId: 'event-2',
+      id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
       eventType: 'PAYMENT_PROVIDER_REVIEW_REQUIRED',
-      provider: 'MOMO',
       actorType: 'PROVIDER',
+      actorId: null,
       occurredAt: '2027-01-10T03:05:00.000Z',
       summary: 'Provider báo cần admin review.',
     },
   ],
   reconciliation: {
-    status: 'AWAITING_REVIEW',
-    lastCheckedAt: '2027-01-10T03:05:00.000Z',
+    status: 'IN_PROGRESS',
+    requestedAt: '2027-01-10T03:05:00.000Z',
+    requestedBy: null,
+    lastAttemptCount: 1,
+    lastErrorCode: null,
     lastReconciledAt: null,
-    mismatchedFields: ['amount'],
-    note: 'Provider báo lệch số tiền',
+    nextEligibleAt: null,
+    providerResponse: 'REVIEW_REQUIRED',
   },
-  auditTrail: [
+  audit: [
     {
-      id: 'audit-1',
+      id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
       eventType: 'PAYMENT_RECONCILIATION_FLAGGED',
       actorType: 'SYSTEM',
       actorId: null,
@@ -101,9 +118,38 @@ const DETAIL: AdminPaymentDetail = {
     status: 'OPEN',
     openedAt: '2027-01-10T03:06:00.000Z',
     openedReason: 'Payment lệch giữa hệ thống và provider.',
+    resolvedAt: null,
+    resolvedNote: null,
   },
   serverTime: '2027-01-10T03:10:00.000Z',
 };
+
+const RECONCILE_RESPONSE = {
+  paymentId: DETAIL.paymentId,
+  reconciliation: {
+    ...DETAIL.reconciliation,
+    status: 'COMPLETED',
+    lastAttemptCount: 2,
+    providerResponse: 'SUCCESS',
+  },
+  payment: {
+    paymentId: DETAIL.paymentId,
+    status: 'SUCCEEDED',
+    amountVnd: DETAIL.amountVnd,
+    currency: DETAIL.currency,
+    confirmationSource: 'PROVIDER_EVENT',
+    reviewRequired: false,
+    createdAt: DETAIL.createdAt,
+    updatedAt: DETAIL.updatedAt,
+    completedAt: '2027-01-10T03:15:00.000Z',
+    provider: 'MOMO',
+    booking: DETAIL.booking,
+    latestAttempt: DETAIL.attempts[0],
+    providerRef: DETAIL.providerRef,
+    operationalReview: DETAIL.operationalReview,
+  },
+  serverTime: '2027-01-10T03:15:00.000Z',
+} as const;
 
 describe('AdminPaymentDetailPage', () => {
   const fetchMock = vi.fn<typeof fetch>();
@@ -126,13 +172,9 @@ describe('AdminPaymentDetailPage', () => {
 
     expect(await screen.findByText('BK-ABCDEF')).toBeInTheDocument();
     expect(screen.getByText('Nguyen Van A')).toBeInTheDocument();
-    expect(screen.getByText('PAYMENT_ATTEMPT_REQUESTED')).toBeInTheDocument();
-    expect(screen.getByText('PAYMENT_RECONCILIATION_FLAGGED')).toBeInTheDocument();
-    expect(
-      screen.getByText((_, element) =>
-        element?.tagName === 'DD' ? element.textContent === 'Provider báo lệch số tiền' : false,
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Yêu cầu lần thử thanh toán')).toBeInTheDocument();
+    expect(screen.getByText('Đánh dấu cần đối soát')).toBeInTheDocument();
+    expect(screen.getByText('Đang xử lý')).toBeInTheDocument();
     expect(screen.getByText(/Mở review/)).toBeInTheDocument();
     expect(screen.queryByText(/signature/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/rawPayload/i)).not.toBeInTheDocument();
@@ -155,19 +197,7 @@ describe('AdminPaymentDetailPage', () => {
   it('queries provider status with confirmation and refreshes the detail on success', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(DETAIL))
-      .mockResolvedValueOnce(
-        jsonResponse({
-          paymentId: DETAIL.paymentId,
-          provider: 'MOMO',
-          status: 'SUCCEEDED',
-          previousStatus: 'REVIEW_REQUIRED',
-          authoritative: true,
-          providerReportedAt: '2027-01-10T03:15:00.000Z',
-          amountVnd: 500000,
-          currency: 'VND',
-          message: 'Provider confirms payment succeeded.',
-        }),
-      )
+      .mockResolvedValueOnce(jsonResponse(RECONCILE_RESPONSE))
       .mockResolvedValueOnce(jsonResponse({ ...DETAIL, status: 'SUCCEEDED' }));
 
     const user = userEvent.setup();
@@ -175,18 +205,18 @@ describe('AdminPaymentDetailPage', () => {
     await screen.findByText('BK-ABCDEF');
     await user.click(screen.getByRole('button', { name: 'Truy vấn trạng thái nhà cung cấp' }));
     expect(
-      await screen.findByText(/Hệ thống sẽ gọi nhà cung cấp để truy vấn trạng thái/),
+      await screen.findByText(/Hệ thống sẽ gọi nhà cung cấp để đối soát trạng thái/),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Xác nhận truy vấn' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
     const statusCall = fetchMock.mock.calls[1] as [string, RequestInit?];
     expect(statusCall[0]).toBe(
-      `http://api.local/api/v1/admin/payments/${DETAIL.paymentId}/status-query`,
+      `http://api.local/api/v1/admin/payments/${DETAIL.paymentId}/reconcile`,
     );
     expect(statusCall[1]?.method).toBe('POST');
     expect(statusCall[1]?.credentials).toBe('include');
-    expect(await screen.findByText('Provider confirms payment succeeded.')).toBeInTheDocument();
+    expect(await screen.findByText(/Đã gửi yêu cầu đối soát/)).toBeInTheDocument();
   });
 
   it('surfaces conflict errors with the reload wording and refreshes the detail', async () => {

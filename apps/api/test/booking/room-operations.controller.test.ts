@@ -12,6 +12,9 @@ const response = {
       roomId,
       roomNumber: '101',
       roomConcept: 'Deluxe King',
+      physicalRoomCode: 'ROOM-101',
+      roomTier: 'Standard',
+      floor: '1',
       roomStatus: 'ACTIVE' as const,
       housekeepingStatus: 'CLEAN' as const,
       maintenanceState: 'ACTIVE' as const,
@@ -44,7 +47,7 @@ const response = {
 };
 
 function actor(role: 'ADMIN' | 'ROOM_STATUS_VIEWER') {
-  return { role } as never;
+  return { role, profileCode: role === 'ROOM_STATUS_VIEWER' ? role : 'SUPER_ADMIN' } as never;
 }
 
 describe('RoomOperationsController', () => {
@@ -61,6 +64,9 @@ describe('RoomOperationsController', () => {
     expect(result.items[0]).toMatchObject({
       roomNumber: '101',
       roomConcept: 'Deluxe King',
+      physicalRoomCode: 'ROOM-101',
+      roomTier: 'Standard',
+      floor: '1',
       currentOccupancy: 'OCCUPIED',
       nextBookingWindow: response.items[0]?.nextBookingWindow,
       bookings: [],

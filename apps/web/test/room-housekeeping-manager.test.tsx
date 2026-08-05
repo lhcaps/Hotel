@@ -16,6 +16,6 @@ describe('RoomHousekeepingManager', () => {
   it('shows a text housekeeping state and a labelled admin control', async () => {
     render(<RoomHousekeepingManager />);
     expect(await screen.findByText('S-01')).toBeInTheDocument();
-    expect(screen.getByLabelText('Housekeeping for S-01')).toHaveValue('DIRTY');
+    expect(screen.getByLabelText('Vệ sinh cho phòng S-01')).toHaveValue('DIRTY');
   });
 });

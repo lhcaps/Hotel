@@ -12,6 +12,7 @@ import {
   formatDateTime,
   formatVnd,
   translate,
+  translateAdminStatus,
   translatePaymentStatus,
 } from '../../../../../lib/i18n/messages';
 
@@ -119,7 +120,7 @@ export default function AdminBookingDetailPage() {
         <dl>
           <dt>{translate(locale, 'admin.fullName')}</dt>
           <dd>{detail.contact.fullName}</dd>
-          <dt>Email</dt>
+          <dt>{translate(locale, 'admin.email')}</dt>
           <dd>{detail.contact.emailMasked}</dd>
           <dt>{translate(locale, 'admin.phone')}</dt>
           <dd>{detail.contact.phoneMasked}</dd>
@@ -133,9 +134,9 @@ export default function AdminBookingDetailPage() {
       <section className="admin-card">
         <h2>{translate(locale, 'admin.timeAndRoom')}</h2>
         <dl>
-          <dt>Check-in</dt>
+          <dt>{translate(locale, 'account.checkIn')}</dt>
           <dd>{formatDateTime(locale, detail.interval.checkIn)}</dd>
-          <dt>Check-out</dt>
+          <dt>{translate(locale, 'account.checkOut')}</dt>
           <dd>{formatDateTime(locale, detail.interval.checkOut)}</dd>
           <dt>{translate(locale, 'admin.roomType')}</dt>
           <dd>{detail.roomType.name}</dd>
@@ -159,7 +160,7 @@ export default function AdminBookingDetailPage() {
           <dd>{formatVnd(locale, detail.pricing.discountAmountVnd)}</dd>
           <dt>{translate(locale, 'admin.collected')}</dt>
           <dd>{formatVnd(locale, detail.pricing.finalAmountVnd)}</dd>
-          <dt>Coupon</dt>
+          <dt>{translate(locale, 'coupon.code')}</dt>
           <dd>{detail.pricing.coupon?.code ?? '—'}</dd>
           <dt>{translate(locale, 'account.payment')}</dt>
           <dd>
@@ -181,7 +182,7 @@ export default function AdminBookingDetailPage() {
           <p>{translate(locale, 'admin.noReview')}</p>
         ) : (
           <p>
-            Review {detail.operationalReview.reviewId} · {detail.operationalReview.status} ·{' '}
+            Review · {translateAdminStatus(locale, detail.operationalReview.status)} ·{' '}
             <Link href={`/admin/operational-reviews/${detail.operationalReview.reviewId}`}>
               {translate(locale, 'admin.openReview')}
             </Link>
@@ -197,8 +198,8 @@ export default function AdminBookingDetailPage() {
           <ol className="admin-timeline">
             {detail.timeline.map((entry) => (
               <li key={entry.id}>
-                <strong>{entry.eventType}</strong> · {entry.actorType}
-                {entry.actorId === null ? '' : ` · ${entry.actorId}`} ·{' '}
+                <strong>{translateAdminStatus(locale, entry.eventType)}</strong> ·{' '}
+                {translateAdminStatus(locale, entry.actorType)} ·{' '}
                 {formatDateTime(locale, entry.occurredAt)}
               </li>
             ))}

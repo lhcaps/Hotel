@@ -16,29 +16,79 @@ function jsonResponse(body: unknown, init: { status?: number } = {}): Response {
 const ITEMS: readonly AdminPaymentSummary[] = [
   {
     paymentId: '11111111-1111-4111-8111-111111111111',
-    bookingCode: 'BK-ABCDEF',
-    provider: 'MOMO',
     status: 'REVIEW_REQUIRED',
     amountVnd: 500000,
     currency: 'VND',
-    attemptCount: 2,
-    needsReview: true,
-    reconciliationStatus: 'AWAITING_REVIEW',
-    lastEventAt: '2027-01-10T03:05:00.000Z',
+    confirmationSource: null,
+    reviewRequired: true,
     createdAt: '2027-01-10T03:00:00.000Z',
+    updatedAt: '2027-01-10T03:05:00.000Z',
+    completedAt: null,
+    provider: 'MOMO',
+    booking: {
+      bookingId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      bookingCode: 'BK-ABCDEF',
+      bookingStatus: 'CONFIRMED',
+      finalAmountVnd: 500000,
+      currency: 'VND',
+      contact: {
+        fullName: 'Nguyen Van A',
+        emailMasked: 'n*********@example.test',
+        phoneMasked: '+84••••00',
+      },
+    },
+    latestAttempt: {
+      paymentAttemptId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      provider: 'MOMO',
+      status: 'REVIEW_REQUIRED',
+      initiatedAt: '2027-01-10T03:00:00.000Z',
+      completedAt: null,
+      amountVnd: 500000,
+      currency: 'VND',
+      idempotencyKeyMasked: 'payatt_123456',
+      providerOrderIdMasked: 'po_123456',
+      providerTransactionIdMasked: null,
+    },
+    providerRef: null,
+    operationalReview: null,
   },
   {
     paymentId: '22222222-2222-4222-8222-222222222222',
-    bookingCode: 'BK-GHIJKL',
-    provider: 'VNPAY',
     status: 'SUCCEEDED',
     amountVnd: 1200000,
     currency: 'VND',
-    attemptCount: 1,
-    needsReview: false,
-    reconciliationStatus: 'MATCHED',
-    lastEventAt: '2027-01-09T08:00:00.000Z',
+    confirmationSource: 'PROVIDER_EVENT',
+    reviewRequired: false,
     createdAt: '2027-01-09T07:55:00.000Z',
+    updatedAt: '2027-01-09T08:00:00.000Z',
+    completedAt: '2027-01-09T08:00:00.000Z',
+    provider: 'VNPAY',
+    booking: {
+      bookingId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      bookingCode: 'BK-GHIJKL',
+      bookingStatus: 'CONFIRMED',
+      finalAmountVnd: 1200000,
+      currency: 'VND',
+      contact: {
+        fullName: 'Tran Thi B',
+        emailMasked: 't*********@example.test',
+        phoneMasked: '+84••••01',
+      },
+    },
+    latestAttempt: {
+      paymentAttemptId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      provider: 'VNPAY',
+      status: 'SUCCEEDED',
+      initiatedAt: '2027-01-09T07:55:00.000Z',
+      completedAt: '2027-01-09T08:00:00.000Z',
+      amountVnd: 1200000,
+      currency: 'VND',
+      idempotencyKeyMasked: 'payatt_234567',
+      providerOrderIdMasked: 'po_234567',
+      providerTransactionIdMasked: 'ptxn_234567',
+    },
+    providerRef: null,
+    operationalReview: null,
   },
 ];
 
@@ -62,7 +112,6 @@ describe('AdminPaymentsPage', () => {
         page: 1,
         pageSize: 20,
         totalItems: 2,
-        totalPages: 1,
         items: ITEMS,
       }),
     );
@@ -71,8 +120,8 @@ describe('AdminPaymentsPage', () => {
 
     expect(await screen.findByText('BK-ABCDEF')).toBeInTheDocument();
     expect(screen.getByText('BK-GHIJKL')).toBeInTheDocument();
-    expect(screen.getAllByText('MOMO').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('VNPAY').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('MoMo').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('VNPay').length).toBeGreaterThan(0);
     expect(screen.getByText(/500\.000\s*₫/)).toBeInTheDocument();
     expect(screen.getAllByText('Cần review').length).toBeGreaterThan(0);
     expect(screen.queryByText('signature')).not.toBeInTheDocument();
@@ -87,7 +136,6 @@ describe('AdminPaymentsPage', () => {
           page: 1,
           pageSize: 20,
           totalItems: 25,
-          totalPages: 2,
           items: ITEMS,
         }),
       )
@@ -96,7 +144,6 @@ describe('AdminPaymentsPage', () => {
           page: 2,
           pageSize: 20,
           totalItems: 25,
-          totalPages: 2,
           items: [],
         }),
       );
@@ -112,14 +159,15 @@ describe('AdminPaymentsPage', () => {
   });
 
   it('applies filters via "Áp dụng" and resets via "Đặt lại"', async () => {
-    fetchMock.mockResolvedValue(
-      jsonResponse({
-        page: 1,
-        pageSize: 20,
-        totalItems: 2,
-        totalPages: 1,
-        items: ITEMS,
-      }),
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse({
+          page: 1,
+          pageSize: 20,
+          totalItems: 2,
+          items: ITEMS,
+        }),
+      ),
     );
 
     const user = userEvent.setup();
@@ -138,7 +186,7 @@ describe('AdminPaymentsPage', () => {
           (url) =>
             url.includes('status=REVIEW_REQUIRED') &&
             url.includes('provider=MOMO') &&
-            url.includes('needsReview=true'),
+            url.includes('reviewRequired=true'),
         ),
       ).toBe(true);
     });
@@ -159,7 +207,6 @@ describe('AdminPaymentsPage', () => {
         page: 1,
         pageSize: 20,
         totalItems: 2,
-        totalPages: 1,
         items: ITEMS,
       }),
     );
@@ -176,7 +223,6 @@ describe('AdminPaymentsPage', () => {
         page: 1,
         pageSize: 20,
         totalItems: 2,
-        totalPages: 1,
         items: ITEMS,
       }),
     );

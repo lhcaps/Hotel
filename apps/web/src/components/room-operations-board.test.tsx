@@ -19,6 +19,9 @@ describe('RoomOperationsBoard', () => {
           roomId: '10000000-0000-4000-8000-000000000101',
           roomNumber: '101',
           roomConcept: 'Deluxe King',
+          physicalRoomCode: 'ROOM-101',
+          roomTier: 'Standard',
+          floor: '1',
           roomStatus: 'ACTIVE',
           housekeepingStatus: 'DIRTY',
           maintenanceState: 'NONE',
@@ -44,8 +47,12 @@ describe('RoomOperationsBoard', () => {
       </LocaleProvider>,
     );
 
-    await screen.findByText('BK-101');
-    expect(screen.getByText(/Housekeeping: Needs cleaning/)).toBeTruthy();
+    await screen.findByText('Room 101');
+    expect(screen.getAllByText('Needs cleaning').length).toBeGreaterThan(0);
+    expect(screen.getByText('Vacant')).toBeTruthy();
+    expect(getRoomOperations).toHaveBeenCalledWith(
+      expect.objectContaining({ includeInactive: false }),
+    );
     expect(getRoomOperations).toHaveBeenCalledOnce();
   });
 });

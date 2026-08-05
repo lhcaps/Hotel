@@ -53,7 +53,7 @@ const emptyFilters: Filters = {
 
 function providerLabel(value: AdminPaymentProvider | null): string {
   if (value === null) return '—';
-  return value;
+  return value === 'MOMO' ? 'MoMo' : 'VNPay';
 }
 
 export default function AdminPaymentsPage() {
@@ -75,15 +75,15 @@ export default function AdminPaymentsPage() {
         status?: AdminPaymentStatus;
         provider?: AdminPaymentProvider;
         bookingCode?: string;
-        needsReview?: boolean;
+        reviewRequired?: boolean;
         createdFrom?: string;
         createdTo?: string;
       } = { page: nextPage, pageSize: PAGE_SIZE };
       if (next.status !== '') params.status = next.status;
       if (next.provider !== '') params.provider = next.provider;
       if (next.bookingCode !== '') params.bookingCode = next.bookingCode;
-      if (next.review === 'needs_review') params.needsReview = true;
-      if (next.review === 'normal') params.needsReview = false;
+      if (next.review === 'needs_review') params.reviewRequired = true;
+      if (next.review === 'normal') params.reviewRequired = false;
       if (next.createdFrom !== '') params.createdFrom = next.createdFrom;
       if (next.createdTo !== '') params.createdTo = next.createdTo;
       adminApi
@@ -91,7 +91,7 @@ export default function AdminPaymentsPage() {
         .then((response) => {
           setItems(response.items);
           setPage(response.page);
-          setTotalPages(Math.max(1, response.totalPages));
+          setTotalPages(Math.max(1, Math.ceil(response.totalItems / response.pageSize)));
           setTotalItems(response.totalItems);
         })
         .catch((cause: unknown) => {
@@ -163,7 +163,11 @@ export default function AdminPaymentsPage() {
           >
             {PROVIDER_OPTIONS.map((value) => (
               <option key={value} value={value}>
-                {value === '' ? translate(locale, 'admin.all') : value}
+                {value === ''
+                  ? translate(locale, 'admin.all')
+                  : value === 'MOMO'
+                    ? 'MoMo'
+                    : 'VNPay'}
               </option>
             ))}
           </select>
@@ -218,7 +222,7 @@ export default function AdminPaymentsPage() {
         <div className="table-empty">{translate(locale, 'admin.paymentsEmpty')}</div>
       ) : null}
       {items !== undefined && items.length > 0 ? (
-        <table>
+        <table className="admin-payments-table">
           <thead>
             <tr>
               <th>{translate(locale, 'account.payment')}</th>
@@ -226,26 +230,39 @@ export default function AdminPaymentsPage() {
               <th>{translate(locale, 'admin.provider')}</th>
               <th>{translate(locale, 'admin.status')}</th>
               <th>{translate(locale, 'admin.amount')}</th>
-              <th>Attempt</th>
+              <th>{translate(locale, 'payment.attempt')}</th>
               <th>{translate(locale, 'admin.review')}</th>
-              <th>{translate(locale, 'admin.reconciliation')}</th>
-              <th>{translate(locale, 'admin.lastEvent')}</th>
+              <th>{translate(locale, 'admin.updatedAt')}</th>
               <th>{translate(locale, 'admin.action')}</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
               <tr key={item.paymentId}>
-                <td>{item.paymentId.slice(0, 8)}</td>
-                <td>
-                  <Link href={`/admin/bookings/${item.bookingCode}`}>{item.bookingCode}</Link>
+                <td data-label={translate(locale, 'account.payment')}>
+                  {item.paymentId.slice(0, 8)}
                 </td>
-                <td>{providerLabel(item.provider)}</td>
-                <td>{translatePaymentStatus(locale, item.status)}</td>
-                <td>{formatVnd(locale, item.amountVnd)}</td>
-                <td>{item.attemptCount}</td>
-                <td>
-                  {item.needsReview ? (
+                <td data-label={translate(locale, 'account.bookings')}>
+                  <Link href={`/admin/bookings/${item.booking.bookingCode}`}>
+                    {item.booking.bookingCode}
+                  </Link>
+                </td>
+                <td data-label={translate(locale, 'admin.provider')}>
+                  {providerLabel(item.provider)}
+                </td>
+                <td data-label={translate(locale, 'admin.status')}>
+                  {translatePaymentStatus(locale, item.status)}
+                </td>
+                <td data-label={translate(locale, 'admin.amount')}>
+                  {formatVnd(locale, item.amountVnd)}
+                </td>
+                <td data-label={translate(locale, 'payment.attempt')}>
+                  {item.latestAttempt === null
+                    ? '—'
+                    : `${translatePaymentStatus(locale, item.latestAttempt.status)} · ${providerLabel(item.latestAttempt.provider)}`}
+                </td>
+                <td data-label={translate(locale, 'admin.review')}>
+                  {item.reviewRequired ? (
                     <span style={{ color: 'var(--color-warning, #b45309)', fontWeight: 600 }}>
                       {translate(locale, 'admin.needsReview')}
                     </span>
@@ -253,9 +270,10 @@ export default function AdminPaymentsPage() {
                     '—'
                   )}
                 </td>
-                <td>{item.reconciliationStatus}</td>
-                <td>{formatDateTime(locale, item.lastEventAt)}</td>
-                <td>
+                <td data-label={translate(locale, 'admin.updatedAt')}>
+                  {formatDateTime(locale, item.updatedAt)}
+                </td>
+                <td data-label={translate(locale, 'admin.action')}>
                   <Link href={`/admin/payments/${item.paymentId}`}>
                     {translate(locale, 'admin.open')}
                   </Link>

@@ -9,6 +9,9 @@ import type {
 interface DbRow {
   room_id: string;
   room_number: string;
+  physical_room_code: string;
+  room_tier: string;
+  floor: string | null;
   room_concept: string;
   room_status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
   housekeeping_status: 'CLEAN' | 'DIRTY' | 'CLEANING';
@@ -26,7 +29,14 @@ export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
     query: AdminRoomOperationsQuery,
   ): Promise<readonly RoomOperationRow[]> {
     const result = await this.pool.query<DbRow>(
-      `SELECT r.id AS room_id, r.room_number, COALESCE(rt.name, rt.code, r.room_number) AS room_concept,
+      `SELECT r.id AS room_id, r.room_number, r.physical_room_code,
+              COALESCE(pt.name, pt.code, 'Chưa phân hạng') AS room_tier,
+              CASE
+                WHEN upper(r.room_number) LIKE 'G%' THEN 'G'
+                WHEN r.room_number ~ '^[0-9]{3,}$' THEN left(r.room_number, length(r.room_number) - 2)
+                ELSE NULL
+              END AS floor,
+              COALESCE(rt.name, rt.code, r.room_number) AS room_concept,
               r.status AS room_status,
               r.housekeeping_status,
               CASE WHEN EXISTS (
@@ -68,17 +78,22 @@ export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
               ) ORDER BY b.check_in) FILTER (WHERE b.id IS NOT NULL), '[]'::jsonb) AS bookings
          FROM rooms r
          JOIN room_types rt ON rt.id = r.room_type_id
+         JOIN price_tiers pt ON pt.id = rt.price_tier_id
          LEFT JOIN bookings b ON b.room_id = r.id AND b.property_id = r.property_id
           AND b.check_in < $3 AND b.check_out > $2
           AND b.status NOT IN ('CANCELLED', 'EXPIRED')
         WHERE r.property_id = $1
-        GROUP BY r.id, rt.name, rt.code
+          AND (r.status = 'ACTIVE' OR $4::boolean = TRUE)
+        GROUP BY r.id, rt.name, rt.code, pt.name, pt.code
         ORDER BY r.room_number ASC`,
-      [propertyId, new Date(query.from), new Date(query.to)],
+      [propertyId, new Date(query.from), new Date(query.to), query.includeInactive],
     );
     return result.rows.map((row) => ({
       roomId: row.room_id,
       roomNumber: row.room_number,
+      physicalRoomCode: row.physical_room_code,
+      roomTier: row.room_tier,
+      floor: row.floor,
       roomConcept: row.room_concept,
       roomStatus: row.room_status,
       housekeepingStatus: row.housekeeping_status,

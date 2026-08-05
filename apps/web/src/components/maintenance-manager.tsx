@@ -2,7 +2,7 @@
 import type { MaintenanceBlock, Room } from '@room/contracts';
 import { type FormEvent, useEffect, useState } from 'react';
 import { AdminApiError, adminApi } from '../lib/admin-api';
-import { formatDateTime, translate } from '../lib/i18n/messages';
+import { formatDateTime, translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 export function MaintenanceManager() {
   const locale = useLocale();
@@ -146,7 +146,7 @@ export function MaintenanceManager() {
                 <td>{block.reason}</td>
                 <td>{formatDateTime(locale, block.startsAt)}</td>
                 <td>{formatDateTime(locale, block.endsAt)}</td>
-                <td>{block.status}</td>
+                <td>{translateAdminStatus(locale, block.status)}</td>
                 <td>
                   <button
                     aria-label={translate(locale, 'maintenance.cancelLabel', {

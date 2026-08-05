@@ -7,7 +7,7 @@ import type { Room, RoomType } from '@room/contracts';
 
 import { AdminApiError, adminApi } from '../../../../lib/admin-api';
 import { localizedCatalogSafetyReason } from '../../../../lib/catalog-safety';
-import { translate } from '../../../../lib/i18n/messages';
+import { translate, translateAdminStatus } from '../../../../lib/i18n/messages';
 import { useLocale } from '../../../../components/locale-provider';
 import { RoomHousekeepingManager } from '../../../../components/room-housekeeping-manager';
 import { RoomOperationsBoard } from '../../../../components/room-operations-board';
@@ -194,7 +194,7 @@ export default function Rooms() {
                   <td>
                     {types.find((type) => type.id === room.roomTypeId)?.name ?? room.roomTypeId}
                   </td>
-                  <td>{room.status}</td>
+                  <td>{translateAdminStatus(locale, room.status)}</td>
                   <td>
                     {archiveConfirmId === room.id ? (
                       <div role="group">

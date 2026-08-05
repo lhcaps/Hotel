@@ -2,6 +2,55 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AdminApiError, adminApi } from '../src/lib/admin-api';
 
+const DETAIL_RESPONSE = {
+  paymentId: '11111111-1111-4111-8111-111111111111',
+  status: 'REVIEW_REQUIRED',
+  amountVnd: 500000,
+  currency: 'VND',
+  confirmationSource: null,
+  succeededAt: null,
+  reviewRequiredAt: '2027-01-10T03:05:00.000Z',
+  cancelledAt: null,
+  expiredAt: null,
+  createdAt: '2027-01-10T03:00:00.000Z',
+  updatedAt: '2027-01-10T03:05:00.000Z',
+  booking: {
+    bookingId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    bookingCode: 'BK-ABCDEF',
+    bookingStatus: 'CONFIRMED',
+    finalAmountVnd: 500000,
+    currency: 'VND',
+    contact: {
+      fullName: 'Nguyen Van A',
+      emailMasked: 'n*********@example.test',
+      phoneMasked: '+84••••00',
+    },
+  },
+  providerRef: {
+    provider: 'MOMO',
+    displayName: 'MoMo',
+    configured: true,
+    enabled: true,
+    environment: 'sandbox',
+    checkoutExpiryMinutes: 15,
+  },
+  attempts: [],
+  timeline: [],
+  reconciliation: {
+    status: 'NOT_REQUESTED',
+    requestedAt: null,
+    requestedBy: null,
+    lastAttemptCount: 0,
+    lastErrorCode: null,
+    lastReconciledAt: null,
+    nextEligibleAt: null,
+    providerResponse: null,
+  },
+  operationalReview: null,
+  audit: [],
+  serverTime: '2027-01-10T03:10:00.000Z',
+} as const;
+
 function jsonResponse(
   body: unknown,
   init: { status?: number; statusText?: string } = {},
@@ -48,7 +97,6 @@ describe('adminApi payment routes', () => {
         page: 2,
         pageSize: 20,
         totalItems: 47,
-        totalPages: 3,
         items: [],
       }),
     );
@@ -59,7 +107,7 @@ describe('adminApi payment routes', () => {
       status: 'REVIEW_REQUIRED',
       provider: 'MOMO',
       bookingCode: 'BK-ABCDEF',
-      needsReview: true,
+      reviewRequired: true,
       createdFrom: '2027-01-01',
       createdTo: '2027-01-31',
     });
@@ -69,7 +117,7 @@ describe('adminApi payment routes', () => {
     const input = firstCall?.[0];
     const init = firstCall?.[1];
     expect(input).toBe(
-      'http://api.local/api/v1/admin/payments?page=2&pageSize=20&status=REVIEW_REQUIRED&provider=MOMO&bookingCode=BK-ABCDEF&needsReview=true&createdFrom=2027-01-01&createdTo=2027-01-31',
+      'http://api.local/api/v1/admin/payments?page=2&pageSize=20&status=REVIEW_REQUIRED&provider=MOMO&bookingCode=BK-ABCDEF&reviewRequired=true&createdFrom=2027-01-01&createdTo=2027-01-31',
     );
     expect(init?.credentials).toBe('include');
     expect((init?.headers as Record<string, string>)['accept']).toBe('application/json');
@@ -77,7 +125,7 @@ describe('adminApi payment routes', () => {
 
   it('omits empty filters from the payments list query string', async () => {
     fetchMock.mockResolvedValueOnce(
-      jsonResponse({ page: 1, pageSize: 20, totalItems: 0, totalPages: 1, items: [] }),
+      jsonResponse({ page: 1, pageSize: 20, totalItems: 0, items: [] }),
     );
 
     await adminApi.listPayments({ page: 1, pageSize: 20 });
@@ -87,41 +135,7 @@ describe('adminApi payment routes', () => {
   });
 
   it('fetches the payment detail with credentials', async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        paymentId: '11111111-1111-4111-8111-111111111111',
-        bookingCode: 'BK-ABCDEF',
-        provider: 'MOMO',
-        status: 'REVIEW_REQUIRED',
-        amountVnd: 500000,
-        currency: 'VND',
-        createdAt: '2027-01-10T03:00:00.000Z',
-        updatedAt: '2027-01-10T03:05:00.000Z',
-        confirmedAt: null,
-        cancelledAt: null,
-        booking: {
-          bookingCode: 'BK-ABCDEF',
-          status: 'CONFIRMED',
-          checkIn: '2027-01-12T03:00:00.000Z',
-          checkOut: '2027-01-13T03:00:00.000Z',
-          guestName: 'Nguyen Van A',
-          finalAmountVnd: 500000,
-          currency: 'VND',
-        },
-        attempts: [],
-        events: [],
-        reconciliation: {
-          status: 'AWAITING_REVIEW',
-          lastCheckedAt: '2027-01-10T03:05:00.000Z',
-          lastReconciledAt: null,
-          mismatchedFields: ['amount'],
-          note: 'Provider reported different amount',
-        },
-        auditTrail: [],
-        operationalReview: null,
-        serverTime: '2027-01-10T03:10:00.000Z',
-      }),
-    );
+    fetchMock.mockResolvedValueOnce(jsonResponse(DETAIL_RESPONSE));
 
     const detail = await adminApi.getPayment('11111111-1111-4111-8111-111111111111');
 
@@ -165,35 +179,54 @@ describe('adminApi payment routes', () => {
     expect(firstCall?.[1]?.body).toBe(JSON.stringify({ value: 'signed-pass-value' }));
   });
 
-  it('queries the payment status with POST and an empty body', async () => {
+  it('requests provider reconciliation with the current payment version', async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         paymentId: '11111111-1111-4111-8111-111111111111',
-        provider: 'MOMO',
-        status: 'SUCCEEDED',
-        previousStatus: 'PENDING',
-        authoritative: true,
-        providerReportedAt: '2027-01-10T03:15:00.000Z',
-        amountVnd: 500000,
-        currency: 'VND',
-        message: 'Provider confirms payment succeeded',
+        reconciliation: {
+          ...DETAIL_RESPONSE.reconciliation,
+          status: 'COMPLETED',
+          lastAttemptCount: 1,
+          providerResponse: 'SUCCESS',
+        },
+        payment: {
+          paymentId: DETAIL_RESPONSE.paymentId,
+          status: 'SUCCEEDED',
+          amountVnd: DETAIL_RESPONSE.amountVnd,
+          currency: DETAIL_RESPONSE.currency,
+          confirmationSource: 'PROVIDER_EVENT',
+          reviewRequired: false,
+          createdAt: DETAIL_RESPONSE.createdAt,
+          updatedAt: DETAIL_RESPONSE.updatedAt,
+          completedAt: '2027-01-10T03:15:00.000Z',
+          provider: 'MOMO',
+          booking: DETAIL_RESPONSE.booking,
+          latestAttempt: null,
+          providerRef: DETAIL_RESPONSE.providerRef,
+          operationalReview: null,
+        },
+        serverTime: '2027-01-10T03:15:00.000Z',
       }),
     );
 
-    const result = await adminApi.queryPaymentStatus('11111111-1111-4111-8111-111111111111');
+    const result = await adminApi.queryPaymentStatus(
+      '11111111-1111-4111-8111-111111111111',
+      '2027-01-10T03:05:00.000Z',
+    );
 
-    expect(result.status).toBe('SUCCEEDED');
-    expect(result.authoritative).toBe(true);
+    expect(result.reconciliation.status).toBe('COMPLETED');
     const firstCall = fetchMock.mock.calls[0];
     expect(firstCall?.[0]).toBe(
-      'http://api.local/api/v1/admin/payments/11111111-1111-4111-8111-111111111111/status-query',
+      'http://api.local/api/v1/admin/payments/11111111-1111-4111-8111-111111111111/reconcile',
     );
     expect(firstCall?.[1]?.method).toBe('POST');
     expect(firstCall?.[1]?.credentials).toBe('include');
     expect((firstCall?.[1]?.headers as Record<string, string>)['content-type']).toBe(
       'application/json',
     );
-    expect(firstCall?.[1]?.body).toBe('{}');
+    expect(firstCall?.[1]?.body).toBe(
+      JSON.stringify({ expectedUpdatedAt: '2027-01-10T03:05:00.000Z' }),
+    );
   });
 
   it('surfaces AdminApiError with problem details for non-2xx responses', async () => {
@@ -203,7 +236,7 @@ describe('adminApi payment routes', () => {
 
     let caught: unknown;
     try {
-      await adminApi.queryPaymentStatus('pay-1');
+      await adminApi.queryPaymentStatus('pay-1', '2027-01-10T03:05:00.000Z');
     } catch (error) {
       caught = error;
     }

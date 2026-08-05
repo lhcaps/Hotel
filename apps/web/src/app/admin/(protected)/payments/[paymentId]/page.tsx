@@ -1,23 +1,104 @@
 'use client';
 
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
-import { AdminApiError, adminApi, type AdminPaymentDetail } from '../../../../../lib/admin-api';
 import { useLocale } from '../../../../../components/locale-provider';
+import { AdminApiError, adminApi, type AdminPaymentDetail } from '../../../../../lib/admin-api';
 import {
   formatDateTime,
   formatVnd,
+  type MessageKey,
   translate,
   translatePaymentStatus,
 } from '../../../../../lib/i18n/messages';
 
-interface AdminPaymentDetailPageProps {
-  readonly params: Readonly<{ paymentId: string }>;
+const reconciliationKeys = {
+  NOT_REQUESTED: 'admin.reconciliationNotRequested',
+  IN_PROGRESS: 'admin.reconciliationInProgress',
+  COMPLETED: 'admin.reconciliationCompleted',
+  STALE: 'admin.reconciliationStale',
+  SUCCESS: 'admin.reconciliationSuccess',
+  STILL_PENDING: 'admin.reconciliationStillPending',
+  FAILED: 'admin.reconciliationFailed',
+  REVIEW_REQUIRED: 'admin.reconciliationReviewRequired',
+} as const satisfies Record<string, MessageKey>;
+
+const actorKeys = {
+  GUEST: 'admin.actorGuest',
+  CUSTOMER: 'admin.actorCustomer',
+  ADMIN: 'admin.actorAdministrator',
+  SYSTEM: 'admin.actorSystem',
+  PROVIDER: 'admin.actorProvider',
+} as const satisfies Record<string, MessageKey>;
+
+const eventKeys = {
+  PAYMENT_ATTEMPT_REQUESTED: 'admin.eventPaymentAttemptRequested',
+  PAYMENT_PROVIDER_REVIEW_REQUIRED: 'admin.eventPaymentProviderReviewRequired',
+  PAYMENT_RECONCILIATION_FLAGGED: 'admin.eventPaymentReconciliationFlagged',
+  PAYMENT_RECONCILIATION_REQUESTED: 'admin.eventPaymentReconciliationRequested',
+  PAYMENT_RECONCILIATION_COMPLETED: 'admin.eventPaymentReconciliationCompleted',
+} as const satisfies Record<string, MessageKey>;
+
+function mappedMessageKey(
+  labels: Readonly<Record<string, MessageKey>>,
+  value: string,
+): MessageKey | undefined {
+  return Object.entries(labels).find(([candidate]) => candidate === value)?.[1];
 }
 
-export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPageProps) {
+function providerLabel(value: string | null, locale: 'vi' | 'en'): string {
+  if (value === null) return translate(locale, 'account.notAvailable');
+  if (value === 'MOMO') return 'MoMo';
+  if (value === 'VNPAY') return 'VNPay';
+  return translate(locale, 'admin.providerOther');
+}
+
+function reconciliationLabel(value: string, locale: 'vi' | 'en'): string {
+  const key = mappedMessageKey(reconciliationKeys, value);
+  return key === undefined ? humanizeCode(value) : translate(locale, key);
+}
+
+function actorLabel(value: string, locale: 'vi' | 'en'): string {
+  const key = mappedMessageKey(actorKeys, value);
+  return key === undefined ? humanizeCode(value) : translate(locale, key);
+}
+
+function eventLabel(value: string, locale: 'vi' | 'en'): string {
+  const key = mappedMessageKey(eventKeys, value);
+  return key === undefined ? humanizeCode(value) : translate(locale, key);
+}
+
+function humanizeCode(value: string): string {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formatOptionalDate(locale: 'vi' | 'en', value: string | null): string {
+  return value === null ? translate(locale, 'account.notAvailable') : formatDateTime(locale, value);
+}
+
+function environmentLabel(locale: 'vi' | 'en', value: string): string {
+  return translate(
+    locale,
+    value === 'sandbox' ? 'admin.environmentSandbox' : 'admin.environmentProduction',
+  );
+}
+
+interface AdminPaymentDetailPageProps {
+  readonly params?: { readonly paymentId?: string };
+}
+
+export default function AdminPaymentDetailPage({
+  params: legacyParams,
+}: AdminPaymentDetailPageProps = {}) {
   const locale = useLocale();
+  const params = useParams<{ paymentId: string }>();
+  const paymentId = params?.paymentId ?? legacyParams?.paymentId ?? '';
   const [detail, setDetail] = useState<AdminPaymentDetail>();
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -27,7 +108,7 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
   const refresh = useCallback(() => {
     setError(undefined);
     return adminApi
-      .getPayment(params.paymentId)
+      .getPayment(paymentId)
       .then(setDetail)
       .catch((cause: unknown) => {
         setError(
@@ -36,7 +117,7 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
             : translate(locale, 'admin.paymentDetailLoadError'),
         );
       });
-  }, [params.paymentId, locale]);
+  }, [paymentId, locale]);
 
   useEffect(() => {
     void refresh();
@@ -45,7 +126,7 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
   function onQueryProvider(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (detail === undefined) return;
-    if (detail.provider === null) {
+    if (detail.providerRef === null) {
       setError(translate(locale, 'admin.noProvider'));
       return;
     }
@@ -53,9 +134,13 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
     setError(undefined);
     setQueryMessage(undefined);
     adminApi
-      .queryPaymentStatus(params.paymentId)
+      .queryPaymentStatus(paymentId, detail.updatedAt)
       .then((result) => {
-        setQueryMessage(result.message);
+        setQueryMessage(
+          translate(locale, 'admin.reconciliationRequestedMessage', {
+            status: reconciliationLabel(result.reconciliation.status, locale),
+          }),
+        );
         void refresh();
       })
       .catch((cause: unknown) => {
@@ -63,8 +148,6 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
           void refresh().finally(() => {
             setError(translate(locale, 'admin.paymentConflict'));
           });
-        } else if (cause instanceof AdminApiError) {
-          setError(translate(locale, 'admin.providerQueryError'));
         } else {
           setError(translate(locale, 'admin.providerQueryError'));
         }
@@ -79,7 +162,7 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
     return (
       <section className="admin-page">
         <h1>
-          {translate(locale, 'account.payment')} {params.paymentId.slice(0, 8)}
+          {translate(locale, 'account.payment')} {paymentId.slice(0, 8)}
         </h1>
         <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
       </section>
@@ -90,7 +173,7 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
     return (
       <section className="admin-page">
         <h1>
-          {translate(locale, 'account.payment')} {params.paymentId.slice(0, 8)}
+          {translate(locale, 'account.payment')} {paymentId.slice(0, 8)}
         </h1>
         <p role="alert" style={{ color: 'var(--color-danger)' }}>
           {error}
@@ -100,21 +183,28 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
     );
   }
 
+  const reviewRequired = detail.reviewRequiredAt !== null || detail.status === 'REVIEW_REQUIRED';
+
   return (
     <section className="admin-page">
-      <h1>
-        {translate(locale, 'account.payment')} {detail.paymentId.slice(0, 8)}
-      </h1>
+      <div className="admin-page__heading">
+        <div>
+          <p className="admin-eyebrow">{translate(locale, 'admin.paymentsHeading')}</p>
+          <h1>
+            {translate(locale, 'account.payment')} {detail.paymentId.slice(0, 8)}
+          </h1>
+        </div>
+        <Link href="/admin/payments">{translate(locale, 'admin.backToPayments')}</Link>
+      </div>
       <p>
-        {translate(locale, 'admin.status')}:{' '}
-        <strong>{translatePaymentStatus(locale, detail.status)}</strong>
-        {detail.provider === null
-          ? ''
-          : ` · ${translate(locale, 'admin.provider')}: ${detail.provider}`}{' '}
-        · {translate(locale, 'account.bookings')}:{' '}
-        <Link href={`/admin/bookings/${detail.bookingCode}`}>{detail.bookingCode}</Link>
+        {translatePaymentStatus(locale, detail.status)} ·{' '}
+        {providerLabel(detail.providerRef?.provider ?? null, locale)} ·{' '}
+        {translate(locale, 'account.bookings')}:{' '}
+        <Link href={`/admin/bookings/${detail.booking.bookingCode}`}>
+          {detail.booking.bookingCode}
+        </Link>
       </p>
-      {detail.needsReview ? (
+      {reviewRequired ? (
         <p role="status" style={{ color: 'var(--color-warning, #b45309)', fontWeight: 600 }}>
           {translate(locale, 'admin.paymentReviewRequired')}
         </p>
@@ -130,13 +220,13 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
         <h2>{translate(locale, 'account.bookings')}</h2>
         <dl>
           <dt>{translate(locale, 'admin.guest')}</dt>
-          <dd>{detail.booking.guestName}</dd>
-          <dt>Check-in</dt>
-          <dd>{formatDateTime(locale, detail.booking.checkIn)}</dd>
-          <dt>Check-out</dt>
-          <dd>{formatDateTime(locale, detail.booking.checkOut)}</dd>
+          <dd>{detail.booking.contact.fullName}</dd>
+          <dt>{translate(locale, 'admin.email')}</dt>
+          <dd>{detail.booking.contact.emailMasked}</dd>
+          <dt>{translate(locale, 'admin.phone')}</dt>
+          <dd>{detail.booking.contact.phoneMasked}</dd>
           <dt>{translate(locale, 'admin.status')}</dt>
-          <dd>{translatePaymentStatus(locale, detail.booking.status)}</dd>
+          <dd>{translatePaymentStatus(locale, detail.booking.bookingStatus)}</dd>
           <dt>{translate(locale, 'admin.amount')}</dt>
           <dd>{formatVnd(locale, detail.booking.finalAmountVnd)}</dd>
         </dl>
@@ -147,27 +237,27 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
         <dl>
           <dt>{translate(locale, 'admin.amount')}</dt>
           <dd>{formatVnd(locale, detail.amountVnd)}</dd>
+          <dt>{translate(locale, 'admin.provider')}</dt>
+          <dd>
+            {detail.providerRef === null
+              ? translate(locale, 'admin.noProvider')
+              : `${detail.providerRef.displayName} · ${environmentLabel(locale, detail.providerRef.environment)}`}
+          </dd>
           <dt>{translate(locale, 'admin.createdAt')}</dt>
           <dd>{formatDateTime(locale, detail.createdAt)}</dd>
           <dt>{translate(locale, 'admin.updatedAt')}</dt>
           <dd>{formatDateTime(locale, detail.updatedAt)}</dd>
-          {detail.confirmedAt === null ? null : (
-            <>
-              <dt>{translate(locale, 'admin.confirmedAt')}</dt>
-              <dd>{formatDateTime(locale, detail.confirmedAt)}</dd>
-            </>
-          )}
-          {detail.cancelledAt === null ? null : (
-            <>
-              <dt>{translate(locale, 'admin.cancelledAt')}</dt>
-              <dd>{formatDateTime(locale, detail.cancelledAt)}</dd>
-            </>
-          )}
+          <dt>{translate(locale, 'admin.confirmedAt')}</dt>
+          <dd>{formatOptionalDate(locale, detail.succeededAt)}</dd>
+          <dt>{translate(locale, 'admin.cancelledAt')}</dt>
+          <dd>{formatOptionalDate(locale, detail.cancelledAt)}</dd>
+          <dt>{translate(locale, 'admin.expiredAt')}</dt>
+          <dd>{formatOptionalDate(locale, detail.expiredAt)}</dd>
         </dl>
       </section>
 
       <section className="admin-card">
-        <h2>Attempts ({detail.attempts.length})</h2>
+        <h2>{translate(locale, 'admin.attempts', { count: detail.attempts.length })}</h2>
         {detail.attempts.length === 0 ? (
           <p>{translate(locale, 'admin.noAttempts')}</p>
         ) : (
@@ -180,23 +270,17 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
                 <th>{translate(locale, 'admin.amount')}</th>
                 <th>{translate(locale, 'admin.startedAt')}</th>
                 <th>{translate(locale, 'admin.completedAt')}</th>
-                <th>{translate(locale, 'admin.failureReason')}</th>
               </tr>
             </thead>
             <tbody>
-              {detail.attempts.map((attempt) => (
-                <tr key={attempt.attemptId}>
-                  <td>{attempt.sequence}</td>
-                  <td>{attempt.provider ?? '—'}</td>
+              {detail.attempts.map((attempt, index) => (
+                <tr key={attempt.paymentAttemptId}>
+                  <td>{index + 1}</td>
+                  <td>{providerLabel(attempt.provider, locale)}</td>
                   <td>{translatePaymentStatus(locale, attempt.status)}</td>
                   <td>{formatVnd(locale, attempt.amountVnd)}</td>
-                  <td>{formatDateTime(locale, attempt.createdAt)}</td>
-                  <td>
-                    {attempt.completedAt === null
-                      ? '—'
-                      : formatDateTime(locale, attempt.completedAt)}
-                  </td>
-                  <td>{attempt.failureReason ?? '—'}</td>
+                  <td>{formatDateTime(locale, attempt.initiatedAt)}</td>
+                  <td>{formatOptionalDate(locale, attempt.completedAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -205,16 +289,15 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
       </section>
 
       <section className="admin-card">
-        <h2>{translate(locale, 'admin.eventTimeline', { count: detail.events.length })}</h2>
-        {detail.events.length === 0 ? (
+        <h2>{translate(locale, 'admin.eventTimeline', { count: detail.timeline.length })}</h2>
+        {detail.timeline.length === 0 ? (
           <p>{translate(locale, 'admin.noEvents')}</p>
         ) : (
           <ol className="admin-timeline">
-            {detail.events.map((event) => (
-              <li key={event.eventId}>
-                <strong>{event.eventType}</strong> · {event.actorType}
-                {event.provider === null ? '' : ` · ${event.provider}`} ·{' '}
-                {formatDateTime(locale, event.occurredAt)}
+            {detail.timeline.map((event) => (
+              <li key={event.id}>
+                <strong>{eventLabel(event.eventType, locale)}</strong> ·{' '}
+                {actorLabel(event.actorType, locale)} · {formatDateTime(locale, event.occurredAt)}
                 <div>{event.summary}</div>
               </li>
             ))}
@@ -226,37 +309,38 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
         <h2>{translate(locale, 'admin.reconciliation')}</h2>
         <dl>
           <dt>{translate(locale, 'admin.status')}</dt>
-          <dd>{detail.reconciliation.status}</dd>
-          <dt>{translate(locale, 'admin.lastCheckedAt')}</dt>
-          <dd>{formatDateTime(locale, detail.reconciliation.lastCheckedAt)}</dd>
+          <dd>{reconciliationLabel(detail.reconciliation.status, locale)}</dd>
+          <dt>{translate(locale, 'admin.requestedAt')}</dt>
+          <dd>{formatOptionalDate(locale, detail.reconciliation.requestedAt)}</dd>
           <dt>{translate(locale, 'admin.lastReconciledAt')}</dt>
+          <dd>{formatOptionalDate(locale, detail.reconciliation.lastReconciledAt)}</dd>
+          <dt>{translate(locale, 'admin.attemptCount')}</dt>
+          <dd>{detail.reconciliation.lastAttemptCount}</dd>
+          <dt>{translate(locale, 'admin.providerResult')}</dt>
           <dd>
-            {detail.reconciliation.lastReconciledAt === null
-              ? '—'
-              : formatDateTime(locale, detail.reconciliation.lastReconciledAt)}
+            {detail.reconciliation.providerResponse === null
+              ? translate(locale, 'account.notAvailable')
+              : reconciliationLabel(detail.reconciliation.providerResponse, locale)}
           </dd>
-          <dt>{translate(locale, 'admin.mismatchedFields')}</dt>
+          <dt>{translate(locale, 'admin.errorCode')}</dt>
           <dd>
-            {detail.reconciliation.mismatchedFields.length === 0
+            {detail.reconciliation.lastErrorCode === null
               ? '—'
-              : detail.reconciliation.mismatchedFields.join(', ')}
+              : humanizeCode(detail.reconciliation.lastErrorCode)}
           </dd>
-          <dt>{translate(locale, 'admin.note')}</dt>
-          <dd>{detail.reconciliation.note ?? '—'}</dd>
         </dl>
       </section>
 
       <section className="admin-card">
-        <h2>{translate(locale, 'admin.auditTrail', { count: detail.auditTrail.length })}</h2>
-        {detail.auditTrail.length === 0 ? (
+        <h2>{translate(locale, 'admin.auditTrail', { count: detail.audit.length })}</h2>
+        {detail.audit.length === 0 ? (
           <p>{translate(locale, 'admin.noAuditEntries')}</p>
         ) : (
           <ol className="admin-timeline">
-            {detail.auditTrail.map((entry) => (
+            {detail.audit.map((entry) => (
               <li key={entry.id}>
-                <strong>{entry.eventType}</strong> · {entry.actorType}
-                {entry.actorId === null ? '' : ` · ${entry.actorId}`} ·{' '}
-                {formatDateTime(locale, entry.occurredAt)}
+                <strong>{eventLabel(entry.eventType, locale)}</strong> ·{' '}
+                {actorLabel(entry.actorType, locale)} · {formatDateTime(locale, entry.occurredAt)}
                 <div>{entry.summary}</div>
               </li>
             ))}
@@ -270,8 +354,13 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
           <p>{translate(locale, 'admin.noPaymentReview')}</p>
         ) : (
           <p>
-            Review {detail.operationalReview.reviewId.slice(0, 8)} ·{' '}
-            <strong>{detail.operationalReview.status}</strong> ·{' '}
+            {translate(
+              locale,
+              detail.operationalReview.status === 'OPEN'
+                ? 'admin.reviewOpen'
+                : 'admin.reviewResolved',
+            )}{' '}
+            ·{' '}
             <Link href={`/admin/operational-reviews/${detail.operationalReview.reviewId}`}>
               {translate(locale, 'admin.openReview')}
             </Link>
@@ -281,7 +370,7 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
 
       <section className="admin-card">
         <h2>{translate(locale, 'admin.availableActions')}</h2>
-        {detail.provider === null ? (
+        {detail.providerRef === null ? (
           <p>{translate(locale, 'admin.noProvider')}</p>
         ) : confirmingQuery ? (
           <form onSubmit={onQueryProvider}>
@@ -310,10 +399,6 @@ export default function AdminPaymentDetailPage({ params }: AdminPaymentDetailPag
         )}
         <p>{translate(locale, 'admin.noManualPaymentSuccess')}</p>
       </section>
-
-      <p>
-        <Link href="/admin/payments">{translate(locale, 'admin.backToPayments')}</Link>
-      </p>
     </section>
   );
 }

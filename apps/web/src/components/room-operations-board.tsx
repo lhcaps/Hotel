@@ -1,11 +1,54 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { AdminApiError, adminApi, type AdminRoomOperationsResponse } from '../lib/admin-api';
-import { translate } from '../lib/i18n/messages';
+import { compareRoomDisplayOrder } from '../lib/admin-natural-sort';
+import { translate, type MessageKey } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+
+type RoomOperation = AdminRoomOperationsResponse['items'][number];
+type RoomStatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+type RoomGroup =
+  'occupied' | 'checkout' | 'arrival' | 'cleaning' | 'ready' | 'maintenance' | 'inactive';
+
+const roomStatusLabels = {
+  ACTIVE: 'admin.roomStatusActive',
+  INACTIVE: 'admin.roomStatusInactive',
+  MAINTENANCE: 'admin.roomStatusMaintenance',
+} as const satisfies Record<string, MessageKey>;
+
+const housekeepingLabels = {
+  CLEAN: 'admin.housekeepingClean',
+  DIRTY: 'admin.housekeepingDirty',
+  CLEANING: 'admin.housekeepingCleaning',
+} as const satisfies Record<string, MessageKey>;
+
+const groupLabels = {
+  occupied: 'admin.roomGroupOccupied',
+  checkout: 'admin.roomGroupCheckout',
+  arrival: 'admin.roomGroupArrival',
+  cleaning: 'admin.roomGroupCleaning',
+  ready: 'admin.roomGroupReady',
+  maintenance: 'admin.roomGroupMaintenance',
+  inactive: 'admin.roomGroupInactive',
+} as const satisfies Record<RoomGroup, MessageKey>;
+
+const groupOrder: readonly RoomGroup[] = [
+  'occupied',
+  'checkout',
+  'arrival',
+  'cleaning',
+  'ready',
+  'maintenance',
+  'inactive',
+];
 
 function localDate(value: Date): string {
   return [
@@ -23,34 +66,40 @@ function dateRange(value: string): { from: string; to: string } {
 }
 
 function formatTime(value: string, locale: string): string {
-  return new Date(value).toLocaleTimeString(locale, {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return new Date(value).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 }
 
-const roomStatusLabels = {
-  ACTIVE: 'admin.roomStatusActive',
-  INACTIVE: 'admin.roomStatusInactive',
-  MAINTENANCE: 'admin.roomStatusMaintenance',
-} as const;
+function isWithinNextDay(value: string, now: number): boolean {
+  const timestamp = new Date(value).getTime();
+  return timestamp >= now && timestamp <= now + 24 * 60 * 60 * 1000;
+}
 
-const housekeepingLabels = {
-  CLEAN: 'admin.housekeepingClean',
-  DIRTY: 'admin.housekeepingDirty',
-  CLEANING: 'admin.housekeepingCleaning',
-} as const;
+function groupForRoom(room: RoomOperation, now: number): RoomGroup {
+  if (room.roomStatus === 'INACTIVE') return 'inactive';
+  if (room.roomStatus === 'MAINTENANCE' || room.maintenanceState === 'ACTIVE') {
+    return 'maintenance';
+  }
+  if (
+    room.currentOccupancy === 'OCCUPIED' &&
+    room.bookings.some((booking) => isWithinNextDay(booking.checkOut, now))
+  ) {
+    return 'checkout';
+  }
+  if (room.currentOccupancy === 'OCCUPIED') return 'occupied';
+  if (room.nextBookingWindow !== null && isWithinNextDay(room.nextBookingWindow.checkIn, now)) {
+    return 'arrival';
+  }
+  if (room.housekeepingStatus !== 'CLEAN' || room.activeHousekeepingTask !== null) {
+    return 'cleaning';
+  }
+  return 'ready';
+}
 
-const taskTypeLabels = {
-  ARRIVAL_PREP: 'admin.arrivalPrep',
-  TURNOVER: 'admin.turnover',
-} as const;
-
-const taskStatusLabels = {
-  SCHEDULED: 'admin.taskScheduled',
-  DUE: 'admin.taskDue',
-  IN_PROGRESS: 'admin.taskInProgress',
-} as const;
+function groupTone(group: RoomGroup): 'secondary' | 'destructive' | 'outline' {
+  if (group === 'maintenance' || group === 'inactive') return 'destructive';
+  if (group === 'ready') return 'secondary';
+  return 'outline';
+}
 
 export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMode?: boolean }>) {
   const locale = useLocale();
@@ -58,12 +107,15 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
   const [data, setData] = useState<AdminRoomOperationsResponse>();
   const [error, setError] = useState<string>();
   const [stale, setStale] = useState(false);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<RoomStatusFilter>('ALL');
+  const includeInactive = statusFilter === 'INACTIVE' || statusFilter === 'MAINTENANCE';
 
   const refresh = useCallback(() => {
     setError(undefined);
     setStale(false);
     return adminApi
-      .getRoomOperations(dateRange(date))
+      .getRoomOperations({ ...dateRange(date), includeInactive })
       .then(setData)
       .catch((cause: unknown) => {
         setError(
@@ -72,7 +124,7 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
             : translate(locale, 'admin.loadErrorHeading'),
         );
       });
-  }, [date, locale]);
+  }, [date, includeInactive, locale]);
 
   useEffect(() => {
     void refresh();
@@ -83,111 +135,185 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
     return () => window.clearTimeout(timer);
   }, [data?.generatedAt]);
 
+  const visibleItems = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase(locale);
+    return [...(data?.items ?? [])]
+      .filter((room) => statusFilter === 'ALL' || room.roomStatus === statusFilter)
+      .filter(
+        (room) =>
+          normalizedQuery.length === 0 ||
+          [room.roomNumber, room.physicalRoomCode, room.roomConcept, room.roomTier].some((value) =>
+            value.toLocaleLowerCase(locale).includes(normalizedQuery),
+          ),
+      )
+      .sort((left, right) => compareRoomDisplayOrder(left.roomNumber, right.roomNumber));
+  }, [data?.items, locale, query, statusFilter]);
+
+  const groups = useMemo(() => {
+    const now = Date.now();
+    const grouped = new Map<RoomGroup, RoomOperation[]>();
+    for (const room of visibleItems) {
+      const group = groupForRoom(room, now);
+      const current = grouped.get(group) ?? [];
+      current.push(room);
+      grouped.set(group, current);
+    }
+    return groupOrder
+      .map((group) => ({ group, rooms: grouped.get(group) ?? [] }))
+      .filter(({ rooms }) => rooms.length > 0);
+  }, [visibleItems]);
+
   return (
     <section className="room-operations-board" aria-labelledby="room-board-heading">
-      <div className="page-heading">
-        <div>
-          <h2 id="room-board-heading">{translate(locale, 'admin.roomBoardHeading')}</h2>
-          <p>{translate(locale, 'admin.roomBoardHelp')}</p>
-        </div>
-        <p aria-live="polite">
-          {data === undefined
-            ? translate(locale, 'admin.roomBoardLoading')
-            : translate(locale, 'admin.roomBoardUpdated', {
-                time: new Date(data.generatedAt).toLocaleTimeString(locale),
-              })}
-          {stale ? ` · ${translate(locale, 'admin.roomBoardStale')}` : ''}
-        </p>
-      </div>
-      {viewerMode ? <p>{translate(locale, 'admin.roomViewerScope')}</p> : null}
-      <label>
-        {translate(locale, 'admin.scheduleDate')}{' '}
-        <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-      </label>
-      <button className="primary-button" onClick={() => void refresh()} type="button">
-        {translate(locale, 'admin.refreshBoard')}
-      </button>
-      {error ? <p role="alert">{error}</p> : null}
-      {data !== undefined && data.items.length === 0 ? (
-        <p className="table-empty">{translate(locale, 'admin.noPhysicalRooms')}</p>
-      ) : null}
-      {data !== undefined && data.items.length > 0 ? (
-        <ul className="room-board-list">
-          {data.items.map((room) => {
-            return (
-              <li key={room.roomId}>
-                <div>
-                  <strong>
-                    {translate(locale, 'admin.roomNumber', { number: room.roomNumber })}
-                  </strong>
-                  <span>
-                    {translate(locale, 'admin.roomConcept')}: {room.roomConcept} ·{' '}
-                    {translate(locale, roomStatusLabels[room.roomStatus])} ·{' '}
-                    {translate(locale, 'admin.housekeeping')}:{' '}
-                    {translate(locale, housekeepingLabels[room.housekeepingStatus])} ·{' '}
-                    {room.maintenanceState === 'ACTIVE'
-                      ? translate(locale, 'admin.maintenanceActive')
-                      : translate(locale, 'admin.maintenanceNone')}
-                  </span>
+      <Card className="admin-surface">
+        <CardHeader className="admin-surface__header">
+          <div className="admin-page-heading admin-page-heading--compact">
+            <div>
+              <p className="admin-eyebrow">{translate(locale, 'admin.roomOperations')}</p>
+              <CardTitle id="room-board-heading">
+                {translate(locale, 'admin.roomBoardHeading')}
+              </CardTitle>
+              <p className="admin-supporting-text">{translate(locale, 'admin.roomBoardHelp')}</p>
+            </div>
+            <div className="admin-live-state" aria-live="polite">
+              {data === undefined
+                ? translate(locale, 'admin.roomBoardLoading')
+                : `${translate(locale, 'admin.roomBoardUpdated', { time: new Date(data.generatedAt).toLocaleTimeString(locale) })}${stale ? ` · ${translate(locale, 'admin.roomBoardStale')}` : ''}`}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {viewerMode ? (
+            <p className="admin-scope-note">{translate(locale, 'admin.roomViewerScope')}</p>
+          ) : null}
+          <div className="admin-filter-toolbar room-board-toolbar">
+            <div className="admin-filter-toolbar__controls">
+              <label>
+                {translate(locale, 'admin.scheduleDate')}
+                <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+              </label>
+              <label className="admin-filter-toolbar__search">
+                {translate(locale, 'admin.roomSearch')}
+                <Input
+                  placeholder={translate(locale, 'admin.roomSearchPlaceholder')}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
+              <label>
+                {translate(locale, 'admin.status')}
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as RoomStatusFilter)}
+                >
+                  <option value="ALL">{translate(locale, 'admin.all')}</option>
+                  <option value="ACTIVE">{translate(locale, roomStatusLabels.ACTIVE)}</option>
+                  <option value="MAINTENANCE">
+                    {translate(locale, roomStatusLabels.MAINTENANCE)}
+                  </option>
+                  <option value="INACTIVE">{translate(locale, roomStatusLabels.INACTIVE)}</option>
+                </select>
+              </label>
+              <Button onClick={() => void refresh()} type="button" variant="outline">
+                {translate(locale, 'admin.refreshBoard')}
+              </Button>
+            </div>
+            <div className="admin-filter-toolbar__summary">
+              {translate(locale, 'admin.activeRoomsSummary', { count: visibleItems.length })}
+            </div>
+          </div>
+          {error ? (
+            <p className="admin-alert admin-alert--error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          {data !== undefined && data.items.length === 0 ? (
+            <p className="admin-state">{translate(locale, 'admin.noPhysicalRooms')}</p>
+          ) : null}
+          {data !== undefined && data.items.length > 0 && visibleItems.length === 0 ? (
+            <p className="admin-state">{translate(locale, 'admin.noRoomsMatch')}</p>
+          ) : null}
+          <div className="room-board-groups">
+            {groups.map(({ group, rooms }) => (
+              <section className="room-board-group" key={group}>
+                <div className="room-board-group__heading">
+                  <h3>{translate(locale, groupLabels[group])}</h3>
+                  <span>{translate(locale, 'admin.roomsCount', { count: rooms.length })}</span>
                 </div>
-                {viewerMode ? (
-                  <>
-                    <p>
-                      {translate(locale, 'admin.currentOccupancy')}:{' '}
-                      {translate(
-                        locale,
-                        room.currentOccupancy === 'OCCUPIED' ? 'admin.occupied' : 'admin.vacant',
-                      )}
-                    </p>
-                    <p>
-                      {translate(locale, 'admin.nextBookingWindow')}:{' '}
-                      {room.nextBookingWindow === null
-                        ? translate(locale, 'admin.noNextBooking')
-                        : `${formatTime(room.nextBookingWindow.checkIn, locale)}–${formatTime(room.nextBookingWindow.checkOut, locale)}`}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    {room.activeHousekeepingTask === null ? null : (
-                      <p>
-                        {translate(locale, taskTypeLabels[room.activeHousekeepingTask.type])} ·{' '}
-                        {translate(locale, taskStatusLabels[room.activeHousekeepingTask.status])} ·{' '}
-                        {formatTime(room.activeHousekeepingTask.dueAt, locale)}
-                      </p>
-                    )}
-                    <p>
-                      {translate(locale, 'admin.freeWindows')}:{' '}
-                      {room.freeWindows.length === 0
-                        ? translate(locale, 'admin.noneInRange')
-                        : room.freeWindows
-                            .map(
-                              (window) =>
-                                `${formatTime(window.startsAt, locale)}–${formatTime(window.endsAt, locale)}`,
-                            )
-                            .join(', ')}
-                    </p>
-                    {room.bookings.length === 0 ? (
-                      <p>{translate(locale, 'admin.noOccupiedBookingSpan')}</p>
-                    ) : (
-                      <ul>
-                        {room.bookings.map((booking) => (
-                          <li key={booking.bookingCode}>
-                            <Link href={`/admin/bookings/${booking.bookingCode}`}>
-                              {booking.bookingCode}
-                            </Link>{' '}
-                            · {booking.status} · {formatTime(booking.checkIn, locale)}–
-                            {formatTime(booking.checkOut, locale)}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+                <div className="room-board-table-wrap">
+                  <Table className="room-board-table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{translate(locale, 'admin.room')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.roomConcept')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.status')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.housekeeping')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.nextSchedule')}</TableHead>
+                        {!viewerMode ? (
+                          <TableHead>{translate(locale, 'admin.action')}</TableHead>
+                        ) : null}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rooms.map((room) => (
+                        <TableRow key={room.roomId}>
+                          <TableCell data-label={translate(locale, 'admin.room')}>
+                            <strong>
+                              {translate(locale, 'admin.roomNumber', { number: room.roomNumber })}
+                            </strong>
+                            <span className="admin-muted room-code">{room.physicalRoomCode}</span>
+                          </TableCell>
+                          <TableCell data-label={translate(locale, 'admin.roomConcept')}>
+                            <span>{room.roomConcept}</span>
+                            <span className="admin-muted">{room.roomTier}</span>
+                          </TableCell>
+                          <TableCell data-label={translate(locale, 'admin.status')}>
+                            <Badge variant={groupTone(group)}>
+                              {translate(locale, groupLabels[group])}
+                            </Badge>
+                            <span className="admin-muted">
+                              {room.currentOccupancy === 'OCCUPIED'
+                                ? translate(locale, 'admin.occupied')
+                                : translate(locale, 'admin.vacant')}
+                            </span>
+                          </TableCell>
+                          <TableCell data-label={translate(locale, 'admin.housekeeping')}>
+                            <span>
+                              {translate(locale, housekeepingLabels[room.housekeepingStatus])}
+                            </span>
+                            <span className="admin-muted">
+                              {room.maintenanceState === 'ACTIVE'
+                                ? translate(locale, 'admin.maintenanceActive')
+                                : translate(locale, 'admin.maintenanceNone')}
+                            </span>
+                          </TableCell>
+                          <TableCell data-label={translate(locale, 'admin.nextSchedule')}>
+                            {room.nextBookingWindow === null ? (
+                              translate(locale, 'admin.noNextBooking')
+                            ) : (
+                              <span>
+                                {formatTime(room.nextBookingWindow.checkIn, locale)}–
+                                {formatTime(room.nextBookingWindow.checkOut, locale)}
+                              </span>
+                            )}
+                          </TableCell>
+                          {!viewerMode ? (
+                            <TableCell data-label={translate(locale, 'admin.action')}>
+                              <Link href={`/admin/rooms/${room.roomId}`}>
+                                {translate(locale, 'admin.open')}
+                              </Link>
+                            </TableCell>
+                          ) : null}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </section>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }
