@@ -107,7 +107,7 @@ test.describe('Phase 6E ADMIN coupon vertical', () => {
   test('ADMIN coupon workspace loads and supports safe navigation', async ({ page }) => {
     await loginAsAdminThroughUi(page);
     await page.goto('/admin/coupons');
-    await expect(page.getByRole('heading', { name: 'Coupon' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mã giảm giá' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Tạo coupon' })).toBeVisible();
     await page.getByRole('link', { name: 'Tạo coupon' }).click();
     await expect(page).toHaveURL(/\/admin\/coupons\/new$/);
@@ -153,7 +153,7 @@ test.describe('Phase 6E ADMIN coupon vertical', () => {
     // 1-2. Authenticate as ADMIN and open the list.
     await loginAsAdminThroughUi(page);
     await page.goto('/admin/coupons');
-    await expect(page.getByRole('heading', { name: 'Coupon' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mã giảm giá' })).toBeVisible();
 
     // 3-4. Open the create page and create a FIXED coupon through the UI.
     await page.getByRole('link', { name: 'Tạo coupon' }).click();
@@ -192,7 +192,7 @@ test.describe('Phase 6E ADMIN coupon vertical', () => {
     // 6-7. Redirect to the detail page; verify FIXED amount and lifecycle.
     await page.waitForURL(/\/admin\/coupons\/[0-9a-f-]+$/);
     await expect(page.getByRole('heading', { name: fixedCode })).toBeVisible();
-    await expect(page.getByText('AVAILABLE')).toBeVisible();
+    await expect(page.getByText('Đang khả dụng')).toBeVisible();
     await expect(page.getByText(/50\.000/)).toBeVisible();
     const fixedDetailUrl = page.url();
     const fixedCouponId = fixedDetailUrl.split('/').pop() ?? '';
@@ -246,7 +246,7 @@ test.describe('Phase 6E ADMIN coupon vertical', () => {
 
     // 11. Return to the list and find both coupons.
     await page.goto('/admin/coupons');
-    await expect(page.getByRole('heading', { name: 'Coupon' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mã giảm giá' })).toBeVisible();
     // Filter to the unique run tag so we can deterministically find our two coupons.
     await page.getByLabel('Tìm theo mã').fill(RUN_TAG.toUpperCase().slice(0, 8));
     await expect(page.getByRole('heading', { name: fixedCode })).toBeVisible();
@@ -321,7 +321,7 @@ test.describe('Phase 6E ADMIN coupon vertical', () => {
     ).toBe(true);
 
     // 17. Lifecycle becomes DISABLED.
-    await expect(page.getByText('DISABLED')).toBeVisible();
+    await expect(page.getByText('Đã vô hiệu hóa')).toBeVisible();
     // 18. No re-enable action exists.
     expect(await page.getByRole('button', { name: 'Vô hiệu hóa coupon' }).count()).toBe(0);
     expect(
@@ -456,7 +456,7 @@ test.describe('Phase 6E ADMIN coupon vertical', () => {
     await loginAsAdminThroughUi(page);
 
     await page.goto('/admin/coupons');
-    await expect(page.getByRole('heading', { name: 'Coupon' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mã giảm giá' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Tạo coupon' })).toBeVisible();
 
     await page.getByRole('link', { name: 'Tạo coupon' }).click();

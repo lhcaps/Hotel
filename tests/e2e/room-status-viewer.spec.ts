@@ -38,11 +38,18 @@ const databasePool = new Pool({
   application_name: 'room-management-playwright-room-viewer',
 });
 
-async function setViewerRole(role: 'ADMIN' | 'ROOM_STATUS_VIEWER'): Promise<void> {
+async function setViewerRole(role: 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER'): Promise<void> {
   await databasePool.query(`UPDATE users SET role = $1 WHERE lower(email) = lower($2)`, [
     role,
     playwrightAdminEmail,
   ]);
+  await databasePool.query(
+    `UPDATE admin_memberships
+        SET role = $1
+      WHERE user_id = (SELECT id FROM users WHERE lower(email) = lower($2))
+        AND status = 'ACTIVE'`,
+    [role, playwrightAdminEmail],
+  );
   await databasePool.query(
     `DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE lower(email) = lower($1))`,
     [playwrightAdminEmail],
@@ -60,7 +67,7 @@ async function loginAsViewer(page: import('@playwright/test').Page): Promise<voi
 
 test.describe('ROOM_STATUS_VIEWER_CONTEXT', () => {
   test.afterAll(async () => {
-    await setViewerRole('ADMIN');
+    await setViewerRole('SUPER_ADMIN');
     await databasePool.end();
   });
 
@@ -72,7 +79,7 @@ test.describe('ROOM_STATUS_VIEWER_CONTEXT', () => {
       await expect(page.locator('nav a[href="/admin/room-operations"]')).toBeVisible();
       await expect(page.locator('nav a[href="/admin/payments"]')).toHaveCount(0);
       await expect(page.locator('nav a[href="/admin/accounts"]')).toHaveCount(0);
-      await expect(page.locator('main.admin-page button.primary-button')).toBeVisible();
+      await expect(page.getByRole('button', { name: /Refresh board|Làm mới bảng/ })).toBeVisible();
 
       await page.goto('/admin/payments');
       await page.waitForURL(/\/admin\/room-operations$/);
@@ -97,7 +104,7 @@ test.describe('ROOM_STATUS_VIEWER_CONTEXT', () => {
       );
       expect(mutationResponse.status()).toBe(403);
     } finally {
-      await setViewerRole('ADMIN');
+      await setViewerRole('SUPER_ADMIN');
     }
   });
 });

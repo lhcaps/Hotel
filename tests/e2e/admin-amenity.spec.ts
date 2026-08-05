@@ -17,5 +17,5 @@ test('ADMIN creates an amenity and sees it after reload', async ({ page }) => {
   await page.reload();
   await expect(page.getByText('PARKING', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Lưu trữ Parking' }).click();
-  await expect(page.getByRole('cell', { name: 'INACTIVE', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Tạm ngưng', exact: true })).toBeVisible();
 });

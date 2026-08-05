@@ -99,7 +99,7 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
     });
     expect(meResult.status).toBe(200);
     const meBody = JSON.parse(meResult.body) as { role?: string; permissions?: readonly string[] };
-    expect(meBody.role).toBe('ADMIN');
+    expect(meBody.role).toBe('SUPER_ADMIN');
     expect((meBody.permissions ?? []).length).toBeGreaterThan(0);
 
     // The protected shell must render in every protected route we touch.

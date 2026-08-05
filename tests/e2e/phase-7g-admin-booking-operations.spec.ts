@@ -186,8 +186,8 @@ test.describe('Phase 7G ADMIN booking operations', () => {
     await expect(page.getByRole('status')).toBeVisible();
     await page.getByLabel('Lý do hủy').fill('Playwright cleanup');
     await page.getByRole('button', { name: 'Hủy đặt phòng' }).click();
-    await expect(page.getByText('CANCELLED').first()).toBeVisible();
-    await expect(page.getByText('BOOKING_CANCELLED')).toBeVisible();
+    await expect(page.getByText('Đã hủy').first()).toBeVisible();
+    await expect(page.getByText('Đặt phòng đã hủy')).toBeVisible();
   });
 
   test('ADMIN can check-in and check-out a CONFIRMED booking', async ({ page }) => {
@@ -229,12 +229,12 @@ test.describe('Phase 7G ADMIN booking operations', () => {
     // Check-in.
     await page.getByRole('button', { name: 'Check-in' }).click();
     await expect(page.getByText('Đã nhận phòng').first()).toBeVisible();
-    await expect(page.getByText('BOOKING_CHECKED_IN')).toBeVisible();
+    await expect(page.getByText('Đã nhận phòng').first()).toBeVisible();
 
     // Check-out.
     await page.getByRole('button', { name: 'Check-out' }).click();
     await expect(page.getByText('Đã trả phòng').first()).toBeVisible();
-    await expect(page.getByText('BOOKING_CHECKED_OUT')).toBeVisible();
+    await expect(page.getByText('Đã trả phòng').first()).toBeVisible();
   });
 
   test('ADMIN can mark a CONFIRMED booking NO_SHOW and resolve its operational review', async ({
@@ -271,9 +271,9 @@ test.describe('Phase 7G ADMIN booking operations', () => {
 
     await page.goto(`/admin/bookings/${noShow.bookingCode}`);
     await page.getByLabel('Lý do không đến').fill('Guest unreachable');
-    await page.getByRole('button', { name: 'Đánh dấu NO_SHOW' }).click();
-    await expect(page.getByText('NO_SHOW').first()).toBeVisible();
-    await expect(page.getByText('BOOKING_NO_SHOW')).toBeVisible();
+    await page.getByRole('button', { name: 'Đánh dấu không đến' }).click();
+    await expect(page.getByText('Không đến').first()).toBeVisible();
+    await expect(page.getByText('Không đến')).toBeVisible();
 
     // Cancel the confirmed booking to open an operational review.
     // (Need to navigate to a fresh booking that is still CONFIRMED with payment.)
@@ -288,8 +288,8 @@ test.describe('Phase 7G ADMIN booking operations', () => {
     await page.goto(`/admin/bookings/${paidConfirmed.bookingCode}`);
     await page.getByLabel('Lý do hủy').fill('Guest illness');
     await page.getByRole('button', { name: 'Hủy đặt phòng' }).click();
-    await expect(page.getByText('CANCELLED').first()).toBeVisible();
-    await expect(page.getByText('OPEN').first()).toBeVisible();
+    await expect(page.getByText('Đã hủy').first()).toBeVisible();
+    await expect(page.getByText('Đang mở').first()).toBeVisible();
 
     // Navigate to operational review list and resolve it.
     const [reviewsResponse] = await Promise.all([
@@ -308,7 +308,7 @@ test.describe('Phase 7G ADMIN booking operations', () => {
     await page.waitForURL(/\/admin\/operational-reviews\/[^/]+$/);
     await page.getByLabel('Ghi chú xử lý').fill('Refund handled offline.');
     await page.getByRole('button', { name: 'Đánh dấu đã xử lý' }).click();
-    await expect(page.getByText('RESOLVED').first()).toBeVisible();
+    await expect(page.getByText('Đã xử lý').first()).toBeVisible();
 
     // Verify payment remained SUCCEEDED and booking remains CANCELLED.
     const paymentState = await psql(

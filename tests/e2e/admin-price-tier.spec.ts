@@ -18,5 +18,5 @@ test('ADMIN creates a price tier and sees it after reload', async ({ page }) => 
   await page.reload();
   await expect(page.getByRole('cell', { name: 'Premium', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Lưu trữ Premium' }).click();
-  await expect(page.getByRole('cell', { name: 'INACTIVE', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'Tạm ngưng', exact: true })).toBeVisible();
 });

@@ -13,21 +13,19 @@ async function signIn(page: import('@playwright/test').Page) {
 test('ADMIN enables only non-secret MoMo and VNPAY operational settings', async ({ page }) => {
   await signIn(page);
   await page.goto('/admin/payment-providers');
-  await expect(page.getByRole('heading', { name: 'Payment providers' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Nhà cung cấp thanh toán' })).toBeVisible();
   await expect(
-    page.getByText('Credentials are managed only by server configuration.'),
+    page.getByText(/Bí mật kết nối chỉ được quản lý bằng cấu hình máy chủ/),
   ).toBeVisible();
   await expect(page.locator('body')).not.toContainText('playwright-vnpay-secret');
 
-  for (const provider of ['MOMO', 'VNPAY']) {
-    const card = page
-      .locator('form')
-      .filter({ has: page.getByRole('heading', { name: provider }) });
-    await expect(card.getByText(/Configured \(sandbox\)/)).toBeVisible();
-    await card.getByRole('checkbox').check();
+  for (const [index, provider] of ['MOMO', 'VNPAY'].entries()) {
+    const form = page.locator('form').nth(index);
+    await expect(page.getByText(/Đã cấu hình/).nth(index)).toBeVisible();
+    await form.getByRole('checkbox').check();
     await Promise.all([
       page.waitForResponse(new RegExp(`/api/v1/admin/payment-providers/${provider}$`)),
-      card.getByRole('button', { name: 'Save settings' }).click(),
+      form.getByRole('button', { name: 'Lưu cấu hình' }).click(),
     ]);
   }
 

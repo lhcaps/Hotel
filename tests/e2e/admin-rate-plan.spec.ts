@@ -34,7 +34,7 @@ test('ADMIN updates an active rate-plan price and sees the persisted value after
 
   await page.goto('/admin/rate-plans');
   const plan = page.getByRole('article', { name: /Lunch combo/i });
-  const price = plan.getByRole('spinbutton', { name: /000000000101$/i });
+  const price = plan.getByRole('spinbutton', { name: /Deluxe$/i });
   await expect(price).toBeEnabled();
   await price.fill('369000');
   await price.locator('xpath=ancestor::li').getByRole('button').click();
@@ -43,7 +43,7 @@ test('ADMIN updates an active rate-plan price and sees the persisted value after
   await expect(
     page
       .getByRole('article', { name: /Lunch combo/i })
-      .getByRole('spinbutton', { name: /000000000101$/i }),
+      .getByRole('spinbutton', { name: /Deluxe$/i }),
   ).toHaveValue('369000');
   await price.fill('359000');
   await price.locator('xpath=ancestor::li').getByRole('button').click();
@@ -62,7 +62,7 @@ test('ADMIN changes the lunch boundary through the UI and historical quotes rema
   await page.goto('/admin/rate-plans');
   const lunch = page.getByRole('article', { name: /Lunch combo/i });
   await expect(lunch).toBeVisible();
-  const lunchPrice = lunch.getByRole('spinbutton', { name: /000000000101$/i });
+  const lunchPrice = lunch.getByRole('spinbutton', { name: /Deluxe$/i });
   await lunchPrice.fill('200000');
   const [priceResponse] = await Promise.all([
     page.waitForResponse(
@@ -73,7 +73,7 @@ test('ADMIN changes the lunch boundary through the UI and historical quotes rema
     lunchPrice.locator('xpath=ancestor::li').getByRole('button').click(),
   ]);
   expect(priceResponse.ok()).toBeTruthy();
-  await expect(lunch.getByRole('spinbutton', { name: /000000000101$/i })).toHaveValue('200000');
+  await expect(lunch.getByRole('spinbutton', { name: /Deluxe$/i })).toHaveValue('200000');
   const rules = lunch.getByRole('combobox');
   await rules.nth(2).selectOption('15:15');
   const saveSelection = lunch.getByRole('button', { name: 'Lưu điều kiện' });
@@ -108,7 +108,7 @@ test('ADMIN changes the lunch boundary through the UI and historical quotes rema
     pricing: { selectedPlanCode: 'LUNCH_COMBO' },
   });
 
-  const restoredLunchPrice = lunch.getByRole('spinbutton', { name: /000000000101$/i });
+  const restoredLunchPrice = lunch.getByRole('spinbutton', { name: /Deluxe$/i });
   await restoredLunchPrice.fill('359000');
   const [restoreResponse] = await Promise.all([
     page.waitForResponse(

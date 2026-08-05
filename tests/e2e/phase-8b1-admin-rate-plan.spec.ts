@@ -103,7 +103,7 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
     await expect(planRow).toBeVisible();
 
     // Step 4: configure the price.
-    const priceInput = planRow.getByRole('spinbutton', { name: /000000000101$/i });
+    const priceInput = planRow.getByRole('spinbutton', { name: /Deluxe$/i });
     await priceInput.fill('259000');
     const [priceResponse, reloadedPlansResponse] = await Promise.all([
       page.waitForResponse(
@@ -122,9 +122,9 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
     expect(reloadedPlansResponse.ok()).toBeTruthy();
     await expect(priceInput).toHaveValue('259000');
 
-    for (const priceTierId of ['000000000102', '000000000103']) {
+    for (const priceTierName of ['Standard', 'Signature']) {
       const tierPrice = planRow.getByRole('spinbutton', {
-        name: new RegExp(`${priceTierId}$`),
+        name: new RegExp(`${priceTierName}$`),
       });
       await tierPrice.fill('259000');
       const [tierPriceResponse] = await Promise.all([
@@ -199,15 +199,13 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
     // Step 7: edit price; new quote reflects the change, old is immutable.
     await page.goto('/admin/rate-plans');
     const planRowAfter = page.getByRole('article', { name: new RegExp(planCode) });
-    await planRowAfter.getByRole('spinbutton', { name: /000000000101$/i }).fill('279000');
+    await planRowAfter.getByRole('spinbutton', { name: /Deluxe$/i }).fill('279000');
     await planRowAfter
-      .getByRole('spinbutton', { name: /000000000101$/i })
+      .getByRole('spinbutton', { name: /Deluxe$/i })
       .locator('xpath=ancestor::li')
       .getByRole('button')
       .click();
-    await expect(planRowAfter.getByRole('spinbutton', { name: /000000000101$/i })).toHaveValue(
-      '279000',
-    );
+    await expect(planRowAfter.getByRole('spinbutton', { name: /Deluxe$/i })).toHaveValue('279000');
 
     const reQuoteResponsePromise = page.waitForResponse(
       (response) =>

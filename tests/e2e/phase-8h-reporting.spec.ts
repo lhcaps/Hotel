@@ -22,6 +22,8 @@ test('ADMIN reads the authoritative operational report and applies a date range'
   await page.getByRole('textbox', { name: 'Đến ngày' }).fill('2026-07-31');
   await page.getByRole('button', { name: 'Áp dụng bộ lọc' }).click();
   await expect(
-    page.getByText(/Không có đặt phòng nào khớp với khoảng thời gian này.|Doanh thu theo ngày/),
+    page
+      .getByText(/Không có đặt phòng nào khớp với khoảng thời gian này.|Doanh thu theo ngày/)
+      .first(),
   ).toBeVisible();
 });

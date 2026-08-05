@@ -104,6 +104,11 @@ test('visitor sees cheaper stay-time recommendations and reissues a quote', asyn
     (response) =>
       response.url().endsWith('/api/v1/quotes') && response.request().method() === 'POST',
   );
+  const recommendationsResponsePromise = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/v1/recommendations/stay-times') &&
+      response.request().method() === 'POST',
+  );
   await page
     .getByTestId('availability-room-10000000-0000-4000-8000-000000000201')
     .getByRole('link', { name: 'Xem phòng & giá' })
@@ -119,11 +124,7 @@ test('visitor sees cheaper stay-time recommendations and reissues a quote', asyn
   await expect(page.getByRole('heading', { name: 'Thanh toán & đặt phòng' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Khung giờ thay thế rẻ hơn' })).toBeVisible();
 
-  const recommendationsResponse: Response = await page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/v1/recommendations/stay-times') &&
-      response.request().method() === 'POST',
-  );
+  const recommendationsResponse: Response = await recommendationsResponsePromise;
   expect(recommendationsResponse.ok()).toBeTruthy();
   const recommendations = (await recommendationsResponse.json()) as {
     exactResult: { finalAmountVnd: number; pricing: { selectedPlanCode: string } };

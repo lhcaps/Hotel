@@ -11,7 +11,7 @@ test('ADMIN reads and refreshes the server-backed room operations board', async 
 
   await page.goto('/admin/rooms');
   await expect(page.locator('#room-board-heading')).toBeVisible();
-  await expect(page.locator('.room-board-list > li').first()).toBeVisible();
-  await page.locator('.room-operations-board button.primary-button').click();
-  await expect(page.locator('.room-board-list > li').first()).toBeVisible();
+  await expect(page.locator('.room-board-group tbody tr').first()).toBeVisible();
+  await page.getByRole('button', { name: /Refresh board|Làm mới bảng/ }).click();
+  await expect(page.locator('.room-board-group tbody tr').first()).toBeVisible();
 });
