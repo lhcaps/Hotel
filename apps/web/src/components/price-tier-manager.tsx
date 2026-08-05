@@ -4,7 +4,7 @@ import { type FormEvent, useEffect, useState } from 'react';
 
 import { AdminApiError, adminApi, type CatalogPage } from '../lib/admin-api';
 import type { PriceTier } from '@room/contracts';
-import { translate } from '../lib/i18n/messages';
+import { translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 
 export function PriceTierManager() {
@@ -152,7 +152,7 @@ export function PriceTierManager() {
                 <td>{tier.code}</td>
                 <td>{tier.name}</td>
                 <td>{tier.sortOrder}</td>
-                <td>{tier.status}</td>
+                <td>{translateAdminStatus(locale, tier.status)}</td>
                 <td>
                   <button
                     disabled={pending || tier.status === 'INACTIVE'}

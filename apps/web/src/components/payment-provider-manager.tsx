@@ -8,13 +8,17 @@ import {
   type PaymentProviderAdmin,
   type PaymentProviderUpdate,
 } from '../lib/admin-api';
+import { translate } from '../lib/i18n/messages';
+import { useLocale } from './locale-provider';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
 
 type EditableProvider = PaymentProviderAdmin & { readonly maintenanceMessage: string };
-
 function editable(provider: PaymentProviderAdmin): EditableProvider {
   return { ...provider, maintenanceMessage: provider.maintenanceMessage ?? '' };
 }
-
 function updatePayload(provider: EditableProvider): PaymentProviderUpdate {
   return {
     enabled: provider.enabled,
@@ -26,6 +30,7 @@ function updatePayload(provider: EditableProvider): PaymentProviderUpdate {
 }
 
 export function PaymentProviderManager() {
+  const locale = useLocale();
   const [providers, setProviders] = useState<readonly EditableProvider[]>();
   const [saving, setSaving] = useState<'MOMO' | 'VNPAY' | null>(null);
   const [message, setMessage] = useState<string>();
@@ -34,15 +39,13 @@ export function PaymentProviderManager() {
     void adminApi
       .listPaymentProviders()
       .then((items) => setProviders(items.map(editable)))
-      .catch(() => setMessage('Unable to load payment-provider settings.'));
-  }, []);
-
+      .catch(() => setMessage(translate(locale, 'admin.loadErrorHeading')));
+  }, [locale]);
   function change(provider: 'MOMO' | 'VNPAY', patch: Partial<EditableProvider>) {
     setProviders((current) =>
       current?.map((item) => (item.provider === provider ? { ...item, ...patch } : item)),
     );
   }
-
   async function save(provider: EditableProvider) {
     if (saving !== null) return;
     if (
@@ -51,9 +54,7 @@ export function PaymentProviderManager() {
       provider.checkoutExpiryMinutes < 1 ||
       provider.checkoutExpiryMinutes > 60
     ) {
-      setMessage(
-        'Enter a display name, non-negative order, and an expiry between 1 and 60 minutes.',
-      );
+      setMessage(translate(locale, 'admin.providerValidation'));
       return;
     }
     setSaving(provider.provider);
@@ -64,12 +65,12 @@ export function PaymentProviderManager() {
         updatePayload(provider),
       );
       change(provider.provider, editable(updated));
-      setMessage(`${provider.provider} settings saved.`);
+      setMessage(translate(locale, 'admin.providerSaved', { provider: provider.provider }));
     } catch (error) {
       setMessage(
         error instanceof AdminApiError
           ? error.problem.detail
-          : 'Unable to save payment-provider settings.',
+          : translate(locale, 'admin.loadErrorHeading'),
       );
     } finally {
       setSaving(null);
@@ -78,96 +79,114 @@ export function PaymentProviderManager() {
 
   return (
     <section className="admin-page" aria-labelledby="payment-providers-heading">
-      <div className="page-heading">
+      <div className="admin-page-heading">
         <div>
-          <h1 id="payment-providers-heading">Payment providers</h1>
-          <p>
-            Manage checkout availability and display settings. Credentials are managed only by
-            server configuration.
-          </p>
+          <p className="admin-eyebrow">{translate(locale, 'admin.providerSettings')}</p>
+          <h1 id="payment-providers-heading">{translate(locale, 'admin.providers')}</h1>
+          <p>{translate(locale, 'admin.providerSettingsHelp')}</p>
         </div>
       </div>
-      {message ? <p role="status">{message}</p> : null}
+      {message ? (
+        <p className="admin-alert" role="status">
+          {message}
+        </p>
+      ) : null}
       {providers === undefined ? (
-        <p aria-live="polite">Loading payment providers…</p>
+        <Card>
+          <CardContent className="admin-state">{translate(locale, 'admin.loading')}</CardContent>
+        </Card>
       ) : (
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="admin-provider-grid">
           {providers.map((provider) => (
-            <form
-              className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
-              key={provider.provider}
-              onSubmit={(event) => {
-                event.preventDefault();
-                void save(provider);
-              }}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold">{provider.provider}</h2>
-                <span className={provider.configured ? 'text-emerald-700' : 'text-amber-800'}>
-                  {provider.configured ? `Configured (${provider.environment})` : 'Not configured'}
-                </span>
-              </div>
-              <label className="mt-4 flex items-center gap-2">
-                <input
-                  checked={provider.enabled}
-                  disabled={!provider.configured || saving !== null}
-                  onChange={(event) => change(provider.provider, { enabled: event.target.checked })}
-                  type="checkbox"
-                />
-                Enable this provider for new payment attempts
-              </label>
-              <label className="mt-3 block">
-                Display name
-                <input
-                  className="mt-1 block w-full"
-                  maxLength={120}
-                  onChange={(event) =>
-                    change(provider.provider, { displayName: event.target.value })
-                  }
-                  required
-                  value={provider.displayName}
-                />
-              </label>
-              <label className="mt-3 block">
-                Display order
-                <input
-                  className="mt-1 block w-full"
-                  min={0}
-                  onChange={(event) =>
-                    change(provider.provider, { displayOrder: Number(event.target.value) })
-                  }
-                  type="number"
-                  value={provider.displayOrder}
-                />
-              </label>
-              <label className="mt-3 block">
-                Checkout expiry (minutes)
-                <input
-                  className="mt-1 block w-full"
-                  max={60}
-                  min={1}
-                  onChange={(event) =>
-                    change(provider.provider, { checkoutExpiryMinutes: Number(event.target.value) })
-                  }
-                  type="number"
-                  value={provider.checkoutExpiryMinutes}
-                />
-              </label>
-              <label className="mt-3 block">
-                Maintenance message (optional)
-                <textarea
-                  className="mt-1 block w-full"
-                  maxLength={500}
-                  onChange={(event) =>
-                    change(provider.provider, { maintenanceMessage: event.target.value })
-                  }
-                  value={provider.maintenanceMessage}
-                />
-              </label>
-              <button className="primary-button mt-4" disabled={saving !== null} type="submit">
-                {saving === provider.provider ? 'Saving…' : 'Save settings'}
-              </button>
-            </form>
+            <Card key={provider.provider}>
+              <CardHeader>
+                <div className="admin-page-heading admin-page-heading--compact">
+                  <div>
+                    <CardTitle>{provider.provider}</CardTitle>
+                    <CardDescription>{provider.displayName}</CardDescription>
+                  </div>
+                  <Badge variant={provider.configured ? 'secondary' : 'destructive'}>
+                    {provider.configured
+                      ? translate(locale, 'admin.configured', {
+                          environment: provider.environment,
+                        })
+                      : translate(locale, 'admin.notConfigured')}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <form
+                  className="admin-form-stack"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void save(provider);
+                  }}
+                >
+                  <label className="admin-checkbox">
+                    <input
+                      checked={provider.enabled}
+                      disabled={!provider.configured || saving !== null}
+                      onChange={(event) =>
+                        change(provider.provider, { enabled: event.target.checked })
+                      }
+                      type="checkbox"
+                    />
+                    {translate(locale, 'admin.enableForNewTransactions')}
+                  </label>
+                  <label>
+                    {translate(locale, 'admin.displayName')}
+                    <Input
+                      maxLength={120}
+                      required
+                      value={provider.displayName}
+                      onChange={(event) =>
+                        change(provider.provider, { displayName: event.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    {translate(locale, 'admin.displayOrder')}
+                    <Input
+                      min={0}
+                      type="number"
+                      value={provider.displayOrder}
+                      onChange={(event) =>
+                        change(provider.provider, { displayOrder: Number(event.target.value) })
+                      }
+                    />
+                  </label>
+                  <label>
+                    {translate(locale, 'admin.paymentSessionExpiry')}
+                    <Input
+                      max={60}
+                      min={1}
+                      type="number"
+                      value={provider.checkoutExpiryMinutes}
+                      onChange={(event) =>
+                        change(provider.provider, {
+                          checkoutExpiryMinutes: Number(event.target.value),
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    {translate(locale, 'admin.maintenanceMessage')}
+                    <textarea
+                      maxLength={500}
+                      value={provider.maintenanceMessage}
+                      onChange={(event) =>
+                        change(provider.provider, { maintenanceMessage: event.target.value })
+                      }
+                    />
+                  </label>
+                  <Button disabled={saving !== null} type="submit">
+                    {saving === provider.provider
+                      ? translate(locale, 'admin.saving')
+                      : translate(locale, 'admin.saveConfiguration')}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { AdminApiError, type CatalogPage } from '../lib/admin-api';
-import { translate } from '../lib/i18n/messages';
+import { translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 
 interface CatalogRow {
@@ -140,7 +140,7 @@ export function CatalogTable<T extends CatalogRow>({
                 {columns.map((column) => (
                   <td key={column.heading}>{column.cell(item)}</td>
                 ))}
-                <td>{item.status}</td>
+                <td>{translateAdminStatus(locale, item.status)}</td>
                 {archive === undefined ? null : (
                   <td>
                     <button

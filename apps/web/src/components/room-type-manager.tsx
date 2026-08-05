@@ -47,6 +47,13 @@ function isCapacityValid(draft: RoomTypeEditDraft) {
   );
 }
 
+function roomTypeStatusLabel(locale: 'vi' | 'en', status: RoomType['status']): string {
+  return translate(
+    locale,
+    status === 'ACTIVE' ? 'roomType.status.ACTIVE' : 'roomType.status.INACTIVE',
+  );
+}
+
 export function RoomTypeManager() {
   const locale = useLocale();
   const [types, setTypes] = useState<CatalogPage<RoomType>>();
@@ -220,7 +227,7 @@ export function RoomTypeManager() {
   }
 
   return (
-    <section className="admin-page">
+    <section className="admin-page admin-page--room-types">
       <h1>{translate(locale, 'admin.roomTypes')}</h1>
       <p>{translate(locale, 'roomType.help')}</p>
       <form onSubmit={create}>
@@ -436,7 +443,7 @@ export function RoomTypeManager() {
                   <td>
                     {draft.maxAdults}/{draft.maxChildren}/{draft.maxOccupancy}
                   </td>
-                  <td>{roomType.status}</td>
+                  <td>{roomTypeStatusLabel(locale, roomType.status)}</td>
                   <td>
                     <Button
                       aria-label={translate(locale, 'amenity.archive', { name: roomType.name })}

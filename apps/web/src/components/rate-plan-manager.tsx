@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import type {
+  PriceTier,
   RatePlan,
   RatePlanCreateCommand,
   RatePlanSelectionRuleCommand,
@@ -179,16 +180,17 @@ function draftToCommand(plan: RatePlan, draft: SelectionRuleDraft): RatePlanSele
 export function RatePlanManager() {
   const locale = useLocale();
   const [plans, setPlans] = useState<readonly RatePlan[]>();
+  const [priceTiers, setPriceTiers] = useState<readonly PriceTier[]>([]);
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, SelectionRuleDraft>>({});
   const [creating, setCreating] = useState(false);
   const [createDraft, setCreateDraft] = useState<CreateDraft>(initialCreateDraft);
   const load = () =>
-    void adminApi
-      .listRatePlans()
-      .then((result) => {
+    void Promise.all([adminApi.listRatePlans(), adminApi.listPriceTiers()])
+      .then(([result, tierPage]) => {
         setPlans(result.items);
+        setPriceTiers(tierPage.items);
         setDrafts(draftsFromPlans(result.items));
       })
       .catch((error: unknown) =>
@@ -323,8 +325,12 @@ export function RatePlanManager() {
       plans === undefined ? undefined : [...plans].sort((a, b) => a.code.localeCompare(b.code)),
     [plans],
   );
+  const priceTierById = useMemo(
+    () => new Map(priceTiers.map((tier) => [tier.id, tier] as const)),
+    [priceTiers],
+  );
   return (
-    <section className="admin-page">
+    <section className="admin-page admin-page--rate-plans">
       <h1>{translate(locale, 'ratePlan.heading')}</h1>
       <p>{translate(locale, 'ratePlan.help')}</p>
       {message ? <p role="alert">{message}</p> : null}
@@ -511,9 +517,11 @@ export function RatePlanManager() {
                   {plan.prices.map((price) => (
                     <li key={price.priceTierId}>
                       <label>
-                        {translate(locale, 'admin.amount')} {price.priceTierId}
+                        {translate(locale, 'roomType.priceTier')}{' '}
+                        {priceTierById.get(price.priceTierId)?.name ??
+                          translate(locale, 'ratePlan.unknownPriceTier')}
                         <input
-                          aria-label={`${translate(locale, 'admin.amount')} ${plan.name} ${price.priceTierId}`}
+                          aria-label={`${translate(locale, 'admin.amount')} ${plan.name} ${priceTierById.get(price.priceTierId)?.name ?? translate(locale, 'ratePlan.unknownPriceTier')}`}
                           defaultValue={price.amountVnd ?? ''}
                           disabled={pending || plan.status === 'INACTIVE'}
                           inputMode="numeric"

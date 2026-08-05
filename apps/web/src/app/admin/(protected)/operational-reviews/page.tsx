@@ -9,7 +9,7 @@ import {
   type AdminOperationalReviewSummary,
 } from '../../../../lib/admin-api';
 import { useLocale } from '../../../../components/locale-provider';
-import { formatDateTime, translate } from '../../../../lib/i18n/messages';
+import { formatDateTime, translate, translateAdminStatus } from '../../../../lib/i18n/messages';
 
 const PAGE_SIZE = 20;
 
@@ -48,7 +48,7 @@ export default function OperationalReviewsPage() {
         .then((response) => {
           setItems(response.items);
           setPage(response.page);
-          setTotalPages(Math.max(1, response.totalPages));
+          setTotalPages(Math.max(1, Math.ceil(response.totalItems / response.pageSize)));
         })
         .catch((cause: unknown) => {
           setItems([]);
@@ -148,7 +148,7 @@ export default function OperationalReviewsPage() {
                   <Link href={`/admin/bookings/${item.bookingCode}`}>{item.bookingCode}</Link>
                 </td>
                 <td>{item.category}</td>
-                <td>{item.status}</td>
+                <td>{translateAdminStatus(locale, item.status)}</td>
                 <td>{formatDateTime(locale, item.openedAt)}</td>
                 <td>
                   <Link href={`/admin/operational-reviews/${item.reviewId}`}>

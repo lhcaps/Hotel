@@ -5,6 +5,20 @@ import type { Coupon } from '@room/contracts';
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { formatDateTime, formatVnd, translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+
+const lifecycleLabels = {
+  AVAILABLE: 'coupon.lifecycleAvailable',
+  EXPIRED: 'coupon.lifecycleExpired',
+  DISABLED: 'coupon.lifecycleDisabled',
+} as const;
+
+function lifecycleLabel(locale: ReturnType<typeof useLocale>, value: string) {
+  return translate(
+    locale,
+    lifecycleLabels[value as keyof typeof lifecycleLabels] ?? 'coupon.lifecycleDisabled',
+  );
+}
+
 export function CouponDetail({ id }: { id: string }) {
   const locale = useLocale();
   const [coupon, setCoupon] = useState<Coupon>();
@@ -57,8 +71,12 @@ export function CouponDetail({ id }: { id: string }) {
       <Link href="/admin/coupons">← {translate(locale, 'coupon.backToList')}</Link>
       <h1>{coupon.code}</h1>
       <p>
-        {translate(locale, 'coupon.lifecycle')}: <strong>{coupon.lifecycle}</strong> · Database
-        status: {coupon.status}
+        {translate(locale, 'coupon.lifecycle')}:{' '}
+        <strong>{lifecycleLabel(locale, coupon.lifecycle)}</strong>{' '}
+        {translate(locale, 'coupon.databaseStatus')}:{' '}
+        {coupon.status === 'ACTIVE'
+          ? translate(locale, 'coupon.statusActive')
+          : translate(locale, 'coupon.statusDisabled')}
       </p>
       {message && <p role="status">{message}</p>}
       <div className="coupon-detail">

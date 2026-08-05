@@ -10,7 +10,7 @@ import {
   type AdminOperationalReviewDetail,
 } from '../../../../../lib/admin-api';
 import { useLocale } from '../../../../../components/locale-provider';
-import { formatDateTime, translate } from '../../../../../lib/i18n/messages';
+import { formatDateTime, translate, translateAdminStatus } from '../../../../../lib/i18n/messages';
 
 export default function OperationalReviewDetailPage() {
   const locale = useLocale();
@@ -95,7 +95,8 @@ export default function OperationalReviewDetailPage() {
         {translate(locale, 'admin.review')} {review.reviewId.slice(0, 8)}
       </h1>
       <p>
-        {translate(locale, 'admin.status')}: <strong>{review.status}</strong> ·{' '}
+        {translate(locale, 'admin.status')}:{' '}
+        <strong>{translateAdminStatus(locale, review.status)}</strong> ·{' '}
         {translate(locale, 'admin.type')}: <strong>{review.category}</strong>
       </p>
       {error === undefined ? null : (

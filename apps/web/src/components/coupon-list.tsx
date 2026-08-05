@@ -12,6 +12,19 @@ const discount = (locale: ReturnType<typeof useLocale>, coupon: Coupon) =>
     ? formatVnd(locale, coupon.fixedAmountVnd ?? 0)
     : `${(coupon.percentageBasisPoints ?? 0) / 100}%`;
 
+const lifecycleLabels = {
+  AVAILABLE: 'coupon.lifecycleAvailable',
+  EXPIRED: 'coupon.lifecycleExpired',
+  DISABLED: 'coupon.lifecycleDisabled',
+} as const;
+
+function lifecycleLabel(locale: ReturnType<typeof useLocale>, value: string) {
+  return translate(
+    locale,
+    lifecycleLabels[value as keyof typeof lifecycleLabels] ?? 'coupon.lifecycleDisabled',
+  );
+}
+
 export function CouponList() {
   const locale = useLocale();
   const [items, setItems] = useState<readonly Coupon[]>();
@@ -43,7 +56,7 @@ export function CouponList() {
     <section className="admin-page">
       <div className="page-heading">
         <div>
-          <h1>Coupon</h1>
+          <h1>{translate(locale, 'admin.coupons')}</h1>
           <p>{translate(locale, 'coupon.adminHelp')}</p>
         </div>
         <Link className="primary-button" href="/admin/coupons/new">
@@ -59,9 +72,9 @@ export function CouponList() {
           {translate(locale, 'coupon.lifecycle')}
           <select value={lifecycle} onChange={(event) => setLifecycle(event.target.value)}>
             <option value="ALL">{translate(locale, 'admin.all')}</option>
-            <option value="AVAILABLE">AVAILABLE</option>
-            <option value="EXPIRED">EXPIRED</option>
-            <option value="DISABLED">DISABLED</option>
+            <option value="AVAILABLE">{lifecycleLabel(locale, 'AVAILABLE')}</option>
+            <option value="EXPIRED">{lifecycleLabel(locale, 'EXPIRED')}</option>
+            <option value="DISABLED">{lifecycleLabel(locale, 'DISABLED')}</option>
           </select>
         </label>
         <button
@@ -86,10 +99,14 @@ export function CouponList() {
             <article className="coupon-card" key={coupon.id}>
               <div className="page-heading">
                 <h2>{coupon.code}</h2>
-                <strong>{coupon.lifecycle}</strong>
+                <strong>{lifecycleLabel(locale, coupon.lifecycle)}</strong>
               </div>
               <p>
-                {coupon.discountType} · {discount(locale, coupon)}
+                {translate(
+                  locale,
+                  coupon.discountType === 'FIXED' ? 'coupon.fixed' : 'coupon.percentage',
+                )}{' '}
+                · {discount(locale, coupon)}
               </p>
               <p>
                 {formatDateTime(locale, coupon.validFrom)} —{' '}

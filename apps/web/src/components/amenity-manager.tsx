@@ -4,7 +4,7 @@ import type { Amenity } from '@room/contracts';
 import { type FormEvent, useEffect, useState } from 'react';
 
 import { AdminApiError, adminApi, type CatalogPage } from '../lib/admin-api';
-import { translate } from '../lib/i18n/messages';
+import { translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
@@ -175,7 +175,7 @@ export function AmenityManager() {
                       ) : null}
                     </FieldGroup>
                   </td>
-                  <td>{amenity.status}</td>
+                  <td>{translateAdminStatus(locale, amenity.status)}</td>
                   <td>
                     <Button
                       aria-label={translate(locale, 'amenity.archive', { name: amenity.name })}

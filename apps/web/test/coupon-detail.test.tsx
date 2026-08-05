@@ -101,7 +101,7 @@ describe('CouponDetail authority and disable behaviour', () => {
     expect(screen.queryByRole('button', { name: /kích hoạt lại/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /enable/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /re-?enable/i })).toBeNull();
-    expect(screen.getByText('DISABLED')).toBeInTheDocument();
+    expect(screen.getAllByText('Đã vô hiệu hóa').length).toBeGreaterThan(0);
   });
 
   it('sends exactly one disable request when the user confirms, and the button is disabled while pending', async () => {
