@@ -91,7 +91,10 @@ Result: 120/120 checks PASS; document horizontal overflow: 0.
   server-backed Sheet/Dialog flows.
 - Room viewer: PASS. Read-only room operations are visible; restricted
   navigation and mutation controls are absent; mutation API response is 403.
-- Full repository E2E: PASS, 156/156 plus the separate unavailable-API check.
+- Full repository E2E baseline: PASS, 156/156 plus the separate unavailable-API check.
+- Exact-HEAD follow-up: the copy-only `12f2799` change passed focused booking operations (4/4)
+  and the previously failing Phase 6D mobile case in isolation (1/1), while the full
+  suite encountered one Windows Chromium `ERR_NO_BUFFER_SPACE` resource failure.
 - Accessibility: PASS, 7/7.
 
 ## Verification ledger
@@ -107,7 +110,8 @@ Result: 120/120 checks PASS; document horizontal overflow: 0.
 | OpenAPI/endpoints/i18n/providers/features/gitleaks fixtures | PASS; external provider callbacks remain environment-gated |
 | Visual acceptance                                           | PASS — 130/130                                             |
 | Responsive acceptance                                       | PASS — 120/120                                             |
-| Full E2E                                                    | PASS — 156/156 + unavailable-API 1/1                       |
+| Full E2E baseline                                           | PASS — 156/156 + unavailable-API 1/1                       |
+| Exact-HEAD E2E follow-up                                   | PARTIAL — isolated final cases PASS; full run hit transient `ERR_NO_BUFFER_SPACE` |
 
 ## Inventory count reconciliation
 
