@@ -5,13 +5,8 @@ import type { ReactNode } from 'react';
 
 import { AdminLogoutButton } from '../../../components/admin-logout-button';
 import { AdminNavigation } from '../../../components/admin-navigation';
-import {
-  Sidebar,
-  SidebarHeader,
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from '../../../components/ui/sidebar';
+import { Sidebar, SidebarHeader, SidebarInset } from '../../../components/ui/sidebar';
+import { AdminAppShell, AdminTopbar } from '../../../components/admin/admin-ui';
 import { resolveLocale, translate } from '../../../lib/i18n/messages';
 import { resolveAdminSessionFromHeaders } from '../../../lib/admin-session-server';
 
@@ -64,7 +59,7 @@ export default async function AdminProtectedLayout({
   void pathname;
 
   return (
-    <SidebarProvider className="admin-layout">
+    <AdminAppShell className="admin-layout">
       <a className="skip-link" href="#admin-content">
         {translate(locale, 'admin.skipNavigation')}
       </a>
@@ -78,22 +73,23 @@ export default async function AdminProtectedLayout({
         <AdminNavigation locale={locale} permissions={resolution.session.permissions} />
       </Sidebar>
       <SidebarInset className="admin-workspace">
-        <header className="admin-topbar">
-          <SidebarTrigger aria-label={translate(locale, 'admin.toggleNavigation')} />
-          <span className="admin-topbar__eyebrow">{translate(locale, 'admin.session')}</span>
-          <div className="admin-topbar__identity">
-            <Link href="/admin/profile">{resolution.session.displayName}</Link>
-            <span>{resolution.session.profileLabelVi}</span>
-            {resolution.session.department ? (
-              <span>{resolution.session.department.name}</span>
-            ) : null}
-          </div>
-          <AdminLogoutButton />
-        </header>
+        <AdminTopbar
+          eyebrow={translate(locale, 'admin.session')}
+          identity={
+            <>
+              <Link href="/admin/profile">{resolution.session.displayName}</Link>
+              <span>{resolution.session.profileLabelVi}</span>
+              {resolution.session.department ? (
+                <span>{resolution.session.department.name}</span>
+              ) : null}
+            </>
+          }
+          actions={<AdminLogoutButton />}
+        />
         <div id="admin-content" tabIndex={-1}>
           {children}
         </div>
       </SidebarInset>
-    </SidebarProvider>
+    </AdminAppShell>
   );
 }

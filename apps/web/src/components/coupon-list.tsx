@@ -6,6 +6,16 @@ import type { Coupon } from '@room/contracts';
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { formatDateTime, formatVnd, translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Button, buttonVariants } from './ui/button';
+import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import {
+  AdminEmptyState,
+  AdminErrorState,
+  AdminFilterToolbar,
+  AdminLoadingState,
+  AdminPageHeader,
+} from './admin/admin-ui';
 
 const discount = (locale: ReturnType<typeof useLocale>, coupon: Coupon) =>
   coupon.discountType === 'FIXED'
@@ -54,45 +64,56 @@ export function CouponList() {
   );
   return (
     <section className="admin-page">
-      <div className="page-heading">
-        <div>
-          <h1>{translate(locale, 'admin.coupons')}</h1>
-          <p>{translate(locale, 'coupon.adminHelp')}</p>
-        </div>
-        <Link className="primary-button" href="/admin/coupons/new">
-          {translate(locale, 'coupon.create')}
-        </Link>
-      </div>
-      <div className="coupon-filters">
+      <AdminPageHeader
+        title={translate(locale, 'admin.coupons')}
+        description={translate(locale, 'coupon.adminHelp')}
+        actions={
+          <Link className={buttonVariants()} href="/admin/coupons/new">
+            {translate(locale, 'coupon.create')}
+          </Link>
+        }
+      />
+      <AdminFilterToolbar>
         <label>
           {translate(locale, 'coupon.search')}
-          <input value={query} onChange={(event) => setQuery(event.target.value)} />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} />
         </label>
         <label>
           {translate(locale, 'coupon.lifecycle')}
-          <select value={lifecycle} onChange={(event) => setLifecycle(event.target.value)}>
-            <option value="ALL">{translate(locale, 'admin.all')}</option>
-            <option value="AVAILABLE">{lifecycleLabel(locale, 'AVAILABLE')}</option>
-            <option value="EXPIRED">{lifecycleLabel(locale, 'EXPIRED')}</option>
-            <option value="DISABLED">{lifecycleLabel(locale, 'DISABLED')}</option>
-          </select>
+          <Select
+            value={lifecycle}
+            onValueChange={(value) => {
+              if (value !== null) setLifecycle(value);
+            }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
+              <SelectItem value="AVAILABLE">{lifecycleLabel(locale, 'AVAILABLE')}</SelectItem>
+              <SelectItem value="EXPIRED">{lifecycleLabel(locale, 'EXPIRED')}</SelectItem>
+              <SelectItem value="DISABLED">{lifecycleLabel(locale, 'DISABLED')}</SelectItem>
+            </SelectContent>
+          </Select>
         </label>
-        <button
+        <Button
           type="button"
           onClick={() => {
             setQuery('');
             setLifecycle('ALL');
           }}
+          variant="outline"
         >
           {translate(locale, 'coupon.clearFilters')}
-        </button>
-      </div>
+        </Button>
+      </AdminFilterToolbar>
       {error ? (
-        <p role="alert">{error}</p>
+        <AdminErrorState title={translate(locale, 'coupon.loadError')} description={error} />
       ) : items === undefined ? (
-        <p aria-live="polite">{translate(locale, 'coupon.loading')}</p>
+        <AdminLoadingState label={translate(locale, 'coupon.loading')} />
       ) : filtered?.length === 0 ? (
-        <p className="table-empty">{translate(locale, 'coupon.empty')}</p>
+        <AdminEmptyState title={translate(locale, 'coupon.empty')} />
       ) : (
         <div className="coupon-grid">
           {filtered?.map((coupon) => (

@@ -10,10 +10,11 @@ import {
 } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
+import { Checkbox } from './ui/checkbox';
+import { AdminPageHeader, AdminStatusBadge } from './admin/admin-ui';
 
 type EditableProvider = PaymentProviderAdmin & { readonly maintenanceMessage: string };
 function editable(provider: PaymentProviderAdmin): EditableProvider {
@@ -79,13 +80,11 @@ export function PaymentProviderManager() {
 
   return (
     <section className="admin-page" aria-labelledby="payment-providers-heading">
-      <div className="admin-page-heading">
-        <div>
-          <p className="admin-eyebrow">{translate(locale, 'admin.providerSettings')}</p>
-          <h1 id="payment-providers-heading">{translate(locale, 'admin.providers')}</h1>
-          <p>{translate(locale, 'admin.providerSettingsHelp')}</p>
-        </div>
-      </div>
+      <AdminPageHeader
+        eyebrow={translate(locale, 'admin.providerSettings')}
+        title={translate(locale, 'admin.providers')}
+        description={translate(locale, 'admin.providerSettingsHelp')}
+      />
       {message ? (
         <p className="admin-alert" role="status">
           {message}
@@ -105,13 +104,13 @@ export function PaymentProviderManager() {
                     <CardTitle>{provider.provider}</CardTitle>
                     <CardDescription>{provider.displayName}</CardDescription>
                   </div>
-                  <Badge variant={provider.configured ? 'secondary' : 'destructive'}>
+                  <AdminStatusBadge tone={provider.configured ? 'success' : 'danger'}>
                     {provider.configured
                       ? translate(locale, 'admin.configured', {
                           environment: provider.environment,
                         })
                       : translate(locale, 'admin.notConfigured')}
-                  </Badge>
+                  </AdminStatusBadge>
                 </div>
               </CardHeader>
               <CardContent>
@@ -123,13 +122,13 @@ export function PaymentProviderManager() {
                   }}
                 >
                   <label className="admin-checkbox">
-                    <input
+                    <Checkbox
+                      aria-label={translate(locale, 'admin.enableForNewTransactions')}
                       checked={provider.enabled}
                       disabled={!provider.configured || saving !== null}
-                      onChange={(event) =>
-                        change(provider.provider, { enabled: event.target.checked })
+                      onCheckedChange={(checked) =>
+                        change(provider.provider, { enabled: checked === true })
                       }
-                      type="checkbox"
                     />
                     {translate(locale, 'admin.enableForNewTransactions')}
                   </label>

@@ -9,6 +9,15 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
 import { Field, FieldGroup, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import {
+  AdminDataTable,
+  AdminEmptyState,
+  AdminFormSheet,
+  AdminLoadingState,
+  AdminPageHeader,
+  AdminStatusBadge,
+} from './admin/admin-ui';
 
 interface RoomTypeEditDraft {
   readonly name: string;
@@ -71,6 +80,8 @@ export function RoomTypeManager() {
   const [createMaxOccupancy, setCreateMaxOccupancy] = useState(2);
   const [drafts, setDrafts] = useState<Record<string, RoomTypeEditDraft>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editId, setEditId] = useState<string>();
 
   useEffect(() => {
     void Promise.all([
@@ -127,6 +138,7 @@ export function RoomTypeManager() {
       }));
       setCode('');
       setName('');
+      setCreateOpen(false);
     } catch {
       setMessage(translate(locale, 'roomType.createError'));
     } finally {
@@ -190,12 +202,12 @@ export function RoomTypeManager() {
     }));
   }
 
-  async function saveDraft(id: string) {
+  async function saveDraft(id: string): Promise<boolean> {
     const draft = drafts[id];
-    if (draft === undefined) return;
+    if (draft === undefined) return false;
     if (!isCapacityValid(draft)) {
       setErrors((current) => ({ ...current, [id]: translate(locale, 'roomType.invalidCapacity') }));
-      return;
+      return false;
     }
     setPending(true);
     setMessage(undefined);
@@ -215,12 +227,14 @@ export function RoomTypeManager() {
           : { ...current, items: current.items.map((item) => (item.id === id ? updated : item)) },
       );
       setMessage(translate(locale, 'roomType.updated', { name: updated.name }));
+      return true;
     } catch (cause) {
       const text =
         cause instanceof AdminApiError && cause.problem?.code !== undefined
           ? localizedCatalogSafetyReason(locale, cause.problem.code, cause.problem.detail)
           : translate(locale, 'roomType.updateError');
       setErrors((current) => ({ ...current, [id]: text }));
+      return false;
     } finally {
       setPending(false);
     }
@@ -228,239 +242,294 @@ export function RoomTypeManager() {
 
   return (
     <section className="admin-page admin-page--room-types">
-      <h1>{translate(locale, 'admin.roomTypes')}</h1>
-      <p>{translate(locale, 'roomType.help')}</p>
-      <form onSubmit={create}>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="room-type-price-tier">
-              {translate(locale, 'roomType.priceTier')}
-            </FieldLabel>
-            <select
-              disabled={pending || tiers.length === 0}
-              id="room-type-price-tier"
-              onChange={(event) => setPriceTierId(event.target.value)}
-              value={priceTierId}
-            >
-              {tiers.map((tier) => (
-                <option key={tier.id} value={tier.id}>
-                  {tier.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="room-type-code">{translate(locale, 'roomType.code')}</FieldLabel>
-            <Input
-              disabled={pending}
-              id="room-type-code"
-              onChange={(event) => setCode(event.target.value)}
-              required
-              value={code}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="room-type-name">{translate(locale, 'roomType.name')}</FieldLabel>
-            <Input
-              disabled={pending}
-              id="room-type-name"
-              onChange={(event) => setName(event.target.value)}
-              required
-              value={name}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="room-type-max-adults">
-              {translate(locale, 'roomType.maxAdults')}
-            </FieldLabel>
-            <Input
-              disabled={pending}
-              id="room-type-max-adults"
-              min={1}
-              onChange={(event) => setCreateMaxAdults(Number(event.target.value))}
-              required
-              type="number"
-              value={createMaxAdults}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="room-type-max-children">
-              {translate(locale, 'roomType.maxChildren')}
-            </FieldLabel>
-            <Input
-              disabled={pending}
-              id="room-type-max-children"
-              min={0}
-              onChange={(event) => setCreateMaxChildren(Number(event.target.value))}
-              required
-              type="number"
-              value={createMaxChildren}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="room-type-max-occupancy">
-              {translate(locale, 'roomType.maxOccupancy')}
-            </FieldLabel>
-            <Input
-              disabled={pending}
-              id="room-type-max-occupancy"
-              min={1}
-              onChange={(event) => setCreateMaxOccupancy(Number(event.target.value))}
-              required
-              type="number"
-              value={createMaxOccupancy}
-            />
-          </Field>
-          <Button disabled={pending || priceTierId === ''} type="submit">
+      <AdminPageHeader
+        title={translate(locale, 'admin.roomTypes')}
+        description={translate(locale, 'roomType.help')}
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
             {translate(locale, 'roomType.create')}
           </Button>
-        </FieldGroup>
-      </form>
+        }
+      />
+      <AdminFormSheet
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title={translate(locale, 'roomType.create')}
+        description={translate(locale, 'roomType.help')}
+      >
+        <form className="admin-form-stack" onSubmit={create}>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="room-type-price-tier">
+                {translate(locale, 'roomType.priceTier')}
+              </FieldLabel>
+              <Select
+                disabled={pending || tiers.length === 0}
+                value={priceTierId}
+                onValueChange={(value) => {
+                  if (value !== null) setPriceTierId(value);
+                }}
+              >
+                <SelectTrigger id="room-type-price-tier" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {tiers.map((tier) => (
+                    <SelectItem key={tier.id} value={tier.id}>
+                      {tier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="room-type-code">{translate(locale, 'roomType.code')}</FieldLabel>
+              <Input
+                disabled={pending}
+                id="room-type-code"
+                onChange={(event) => setCode(event.target.value)}
+                required
+                value={code}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="room-type-name">{translate(locale, 'roomType.name')}</FieldLabel>
+              <Input
+                disabled={pending}
+                id="room-type-name"
+                onChange={(event) => setName(event.target.value)}
+                required
+                value={name}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="room-type-max-adults">
+                {translate(locale, 'roomType.maxAdults')}
+              </FieldLabel>
+              <Input
+                disabled={pending}
+                id="room-type-max-adults"
+                min={1}
+                onChange={(event) => setCreateMaxAdults(Number(event.target.value))}
+                required
+                type="number"
+                value={createMaxAdults}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="room-type-max-children">
+                {translate(locale, 'roomType.maxChildren')}
+              </FieldLabel>
+              <Input
+                disabled={pending}
+                id="room-type-max-children"
+                min={0}
+                onChange={(event) => setCreateMaxChildren(Number(event.target.value))}
+                required
+                type="number"
+                value={createMaxChildren}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="room-type-max-occupancy">
+                {translate(locale, 'roomType.maxOccupancy')}
+              </FieldLabel>
+              <Input
+                disabled={pending}
+                id="room-type-max-occupancy"
+                min={1}
+                onChange={(event) => setCreateMaxOccupancy(Number(event.target.value))}
+                required
+                type="number"
+                value={createMaxOccupancy}
+              />
+            </Field>
+            <Button disabled={pending || priceTierId === ''} type="submit">
+              {translate(locale, 'roomType.create')}
+            </Button>
+          </FieldGroup>
+        </form>
+      </AdminFormSheet>
+      {editId !== undefined
+        ? (() => {
+            const roomType = types?.items.find((item) => item.id === editId);
+            if (roomType === undefined) return null;
+            const draft = drafts[roomType.id] ?? draftFromRoomType(roomType, priceTierId);
+            const error = errors[roomType.id];
+            return (
+              <AdminFormSheet
+                open
+                onOpenChange={(open) => {
+                  if (!open) setEditId(undefined);
+                }}
+                title={translate(locale, 'roomType.saveChanges')}
+                description={roomType.code}
+                footer={
+                  <Button
+                    disabled={pending || !isCapacityValid(draft)}
+                    onClick={() =>
+                      void saveDraft(roomType.id).then((saved) => {
+                        if (saved) setEditId(undefined);
+                      })
+                    }
+                  >
+                    {translate(locale, 'roomType.saveChanges')}
+                  </Button>
+                }
+              >
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="room-type-edit-name">
+                      {translate(locale, 'roomType.name')}
+                    </FieldLabel>
+                    <Input
+                      id="room-type-edit-name"
+                      onChange={(event) => updateDraft(roomType.id, { name: event.target.value })}
+                      required
+                      value={draft.name}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="room-type-edit-description">
+                      {translate(locale, 'roomType.description')}
+                    </FieldLabel>
+                    <Input
+                      id="room-type-edit-description"
+                      onChange={(event) =>
+                        updateDraft(roomType.id, { description: event.target.value })
+                      }
+                      value={draft.description}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="room-type-edit-tier">
+                      {translate(locale, 'roomType.priceTier')}
+                    </FieldLabel>
+                    <Select
+                      value={draft.priceTierId}
+                      onValueChange={(value) => {
+                        if (value !== null) updateDraft(roomType.id, { priceTierId: value });
+                      }}
+                    >
+                      <SelectTrigger id="room-type-edit-tier" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tiers.map((tier) => (
+                          <SelectItem key={tier.id} value={tier.id}>
+                            {tier.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="room-type-edit-adults">
+                      {translate(locale, 'roomType.maxAdults')}
+                    </FieldLabel>
+                    <Input
+                      id="room-type-edit-adults"
+                      min={1}
+                      onChange={(event) =>
+                        updateDraft(roomType.id, { maxAdults: Number(event.target.value) })
+                      }
+                      type="number"
+                      value={draft.maxAdults}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="room-type-edit-children">
+                      {translate(locale, 'roomType.maxChildren')}
+                    </FieldLabel>
+                    <Input
+                      id="room-type-edit-children"
+                      min={0}
+                      onChange={(event) =>
+                        updateDraft(roomType.id, { maxChildren: Number(event.target.value) })
+                      }
+                      type="number"
+                      value={draft.maxChildren}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="room-type-edit-occupancy">
+                      {translate(locale, 'roomType.maxOccupancy')}
+                    </FieldLabel>
+                    <Input
+                      id="room-type-edit-occupancy"
+                      min={1}
+                      onChange={(event) =>
+                        updateDraft(roomType.id, { maxOccupancy: Number(event.target.value) })
+                      }
+                      type="number"
+                      value={draft.maxOccupancy}
+                    />
+                  </Field>
+                  {error !== undefined && error !== '' ? (
+                    <Alert variant="destructive">
+                      <AlertTitle>{translate(locale, 'roomType.updateError')}</AlertTitle>
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  ) : null}
+                </FieldGroup>
+              </AdminFormSheet>
+            );
+          })()
+        : null}
       {message === undefined ? null : <p role="alert">{message}</p>}
       {types === undefined ? (
-        <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
+        <AdminLoadingState label={translate(locale, 'admin.loadingData')} />
+      ) : null}
+      {types !== undefined && types.items.length === 0 ? (
+        <AdminEmptyState title={translate(locale, 'catalog.noResults')} />
       ) : null}
       {types === undefined || types.items.length === 0 ? null : (
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">{translate(locale, 'admin.code')}</th>
-              <th scope="col">{translate(locale, 'roomType.name')}</th>
-              <th scope="col">{translate(locale, 'roomType.capacity')}</th>
-              <th scope="col">{translate(locale, 'admin.status')}</th>
-              <th scope="col">{translate(locale, 'admin.action')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {types.items.map((roomType) => {
-              const draft = drafts[roomType.id] ?? draftFromRoomType(roomType, priceTierId);
-              const error = errors[roomType.id];
-              return (
-                <tr key={roomType.id} data-testid={`room-type-row-${roomType.code}`}>
-                  <td>{roomType.code}</td>
-                  <td>
-                    <FieldGroup>
-                      <Field>
-                        <FieldLabel htmlFor={`edit-name-${roomType.id}`}>
-                          {translate(locale, 'roomType.name')}
-                        </FieldLabel>
-                        <Input
-                          id={`edit-name-${roomType.id}`}
-                          onChange={(event) =>
-                            updateDraft(roomType.id, { name: event.target.value })
-                          }
-                          required
-                          value={draft.name}
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor={`edit-description-${roomType.id}`}>
-                          {translate(locale, 'roomType.description')}
-                        </FieldLabel>
-                        <Input
-                          id={`edit-description-${roomType.id}`}
-                          onChange={(event) =>
-                            updateDraft(roomType.id, { description: event.target.value })
-                          }
-                          value={draft.description}
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor={`edit-tier-${roomType.id}`}>
-                          {translate(locale, 'roomType.priceTier')}
-                        </FieldLabel>
-                        <select
-                          id={`edit-tier-${roomType.id}`}
-                          onChange={(event) =>
-                            updateDraft(roomType.id, { priceTierId: event.target.value })
-                          }
-                          value={draft.priceTierId}
-                        >
-                          {tiers.map((tier) => (
-                            <option key={tier.id} value={tier.id}>
-                              {tier.name}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor={`edit-adults-${roomType.id}`}>
-                          {translate(locale, 'roomType.maxAdults')}
-                        </FieldLabel>
-                        <Input
-                          id={`edit-adults-${roomType.id}`}
-                          min={1}
-                          onChange={(event) =>
-                            updateDraft(roomType.id, { maxAdults: Number(event.target.value) })
-                          }
-                          type="number"
-                          value={draft.maxAdults}
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor={`edit-children-${roomType.id}`}>
-                          {translate(locale, 'roomType.maxChildren')}
-                        </FieldLabel>
-                        <Input
-                          id={`edit-children-${roomType.id}`}
-                          min={0}
-                          onChange={(event) =>
-                            updateDraft(roomType.id, { maxChildren: Number(event.target.value) })
-                          }
-                          type="number"
-                          value={draft.maxChildren}
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor={`edit-occupancy-${roomType.id}`}>
-                          {translate(locale, 'roomType.maxOccupancy')}
-                        </FieldLabel>
-                        <Input
-                          id={`edit-occupancy-${roomType.id}`}
-                          min={1}
-                          onChange={(event) =>
-                            updateDraft(roomType.id, { maxOccupancy: Number(event.target.value) })
-                          }
-                          type="number"
-                          value={draft.maxOccupancy}
-                        />
-                      </Field>
-                      <Button
-                        disabled={pending || !isCapacityValid(draft)}
-                        onClick={() => void saveDraft(roomType.id)}
-                        type="button"
-                      >
+        <AdminDataTable>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">{translate(locale, 'admin.code')}</th>
+                <th scope="col">{translate(locale, 'roomType.name')}</th>
+                <th scope="col">{translate(locale, 'roomType.capacity')}</th>
+                <th scope="col">{translate(locale, 'admin.status')}</th>
+                <th scope="col">{translate(locale, 'admin.action')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {types.items.map((roomType) => {
+                return (
+                  <tr key={roomType.id} data-testid={`room-type-row-${roomType.code}`}>
+                    <td>{roomType.code}</td>
+                    <td>{roomType.name}</td>
+                    <td>
+                      {roomType.maxAdults}/{roomType.maxChildren}/{roomType.maxOccupancy}
+                    </td>
+                    <td>
+                      <AdminStatusBadge tone={roomType.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                        {roomTypeStatusLabel(locale, roomType.status)}
+                      </AdminStatusBadge>
+                    </td>
+                    <td>
+                      <Button onClick={() => setEditId(roomType.id)} size="sm" variant="outline">
                         {translate(locale, 'roomType.saveChanges')}
                       </Button>
-                      {error !== undefined && error !== '' ? (
-                        <Alert variant="destructive">
-                          <AlertTitle>{translate(locale, 'roomType.updateError')}</AlertTitle>
-                          <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                      ) : null}
-                    </FieldGroup>
-                  </td>
-                  <td>
-                    {draft.maxAdults}/{draft.maxChildren}/{draft.maxOccupancy}
-                  </td>
-                  <td>{roomTypeStatusLabel(locale, roomType.status)}</td>
-                  <td>
-                    <Button
-                      aria-label={translate(locale, 'amenity.archive', { name: roomType.name })}
-                      disabled={pending || roomType.status === 'INACTIVE'}
-                      onClick={() => void archive(roomType.id)}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      {translate(locale, 'catalog.archive')}
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                      <Button
+                        aria-label={translate(locale, 'amenity.archive', { name: roomType.name })}
+                        disabled={pending || roomType.status === 'INACTIVE'}
+                        onClick={() => void archive(roomType.id)}
+                        size="sm"
+                        type="button"
+                        variant="destructive"
+                      >
+                        {translate(locale, 'catalog.archive')}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </AdminDataTable>
       )}
       <form onSubmit={assignAmenity}>
         <h2>{translate(locale, 'roomType.assignAmenity')}</h2>
@@ -469,37 +538,49 @@ export function RoomTypeManager() {
             <FieldLabel htmlFor="room-type-assign-target">
               {translate(locale, 'roomType.assignTarget')}
             </FieldLabel>
-            <select
+            <Select
               disabled={pending || types?.items.length === 0}
-              id="room-type-assign-target"
-              onChange={(event) => setAmenityRoomTypeId(event.target.value)}
               value={amenityRoomTypeId}
+              onValueChange={(value) => {
+                if (value !== null) setAmenityRoomTypeId(value);
+              }}
             >
-              {(types?.items ?? [])
-                .filter((type) => type.status === 'ACTIVE')
-                .map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
-                  </option>
-                ))}
-            </select>
+              <SelectTrigger id="room-type-assign-target" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(types?.items ?? [])
+                  .filter((type) => type.status === 'ACTIVE')
+                  .map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field>
             <FieldLabel htmlFor="room-type-assign-amenity">
               {translate(locale, 'admin.amenities')}
             </FieldLabel>
-            <select
+            <Select
               disabled={pending || amenities.length === 0}
-              id="room-type-assign-amenity"
-              onChange={(event) => setAmenityId(event.target.value)}
               value={amenityId}
+              onValueChange={(value) => {
+                if (value !== null) setAmenityId(value);
+              }}
             >
-              {amenities.map((amenity) => (
-                <option key={amenity.id} value={amenity.id}>
-                  {amenity.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="room-type-assign-amenity" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {amenities.map((amenity) => (
+                  <SelectItem key={amenity.id} value={amenity.id}>
+                    {amenity.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Button disabled={pending || amenityRoomTypeId === '' || amenityId === ''} type="submit">
             {translate(locale, 'roomType.assignAmenity')}

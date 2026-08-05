@@ -11,6 +11,19 @@ import {
   type AdminPaymentSummary,
 } from '../../../../lib/admin-api';
 import { useLocale } from '../../../../components/locale-provider';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Field, FieldLabel } from '../../../../components/ui/field';
+import {
+  AdminDataTable,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminFilterToolbar,
+  AdminLoadingState,
+  AdminPageHeader,
+  AdminStatusBadge,
+  AdminTablePagination,
+} from '../../../../components/admin/admin-ui';
 import {
   formatDateTime,
   formatVnd,
@@ -56,12 +69,18 @@ function providerLabel(value: AdminPaymentProvider | null): string {
   return value === 'MOMO' ? 'MoMo' : 'VNPay';
 }
 
+function statusTone(value: string): 'neutral' | 'info' | 'success' | 'warning' | 'danger' {
+  if (value === 'SUCCEEDED') return 'success';
+  if (value === 'CANCELLED' || value === 'FAILED') return 'danger';
+  if (value === 'REVIEW_REQUIRED' || value === 'PENDING') return 'warning';
+  return 'info';
+}
+
 export default function AdminPaymentsPage() {
   const locale = useLocale();
   const [items, setItems] = useState<readonly AdminPaymentSummary[]>();
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const [error, setError] = useState<string>();
   const [filters, setFilters] = useState<Filters>(emptyFilters);
 
@@ -92,7 +111,6 @@ export default function AdminPaymentsPage() {
           setItems(response.items);
           setPage(response.page);
           setTotalPages(Math.max(1, Math.ceil(response.totalItems / response.pageSize)));
-          setTotalItems(response.totalItems);
         })
         .catch((cause: unknown) => {
           setItems([]);
@@ -126,43 +144,64 @@ export default function AdminPaymentsPage() {
 
   return (
     <section className="admin-page">
-      <h1>{translate(locale, 'admin.paymentsHeading')}</h1>
-      <p>{translate(locale, 'admin.paymentsHelp')}</p>
-      <form onSubmit={onSubmit}>
-        <label>
-          {translate(locale, 'admin.bookingCode')}
-          <input
+      <AdminPageHeader
+        title={translate(locale, 'admin.paymentsHeading')}
+        description={translate(locale, 'admin.paymentsHelp')}
+      />
+      <AdminFilterToolbar onSubmit={onSubmit}>
+        <Field>
+          <FieldLabel htmlFor="admin-payment-booking-code">
+            {translate(locale, 'admin.bookingCode')}
+          </FieldLabel>
+          <Input
+            id="admin-payment-booking-code"
             onChange={(event) => updateFilter('bookingCode', event.target.value)}
             placeholder="BK-ABCDEF"
             type="search"
             value={filters.bookingCode}
           />
-        </label>
-        <label>
-          {translate(locale, 'admin.status')}
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-payment-status">
+            {translate(locale, 'admin.status')}
+          </FieldLabel>
           <select
-            onChange={(event) => updateFilter('status', event.target.value as Filters['status'])}
-            value={filters.status}
+            id="admin-payment-status"
+            aria-label={translate(locale, 'admin.status')}
+            onChange={(event) =>
+              updateFilter(
+                'status',
+                (event.target.value === 'ALL' ? '' : event.target.value) as Filters['status'],
+              )
+            }
+            value={filters.status || 'ALL'}
           >
             {STATUS_OPTIONS.map((value) => (
-              <option key={value} value={value}>
+              <option key={value || 'ALL'} value={value || 'ALL'}>
                 {value === ''
                   ? translate(locale, 'admin.all')
                   : translatePaymentStatus(locale, value)}
               </option>
             ))}
           </select>
-        </label>
-        <label>
-          {translate(locale, 'admin.provider')}
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-payment-provider">
+            {translate(locale, 'admin.provider')}
+          </FieldLabel>
           <select
+            id="admin-payment-provider"
+            aria-label={translate(locale, 'admin.provider')}
             onChange={(event) =>
-              updateFilter('provider', event.target.value as Filters['provider'])
+              updateFilter(
+                'provider',
+                (event.target.value === 'ALL' ? '' : event.target.value) as Filters['provider'],
+              )
             }
-            value={filters.provider}
+            value={filters.provider || 'ALL'}
           >
             {PROVIDER_OPTIONS.map((value) => (
-              <option key={value} value={value}>
+              <option key={value || 'ALL'} value={value || 'ALL'}>
                 {value === ''
                   ? translate(locale, 'admin.all')
                   : value === 'MOMO'
@@ -171,15 +210,24 @@ export default function AdminPaymentsPage() {
               </option>
             ))}
           </select>
-        </label>
-        <label>
-          {translate(locale, 'admin.review')}
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-payment-review">
+            {translate(locale, 'admin.review')}
+          </FieldLabel>
           <select
-            onChange={(event) => updateFilter('review', event.target.value as Filters['review'])}
-            value={filters.review}
+            id="admin-payment-review"
+            aria-label={translate(locale, 'admin.review')}
+            onChange={(event) =>
+              updateFilter(
+                'review',
+                (event.target.value === 'ALL' ? '' : event.target.value) as Filters['review'],
+              )
+            }
+            value={filters.review || 'ALL'}
           >
             {REVIEW_OPTIONS.map((value) => (
-              <option key={value} value={value}>
+              <option key={value || 'ALL'} value={value || 'ALL'}>
                 {value === ''
                   ? translate(locale, 'admin.all')
                   : value === 'needs_review'
@@ -188,114 +236,116 @@ export default function AdminPaymentsPage() {
               </option>
             ))}
           </select>
-        </label>
-        <label>
-          {translate(locale, 'admin.createdFrom')}
-          <input
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-payment-created-from">
+            {translate(locale, 'admin.createdFrom')}
+          </FieldLabel>
+          <Input
+            id="admin-payment-created-from"
             onChange={(event) => updateFilter('createdFrom', event.target.value)}
             type="date"
             value={filters.createdFrom}
           />
-        </label>
-        <label>
-          {translate(locale, 'admin.to')}
-          <input
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-payment-created-to">
+            {translate(locale, 'admin.to')}
+          </FieldLabel>
+          <Input
+            id="admin-payment-created-to"
             onChange={(event) => updateFilter('createdTo', event.target.value)}
             type="date"
             value={filters.createdTo}
           />
-        </label>
-        <button type="submit">{translate(locale, 'admin.apply')}</button>
-        <button onClick={resetFilters} type="button">
-          {translate(locale, 'admin.reset')}
-        </button>
-      </form>
+        </Field>
+        <div className="admin-row-actions">
+          <Button type="submit">{translate(locale, 'admin.apply')}</Button>
+          <Button onClick={resetFilters} type="button" variant="outline">
+            {translate(locale, 'admin.reset')}
+          </Button>
+        </div>
+      </AdminFilterToolbar>
       {items === undefined && error === undefined ? (
-        <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
+        <AdminLoadingState label={translate(locale, 'admin.loadingData')} />
       ) : null}
       {error === undefined ? null : (
-        <p role="alert" style={{ color: 'var(--color-danger)' }}>
-          {error}
-        </p>
+        <AdminErrorState title={translate(locale, 'admin.paymentsLoadError')} description={error} />
       )}
       {items !== undefined && items.length === 0 ? (
-        <div className="table-empty">{translate(locale, 'admin.paymentsEmpty')}</div>
+        <AdminEmptyState title={translate(locale, 'admin.paymentsEmpty')} />
       ) : null}
       {items !== undefined && items.length > 0 ? (
-        <table className="admin-payments-table">
-          <thead>
-            <tr>
-              <th>{translate(locale, 'account.payment')}</th>
-              <th>{translate(locale, 'account.bookings')}</th>
-              <th>{translate(locale, 'admin.provider')}</th>
-              <th>{translate(locale, 'admin.status')}</th>
-              <th>{translate(locale, 'admin.amount')}</th>
-              <th>{translate(locale, 'payment.attempt')}</th>
-              <th>{translate(locale, 'admin.review')}</th>
-              <th>{translate(locale, 'admin.updatedAt')}</th>
-              <th>{translate(locale, 'admin.action')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.paymentId}>
-                <td data-label={translate(locale, 'account.payment')}>
-                  {item.paymentId.slice(0, 8)}
-                </td>
-                <td data-label={translate(locale, 'account.bookings')}>
-                  <Link href={`/admin/bookings/${item.booking.bookingCode}`}>
-                    {item.booking.bookingCode}
-                  </Link>
-                </td>
-                <td data-label={translate(locale, 'admin.provider')}>
-                  {providerLabel(item.provider)}
-                </td>
-                <td data-label={translate(locale, 'admin.status')}>
-                  {translatePaymentStatus(locale, item.status)}
-                </td>
-                <td data-label={translate(locale, 'admin.amount')}>
-                  {formatVnd(locale, item.amountVnd)}
-                </td>
-                <td data-label={translate(locale, 'payment.attempt')}>
-                  {item.latestAttempt === null
-                    ? '—'
-                    : `${translatePaymentStatus(locale, item.latestAttempt.status)} · ${providerLabel(item.latestAttempt.provider)}`}
-                </td>
-                <td data-label={translate(locale, 'admin.review')}>
-                  {item.reviewRequired ? (
-                    <span style={{ color: 'var(--color-warning, #b45309)', fontWeight: 600 }}>
-                      {translate(locale, 'admin.needsReview')}
-                    </span>
-                  ) : (
-                    '—'
-                  )}
-                </td>
-                <td data-label={translate(locale, 'admin.updatedAt')}>
-                  {formatDateTime(locale, item.updatedAt)}
-                </td>
-                <td data-label={translate(locale, 'admin.action')}>
-                  <Link href={`/admin/payments/${item.paymentId}`}>
-                    {translate(locale, 'admin.open')}
-                  </Link>
-                </td>
+        <AdminDataTable className="admin-payments-table">
+          <table>
+            <thead>
+              <tr>
+                <th>{translate(locale, 'account.payment')}</th>
+                <th>{translate(locale, 'account.bookings')}</th>
+                <th>{translate(locale, 'admin.provider')}</th>
+                <th>{translate(locale, 'admin.status')}</th>
+                <th>{translate(locale, 'admin.amount')}</th>
+                <th>{translate(locale, 'payment.attempt')}</th>
+                <th>{translate(locale, 'admin.review')}</th>
+                <th>{translate(locale, 'admin.updatedAt')}</th>
+                <th>{translate(locale, 'admin.action')}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.paymentId}>
+                  <td data-label={translate(locale, 'account.payment')}>
+                    {item.paymentId.slice(0, 8)}
+                  </td>
+                  <td data-label={translate(locale, 'account.bookings')}>
+                    <Link href={`/admin/bookings/${item.booking.bookingCode}`}>
+                      {item.booking.bookingCode}
+                    </Link>
+                  </td>
+                  <td data-label={translate(locale, 'admin.provider')}>
+                    {providerLabel(item.provider)}
+                  </td>
+                  <td data-label={translate(locale, 'admin.status')}>
+                    <AdminStatusBadge tone={statusTone(item.status)}>
+                      {translatePaymentStatus(locale, item.status)}
+                    </AdminStatusBadge>
+                  </td>
+                  <td data-label={translate(locale, 'admin.amount')}>
+                    {formatVnd(locale, item.amountVnd)}
+                  </td>
+                  <td data-label={translate(locale, 'payment.attempt')}>
+                    {item.latestAttempt === null
+                      ? '—'
+                      : `${translatePaymentStatus(locale, item.latestAttempt.status)} · ${providerLabel(item.latestAttempt.provider)}`}
+                  </td>
+                  <td data-label={translate(locale, 'admin.review')}>
+                    <AdminStatusBadge tone={item.reviewRequired ? 'warning' : 'neutral'}>
+                      {item.reviewRequired
+                        ? translate(locale, 'admin.needsReview')
+                        : translate(locale, 'admin.normal')}
+                    </AdminStatusBadge>
+                  </td>
+                  <td data-label={translate(locale, 'admin.updatedAt')}>
+                    {formatDateTime(locale, item.updatedAt)}
+                  </td>
+                  <td data-label={translate(locale, 'admin.action')}>
+                    <Link href={`/admin/payments/${item.paymentId}`}>
+                      {translate(locale, 'admin.open')}
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </AdminDataTable>
       ) : null}
-      <div className="admin-pagination">
-        <button disabled={page <= 1} onClick={() => refresh(page - 1, filters)} type="button">
-          {translate(locale, 'admin.previousPage')}
-        </button>
-        <span>{translate(locale, 'admin.paymentPageOf', { page, totalPages, totalItems })}</span>
-        <button
-          disabled={page >= totalPages}
-          onClick={() => refresh(page + 1, filters)}
-          type="button"
-        >
-          {translate(locale, 'admin.nextPage')}
-        </button>
-      </div>
+      <AdminTablePagination
+        page={page}
+        pageCount={totalPages}
+        onPageChange={(nextPage) => refresh(nextPage, filters)}
+        previousLabel={translate(locale, 'admin.previousPage')}
+        nextLabel={translate(locale, 'admin.nextPage')}
+      />
     </section>
   );
 }

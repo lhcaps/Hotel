@@ -5,6 +5,16 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { AdminApiError, type CatalogPage } from '../lib/admin-api';
 import { translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import {
+  AdminDataTable,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminLoadingState,
+  AdminPageHeader,
+  AdminStatusBadge,
+} from './admin/admin-ui';
 
 interface CatalogRow {
   readonly id: string;
@@ -95,12 +105,11 @@ export function CatalogTable<T extends CatalogRow>({
 
   return (
     <section className="admin-page">
-      <h1>{title}</h1>
-      <p>{description}</p>
+      <AdminPageHeader title={title} description={description} />
       {filter === undefined ? null : (
         <label>
           {filter.label}
-          <input
+          <Input
             onChange={(event) => setQuery(event.target.value)}
             placeholder={filter.placeholder}
             type="search"
@@ -109,54 +118,66 @@ export function CatalogTable<T extends CatalogRow>({
         </label>
       )}
       {visibleItems === undefined && error === undefined ? (
-        <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
+        <AdminLoadingState label={translate(locale, 'admin.loadingData')} />
       ) : null}
-      {error === undefined ? null : <p role="alert">{error}</p>}
+      {error === undefined ? null : (
+        <AdminErrorState title={translate(locale, 'catalog.loadError')} description={error} />
+      )}
       {visibleItems !== undefined && visibleItems.length === 0 ? (
-        <div className="table-empty">
-          {items !== undefined && items.length > 0
-            ? translate(locale, 'catalog.noResults')
-            : emptyMessage}
-        </div>
+        <AdminEmptyState
+          title={
+            items !== undefined && items.length > 0
+              ? translate(locale, 'catalog.noResults')
+              : emptyMessage
+          }
+        />
       ) : null}
       {visibleItems === undefined || visibleItems.length === 0 ? null : (
-        <table>
-          <thead>
-            <tr>
-              {columns.map((column) => (
-                <th key={column.heading} scope="col">
-                  {column.heading}
-                </th>
-              ))}
-              <th scope="col">{translate(locale, 'admin.status')}</th>
-              {archive === undefined ? null : (
-                <th scope="col">{translate(locale, 'admin.action')}</th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {visibleItems.map((item) => (
-              <tr key={item.id}>
+        <AdminDataTable>
+          <table>
+            <thead>
+              <tr>
                 {columns.map((column) => (
-                  <td key={column.heading}>{column.cell(item)}</td>
+                  <th key={column.heading} scope="col">
+                    {column.heading}
+                  </th>
                 ))}
-                <td>{translateAdminStatus(locale, item.status)}</td>
+                <th scope="col">{translate(locale, 'admin.status')}</th>
                 {archive === undefined ? null : (
-                  <td>
-                    <button
-                      aria-label={archiveLabel?.(item) ?? translate(locale, 'catalog.archive')}
-                      disabled={pendingId !== undefined || item.status === 'INACTIVE'}
-                      onClick={() => void archiveItem(item)}
-                      type="button"
-                    >
-                      {translate(locale, 'catalog.archive')}
-                    </button>
-                  </td>
+                  <th scope="col">{translate(locale, 'admin.action')}</th>
                 )}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {visibleItems.map((item) => (
+                <tr key={item.id}>
+                  {columns.map((column) => (
+                    <td key={column.heading}>{column.cell(item)}</td>
+                  ))}
+                  <td>
+                    <AdminStatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                      {translateAdminStatus(locale, item.status)}
+                    </AdminStatusBadge>
+                  </td>
+                  {archive === undefined ? null : (
+                    <td>
+                      <Button
+                        aria-label={archiveLabel?.(item) ?? translate(locale, 'catalog.archive')}
+                        disabled={pendingId !== undefined || item.status === 'INACTIVE'}
+                        onClick={() => void archiveItem(item)}
+                        size="sm"
+                        type="button"
+                        variant="destructive"
+                      >
+                        {translate(locale, 'catalog.archive')}
+                      </Button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </AdminDataTable>
       )}
     </section>
   );

@@ -2,15 +2,8 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
-import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../../../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { Input } from '../../../../components/ui/input';
 import {
   Table,
@@ -23,6 +16,14 @@ import {
 import { useLocale } from '../../../../components/locale-provider';
 import { adminApi } from '../../../../lib/admin-api';
 import { translate } from '../../../../lib/i18n/messages';
+import {
+  AdminDataTable,
+  AdminEmptyState,
+  AdminFormSheet,
+  AdminLoadingState,
+  AdminPageHeader,
+  AdminStatusBadge,
+} from '../../../../components/admin/admin-ui';
 
 export default function AdminDepartmentsPage() {
   const locale = useLocale();
@@ -31,6 +32,7 @@ export default function AdminDepartmentsPage() {
   const [name, setName] = useState('');
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -54,6 +56,7 @@ export default function AdminDepartmentsPage() {
       setItems((current) => [...(current ?? []), created]);
       setCode('');
       setName('');
+      setCreateOpen(false);
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : translate(locale, 'admin.loadErrorHeading'),
@@ -65,78 +68,82 @@ export default function AdminDepartmentsPage() {
 
   return (
     <main className="admin-page admin-page--narrow">
-      <div className="admin-page-heading">
-        <div>
-          <p className="admin-eyebrow">{translate(locale, 'admin.accessScope')}</p>
-          <h1>{translate(locale, 'admin.departments')}</h1>
-          <p>{translate(locale, 'admin.departmentRequirement')}</p>
-        </div>
-      </div>
+      <AdminPageHeader
+        eyebrow={translate(locale, 'admin.accessScope')}
+        title={translate(locale, 'admin.departments')}
+        description={translate(locale, 'admin.departmentRequirement')}
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            {translate(locale, 'admin.createDepartment')}
+          </Button>
+        }
+      />
       {error ? (
         <p className="admin-alert admin-alert--error" role="alert">
           {error}
         </p>
       ) : null}
-      <Card>
-        <CardHeader>
-          <CardTitle>{translate(locale, 'admin.createDepartment')}</CardTitle>
-          <CardDescription>{translate(locale, 'admin.departmentCodeHelp')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="admin-form-grid" onSubmit={(event) => void create(event)}>
-            <label>
-              {translate(locale, 'admin.departmentCode')}
-              <Input required value={code} onChange={(event) => setCode(event.target.value)} />
-            </label>
-            <label>
-              {translate(locale, 'admin.departmentName')}
-              <Input required value={name} onChange={(event) => setName(event.target.value)} />
-            </label>
-            <Button disabled={pending} type="submit">
-              {pending
-                ? translate(locale, 'admin.creating')
-                : translate(locale, 'admin.createDepartment')}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <AdminFormSheet
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title={translate(locale, 'admin.createDepartment')}
+        description={translate(locale, 'admin.departmentCodeHelp')}
+      >
+        <form className="admin-form-grid" onSubmit={(event) => void create(event)}>
+          <label>
+            {translate(locale, 'admin.departmentCode')}
+            <Input required value={code} onChange={(event) => setCode(event.target.value)} />
+          </label>
+          <label>
+            {translate(locale, 'admin.departmentName')}
+            <Input required value={name} onChange={(event) => setName(event.target.value)} />
+          </label>
+          <Button disabled={pending} type="submit">
+            {pending
+              ? translate(locale, 'admin.creating')
+              : translate(locale, 'admin.createDepartment')}
+          </Button>
+        </form>
+      </AdminFormSheet>
       <Card>
         <CardHeader>
           <CardTitle>{translate(locale, 'admin.departmentList')}</CardTitle>
         </CardHeader>
         <CardContent>
           {items === undefined ? (
-            <p className="admin-state">{translate(locale, 'admin.loading')}</p>
+            <AdminLoadingState label={translate(locale, 'admin.loading')} />
           ) : items.length === 0 ? (
-            <p className="admin-state">{translate(locale, 'admin.noDepartmentsFound')}</p>
+            <AdminEmptyState title={translate(locale, 'admin.noDepartmentsFound')} />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{translate(locale, 'admin.departmentCode')}</TableHead>
-                  <TableHead>{translate(locale, 'admin.departmentName')}</TableHead>
-                  <TableHead>{translate(locale, 'admin.members')}</TableHead>
-                  <TableHead>{translate(locale, 'admin.status')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>{item.code}</TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.memberCount}</TableCell>
-                    <TableCell>
-                      <Badge variant={item.status === 'ACTIVE' ? 'secondary' : 'outline'}>
-                        {translate(
-                          locale,
-                          item.status === 'ACTIVE' ? 'admin.statusActive' : 'admin.statusPaused',
-                        )}
-                      </Badge>
-                    </TableCell>
+            <AdminDataTable>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{translate(locale, 'admin.departmentCode')}</TableHead>
+                    <TableHead>{translate(locale, 'admin.departmentName')}</TableHead>
+                    <TableHead>{translate(locale, 'admin.members')}</TableHead>
+                    <TableHead>{translate(locale, 'admin.status')}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>{item.code}</TableCell>
+                      <TableCell>{item.name}</TableCell>
+                      <TableCell>{item.memberCount}</TableCell>
+                      <TableCell>
+                        <AdminStatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                          {translate(
+                            locale,
+                            item.status === 'ACTIVE' ? 'admin.statusActive' : 'admin.statusPaused',
+                          )}
+                        </AdminStatusBadge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </AdminDataTable>
           )}
         </CardContent>
       </Card>

@@ -7,6 +7,16 @@ import type { AdminOperationalReport } from '@room/contracts';
 import { AdminApiError, adminApi, type AdminRoomOperationsResponse } from '../lib/admin-api';
 import { translate, translatePaymentStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Button } from './ui/button';
+import { Field, FieldLabel } from './ui/field';
+import { Input } from './ui/input';
+import {
+  AdminErrorState,
+  AdminFilterToolbar,
+  AdminMetric,
+  AdminMultiSelect,
+  AdminPageHeader,
+} from './admin/admin-ui';
 
 const bookingStatuses = [
   'HOLD',
@@ -54,13 +64,6 @@ function codes(value: string): readonly string[] | undefined {
     .map((item) => item.trim())
     .filter(Boolean);
   return parsed.length === 0 ? undefined : parsed;
-}
-
-function selectedValues(
-  event: React.ChangeEvent<HTMLSelectElement>,
-): readonly string[] | undefined {
-  const values = Array.from(event.currentTarget.selectedOptions, (option) => option.value);
-  return values.length === 0 ? undefined : values;
 }
 
 function formatTime(value: string, locale: string): string {
@@ -286,100 +289,120 @@ export function OperationalReportDashboard() {
 
   return (
     <section className="admin-overview" aria-labelledby="operational-report-heading">
-      <header className="admin-page-heading admin-overview__header">
-        <div>
-          <p className="admin-eyebrow">PEACENEST · ADMIN V2</p>
-          <h1 id="operational-report-heading">{translate(locale, 'admin.dashboardHeading')}</h1>
-          <p>{translate(locale, 'admin.dashboardHelp')}</p>
-        </div>
-        <div className="admin-overview__meta">
-          <span>{translate(locale, 'admin.dashboardDateRange', { from, to })}</span>
-          <span>
-            {report === undefined
-              ? translate(locale, 'admin.reportLoading')
-              : translate(locale, 'admin.dashboardLastUpdated', {
-                  time: new Date(report.generatedAt).toLocaleTimeString(locale),
-                })}
-          </span>
-          <button
-            className="admin-quiet-action"
-            disabled={refreshing}
-            onClick={() => void refresh()}
-            type="button"
-          >
-            {translate(locale, 'admin.dashboardRefresh')}
-          </button>
-        </div>
-      </header>
+      <AdminPageHeader
+        eyebrow={translate(locale, 'admin.session')}
+        title={translate(locale, 'admin.dashboardHeading')}
+        description={translate(locale, 'admin.dashboardHelp')}
+        className="admin-overview__header"
+        actions={
+          <div className="admin-overview__meta">
+            <span>{translate(locale, 'admin.dashboardDateRange', { from, to })}</span>
+            <span>
+              {report === undefined
+                ? translate(locale, 'admin.reportLoading')
+                : translate(locale, 'admin.dashboardLastUpdated', {
+                    time: new Date(report.generatedAt).toLocaleTimeString(locale),
+                  })}
+            </span>
+            <Button
+              disabled={refreshing}
+              onClick={() => void refresh()}
+              type="button"
+              variant="outline"
+            >
+              {translate(locale, 'admin.dashboardRefresh')}
+            </Button>
+          </div>
+        }
+      />
 
-      <form className="admin-filter-toolbar report-filters" onSubmit={submit}>
-        <div className="admin-filter-toolbar__controls">
-          <label>
+      <AdminFilterToolbar className="report-filters" onSubmit={submit}>
+        <Field>
+          <FieldLabel htmlFor="admin-report-from">
             {translate(locale, 'admin.reportFrom')}
-            <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
-          </label>
-          <label>
-            {translate(locale, 'admin.reportTo')}
-            <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
-          </label>
-          <label>
+          </FieldLabel>
+          <Input
+            id="admin-report-from"
+            type="date"
+            value={from}
+            onChange={(event) => setFrom(event.target.value)}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-report-to">{translate(locale, 'admin.reportTo')}</FieldLabel>
+          <Input
+            id="admin-report-to"
+            type="date"
+            value={to}
+            onChange={(event) => setTo(event.target.value)}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-report-booking-status">
             {translate(locale, 'admin.reportBookingStatus')}
-            <select
-              aria-label={translate(locale, 'admin.reportBookingStatus')}
-              multiple
-              onChange={(event) => setBookingFilter(selectedValues(event))}
-            >
-              {bookingStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {translatePaymentStatus(locale, status)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
+          </FieldLabel>
+          <AdminMultiSelect
+            ariaLabel={translate(locale, 'admin.reportBookingStatus')}
+            id="admin-report-booking-status"
+            options={bookingStatuses.map((status) => ({
+              value: status,
+              label: translatePaymentStatus(locale, status),
+            }))}
+            value={bookingFilter ?? []}
+            onChange={(value) => setBookingFilter(value.length > 0 ? value : undefined)}
+            placeholder={translate(locale, 'admin.reportBookingStatus')}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-report-payment-status">
             {translate(locale, 'admin.reportPaymentStatus')}
-            <select
-              aria-label={translate(locale, 'admin.reportPaymentStatus')}
-              multiple
-              onChange={(event) => setPaymentFilter(selectedValues(event))}
-            >
-              {paymentStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {status === 'NONE'
-                    ? translate(locale, 'admin.noPayment')
-                    : translatePaymentStatus(locale, status)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="report-filters__codes">
+          </FieldLabel>
+          <AdminMultiSelect
+            ariaLabel={translate(locale, 'admin.reportPaymentStatus')}
+            id="admin-report-payment-status"
+            options={paymentStatuses.map((status) => ({
+              value: status,
+              label:
+                status === 'NONE'
+                  ? translate(locale, 'admin.noPayment')
+                  : translatePaymentStatus(locale, status),
+            }))}
+            value={paymentFilter ?? []}
+            onChange={(value) => setPaymentFilter(value.length > 0 ? value : undefined)}
+            placeholder={translate(locale, 'admin.reportPaymentStatus')}
+          />
+        </Field>
+        <Field className="report-filters__codes">
+          <FieldLabel htmlFor="admin-report-rate-plans">
             {translate(locale, 'admin.reportRatePlans')}
-            <input
-              placeholder={translate(locale, 'admin.reportCodePlaceholder')}
-              value={ratePlanCodes}
-              onChange={(event) => setRatePlanCodes(event.target.value)}
-            />
-          </label>
-          <label className="report-filters__codes">
+          </FieldLabel>
+          <Input
+            id="admin-report-rate-plans"
+            placeholder={translate(locale, 'admin.reportCodePlaceholder')}
+            value={ratePlanCodes}
+            onChange={(event) => setRatePlanCodes(event.target.value)}
+          />
+        </Field>
+        <Field className="report-filters__codes">
+          <FieldLabel htmlFor="admin-report-room-tiers">
             {translate(locale, 'admin.reportRoomTiers')}
-            <input
-              placeholder={translate(locale, 'admin.reportCodePlaceholder')}
-              value={roomTierCodes}
-              onChange={(event) => setRoomTierCodes(event.target.value)}
-            />
-          </label>
-          <button className="primary-button" disabled={refreshing} type="submit">
-            {refreshing
-              ? translate(locale, 'admin.reportLoading')
-              : translate(locale, 'admin.reportApply')}
-          </button>
-        </div>
-      </form>
+          </FieldLabel>
+          <Input
+            id="admin-report-room-tiers"
+            placeholder={translate(locale, 'admin.reportCodePlaceholder')}
+            value={roomTierCodes}
+            onChange={(event) => setRoomTierCodes(event.target.value)}
+          />
+        </Field>
+        <Button disabled={refreshing} type="submit">
+          {refreshing
+            ? translate(locale, 'admin.reportLoading')
+            : translate(locale, 'admin.reportApply')}
+        </Button>
+      </AdminFilterToolbar>
 
       {error ? (
-        <p className="admin-alert admin-alert--error" role="alert">
-          {error}
-        </p>
+        <AdminErrorState title={translate(locale, 'admin.reportLoadError')} description={error} />
       ) : null}
       {roomsError ? (
         <p className="admin-alert" role="status">
@@ -398,10 +421,16 @@ export function OperationalReportDashboard() {
           ['admin.roomsAttention', metrics.attention],
           ['admin.paymentReview', report?.paymentReviewCount ?? null],
         ].map(([label, value]) => (
-          <article key={label}>
-            <span>{translate(locale, label as Parameters<typeof translate>[1])}</span>
-            <strong>{value === null ? '—' : value}</strong>
-          </article>
+          <AdminMetric
+            key={label}
+            label={translate(locale, label as Parameters<typeof translate>[1])}
+            value={value === null ? '—' : value}
+            tone={
+              label === 'admin.roomsAttention' || label === 'admin.paymentReview'
+                ? 'warning'
+                : 'info'
+            }
+          />
         ))}
       </section>
 

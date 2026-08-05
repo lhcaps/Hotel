@@ -5,6 +5,10 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Field, FieldGroup, FieldLabel } from './ui/field';
+import { AdminLoadingState, AdminPageHeader } from './admin/admin-ui';
 
 export function PropertyEditor() {
   const locale = useLocale();
@@ -86,81 +90,106 @@ export function PropertyEditor() {
 
   return (
     <section className="admin-page">
-      <h1>{translate(locale, 'admin.property')}</h1>
-      <p>{translate(locale, 'property.help')}</p>
-      {loading ? <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p> : null}
-      <form onSubmit={save}>
-        <label>
-          {translate(locale, 'property.code')}
-          <input
-            disabled={loading || pending}
-            onChange={(event) => setCode(event.target.value)}
-            value={code}
-          />
-        </label>
-        <label>
-          {translate(locale, 'property.name')}
-          <input
-            disabled={loading || pending}
-            onChange={(event) => setName(event.target.value)}
-            value={name}
-          />
-        </label>
-        <label>
-          {translate(locale, 'property.minimumStayMinutes')}
-          <input
-            disabled={loading || pending}
-            min={1}
-            onChange={(event) => setMinimumStayMinutes(Number(event.target.value))}
-            type="number"
-            value={minimumStayMinutes}
-          />
-        </label>
-        <label>
-          {translate(locale, 'property.maximumStayMinutes')}
-          <input
-            disabled={loading || pending}
-            min={1}
-            onChange={(event) => setMaximumStayMinutes(Number(event.target.value))}
-            type="number"
-            value={maximumStayMinutes}
-          />
-        </label>
-        <label>
-          {translate(locale, 'property.minimumLeadTimeMinutes')}
-          <input
-            disabled={loading || pending}
-            min={0}
-            onChange={(event) => setMinimumLeadTimeMinutes(Number(event.target.value))}
-            type="number"
-            value={minimumLeadTimeMinutes}
-          />
-        </label>
-        <label>
-          {translate(locale, 'property.maximumAdvanceBookingDays')}
-          <input
-            disabled={loading || pending}
-            min={0}
-            onChange={(event) => setMaximumAdvanceBookingDays(Number(event.target.value))}
-            type="number"
-            value={maximumAdvanceBookingDays}
-          />
-        </label>
-        <label>
-          {translate(locale, 'property.defaultOvernightDurationMinutes')}
-          <input
-            disabled={loading || pending}
-            min={1}
-            onChange={(event) => setDefaultOvernightDurationMinutes(Number(event.target.value))}
-            type="number"
-            value={defaultOvernightDurationMinutes}
-          />
-        </label>
-        <button disabled={loading || pending} type="submit">
-          {pending ? translate(locale, 'profile.saving') : translate(locale, 'property.save')}
-        </button>
+      <AdminPageHeader
+        title={translate(locale, 'admin.property')}
+        description={translate(locale, 'property.help')}
+      />
+      {loading ? <AdminLoadingState label={translate(locale, 'admin.loadingData')} /> : null}
+      <form className="admin-form-stack" onSubmit={save}>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="property-code">{translate(locale, 'property.code')}</FieldLabel>
+            <Input
+              id="property-code"
+              disabled={loading || pending}
+              onChange={(event) => setCode(event.target.value)}
+              value={code}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="property-name">{translate(locale, 'property.name')}</FieldLabel>
+            <Input
+              id="property-name"
+              disabled={loading || pending}
+              onChange={(event) => setName(event.target.value)}
+              value={name}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="property-min-stay">
+              {translate(locale, 'property.minimumStayMinutes')}
+            </FieldLabel>
+            <Input
+              id="property-min-stay"
+              disabled={loading || pending}
+              min={1}
+              onChange={(event) => setMinimumStayMinutes(Number(event.target.value))}
+              type="number"
+              value={minimumStayMinutes}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="property-max-stay">
+              {translate(locale, 'property.maximumStayMinutes')}
+            </FieldLabel>
+            <Input
+              id="property-max-stay"
+              disabled={loading || pending}
+              min={1}
+              onChange={(event) => setMaximumStayMinutes(Number(event.target.value))}
+              type="number"
+              value={maximumStayMinutes}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="property-min-lead">
+              {translate(locale, 'property.minimumLeadTimeMinutes')}
+            </FieldLabel>
+            <Input
+              id="property-min-lead"
+              disabled={loading || pending}
+              min={0}
+              onChange={(event) => setMinimumLeadTimeMinutes(Number(event.target.value))}
+              type="number"
+              value={minimumLeadTimeMinutes}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="property-max-advance">
+              {translate(locale, 'property.maximumAdvanceBookingDays')}
+            </FieldLabel>
+            <Input
+              id="property-max-advance"
+              disabled={loading || pending}
+              min={0}
+              onChange={(event) => setMaximumAdvanceBookingDays(Number(event.target.value))}
+              type="number"
+              value={maximumAdvanceBookingDays}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="property-overnight">
+              {translate(locale, 'property.defaultOvernightDurationMinutes')}
+            </FieldLabel>
+            <Input
+              id="property-overnight"
+              disabled={loading || pending}
+              min={1}
+              onChange={(event) => setDefaultOvernightDurationMinutes(Number(event.target.value))}
+              type="number"
+              value={defaultOvernightDurationMinutes}
+            />
+          </Field>
+          <Button disabled={loading || pending} type="submit">
+            {pending ? translate(locale, 'profile.saving') : translate(locale, 'property.save')}
+          </Button>
+        </FieldGroup>
       </form>
-      {message === undefined ? null : <p role="alert">{message}</p>}
+      {message === undefined ? null : (
+        <p className="admin-alert" role="status">
+          {message}
+        </p>
+      )}
     </section>
   );
 }

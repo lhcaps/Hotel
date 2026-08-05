@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -12,6 +11,8 @@ import { AdminApiError, adminApi, type AdminRoomOperationsResponse } from '../li
 import { compareRoomDisplayOrder } from '../lib/admin-natural-sort';
 import { translate, type MessageKey } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { AdminStatusBadge } from './admin/admin-ui';
 
 type RoomOperation = AdminRoomOperationsResponse['items'][number];
 type RoomStatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
@@ -95,10 +96,11 @@ function groupForRoom(room: RoomOperation, now: number): RoomGroup {
   return 'ready';
 }
 
-function groupTone(group: RoomGroup): 'secondary' | 'destructive' | 'outline' {
-  if (group === 'maintenance' || group === 'inactive') return 'destructive';
-  if (group === 'ready') return 'secondary';
-  return 'outline';
+function groupStatusTone(group: RoomGroup): 'neutral' | 'success' | 'warning' | 'danger' {
+  if (group === 'maintenance' || group === 'inactive') return 'danger';
+  if (group === 'ready') return 'success';
+  if (group === 'cleaning' || group === 'checkout') return 'warning';
+  return 'neutral';
 }
 
 export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMode?: boolean }>) {
@@ -202,17 +204,28 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
               </label>
               <label>
                 {translate(locale, 'admin.status')}
-                <select
+                <Select
                   value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value as RoomStatusFilter)}
+                  onValueChange={(value) => {
+                    if (value !== null) setStatusFilter(value as RoomStatusFilter);
+                  }}
                 >
-                  <option value="ALL">{translate(locale, 'admin.all')}</option>
-                  <option value="ACTIVE">{translate(locale, roomStatusLabels.ACTIVE)}</option>
-                  <option value="MAINTENANCE">
-                    {translate(locale, roomStatusLabels.MAINTENANCE)}
-                  </option>
-                  <option value="INACTIVE">{translate(locale, roomStatusLabels.INACTIVE)}</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
+                    <SelectItem value="ACTIVE">
+                      {translate(locale, roomStatusLabels.ACTIVE)}
+                    </SelectItem>
+                    <SelectItem value="MAINTENANCE">
+                      {translate(locale, roomStatusLabels.MAINTENANCE)}
+                    </SelectItem>
+                    <SelectItem value="INACTIVE">
+                      {translate(locale, roomStatusLabels.INACTIVE)}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </label>
               <Button onClick={() => void refresh()} type="button" variant="outline">
                 {translate(locale, 'admin.refreshBoard')}
@@ -268,9 +281,9 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
                             <span className="admin-muted">{room.roomTier}</span>
                           </TableCell>
                           <TableCell data-label={translate(locale, 'admin.status')}>
-                            <Badge variant={groupTone(group)}>
+                            <AdminStatusBadge tone={groupStatusTone(group)}>
                               {translate(locale, groupLabels[group])}
-                            </Badge>
+                            </AdminStatusBadge>
                             <span className="admin-muted">
                               {room.currentOccupancy === 'OCCUPIED'
                                 ? translate(locale, 'admin.occupied')

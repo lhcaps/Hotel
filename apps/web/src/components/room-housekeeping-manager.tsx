@@ -6,6 +6,7 @@ import type { Room } from '@room/contracts';
 import { adminApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { AdminErrorState, AdminLoadingState, AdminPageHeader } from './admin/admin-ui';
 
 const states = ['CLEAN', 'DIRTY', 'CLEANING'] as const;
 
@@ -33,15 +34,15 @@ export function RoomHousekeepingManager() {
 
   return (
     <section className="admin-page" aria-labelledby="room-operations-heading">
-      <h2 id="room-operations-heading">{translate(locale, 'admin.roomOperations')}</h2>
-      <p>{translate(locale, 'admin.roomOperationsHelp')}</p>
+      <AdminPageHeader
+        title={translate(locale, 'admin.roomOperations')}
+        description={translate(locale, 'admin.roomOperationsHelp')}
+      />
       {error ? (
-        <p className="admin-alert admin-alert--error" role="alert">
-          {error}
-        </p>
+        <AdminErrorState title={translate(locale, 'admin.loadErrorHeading')} description={error} />
       ) : null}
       {rooms === undefined ? (
-        <p aria-live="polite">{translate(locale, 'admin.loading')}</p>
+        <AdminLoadingState label={translate(locale, 'admin.loading')} />
       ) : (
         <ul className="room-housekeeping-list">
           {rooms.map((room) => {
@@ -59,10 +60,10 @@ export function RoomHousekeepingManager() {
                   <span className="sr-only">{housekeepingLabel}</span>
                   <select
                     aria-label={housekeepingLabel}
-                    onChange={(event) =>
-                      void change(room, event.target.value as Room['housekeepingStatus'])
-                    }
                     value={room.housekeepingStatus}
+                    onChange={(event) => {
+                      void change(room, event.target.value as Room['housekeepingStatus']);
+                    }}
                   >
                     {states.map((state) => (
                       <option key={state} value={state}>

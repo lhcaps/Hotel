@@ -20,6 +20,13 @@ import {
 import { useLocale } from '../../../../components/locale-provider';
 import { adminApi } from '../../../../lib/admin-api';
 import { formatDateTime, translate, type MessageKey } from '../../../../lib/i18n/messages';
+import {
+  AdminDataTable,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminLoadingState,
+  AdminPageHeader,
+} from '../../../../components/admin/admin-ui';
 
 const eventLabels: Readonly<Record<string, MessageKey>> = {
   ADMIN_ACCOUNT_CREATED: 'admin.eventAdminAccountCreated',
@@ -47,22 +54,16 @@ export default function AdminAuditPage() {
 
   return (
     <main className="admin-page">
-      <div className="admin-page-heading">
-        <div>
-          <p className="admin-eyebrow">{translate(locale, 'admin.auditScope')}</p>
-          <h1>{translate(locale, 'admin.audit')}</h1>
-          <p>{translate(locale, 'admin.auditHelp')}</p>
-        </div>
-      </div>
+      <AdminPageHeader
+        eyebrow={translate(locale, 'admin.auditScope')}
+        title={translate(locale, 'admin.audit')}
+        description={translate(locale, 'admin.auditHelp')}
+      />
       {error ? (
-        <p className="admin-alert admin-alert--error" role="alert">
-          {error}
-        </p>
+        <AdminErrorState title={translate(locale, 'admin.loadErrorHeading')} description={error} />
       ) : null}
       {items === undefined && error === undefined ? (
-        <Card>
-          <CardContent className="admin-state">{translate(locale, 'admin.loading')}</CardContent>
-        </Card>
+        <AdminLoadingState label={translate(locale, 'admin.loading')} />
       ) : null}
       {items !== undefined ? (
         <Card>
@@ -72,35 +73,39 @@ export default function AdminAuditPage() {
           </CardHeader>
           <CardContent>
             {items.length === 0 ? (
-              <p className="admin-state">{translate(locale, 'admin.noEvents')}</p>
+              <AdminEmptyState title={translate(locale, 'admin.noEvents')} />
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{translate(locale, 'admin.time')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.event')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.actor')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.scope')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item) => {
-                    const eventLabel = eventLabels[item.eventType];
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell>{formatDateTime(locale, item.occurredAt)}</TableCell>
-                        <TableCell>
-                          {eventLabel === undefined
-                            ? translate(locale, 'admin.adminActivity')
-                            : translate(locale, eventLabel)}
-                        </TableCell>
-                        <TableCell>{item.actorName ?? translate(locale, 'admin.system')}</TableCell>
-                        <TableCell>{translate(locale, 'admin.permissions')}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              <AdminDataTable>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{translate(locale, 'admin.time')}</TableHead>
+                      <TableHead>{translate(locale, 'admin.event')}</TableHead>
+                      <TableHead>{translate(locale, 'admin.actor')}</TableHead>
+                      <TableHead>{translate(locale, 'admin.scope')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((item) => {
+                      const eventLabel = eventLabels[item.eventType];
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell>{formatDateTime(locale, item.occurredAt)}</TableCell>
+                          <TableCell>
+                            {eventLabel === undefined
+                              ? translate(locale, 'admin.adminActivity')
+                              : translate(locale, eventLabel)}
+                          </TableCell>
+                          <TableCell>
+                            {item.actorName ?? translate(locale, 'admin.system')}
+                          </TableCell>
+                          <TableCell>{translate(locale, 'admin.permissions')}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </AdminDataTable>
             )}
           </CardContent>
         </Card>

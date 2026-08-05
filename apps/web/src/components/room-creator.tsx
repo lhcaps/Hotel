@@ -4,6 +4,10 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { AdminPageHeader } from './admin/admin-ui';
 export function RoomCreator() {
   const locale = useLocale();
   const [types, setTypes] = useState<readonly RoomType[]>([]);
@@ -46,35 +50,44 @@ export function RoomCreator() {
   }
   return (
     <section className="admin-page">
-      <h1>{translate(locale, 'room.createHeading')}</h1>
-      <p>{translate(locale, 'room.createHelp')}</p>
-      <form onSubmit={create}>
+      <AdminPageHeader
+        title={translate(locale, 'room.createHeading')}
+        description={translate(locale, 'room.createHelp')}
+      />
+      <form className="admin-form-stack" onSubmit={create}>
         <label>
           {translate(locale, 'admin.roomType')}
-          <select
+          <Select
             disabled={pending || types.length === 0}
-            onChange={(event) => setRoomTypeId(event.target.value)}
             value={roomTypeId}
+            onValueChange={(value) => {
+              if (value !== null) setRoomTypeId(value);
+            }}
           >
-            {types.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {types.map((type) => (
+                <SelectItem key={type.id} value={type.id}>
+                  {type.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
         <label>
           {translate(locale, 'room.number')}
-          <input
+          <Input
             disabled={pending}
             onChange={(event) => setRoomNumber(event.target.value)}
             required
             value={roomNumber}
           />
         </label>
-        <button disabled={pending || roomTypeId === ''} type="submit">
+        <Button disabled={pending || roomTypeId === ''} type="submit">
           {translate(locale, 'room.create')}
-        </button>
+        </Button>
       </form>
       {message === undefined ? null : <p role="alert">{message}</p>}
     </section>

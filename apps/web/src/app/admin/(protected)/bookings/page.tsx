@@ -5,10 +5,31 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
 import { AdminApiError, adminApi, type AdminBookingSummary } from '../../../../lib/admin-api';
 import { useLocale } from '../../../../components/locale-provider';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Field, FieldLabel } from '../../../../components/ui/field';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../../components/ui/select';
+import {
+  AdminDataTable,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminFilterToolbar,
+  AdminLoadingState,
+  AdminPageHeader,
+  AdminStatusBadge,
+  AdminTablePagination,
+} from '../../../../components/admin/admin-ui';
 import {
   formatDateTime,
   formatVnd,
   translate,
+  translateAdminStatus,
   translatePaymentStatus,
 } from '../../../../lib/i18n/messages';
 
@@ -34,6 +55,13 @@ const roomStatusLabels = {
   INACTIVE: 'admin.roomStatusInactive',
   MAINTENANCE: 'admin.roomStatusMaintenance',
 } as const;
+
+function statusTone(value: string): 'neutral' | 'info' | 'success' | 'warning' | 'danger' {
+  if (value === 'CONFIRMED' || value === 'SUCCEEDED' || value === 'RESOLVED') return 'success';
+  if (value === 'CANCELLED' || value === 'FAILED') return 'danger';
+  if (value === 'REVIEW_REQUIRED' || value === 'PENDING' || value === 'OPEN') return 'warning';
+  return 'info';
+}
 
 interface Filters {
   readonly bookingCode: string;
@@ -134,161 +162,209 @@ export default function AdminBookingsPage() {
 
   return (
     <section className="admin-page">
-      <h1>{translate(locale, 'admin.bookingsHeading')}</h1>
-      <p>{translate(locale, 'admin.bookingsHelp')}</p>
-      <form onSubmit={onSubmit}>
-        <label>
-          {translate(locale, 'admin.bookingCode')}
-          <input
+      <AdminPageHeader
+        title={translate(locale, 'admin.bookingsHeading')}
+        description={translate(locale, 'admin.bookingsHelp')}
+      />
+      <AdminFilterToolbar onSubmit={onSubmit}>
+        <Field>
+          <FieldLabel htmlFor="admin-booking-code">
+            {translate(locale, 'admin.bookingCode')}
+          </FieldLabel>
+          <Input
+            id="admin-booking-code"
             onChange={(event) => updateFilter('bookingCode', event.target.value)}
-            placeholder="Example: BK-ABCDEF"
+            placeholder="BK-ABCDEF"
             type="search"
             value={filters.bookingCode}
           />
-        </label>
-        <label>
-          {translate(locale, 'admin.status')}
-          <select
-            onChange={(event) => updateFilter('status', event.target.value)}
-            value={filters.status}
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-booking-status">
+            {translate(locale, 'admin.status')}
+          </FieldLabel>
+          <Select
+            value={filters.status || 'ALL'}
+            onValueChange={(value) =>
+              updateFilter('status', value === null || value === 'ALL' ? '' : value)
+            }
           >
-            {STATUS_OPTIONS.map((value) => (
-              <option key={value} value={value}>
-                {value === ''
-                  ? translate(locale, 'admin.all')
-                  : translatePaymentStatus(locale, value)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {translate(locale, 'account.payment')}
-          <select
-            onChange={(event) => updateFilter('paymentStatus', event.target.value)}
-            value={filters.paymentStatus}
+            <SelectTrigger id="admin-booking-status" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((value) => (
+                <SelectItem key={value || 'ALL'} value={value || 'ALL'}>
+                  {value === ''
+                    ? translate(locale, 'admin.all')
+                    : translatePaymentStatus(locale, value)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-booking-payment-status">
+            {translate(locale, 'account.payment')}
+          </FieldLabel>
+          <Select
+            value={filters.paymentStatus || 'ALL'}
+            onValueChange={(value) =>
+              updateFilter('paymentStatus', value === null || value === 'ALL' ? '' : value)
+            }
           >
-            {PAYMENT_OPTIONS.map((value) => (
-              <option key={value} value={value}>
-                {value === ''
-                  ? translate(locale, 'admin.all')
-                  : translatePaymentStatus(locale, value)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {translate(locale, 'admin.review')}
-          <select
-            onChange={(event) => updateFilter('reviewPresence', event.target.value)}
-            value={filters.reviewPresence}
+            <SelectTrigger id="admin-booking-payment-status" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAYMENT_OPTIONS.map((value) => (
+                <SelectItem key={value || 'ALL'} value={value || 'ALL'}>
+                  {value === ''
+                    ? translate(locale, 'admin.all')
+                    : translatePaymentStatus(locale, value)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-booking-review">
+            {translate(locale, 'admin.review')}
+          </FieldLabel>
+          <Select
+            value={filters.reviewPresence || 'ALL'}
+            onValueChange={(value) =>
+              updateFilter('reviewPresence', value === null || value === 'ALL' ? '' : value)
+            }
           >
-            {REVIEW_OPTIONS.map((value) => (
-              <option key={value} value={value}>
-                {value === '' ? translate(locale, 'admin.all') : value}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {translate(locale, 'admin.checkInFrom')}
-          <input
+            <SelectTrigger id="admin-booking-review" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {REVIEW_OPTIONS.map((value) => (
+                <SelectItem key={value || 'ALL'} value={value || 'ALL'}>
+                  {value === ''
+                    ? translate(locale, 'admin.all')
+                    : translateAdminStatus(locale, value)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-booking-check-in-from">
+            {translate(locale, 'admin.checkInFrom')}
+          </FieldLabel>
+          <Input
+            id="admin-booking-check-in-from"
             onChange={(event) => updateFilter('checkInFrom', event.target.value)}
             type="date"
             value={filters.checkInFrom}
           />
-        </label>
-        <label>
-          {translate(locale, 'admin.to')}
-          <input
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="admin-booking-check-in-to">
+            {translate(locale, 'admin.to')}
+          </FieldLabel>
+          <Input
+            id="admin-booking-check-in-to"
             onChange={(event) => updateFilter('checkInTo', event.target.value)}
             type="date"
             value={filters.checkInTo}
           />
-        </label>
-        <button type="submit">{translate(locale, 'admin.apply')}</button>
-        <button onClick={resetFilters} type="button">
-          {translate(locale, 'admin.reset')}
-        </button>
-      </form>
+        </Field>
+        <div className="admin-row-actions">
+          <Button type="submit">{translate(locale, 'admin.apply')}</Button>
+          <Button onClick={resetFilters} type="button" variant="outline">
+            {translate(locale, 'admin.reset')}
+          </Button>
+        </div>
+      </AdminFilterToolbar>
       {items === undefined && error === undefined ? (
-        <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
+        <AdminLoadingState label={translate(locale, 'admin.loadingData')} />
       ) : null}
       {error === undefined ? null : (
-        <p role="alert" style={{ color: 'var(--color-danger)' }}>
-          {error}
-        </p>
+        <AdminErrorState title={translate(locale, 'admin.bookingsLoadError')} description={error} />
       )}
       {items !== undefined && items.length === 0 ? (
-        <div className="table-empty">{translate(locale, 'admin.bookingsEmpty')}</div>
+        <AdminEmptyState title={translate(locale, 'admin.bookingsEmpty')} />
       ) : null}
       {items !== undefined && items.length > 0 ? (
-        <table>
-          <thead>
-            <tr>
-              <th>{translate(locale, 'admin.code')}</th>
-              <th>{translate(locale, 'admin.guest')}</th>
-              <th>{translate(locale, 'admin.status')}</th>
-              <th>{translate(locale, 'admin.room')}</th>
-              <th>{translate(locale, 'admin.roomOperationalStatus')}</th>
-              <th>{translate(locale, 'account.checkIn')}</th>
-              <th>{translate(locale, 'account.checkOut')}</th>
-              <th>{translate(locale, 'admin.amount')}</th>
-              <th>{translate(locale, 'account.payment')}</th>
-              <th>{translate(locale, 'admin.review')}</th>
-              <th>{translate(locale, 'admin.action')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.bookingCode}>
-                <td>
-                  <Link href={`/admin/bookings/${item.bookingCode}`}>{item.bookingCode}</Link>
-                </td>
-                <td>{item.guestName}</td>
-                <td>{translatePaymentStatus(locale, item.status)}</td>
-                <td>
-                  {item.roomType.name}
-                  {item.room === null ? '' : ` · ${item.room.roomNumber}`}
-                </td>
-                <td>
-                  {item.roomStatus === undefined || item.roomStatus === null
-                    ? translate(locale, 'admin.roomUnassigned')
-                    : translate(locale, roomStatusLabels[item.roomStatus])}
-                </td>
-                <td>{formatDateTime(locale, item.checkIn)}</td>
-                <td>{formatDateTime(locale, item.checkOut)}</td>
-                <td>{formatVnd(locale, item.finalAmountVnd)}</td>
-                <td>{translatePaymentStatus(locale, item.paymentStatus)}</td>
-                <td>
-                  {item.reviewPresence === 'OPEN'
-                    ? 'OPEN'
-                    : item.reviewPresence === 'RESOLVED'
-                      ? 'RESOLVED'
-                      : '—'}
-                </td>
-                <td>
-                  <Link href={`/admin/bookings/${item.bookingCode}`}>
-                    {translate(locale, 'admin.open')}
-                  </Link>
-                </td>
+        <AdminDataTable>
+          <table>
+            <thead>
+              <tr>
+                <th>{translate(locale, 'admin.code')}</th>
+                <th>{translate(locale, 'admin.guest')}</th>
+                <th>{translate(locale, 'admin.status')}</th>
+                <th>{translate(locale, 'admin.room')}</th>
+                <th>{translate(locale, 'admin.roomOperationalStatus')}</th>
+                <th>{translate(locale, 'account.checkIn')}</th>
+                <th>{translate(locale, 'account.checkOut')}</th>
+                <th>{translate(locale, 'admin.amount')}</th>
+                <th>{translate(locale, 'account.payment')}</th>
+                <th>{translate(locale, 'admin.review')}</th>
+                <th>{translate(locale, 'admin.action')}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.bookingCode}>
+                  <td data-label={translate(locale, 'admin.code')}>
+                    <Link href={`/admin/bookings/${item.bookingCode}`}>{item.bookingCode}</Link>
+                  </td>
+                  <td data-label={translate(locale, 'admin.guest')}>{item.guestName}</td>
+                  <td data-label={translate(locale, 'admin.status')}>
+                    <AdminStatusBadge tone={statusTone(item.status)}>
+                      {translatePaymentStatus(locale, item.status)}
+                    </AdminStatusBadge>
+                  </td>
+                  <td data-label={translate(locale, 'admin.room')}>
+                    {item.roomType.name}
+                    {item.room === null ? '' : ` · ${item.room.roomNumber}`}
+                  </td>
+                  <td data-label={translate(locale, 'admin.roomOperationalStatus')}>
+                    {item.roomStatus === undefined || item.roomStatus === null
+                      ? translate(locale, 'admin.roomUnassigned')
+                      : translate(locale, roomStatusLabels[item.roomStatus])}
+                  </td>
+                  <td data-label={translate(locale, 'account.checkIn')}>
+                    {formatDateTime(locale, item.checkIn)}
+                  </td>
+                  <td data-label={translate(locale, 'account.checkOut')}>
+                    {formatDateTime(locale, item.checkOut)}
+                  </td>
+                  <td data-label={translate(locale, 'admin.amount')}>
+                    {formatVnd(locale, item.finalAmountVnd)}
+                  </td>
+                  <td data-label={translate(locale, 'account.payment')}>
+                    <AdminStatusBadge tone={statusTone(item.paymentStatus)}>
+                      {translatePaymentStatus(locale, item.paymentStatus)}
+                    </AdminStatusBadge>
+                  </td>
+                  <td data-label={translate(locale, 'admin.review')}>
+                    <AdminStatusBadge tone={statusTone(item.reviewPresence)}>
+                      {translateAdminStatus(locale, item.reviewPresence)}
+                    </AdminStatusBadge>
+                  </td>
+                  <td data-label={translate(locale, 'admin.action')}>
+                    <Link href={`/admin/bookings/${item.bookingCode}`}>
+                      {translate(locale, 'admin.open')}
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </AdminDataTable>
       ) : null}
-      <div className="admin-pagination">
-        <button disabled={page <= 1} onClick={() => refresh(page - 1, filters)} type="button">
-          {translate(locale, 'admin.previousPage')}
-        </button>
-        <span>{translate(locale, 'admin.pageOf', { page, totalPages })}</span>
-        <button
-          disabled={page >= totalPages}
-          onClick={() => refresh(page + 1, filters)}
-          type="button"
-        >
-          {translate(locale, 'admin.nextPage')}
-        </button>
-      </div>
+      <AdminTablePagination
+        page={page}
+        pageCount={totalPages}
+        onPageChange={(nextPage) => refresh(nextPage, filters)}
+        previousLabel={translate(locale, 'admin.previousPage')}
+        nextLabel={translate(locale, 'admin.nextPage')}
+      />
     </section>
   );
 }

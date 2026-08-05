@@ -4,6 +4,17 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { formatDateTime, translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import {
+  AdminDataTable,
+  AdminEmptyState,
+  AdminFormSheet,
+  AdminLoadingState,
+  AdminPageHeader,
+  AdminStatusBadge,
+} from './admin/admin-ui';
 export function MaintenanceManager() {
   const locale = useLocale();
   const [rooms, setRooms] = useState<readonly Room[]>([]);
@@ -14,6 +25,7 @@ export function MaintenanceManager() {
   const [endsAt, setEndsAt] = useState('');
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   useEffect(() => {
     void Promise.all([adminApi.listRooms(), adminApi.listMaintenanceBlocks()])
       .then(([roomPage, maintenancePage]) => {
@@ -43,6 +55,7 @@ export function MaintenanceManager() {
       setBlocks((current) => (current === undefined ? current : [...current, block]));
       setMessage(translate(locale, 'maintenance.created', { reason: block.reason }));
       setReason('');
+      setCreateOpen(false);
     } catch (cause) {
       setMessage(
         cause instanceof AdminApiError
@@ -75,94 +88,126 @@ export function MaintenanceManager() {
   }
   return (
     <section className="admin-page">
-      <h1>{translate(locale, 'admin.maintenance')}</h1>
-      <p>{translate(locale, 'maintenance.help')}</p>
-      <form onSubmit={create}>
-        <label>
-          {translate(locale, 'admin.rooms')}
-          <select
-            disabled={pending || rooms.length === 0}
-            onChange={(event) => setRoomId(event.target.value)}
-            value={roomId}
-          >
-            {rooms.map((room) => (
-              <option key={room.id} value={room.id}>
-                {room.roomNumber}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          {translate(locale, 'maintenance.reason')}
-          <input
-            disabled={pending}
-            onChange={(event) => setReason(event.target.value)}
-            required
-            value={reason}
-          />
-        </label>
-        <label>
-          {translate(locale, 'maintenance.startsAt')}
-          <input
-            disabled={pending}
-            onChange={(event) => setStartsAt(event.target.value)}
-            required
-            type="datetime-local"
-            value={startsAt}
-          />
-        </label>
-        <label>
-          {translate(locale, 'maintenance.endsAt')}
-          <input
-            disabled={pending}
-            onChange={(event) => setEndsAt(event.target.value)}
-            required
-            type="datetime-local"
-            value={endsAt}
-          />
-        </label>
-        <button disabled={pending || roomId === ''} type="submit">
-          {translate(locale, 'maintenance.create')}
-        </button>
-      </form>
+      <AdminPageHeader
+        title={translate(locale, 'admin.maintenance')}
+        description={translate(locale, 'maintenance.help')}
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            {translate(locale, 'maintenance.create')}
+          </Button>
+        }
+      />
+      <AdminFormSheet
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title={translate(locale, 'maintenance.create')}
+        description={translate(locale, 'maintenance.help')}
+      >
+        <form className="admin-form-stack" onSubmit={create}>
+          <label>
+            {translate(locale, 'admin.rooms')}
+            <Select
+              disabled={pending || rooms.length === 0}
+              value={roomId}
+              onValueChange={(value) => {
+                if (value !== null) setRoomId(value);
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {rooms.map((room) => (
+                  <SelectItem key={room.id} value={room.id}>
+                    {room.roomNumber}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+          <label>
+            {translate(locale, 'maintenance.reason')}
+            <Input
+              disabled={pending}
+              onChange={(event) => setReason(event.target.value)}
+              required
+              value={reason}
+            />
+          </label>
+          <label>
+            {translate(locale, 'maintenance.startsAt')}
+            <Input
+              disabled={pending}
+              onChange={(event) => setStartsAt(event.target.value)}
+              required
+              type="datetime-local"
+              value={startsAt}
+            />
+          </label>
+          <label>
+            {translate(locale, 'maintenance.endsAt')}
+            <Input
+              disabled={pending}
+              onChange={(event) => setEndsAt(event.target.value)}
+              required
+              type="datetime-local"
+              value={endsAt}
+            />
+          </label>
+          <Button disabled={pending || roomId === ''} type="submit">
+            {translate(locale, 'maintenance.create')}
+          </Button>
+        </form>
+      </AdminFormSheet>
       {message === undefined ? null : <p role="alert">{message}</p>}
       {blocks === undefined ? (
-        <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
+        <AdminLoadingState label={translate(locale, 'admin.loadingData')} />
+      ) : null}
+      {blocks !== undefined && blocks.length === 0 ? (
+        <AdminEmptyState title={translate(locale, 'catalog.noResults')} />
       ) : null}
       {blocks === undefined || blocks.length === 0 ? null : (
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">{translate(locale, 'maintenance.reason')}</th>
-              <th scope="col">{translate(locale, 'maintenance.startsAt')}</th>
-              <th scope="col">{translate(locale, 'maintenance.endsAt')}</th>
-              <th scope="col">{translate(locale, 'admin.status')}</th>
-              <th scope="col">{translate(locale, 'admin.action')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {blocks.map((block) => (
-              <tr key={block.id}>
-                <td>{block.reason}</td>
-                <td>{formatDateTime(locale, block.startsAt)}</td>
-                <td>{formatDateTime(locale, block.endsAt)}</td>
-                <td>{translateAdminStatus(locale, block.status)}</td>
-                <td>
-                  <button
-                    aria-label={translate(locale, 'maintenance.cancelLabel', {
-                      reason: block.reason,
-                    })}
-                    disabled={pending || block.status === 'CANCELLED'}
-                    onClick={() => void cancel(block.id)}
-                    type="button"
-                  >
-                    {translate(locale, 'maintenance.cancel')}
-                  </button>
-                </td>
+        <AdminDataTable>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">{translate(locale, 'maintenance.reason')}</th>
+                <th scope="col">{translate(locale, 'maintenance.startsAt')}</th>
+                <th scope="col">{translate(locale, 'maintenance.endsAt')}</th>
+                <th scope="col">{translate(locale, 'admin.status')}</th>
+                <th scope="col">{translate(locale, 'admin.action')}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {blocks.map((block) => (
+                <tr key={block.id}>
+                  <td>{block.reason}</td>
+                  <td>{formatDateTime(locale, block.startsAt)}</td>
+                  <td>{formatDateTime(locale, block.endsAt)}</td>
+                  <td>
+                    <AdminStatusBadge tone={block.status === 'CANCELLED' ? 'neutral' : 'warning'}>
+                      {translateAdminStatus(locale, block.status)}
+                    </AdminStatusBadge>
+                  </td>
+                  <td>
+                    <Button
+                      aria-label={translate(locale, 'maintenance.cancelLabel', {
+                        reason: block.reason,
+                      })}
+                      disabled={pending || block.status === 'CANCELLED'}
+                      onClick={() => void cancel(block.id)}
+                      size="sm"
+                      type="button"
+                      variant="destructive"
+                    >
+                      {translate(locale, 'maintenance.cancel')}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </AdminDataTable>
       )}
     </section>
   );
