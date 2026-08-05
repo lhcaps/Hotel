@@ -90,11 +90,15 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
     // Submit a generic uppercase plan through the form (the form
     // shape is exercised by `rate-plan-manager.test.tsx`).
     const planCode = 'PROBE_FLEX';
-    await page.getByLabel('Mã gói').fill(planCode);
-    await page.getByLabel('Tên hiển thị').fill('Probe flex combo');
-    await page.getByLabel('Thời lượng combo', { exact: true }).selectOption('180');
-    await page.getByLabel('Ưu tiên', { exact: true }).selectOption('30');
-    await page.getByRole('button', { name: 'Tạo gói DRAFT' }).click();
+    await page.getByRole('button', { name: 'Tạo gói giá' }).click();
+    const createDialog = page.getByRole('dialog');
+    await createDialog.getByLabel('Mã gói').fill(planCode);
+    await createDialog.getByLabel('Tên hiển thị').fill('Probe flex combo');
+    await createDialog.getByRole('combobox').nth(0).click();
+    await page.getByRole('option', { name: '3 giờ 0 phút', exact: true }).click();
+    await createDialog.getByRole('combobox').last().click();
+    await page.getByRole('option', { name: '30', exact: true }).click();
+    await createDialog.getByRole('button', { name: 'Tạo gói giá' }).click();
     await expect(page.getByText(planCode)).toBeVisible();
 
     // The activation controls and price inputs become available once
@@ -141,15 +145,17 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
     // The default priority (30) conflicts with LUNCH_COMBO in its window;
     // 60 is unique among the deterministic seed rules.
     // Give the generic plan an explicit, unique priority before activation.
-    const priority = planRow.getByRole('combobox').last();
-    await priority.selectOption('60');
+    await planRow.getByRole('button', { name: 'Điều kiện áp dụng' }).click();
+    const selectionDialog = page.getByRole('dialog');
+    await selectionDialog.getByRole('combobox').last().click();
+    await page.getByRole('option', { name: '60', exact: true }).click();
     const [ruleResponse] = await Promise.all([
       page.waitForResponse(
         (response) =>
           response.request().method() === 'PATCH' &&
           /\/admin\/rate-plans\/[^/]+\/selection-rule$/.test(response.url()),
       ),
-      planRow.getByRole('button', { name: 'Lưu điều kiện' }).click(),
+      selectionDialog.getByRole('button', { name: 'Lưu điều kiện' }).click(),
     ]);
     expect(ruleResponse.ok()).toBeTruthy();
 

@@ -10,10 +10,12 @@ test('ADMIN creates a price tier and sees it after reload', async ({ page }) => 
   await expect(page).toHaveURL(/\/admin$/);
 
   await page.goto('/admin/price-tiers');
-  await page.getByLabel('Mã hạng giá').fill('premium');
-  await page.getByLabel('Tên hạng giá').fill('Premium');
-  await page.getByLabel('Thứ tự').fill('1');
   await page.getByRole('button', { name: 'Thêm hạng giá' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.locator('#price-tier-code').fill('premium');
+  await dialog.locator('#price-tier-name').fill('Premium');
+  await dialog.locator('#price-tier-sort').fill('1');
+  await dialog.getByRole('button', { name: 'Thêm hạng giá' }).click();
   await expect(page.getByRole('cell', { name: 'Premium', exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('cell', { name: 'Premium', exact: true })).toBeVisible();

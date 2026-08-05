@@ -18,11 +18,11 @@ test('ADMIN can read persisted catalog tables after signing in', async ({ page }
   expect(roomsApi.status, roomsApi.body).toBe(200);
 
   await page.goto('/admin/rooms');
-  await expect(page.locator('input[id^="room-number-"]').first()).toBeVisible();
+  await expect(page.locator('table').first()).toBeVisible();
   await page.goto('/admin/room-types');
-  await expect(page.locator('input[id^="edit-name-"]').first()).toBeVisible();
+  await expect(page.locator('table').first()).toBeVisible();
   await page.goto('/admin/amenities');
-  await expect(page.locator('input[id^="amenity-edit-"]').first()).toBeVisible();
+  await expect(page.locator('table').first()).toBeVisible();
   await page.goto('/admin/price-tiers');
   await expect(page.locator('table').first()).toBeVisible();
 });

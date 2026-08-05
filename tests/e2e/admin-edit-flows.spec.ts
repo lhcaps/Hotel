@@ -17,12 +17,15 @@ test('ADMIN edits a room type description and persists the change', async ({ pag
   await expect(firstRow).toBeVisible();
   const nameCell = await firstRow.locator('td').first().innerText();
   expect(nameCell.trim().length).toBeGreaterThan(0);
-  const descriptionInput = firstRow.getByLabel('Mô tả loại phòng');
-  await descriptionInput.fill('Mô tả được cập nhật bởi Playwright');
   await firstRow.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  const editDialog = page.getByRole('dialog');
+  const descriptionInput = editDialog.getByLabel('Mô tả loại phòng');
+  await descriptionInput.fill('Mô tả được cập nhật bởi Playwright');
+  await editDialog.getByRole('button', { name: 'Lưu thay đổi' }).click();
   await expect(page.getByText(/Đã cập nhật/)).toBeVisible();
   await page.reload();
-  await expect(firstRow.getByLabel('Mô tả loại phòng')).toHaveValue(
+  await firstRow.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  await expect(page.getByRole('dialog').getByLabel('Mô tả loại phòng')).toHaveValue(
     'Mô tả được cập nhật bởi Playwright',
   );
 });
@@ -38,9 +41,11 @@ test('ADMIN renames an amenity and the change is reflected in the public catalog
   const codeCell = (await firstRow.locator('td').first().innerText()).trim();
   expect(codeCell.length).toBeGreaterThan(0);
   const rename = `Tiện nghi Playwright ${Date.now()}`;
-  const nameInput = firstRow.getByLabel('Tên tiện nghi');
-  await nameInput.fill(rename);
   await firstRow.getByRole('button', { name: 'Lưu tên' }).click();
+  const amenityDialog = page.getByRole('dialog');
+  const nameInput = amenityDialog.getByLabel('Tên tiện nghi');
+  await nameInput.fill(rename);
+  await amenityDialog.getByRole('button', { name: 'Lưu tên' }).click();
   await expect(page.getByText(/Đã cập nhật/)).toBeVisible();
   const api = await request.get('http://127.0.0.1:3101/api/v1/public/room-types');
   expect(api.status()).toBe(200);
@@ -66,10 +71,12 @@ test('ADMIN renames a physical room and the new number is visible in admin', asy
   const firstRow = page.locator('table tbody tr').first();
   await expect(firstRow).toBeVisible();
   const newNumber = `PW-${Date.now().toString().slice(-4)}`;
-  await firstRow.getByLabel('Số phòng').fill(newNumber);
   await firstRow.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  const roomDialog = page.getByRole('dialog');
+  await roomDialog.getByLabel('Số phòng').fill(newNumber);
+  await roomDialog.getByRole('button', { name: 'Lưu thay đổi' }).click();
   await expect(page.getByText(/Đã cập nhật phòng/)).toBeVisible();
-  await expect(firstRow.getByLabel('Số phòng')).toHaveValue(newNumber);
+  await expect(firstRow.getByRole('cell', { name: newNumber, exact: true })).toBeVisible();
 });
 
 test('ADMIN shell never exposes a public header before authentication', async ({ page }) => {

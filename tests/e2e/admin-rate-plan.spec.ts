@@ -74,9 +74,12 @@ test('ADMIN changes the lunch boundary through the UI and historical quotes rema
   ]);
   expect(priceResponse.ok()).toBeTruthy();
   await expect(lunch.getByRole('spinbutton', { name: /Deluxe$/i })).toHaveValue('200000');
-  const rules = lunch.getByRole('combobox');
-  await rules.nth(2).selectOption('15:15');
-  const saveSelection = lunch.getByRole('button', { name: 'Lưu điều kiện' });
+  await lunch.getByRole('button', { name: 'Điều kiện áp dụng' }).click();
+  let selectionDialog = page.getByRole('dialog');
+  const rules = selectionDialog.getByRole('combobox');
+  await rules.nth(2).click();
+  await page.getByRole('option', { name: '15:15' }).click();
+  const saveSelection = selectionDialog.getByRole('button', { name: 'Lưu điều kiện' });
   await expect(saveSelection).toBeEnabled();
   const [firstRuleResponse] = await Promise.all([
     page.waitForResponse(/\/admin\/rate-plans\/.*\/selection-rule$/),
@@ -90,10 +93,14 @@ test('ADMIN changes the lunch boundary through the UI and historical quotes rema
   const quoteA = await issueQuoteAt(page, '2027-01-12T08:00:00.000Z', 5);
   expect(quoteA.pricing).toMatchObject({ selectedPlanCode: 'LUNCH_COMBO' });
 
-  await rules.nth(2).selectOption('15:00');
+  await lunch.getByRole('button', { name: 'Điều kiện áp dụng' }).click();
+  selectionDialog = page.getByRole('dialog');
+  await selectionDialog.getByRole('combobox').nth(2).click();
+  await page.getByRole('option', { name: '15:00' }).click();
+  const secondSaveSelection = selectionDialog.getByRole('button', { name: 'Lưu điều kiện' });
   const [secondRuleResponse] = await Promise.all([
     page.waitForResponse(/\/admin\/rate-plans\/.*\/selection-rule$/),
-    saveSelection.click(),
+    secondSaveSelection.click(),
   ]);
   expect(secondRuleResponse.ok()).toBeTruthy();
   await expect(secondRuleResponse.json()).resolves.toMatchObject({

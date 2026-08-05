@@ -9,10 +9,11 @@ test('ADMIN creates an amenity and sees it after reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Đăng nhập' }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await page.goto('/admin/amenities');
-  await page.getByLabel('Mã tiện nghi').fill('parking');
-  await page.locator('#amenity-name').fill('Parking');
   await page.getByRole('button', { name: 'Thêm tiện nghi' }).click();
-  await expect(page.locator('#amenity-name')).toHaveValue('');
+  const dialog = page.getByRole('dialog');
+  await dialog.locator('#amenity-code').fill('parking');
+  await dialog.locator('#amenity-name').fill('Parking');
+  await dialog.getByRole('button', { name: 'Thêm tiện nghi' }).click();
   await expect(page.getByText('PARKING', { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText('PARKING', { exact: true })).toBeVisible();
