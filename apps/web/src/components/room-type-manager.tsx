@@ -11,6 +11,7 @@ import { Button } from './ui/button';
 import { Field, FieldGroup, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Table } from './ui/table';
 import {
   AdminDataTable,
   AdminEmptyState,
@@ -487,7 +488,7 @@ export function RoomTypeManager() {
       ) : null}
       {types === undefined || types.items.length === 0 ? null : (
         <AdminDataTable>
-          <table>
+          <Table>
             <thead>
               <tr>
                 <th scope="col">{translate(locale, 'admin.code')}</th>
@@ -530,7 +531,7 @@ export function RoomTypeManager() {
                 );
               })}
             </tbody>
-          </table>
+          </Table>
         </AdminDataTable>
       )}
       <div className="admin-secondary-action">

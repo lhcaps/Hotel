@@ -67,7 +67,7 @@ export default function AdminDepartmentsPage() {
   }
 
   return (
-    <main className="admin-page admin-page--narrow">
+    <div className="admin-page admin-page--narrow">
       <AdminPageHeader
         eyebrow={translate(locale, 'admin.accessScope')}
         title={translate(locale, 'admin.departments')}
@@ -147,6 +147,6 @@ export default function AdminDepartmentsPage() {
           )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

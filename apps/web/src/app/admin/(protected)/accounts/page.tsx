@@ -217,7 +217,7 @@ export default function AdminAccountsPage() {
   );
 
   return (
-    <main className="admin-page">
+    <div className="admin-page">
       <AdminPageHeader
         eyebrow={translate(locale, 'admin.accessManagement')}
         title={translate(locale, 'admin.accounts')}
@@ -644,6 +644,6 @@ export default function AdminAccountsPage() {
           )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

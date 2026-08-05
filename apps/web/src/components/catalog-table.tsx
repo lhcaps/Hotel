@@ -7,6 +7,7 @@ import { translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Table } from './ui/table';
 import {
   AdminDataTable,
   AdminEmptyState,
@@ -134,7 +135,7 @@ export function CatalogTable<T extends CatalogRow>({
       ) : null}
       {visibleItems === undefined || visibleItems.length === 0 ? null : (
         <AdminDataTable>
-          <table>
+          <Table>
             <thead>
               <tr>
                 {columns.map((column) => (
@@ -176,7 +177,7 @@ export function CatalogTable<T extends CatalogRow>({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </AdminDataTable>
       )}
     </section>

@@ -13,6 +13,7 @@ import {
 import { useLocale } from '../../../../components/locale-provider';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
+import { Table } from '../../../../components/ui/table';
 import {
   Select,
   SelectContent,
@@ -312,7 +313,7 @@ export default function AdminPaymentsPage() {
       ) : null}
       {items !== undefined && items.length > 0 ? (
         <AdminDataTable className="admin-payments-table">
-          <table>
+          <Table>
             <thead>
               <tr>
                 <th>{translate(locale, 'account.payment')}</th>
@@ -371,7 +372,7 @@ export default function AdminPaymentsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </AdminDataTable>
       ) : null}
       <AdminTablePagination

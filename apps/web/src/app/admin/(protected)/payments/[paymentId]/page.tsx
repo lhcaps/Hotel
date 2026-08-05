@@ -5,7 +5,9 @@ import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
 import { useLocale } from '../../../../../components/locale-provider';
+import { AdminDataTable } from '../../../../../components/admin/admin-ui';
 import { AdminApiError, adminApi, type AdminPaymentDetail } from '../../../../../lib/admin-api';
+import { Table } from '../../../../../components/ui/table';
 import {
   formatDateTime,
   formatVnd,
@@ -261,30 +263,32 @@ export default function AdminPaymentDetailPage({
         {detail.attempts.length === 0 ? (
           <p>{translate(locale, 'admin.noAttempts')}</p>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>{translate(locale, 'admin.provider')}</th>
-                <th>{translate(locale, 'admin.status')}</th>
-                <th>{translate(locale, 'admin.amount')}</th>
-                <th>{translate(locale, 'admin.startedAt')}</th>
-                <th>{translate(locale, 'admin.completedAt')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.attempts.map((attempt, index) => (
-                <tr key={attempt.paymentAttemptId}>
-                  <td>{index + 1}</td>
-                  <td>{providerLabel(attempt.provider, locale)}</td>
-                  <td>{translatePaymentStatus(locale, attempt.status)}</td>
-                  <td>{formatVnd(locale, attempt.amountVnd)}</td>
-                  <td>{formatDateTime(locale, attempt.initiatedAt)}</td>
-                  <td>{formatOptionalDate(locale, attempt.completedAt)}</td>
+          <AdminDataTable className="admin-payment-attempts-table">
+            <Table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{translate(locale, 'admin.provider')}</th>
+                  <th>{translate(locale, 'admin.status')}</th>
+                  <th>{translate(locale, 'admin.amount')}</th>
+                  <th>{translate(locale, 'admin.startedAt')}</th>
+                  <th>{translate(locale, 'admin.completedAt')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {detail.attempts.map((attempt, index) => (
+                  <tr key={attempt.paymentAttemptId}>
+                    <td>{index + 1}</td>
+                    <td>{providerLabel(attempt.provider, locale)}</td>
+                    <td>{translatePaymentStatus(locale, attempt.status)}</td>
+                    <td>{formatVnd(locale, attempt.amountVnd)}</td>
+                    <td>{formatDateTime(locale, attempt.initiatedAt)}</td>
+                    <td>{formatOptionalDate(locale, attempt.completedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </AdminDataTable>
         )}
       </section>
 

@@ -12,6 +12,7 @@ import { useLocale } from '../../../../components/locale-provider';
 import { formatDateTime, translate, translateAdminStatus } from '../../../../lib/i18n/messages';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
+import { Table } from '../../../../components/ui/table';
 import { Field, FieldLabel } from '../../../../components/ui/field';
 import {
   Select,
@@ -166,7 +167,7 @@ export default function OperationalReviewsPage() {
       ) : null}
       {items !== undefined && items.length > 0 ? (
         <AdminDataTable className="admin-reviews-table">
-          <table>
+          <Table>
             <thead>
               <tr>
                 <th>{translate(locale, 'admin.review')}</th>
@@ -203,7 +204,7 @@ export default function OperationalReviewsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </AdminDataTable>
       ) : null}
       <AdminTablePagination

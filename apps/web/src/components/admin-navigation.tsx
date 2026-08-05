@@ -2,6 +2,25 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+  BadgeDollarSign,
+  BedDouble,
+  Building2,
+  CalendarDays,
+  CreditCard,
+  LayoutDashboard,
+  MessageSquareWarning,
+  PanelsTopLeft,
+  QrCode,
+  ScrollText,
+  Sparkles,
+  Tags,
+  TicketPercent,
+  Users,
+  UsersRound,
+  WalletCards,
+  Wrench,
+} from 'lucide-react';
 
 import { translate, type Locale, type MessageKey } from '../lib/i18n/messages';
 import {
@@ -18,44 +37,44 @@ const groups = [
   {
     label: 'admin.navReservations',
     links: [
-      ['admin.overview', '/admin', 'dashboard.read'],
-      ['admin.bookings', '/admin/bookings', 'booking.lifecycle.read'],
-      ['admin.scanner', '/admin/scanner', 'booking.lifecycle.read'],
-      ['admin.payments', '/admin/payments', 'payment.reconciliation.read'],
-      ['admin.reviews', '/admin/operational-reviews', 'booking.review.read'],
+      ['admin.overview', '/admin', 'dashboard.read', LayoutDashboard],
+      ['admin.bookings', '/admin/bookings', 'booking.lifecycle.read', CalendarDays],
+      ['admin.scanner', '/admin/scanner', 'booking.lifecycle.read', QrCode],
+      ['admin.payments', '/admin/payments', 'payment.reconciliation.read', CreditCard],
+      ['admin.reviews', '/admin/operational-reviews', 'booking.review.read', MessageSquareWarning],
     ],
   },
   {
     label: 'admin.navOperations',
     links: [
-      ['admin.roomOperations', '/admin/room-operations', 'room_operations.read'],
-      ['admin.rooms', '/admin/rooms', 'catalog.room.read'],
-      ['admin.maintenance', '/admin/maintenance', 'catalog.maintenance.read'],
-      ['admin.roomTypes', '/admin/room-types', 'catalog.room_type.read'],
-      ['admin.amenities', '/admin/amenities', 'catalog.amenity.read'],
+      ['admin.roomOperations', '/admin/room-operations', 'room_operations.read', PanelsTopLeft],
+      ['admin.rooms', '/admin/rooms', 'catalog.room.read', BedDouble],
+      ['admin.maintenance', '/admin/maintenance', 'catalog.maintenance.read', Wrench],
+      ['admin.roomTypes', '/admin/room-types', 'catalog.room_type.read', Building2],
+      ['admin.amenities', '/admin/amenities', 'catalog.amenity.read', Sparkles],
     ],
   },
   {
     label: 'admin.navSetup',
     links: [
-      ['admin.property', '/admin/property', 'catalog.property.read'],
-      ['admin.priceTiers', '/admin/price-tiers', 'catalog.price_tier.read'],
-      ['admin.ratePlans', '/admin/rate-plans', 'pricing.rate_plan.read'],
-      ['admin.coupons', '/admin/coupons', 'coupon.read'],
-      ['admin.providers', '/admin/payment-providers', 'providers.read'],
+      ['admin.property', '/admin/property', 'catalog.property.read', Building2],
+      ['admin.priceTiers', '/admin/price-tiers', 'catalog.price_tier.read', Tags],
+      ['admin.ratePlans', '/admin/rate-plans', 'pricing.rate_plan.read', BadgeDollarSign],
+      ['admin.coupons', '/admin/coupons', 'coupon.read', TicketPercent],
+      ['admin.providers', '/admin/payment-providers', 'providers.read', WalletCards],
     ],
   },
   {
     label: 'admin.accounts',
     links: [
-      ['admin.accounts', '/admin/accounts', 'admin.account.read'],
-      ['admin.departments', '/admin/departments', 'admin.department.read'],
-      ['admin.audit', '/admin/audit', 'admin.audit.read'],
+      ['admin.accounts', '/admin/accounts', 'admin.account.read', Users],
+      ['admin.departments', '/admin/departments', 'admin.department.read', UsersRound],
+      ['admin.audit', '/admin/audit', 'admin.audit.read', ScrollText],
     ],
   },
 ] as const satisfies readonly {
   readonly label: MessageKey;
-  readonly links: readonly (readonly [MessageKey, string, string])[];
+  readonly links: readonly (readonly [MessageKey, string, string, typeof LayoutDashboard])[];
 }[];
 
 function isCurrent(pathname: string, href: string) {
@@ -88,7 +107,7 @@ export function AdminNavigation({
             <SidebarGroupLabel>{translate(locale, group.label)}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.links.map(([label, href]) => {
+                {group.links.map(([label, href, , Icon]) => {
                   const current = isCurrent(pathname, href);
                   return (
                     <SidebarMenuItem key={href}>
@@ -96,6 +115,7 @@ export function AdminNavigation({
                         isActive={current}
                         render={<Link aria-current={current ? 'page' : undefined} href={href} />}
                       >
+                        <Icon aria-hidden="true" />
                         {translate(locale, label)}
                       </SidebarMenuButton>
                     </SidebarMenuItem>

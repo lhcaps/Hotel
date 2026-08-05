@@ -75,7 +75,7 @@ test.describe('ROOM_STATUS_VIEWER_CONTEXT', () => {
     await setViewerRole('ROOM_STATUS_VIEWER');
     try {
       await loginAsViewer(page);
-      await expect(page.locator('main.admin-page h1')).toBeVisible();
+      await expect(page.locator('.admin-content .admin-page h1')).toBeVisible();
       await expect(page.locator('nav a[href="/admin/room-operations"]')).toBeVisible();
       await expect(page.locator('nav a[href="/admin/payments"]')).toHaveCount(0);
       await expect(page.locator('nav a[href="/admin/accounts"]')).toHaveCount(0);

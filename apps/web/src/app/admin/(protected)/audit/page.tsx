@@ -53,7 +53,7 @@ export default function AdminAuditPage() {
   }, [locale]);
 
   return (
-    <main className="admin-page">
+    <div className="admin-page">
       <AdminPageHeader
         eyebrow={translate(locale, 'admin.auditScope')}
         title={translate(locale, 'admin.audit')}
@@ -110,6 +110,6 @@ export default function AdminAuditPage() {
           </CardContent>
         </Card>
       ) : null}
-    </main>
+    </div>
   );
 }

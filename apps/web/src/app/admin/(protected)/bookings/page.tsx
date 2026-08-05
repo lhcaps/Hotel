@@ -7,6 +7,7 @@ import { AdminApiError, adminApi, type AdminBookingSummary } from '../../../../l
 import { useLocale } from '../../../../components/locale-provider';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
+import { Table } from '../../../../components/ui/table';
 import { Field, FieldLabel } from '../../../../components/ui/field';
 import {
   Select,
@@ -303,7 +304,7 @@ export default function AdminBookingsPage() {
       ) : null}
       {items !== undefined && items.length > 0 ? (
         <AdminDataTable className="admin-bookings-table">
-          <table>
+          <Table>
             <thead>
               <tr>
                 <th>{translate(locale, 'admin.code')}</th>
@@ -367,7 +368,7 @@ export default function AdminBookingsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </AdminDataTable>
       ) : null}
       <AdminTablePagination

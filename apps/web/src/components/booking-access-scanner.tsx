@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { adminApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { AdminPageHeader } from './admin/admin-ui';
 
 type ScanResult = { readonly bookingCode: string; readonly action: 'check-in' | 'check-out' };
 
@@ -94,8 +95,10 @@ export function BookingAccessScanner() {
 
   return (
     <section className="admin-page" aria-labelledby="booking-access-scanner-heading">
-      <h1 id="booking-access-scanner-heading">{translate(locale, 'admin.scanner')}</h1>
-      <p>{translate(locale, 'admin.scannerHelp')}</p>
+      <AdminPageHeader
+        title={translate(locale, 'admin.scanner')}
+        description={translate(locale, 'admin.scannerHelp')}
+      />
       <form className="admin-card" onSubmit={(event) => void submit(event)}>
         <label htmlFor="booking-access-pass">{translate(locale, 'admin.scannerValue')}</label>
         <textarea

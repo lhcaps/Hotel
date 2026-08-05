@@ -1,68 +1,52 @@
-# ADMIN V2 final visual acceptance V2
+# ADMIN V2 — Final Visual Acceptance V2
 
-Date: 2026-08-05
-Scope: current committed-candidate worktree before release packaging
-Baseline: `7203905d09ab49bfa06a35e99e57510d9fa5b7f2`
-Capture command: `pnpm exec playwright test tests/e2e/admin-v2-visual-acceptance.spec.ts`
-Capture pass: `final-v2`
+Date: 2026-08-06
+Base commit before this rebuild: `3ee951f0537123ec57c8189c96f4a513d5713d36`
 
-## Final verdict
+## Verdict
 
-PASS for the local authenticated visual harness. The current source rendered
-all 26 required route entries at all five required widths: 130 PNG captures.
-The browser assertion reported no document-width overflow on any route/width
-pair.
+PASS for the local ADMIN V2 UI rebuild. The previous visual acceptance is not used as evidence for this document.
 
-Required widths:
+## Shared shadcn system
 
-- 390 × 844
-- 768 × 1024
-- 1280 × 800
-- 1440 × 900
-- 1920 × 1080
+- Base: Base UI (`@base-ui/react`), configured in `apps/web/components.json`.
+- Style: `base-nova`, Tailwind v4, CSS variables, Lucide icons.
+- Shared shell: one sidebar, one topbar/profile menu, one semantic `#admin-content` region, shared page headers, filters, tables, badges, form sheets, empty states, alerts, and loading states.
+- Component audit: PASS. Protected admin routes use the installed shadcn/Base UI primitives for Sidebar, Table, Field, Input, Select, Sheet, Dialog, AlertDialog, Badge, Pagination, and related controls. No second UI system was added.
+- Native multiple-select count: 0.
+- Inline row-edit form count: 0. Row actions open a Sheet or confirmation dialog; editable controls do not render inside table rows.
 
-Evidence root: `output/playwright/admin-v2/acceptance/final-v2/`
+## Visual and responsive evidence
 
-The route-by-route manifest, principal, viewport expansion, and final verdict
-are retained in [FINAL_VISUAL_ACCEPTANCE.md](./FINAL_VISUAL_ACCEPTANCE.md).
-The manifest's evidence root is interpreted as the V2 root above for this
-pass; each route has one file per required viewport.
+- Full visual route matrix: PASS, 25 routes × 5 widths = 125/125 captures.
+- Visual widths: 390, 768, 1280, 1440, and 1920 pixels.
+- Responsive route matrix: PASS, 20 stable routes × 6 widths = 120/120 checks.
+- Responsive widths: 390, 768, 1024, 1280, 1440, and 1920 pixels.
+- Document horizontal overflow: 0 failures across both matrices.
+- Desktop tables retain semantic table structure and deliberate horizontal scrolling for wide booking/payment datasets.
+- Mobile/tablet layouts use readable stacked cards or bounded table scrolling; filters collapse to a single column on narrow screens.
+- Accessibility browser structure: PASS, 7/7.
+- ROOM_STATUS_VIEWER RBAC browser acceptance: PASS, including read-only navigation, room-operations read access, and mutation HTTP 403.
 
-## Fidelity ledger
+## Functional acceptance
 
-| Surface            | Evidence inspected                                                                       | Verdict | Notes                                                                                                                 |
-| ------------------ | ---------------------------------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
-| Shared shell       | `desktop-1440/overview.png`, `desktop-wide-1920/overview.png`, `mobile-390/overview.png` | PASS    | Sidebar, topbar, content inset, active navigation, and mobile shell remain aligned.                                   |
-| Overview           | `desktop-1440/overview.png`, `mobile-390/overview.png`                                   | PASS    | Five decision metrics, queues, analytics, filter toolbar, and honest empty/partial copy are visible without overflow. |
-| Booking data table | `desktop-1440/bookings.png`, `mobile-390/bookings.png`                                   | PASS    | Desktop uses a full-width operational table; mobile switches to labelled records with readable values and actions.    |
-| Account management | `desktop-1440/accounts.png`                                                              | PASS    | Customer/admin boundaries are visible, identifiers are masked, and account edits use a Sheet.                         |
-| Pricing management | `desktop-1440/rate-plans.png`                                                            | PASS    | Pricing inputs and conditions are grouped by plan; condition editing is on demand in a Sheet.                         |
-| Responsive system  | all five viewport folders                                                                | PASS    | Visual runner completed 26 × 5 captures and asserted `scrollWidth <= viewport width`.                                 |
-| Motion policy      | current `globals.css` motion block and captured surfaces                                 | PASS    | Application animations and transitions remain disabled.                                                               |
+- Booking filter: PASS. `UAT-CONFIRMED-20270711` returns one matching row and excludes `UAT-PENDING-20270712` after applying the filter. The client adapter now serializes the contract field as `q`.
+- Room CRUD surface: PASS. Create navigation renders the focused room form; edit opens a Sheet with room number/type controls; archive uses AlertDialog confirmation.
+- Catalog CRUD surfaces: PASS. Amenities, room types, price tiers, maintenance, coupons, property, providers, accounts, and departments retain their existing server actions and Sheet/Dialog workflows.
+- Full repository E2E: PASS, 156/156 tests plus the separate API-unavailable acceptance check.
+- Web unit tests: PASS, 58 files / 259 tests.
+- Package verification: PASS, format, lint, typecheck, unit, and production build.
+- Database verification: PASS, Drizzle check, database package checks, 5 unit files / 19 tests, and 23 integration files / 176 tests.
 
-## Quantitative checks
+## Inventory count reconciliation
 
 ```text
-ROUTES=26
-VIEWPORTS=5
-SCREENSHOTS=130
-DOCUMENT_WIDTH_OVERFLOW=0
-VISIBLE_RAW_ENUMS_IN_ACCEPTED_SURFACES=0
-NAN_PAGINATION=0
-NATIVE_MULTIPLE_SELECT=0
-PERMANENT_INLINE_ROW_EDIT=0
-DUPLICATE_ADMIN_SHELL=0
+ACTIVE_PHYSICAL_ROOM_SQL_COUNT=6
+ACTIVE_PHYSICAL_ROOM_API_COUNT=6
+ACTIVE_PHYSICAL_ROOM_UI_COUNT=6
+INVENTORY_COUNT_EXPLANATION=The local development database contains six ACTIVE rows in rooms. The authenticated ADMIN rooms API returns the same six active physical-room records, and the /admin/rooms UI renders all six in the unfiltered view. Production remains a separate 25 ACTIVE / 7 INACTIVE dataset and was not modified by this local acceptance run.
 ```
 
-Local screenshots may include the Next.js development indicator. That is test
-tooling chrome from the development server, not a product overlay; production
-acceptance requires the optimized build and is tracked separately from this
-local visual verdict.
+## Remaining external boundary
 
-## Boundaries
-
-This document proves local authenticated rendering and responsive visual
-behavior only. It does not claim production deployment, live-domain browser
-acceptance, provider settlement, or real-money execution. Server-side RBAC,
-PostgreSQL authority, customer-safe boundaries, and release gates remain
-independent acceptance requirements.
+Local acceptance is complete. Production deployment/live acceptance remains an explicitly gated follow-up because no authorized production ADMIN or ROOM_STATUS_VIEWER credentials were available for the required live login and RBAC checks. No production symlink, database, or public UI was changed by this acceptance run.

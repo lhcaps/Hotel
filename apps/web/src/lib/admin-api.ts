@@ -335,7 +335,7 @@ export const adminApi = {
     query: {
       readonly page?: number;
       readonly pageSize?: number;
-      readonly bookingCode?: string;
+      readonly q?: string;
       readonly status?: string;
       readonly paymentStatus?: string;
       readonly roomTypeId?: string;
@@ -347,8 +347,8 @@ export const adminApi = {
     const params = new URLSearchParams();
     if (query.page !== undefined) params.set('page', String(query.page));
     if (query.pageSize !== undefined) params.set('pageSize', String(query.pageSize));
-    if (query.bookingCode !== undefined && query.bookingCode !== '') {
-      params.set('bookingCode', query.bookingCode);
+    if (query.q !== undefined && query.q !== '') {
+      params.set('q', query.q);
     }
     if (query.status !== undefined && query.status !== '') params.set('status', query.status);
     if (query.paymentStatus !== undefined && query.paymentStatus !== '') {

@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '../../../../components/ui/a
 import { Button } from '../../../../components/ui/button';
 import { Field, FieldLabel } from '../../../../components/ui/field';
 import { Input } from '../../../../components/ui/input';
+import { Table } from '../../../../components/ui/table';
 import {
   Select,
   SelectContent,
@@ -294,7 +295,7 @@ export default function Rooms() {
         <AdminEmptyState title={translate(locale, 'room.empty')} />
       ) : (
         <AdminDataTable className="admin-physical-rooms-table">
-          <table>
+          <Table>
             <thead>
               <tr>
                 <th scope="col">{translate(locale, 'room.number')}</th>
@@ -417,7 +418,7 @@ export default function Rooms() {
                 );
               })}
             </tbody>
-          </table>
+          </Table>
         </AdminDataTable>
       )}
     </div>

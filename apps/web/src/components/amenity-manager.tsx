@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
 import { Field, FieldGroup, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
+import { Table } from './ui/table';
 import {
   AdminDataTable,
   AdminEmptyState,
@@ -205,7 +206,7 @@ export function AmenityManager() {
       ) : null}
       {page === undefined || page.items.length === 0 ? null : (
         <AdminDataTable>
-          <table>
+          <Table>
             <thead>
               <tr>
                 <th scope="col">{translate(locale, 'admin.code')}</th>
@@ -244,7 +245,7 @@ export function AmenityManager() {
                 );
               })}
             </tbody>
-          </table>
+          </Table>
         </AdminDataTable>
       )}
     </section>

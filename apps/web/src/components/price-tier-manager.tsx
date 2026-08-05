@@ -9,6 +9,7 @@ import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Field, FieldGroup, FieldLabel } from './ui/field';
+import { Table } from './ui/table';
 import {
   AdminDataTable,
   AdminEmptyState,
@@ -187,7 +188,7 @@ export function PriceTierManager() {
       ) : null}
       {page === undefined || page.items.length === 0 ? null : (
         <AdminDataTable>
-          <table>
+          <Table>
             <thead>
               <tr>
                 <th scope="col">{translate(locale, 'admin.code')}</th>
@@ -238,7 +239,7 @@ export function PriceTierManager() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </AdminDataTable>
       )}
     </section>

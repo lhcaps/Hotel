@@ -15,6 +15,7 @@ import { useLocale } from '../../../../components/locale-provider';
 import { adminApi } from '../../../../lib/admin-api';
 import { translate } from '../../../../lib/i18n/messages';
 import { SessionLogoutButton } from '../../../../components/session-logout-button';
+import { AdminPageHeader } from '../../../../components/admin/admin-ui';
 
 export default function AdminProfilePage() {
   const locale = useLocale();
@@ -33,14 +34,12 @@ export default function AdminProfilePage() {
   }, [locale]);
 
   return (
-    <main className="admin-page admin-page--narrow">
-      <div className="admin-page-heading">
-        <div>
-          <p className="admin-eyebrow">{translate(locale, 'admin.accessScope')}</p>
-          <h1>{translate(locale, 'admin.profileHeading')}</h1>
-          <p>{translate(locale, 'admin.profileHelp')}</p>
-        </div>
-      </div>
+    <div className="admin-page admin-page--narrow">
+      <AdminPageHeader
+        eyebrow={translate(locale, 'admin.accessScope')}
+        title={translate(locale, 'admin.profileHeading')}
+        description={translate(locale, 'admin.profileHelp')}
+      />
       {error ? (
         <p className="admin-alert admin-alert--error" role="alert">
           {error}
@@ -111,6 +110,6 @@ export default function AdminProfilePage() {
           </div>
         </>
       ) : null}
-    </main>
+    </div>
   );
 }

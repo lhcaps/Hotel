@@ -7,6 +7,7 @@ import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Table } from './ui/table';
 import {
   AdminDataTable,
   AdminEmptyState,
@@ -168,7 +169,7 @@ export function MaintenanceManager() {
       ) : null}
       {blocks === undefined || blocks.length === 0 ? null : (
         <AdminDataTable>
-          <table>
+          <Table>
             <thead>
               <tr>
                 <th scope="col">{translate(locale, 'maintenance.reason')}</th>
@@ -206,7 +207,7 @@ export function MaintenanceManager() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </AdminDataTable>
       )}
     </section>

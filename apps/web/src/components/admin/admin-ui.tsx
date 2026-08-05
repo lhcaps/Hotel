@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { CheckIcon, MoreHorizontalIcon, UserRoundIcon, XIcon } from 'lucide-react';
+import { CheckIcon, ChevronDownIcon, MoreHorizontalIcon, UserRoundIcon, XIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { translate } from '@/lib/i18n/messages';
@@ -59,7 +59,17 @@ export function AdminAppShell({
   className,
 }: Readonly<{ children: React.ReactNode; className?: string }>) {
   return (
-    <SidebarProvider defaultOpen className={cn('admin-app-shell', className)}>
+    <SidebarProvider
+      defaultOpen
+      className={cn('admin-app-shell', className)}
+      style={
+        {
+          '--sidebar-width': '15rem',
+          '--sidebar-width-mobile': '19rem',
+          '--sidebar-width-icon': '3.5rem',
+        } as React.CSSProperties
+      }
+    >
       {children}
     </SidebarProvider>
   );
@@ -72,7 +82,7 @@ export function AdminTopbar({
 }: Readonly<{ eyebrow?: React.ReactNode; identity?: React.ReactNode; actions?: React.ReactNode }>) {
   const locale = useLocale();
   return (
-    <header className="admin-topbar">
+    <header className="admin-topbar" data-slot="admin-topbar">
       <div className="admin-topbar__leading">
         <SidebarTrigger aria-label={translate(locale, 'admin.toggleNavigation')} />
         {eyebrow ? <span className="admin-topbar__eyebrow">{eyebrow}</span> : null}
@@ -218,7 +228,11 @@ export function AdminDataTable({
   children,
   className,
 }: Readonly<{ children: React.ReactNode; className?: string }>) {
-  return <div className={cn('admin-data-table', className)}>{children}</div>;
+  return (
+    <div className={cn('admin-data-table', className)} data-slot="admin-data-table">
+      <div className="admin-data-table__scroll">{children}</div>
+    </div>
+  );
 }
 
 export function AdminTablePagination({
@@ -285,7 +299,11 @@ export function AdminStatusBadge({
   children,
 }: Readonly<{ tone?: AdminStatusTone; children: React.ReactNode }>) {
   return (
-    <Badge variant="outline" className={cn('admin-status-badge', `admin-status-badge--${tone}`)}>
+    <Badge
+      variant="outline"
+      className={cn('admin-status-badge', `admin-status-badge--${tone}`)}
+      data-tone={tone}
+    >
       <span className="admin-status-badge__dot" aria-hidden="true" />
       {children}
     </Badge>
@@ -402,10 +420,11 @@ export function AdminErrorState({
 }
 
 export function AdminLoadingState({ label = 'Loading' }: Readonly<{ label?: React.ReactNode }>) {
+  const locale = useLocale();
   return (
     <div className="admin-loading-state" role="status" aria-live="polite">
       <Spinner />
-      <span>{label}</span>
+      <span>{label === 'Loading' ? translate(locale, 'admin.loading') : label}</span>
       <Skeleton className="admin-loading-state__bar" />
     </div>
   );
@@ -517,6 +536,7 @@ export function AdminMultiSelect({
               ? selectedLabels[0]
               : translate(locale, 'admin.itemsSelected', { count: selectedLabels.length })}
         </span>
+        <ChevronDownIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
       <PopoverContent align="start" className="admin-multi-select__content">
         <Command>

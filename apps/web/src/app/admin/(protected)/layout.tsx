@@ -59,11 +59,11 @@ export default async function AdminProtectedLayout({
   void pathname;
 
   return (
-    <AdminAppShell className="admin-layout">
+    <AdminAppShell>
       <a className="skip-link" href="#admin-content">
         {translate(locale, 'admin.skipNavigation')}
       </a>
-      <Sidebar className="admin-nav">
+      <Sidebar className="admin-nav" collapsible="offcanvas" variant="sidebar">
         <SidebarHeader>
           <Link className="admin-brand" href="/admin">
             <span>RM</span>
@@ -86,7 +86,7 @@ export default async function AdminProtectedLayout({
             />
           }
         />
-        <div id="admin-content" tabIndex={-1}>
+        <div id="admin-content" className="admin-content" tabIndex={-1}>
           {children}
         </div>
       </SidebarInset>

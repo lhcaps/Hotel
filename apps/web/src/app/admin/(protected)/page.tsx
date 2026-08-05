@@ -2,8 +2,8 @@ import { OperationalReportDashboard } from '../../../components/operational-repo
 
 export default async function AdminPage() {
   return (
-    <main className="admin-page">
+    <div className="admin-page">
       <OperationalReportDashboard />
-    </main>
+    </div>
   );
 }
