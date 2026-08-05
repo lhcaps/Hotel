@@ -18,8 +18,9 @@ PASS for the local ADMIN V2 UI rebuild. The previous visual acceptance is not us
 
 ## Visual and responsive evidence
 
-- Full visual route matrix: PASS, 25 routes × 5 widths = 125/125 captures.
+- Full visual route matrix: PASS, 26 routes × 5 widths = 130/130 captures.
 - Visual widths: 390, 768, 1280, 1440, and 1920 pixels.
+- Evidence root: `output/playwright/admin-v2/acceptance/v2-final/`.
 - Responsive route matrix: PASS, 20 stable routes × 6 widths = 120/120 checks.
 - Responsive widths: 390, 768, 1024, 1280, 1440, and 1920 pixels.
 - Document horizontal overflow: 0 failures across both matrices.
