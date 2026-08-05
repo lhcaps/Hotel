@@ -50,6 +50,10 @@ type AccountDraft = { readonly role: AdminProfileCode; readonly departmentIds: r
 
 export default function AdminAccountsPage() {
   const locale = useLocale();
+  const visibleDisplayName = (displayName: string) =>
+    locale === 'vi' && displayName.trim().toLocaleLowerCase('en-US') === 'administrator'
+      ? translate(locale, 'admin.actorAdministrator')
+      : displayName;
   const [items, setItems] = useState<Awaited<ReturnType<typeof adminApi.listAdminAccounts>>>();
   const [customers, setCustomers] =
     useState<Awaited<ReturnType<typeof adminApi.listCustomerAccounts>>>();
@@ -462,7 +466,7 @@ export default function AdminAccountsPage() {
                     return (
                       <TableRow key={item.id}>
                         <TableCell data-label={translate(locale, 'admin.user')}>
-                          <strong>{item.displayName}</strong>
+                          <strong>{visibleDisplayName(item.displayName)}</strong>
                           <br />
                           <span className="admin-muted">{item.emailMasked}</span>
                         </TableCell>
@@ -572,7 +576,7 @@ export default function AdminAccountsPage() {
                   {visibleCustomers?.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell data-label={translate(locale, 'admin.reportCustomers')}>
-                        <strong>{item.displayName}</strong>
+                        <strong>{visibleDisplayName(item.displayName)}</strong>
                         <br />
                         <span className="admin-muted">{item.emailMasked}</span>
                       </TableCell>

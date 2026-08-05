@@ -107,7 +107,11 @@ export function AdminProfileMenu({
   logout: React.ReactNode;
 }>) {
   const locale = useLocale();
-  const initials = displayName
+  const visibleDisplayName =
+    locale === 'vi' && displayName.trim().toLocaleLowerCase('en-US') === 'administrator'
+      ? translate(locale, 'admin.actorAdministrator')
+      : displayName;
+  const initials = visibleDisplayName
     .split(/\s+/)
     .filter(Boolean)
     .slice(-2)
@@ -128,13 +132,13 @@ export function AdminProfileMenu({
           <AvatarFallback>{initials || <UserRoundIcon />}</AvatarFallback>
         </Avatar>
         <span className="admin-profile-trigger__copy">
-          <strong>{displayName}</strong>
+          <strong>{visibleDisplayName}</strong>
           <small>{role}</small>
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="admin-profile-menu">
         <div className="admin-profile-menu__summary">
-          <strong>{displayName}</strong>
+          <strong>{visibleDisplayName}</strong>
           <span>{role}</span>
           {department ? <span>{department}</span> : null}
         </div>
@@ -249,6 +253,9 @@ export function AdminTablePagination({
   nextLabel?: string;
 }>) {
   const locale = useLocale();
+  const safePageCount = Number.isFinite(pageCount) && pageCount > 0 ? Math.floor(pageCount) : 1;
+  const safePage =
+    Number.isFinite(page) && page > 0 ? Math.min(Math.floor(page), safePageCount) : 1;
   const resolvedPreviousLabel = previousLabel ?? translate(locale, 'admin.previousPage');
   const resolvedNextLabel = nextLabel ?? translate(locale, 'admin.nextPage');
   return (
@@ -257,17 +264,17 @@ export function AdminTablePagination({
         <PaginationItem>
           <PaginationPrevious
             text={resolvedPreviousLabel}
-            disabled={page === 1}
+            disabled={safePage === 1}
             onClick={() => {
-              if (page === 1 || onPageChange === undefined) return;
-              onPageChange(page - 1);
+              if (safePage === 1 || onPageChange === undefined) return;
+              onPageChange(safePage - 1);
             }}
           />
         </PaginationItem>
-        {Array.from({ length: pageCount }, (_, index) => index + 1).map((value) => (
+        {Array.from({ length: safePageCount }, (_, index) => index + 1).map((value) => (
           <PaginationItem key={value}>
             <PaginationLink
-              isActive={value === page}
+              isActive={value === safePage}
               onClick={() => {
                 if (onPageChange === undefined) return;
                 onPageChange(value);
@@ -280,10 +287,10 @@ export function AdminTablePagination({
         <PaginationItem>
           <PaginationNext
             text={resolvedNextLabel}
-            disabled={page === pageCount}
+            disabled={safePage === safePageCount}
             onClick={() => {
-              if (page === pageCount || onPageChange === undefined) return;
-              onPageChange(page + 1);
+              if (safePage === safePageCount || onPageChange === undefined) return;
+              onPageChange(safePage + 1);
             }}
           />
         </PaginationItem>

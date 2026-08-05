@@ -18,6 +18,7 @@ import {
   AdminFormSheet,
   AdminLoadingState,
   AdminPageHeader,
+  AdminRowActions,
   AdminStatusBadge,
 } from './admin/admin-ui';
 
@@ -490,7 +491,7 @@ export function RoomTypeManager() {
         <AdminEmptyState title={translate(locale, 'catalog.noResults')} />
       ) : null}
       {types === undefined || types.items.length === 0 ? null : (
-        <AdminDataTable>
+        <AdminDataTable className="admin-room-types-table">
           <Table>
             <thead>
               <tr>
@@ -546,20 +547,35 @@ export function RoomTypeManager() {
                         {roomTypeStatusLabel(locale, roomType.status)}
                       </AdminStatusBadge>
                     </td>
-                    <td>
-                      <Button onClick={() => setEditId(roomType.id)} size="sm" variant="outline">
-                        {translate(locale, 'roomType.saveChanges')}
-                      </Button>
-                      <Button
-                        aria-label={translate(locale, 'amenity.archive', { name: roomType.name })}
-                        disabled={pending || roomType.status === 'INACTIVE'}
-                        onClick={() => void archive(roomType.id)}
-                        size="sm"
-                        type="button"
-                        variant="destructive"
+                    <td data-label={translate(locale, 'admin.action')}>
+                      <AdminRowActions
+                        actions={[
+                          {
+                            label: translate(locale, 'roomType.saveChanges'),
+                            onSelect: () => setEditId(roomType.id),
+                          },
+                          {
+                            label: translate(locale, 'catalog.archive'),
+                            destructive: true,
+                            disabled: pending || roomType.status === 'INACTIVE',
+                            onSelect: () => void archive(roomType.id),
+                          },
+                        ]}
                       >
-                        {translate(locale, 'catalog.archive')}
-                      </Button>
+                        <Button onClick={() => setEditId(roomType.id)} size="sm" variant="outline">
+                          {translate(locale, 'roomType.saveChanges')}
+                        </Button>
+                        <Button
+                          aria-label={translate(locale, 'amenity.archive', { name: roomType.name })}
+                          disabled={pending || roomType.status === 'INACTIVE'}
+                          onClick={() => void archive(roomType.id)}
+                          size="sm"
+                          type="button"
+                          variant="destructive"
+                        >
+                          {translate(locale, 'catalog.archive')}
+                        </Button>
+                      </AdminRowActions>
                     </td>
                   </tr>
                 );

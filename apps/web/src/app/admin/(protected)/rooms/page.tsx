@@ -261,7 +261,11 @@ export default function Rooms() {
             onValueChange={(value) => value !== null && setConceptFilter(value)}
           >
             <SelectTrigger id="admin-room-concept-filter" className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {conceptFilter === 'ALL'
+                  ? translate(locale, 'admin.all')
+                  : (types.find((type) => type.id === conceptFilter)?.name ?? conceptFilter)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
@@ -282,7 +286,11 @@ export default function Rooms() {
             onValueChange={(value) => value !== null && setTierFilter(value)}
           >
             <SelectTrigger id="admin-room-tier-filter" className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {tierFilter === 'ALL'
+                  ? translate(locale, 'admin.all')
+                  : (tiers.find((tier) => tier.id === tierFilter)?.name ?? tierFilter)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
@@ -305,7 +313,11 @@ export default function Rooms() {
             }
           >
             <SelectTrigger id="admin-room-housekeeping-filter" className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {housekeepingFilter === 'ALL'
+                  ? translate(locale, 'admin.all')
+                  : translateAdminStatus(locale, housekeepingFilter)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
@@ -328,7 +340,13 @@ export default function Rooms() {
             }
           >
             <SelectTrigger id="admin-room-maintenance-filter" className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {maintenanceFilter === 'ALL'
+                  ? translate(locale, 'admin.all')
+                  : maintenanceFilter === 'ACTIVE'
+                    ? translate(locale, 'admin.maintenanceActive')
+                    : translate(locale, 'admin.maintenanceNone')}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>

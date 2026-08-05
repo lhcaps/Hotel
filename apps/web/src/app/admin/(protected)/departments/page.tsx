@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
 import { Button } from '../../../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { Input } from '../../../../components/ui/input';
 import {
   Table,
@@ -67,7 +66,7 @@ export default function AdminDepartmentsPage() {
   }
 
   return (
-    <div className="admin-page admin-page--narrow">
+    <div className="admin-page">
       <AdminPageHeader
         eyebrow={translate(locale, 'admin.accessScope')}
         title={translate(locale, 'admin.departments')}
@@ -105,48 +104,47 @@ export default function AdminDepartmentsPage() {
           </Button>
         </form>
       </AdminFormSheet>
-      <Card>
-        <CardHeader>
-          <CardTitle>{translate(locale, 'admin.departmentList')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {items === undefined ? (
-            <AdminLoadingState label={translate(locale, 'admin.loading')} />
-          ) : items.length === 0 ? (
-            <AdminEmptyState title={translate(locale, 'admin.noDepartmentsFound')} />
-          ) : (
-            <AdminDataTable>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{translate(locale, 'admin.departmentCode')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.departmentName')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.members')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.status')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.code}</TableCell>
-                      <TableCell>{item.name}</TableCell>
-                      <TableCell>{item.memberCount}</TableCell>
-                      <TableCell>
-                        <AdminStatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'}>
-                          {translate(
-                            locale,
-                            item.status === 'ACTIVE' ? 'admin.statusActive' : 'admin.statusPaused',
-                          )}
-                        </AdminStatusBadge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </AdminDataTable>
-          )}
-        </CardContent>
-      </Card>
+      {items === undefined ? (
+        <AdminLoadingState label={translate(locale, 'admin.loading')} />
+      ) : items.length === 0 ? (
+        <AdminEmptyState title={translate(locale, 'admin.noDepartmentsFound')} />
+      ) : (
+        <AdminDataTable className="admin-departments-table">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{translate(locale, 'admin.departmentCode')}</TableHead>
+                <TableHead>{translate(locale, 'admin.departmentName')}</TableHead>
+                <TableHead>{translate(locale, 'admin.members')}</TableHead>
+                <TableHead>{translate(locale, 'admin.status')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell data-label={translate(locale, 'admin.departmentCode')}>
+                    <span className="admin-code">{item.code}</span>
+                  </TableCell>
+                  <TableCell data-label={translate(locale, 'admin.departmentName')}>
+                    {item.name}
+                  </TableCell>
+                  <TableCell data-label={translate(locale, 'admin.members')}>
+                    {item.memberCount}
+                  </TableCell>
+                  <TableCell data-label={translate(locale, 'admin.status')}>
+                    <AdminStatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'neutral'}>
+                      {translate(
+                        locale,
+                        item.status === 'ACTIVE' ? 'admin.statusActive' : 'admin.statusPaused',
+                      )}
+                    </AdminStatusBadge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </AdminDataTable>
+      )}
     </div>
   );
 }

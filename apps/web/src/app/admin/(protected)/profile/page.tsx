@@ -21,6 +21,12 @@ export default function AdminProfilePage() {
   const locale = useLocale();
   const [profile, setProfile] = useState<AdminMe>();
   const [error, setError] = useState<string>();
+  const visibleDisplayName =
+    profile &&
+    locale === 'vi' &&
+    profile.displayName.trim().toLocaleLowerCase('en-US') === 'administrator'
+      ? translate(locale, 'admin.actorAdministrator')
+      : profile?.displayName;
 
   useEffect(() => {
     void adminApi
@@ -34,7 +40,7 @@ export default function AdminProfilePage() {
   }, [locale]);
 
   return (
-    <div className="admin-page admin-page--narrow">
+    <div className="admin-page">
       <AdminPageHeader
         eyebrow={translate(locale, 'admin.accessScope')}
         title={translate(locale, 'admin.profileHeading')}
@@ -55,7 +61,7 @@ export default function AdminProfilePage() {
           <div className="admin-profile-grid">
             <Card>
               <CardHeader>
-                <CardTitle>{profile.displayName}</CardTitle>
+                <CardTitle>{visibleDisplayName}</CardTitle>
                 <CardDescription>{profile.emailMasked}</CardDescription>
               </CardHeader>
               <CardContent className="admin-profile-facts">

@@ -2,14 +2,14 @@
 
 Date: 2026-08-06
 Acceptance principal: `SUPER_ADMIN` local acceptance account
-Baseline before this rebuild: `3ee951f0537123ec57c8189c96f4a513d5713d36`
+Baseline before this delivery: `5b4455246dd7a5a754954c700923400971529f15`
 Evidence root: `output/playwright/admin-v2/acceptance/final/`
 Evidence policy: screenshots remain outside Git; this document records only sanitized paths and verdicts.
 
 ## Final verdict
 
 PASS for the local ADMIN V2 UI acceptance. The matrix below is the authoritative
-route-level record for the current committed implementation. Production deployment
+route-level record for the final reviewed implementation. Production deployment
 and live acceptance are separate gates and are not claimed by this document.
 
 ## Shared implementation fidelity ledger
@@ -63,7 +63,7 @@ Required viewports: `390x844`, `768x1024`, `1280x800`, `1440x900`, `1920x1080`.
 | `/admin/departments`           | SUPER_ADMIN                                     | 390x844; 768x1024; 1280x800; 1440x900; 1920x1080 | `.../<viewport>/departments.png`         | PASS          |
 | `/admin/audit`                 | SUPER_ADMIN                                     | 390x844; 768x1024; 1280x800; 1440x900; 1920x1080 | `.../<viewport>/audit.png`               | PASS          |
 
-Matrix result: 26 routes × 5 viewports = 130/130 captures, all rendered and
+Fresh final capture result: 26 routes × 5 viewports = 130/130 captures, all rendered and
 all document widths were within the viewport.
 
 ## Responsive route sweep
@@ -77,7 +77,7 @@ The stable-route sweep covered 20 routes at `390x844`, `768x1024`, `1024x768`,
 `/admin/accounts`, `/admin/customer-accounts`, `/admin/departments`,
 `/admin/audit`, and `/admin/profile`.
 
-Result: 120/120 checks PASS; document horizontal overflow: 0.
+Fresh final result: 120/120 checks PASS; document horizontal overflow: 0.
 
 ## Functional and permission acceptance
 
@@ -91,10 +91,8 @@ Result: 120/120 checks PASS; document horizontal overflow: 0.
   server-backed Sheet/Dialog flows.
 - Room viewer: PASS. Read-only room operations are visible; restricted
   navigation and mutation controls are absent; mutation API response is 403.
-- Full repository E2E baseline: PASS, 156/156 plus the separate unavailable-API check.
-- Exact-HEAD follow-up: the copy-only `12f2799` change passed focused booking operations (4/4)
-  and the previously failing Phase 6D mobile case in isolation (1/1), while the full
-  suite encountered one Windows Chromium `ERR_NO_BUFFER_SPACE` resource failure.
+- Focused final CRUD acceptance: PASS, 5/5 rate-plan and room-type flows.
+- Full repository E2E acceptance: PASS, 156/156 tests plus the separate unavailable-API check.
 - Accessibility: PASS, 7/7.
 
 ## Verification ledger
@@ -104,14 +102,13 @@ Result: 120/120 checks PASS; document horizontal overflow: 0.
 | `pnpm format:check`                                         | PASS                                                       |
 | `pnpm --filter @room/web typecheck`                         | PASS                                                       |
 | `pnpm --filter @room/web lint`                              | PASS                                                       |
-| `pnpm --filter @room/web test:unit`                         | PASS — 58 files / 259 tests                                |
+| `pnpm test:unit`                                            | PASS                                                       |
 | `pnpm verify`                                               | PASS                                                       |
 | `pnpm verify:database`                                      | PASS — 23 integration files / 176 tests                    |
 | OpenAPI/endpoints/i18n/providers/features/gitleaks fixtures | PASS; external provider callbacks remain environment-gated |
-| Visual acceptance                                           | PASS — 130/130                                             |
-| Responsive acceptance                                       | PASS — 120/120                                             |
-| Full E2E baseline                                           | PASS — 156/156 + unavailable-API 1/1                       |
-| Exact-HEAD E2E follow-up                                   | PARTIAL — isolated final cases PASS; full run hit transient `ERR_NO_BUFFER_SPACE` |
+| Visual acceptance                                           | PASS — fresh final 130/130                                 |
+| Responsive acceptance                                       | PASS — fresh final 120/120                                 |
+| Full E2E acceptance                                         | PASS — 156/156 + unavailable-API 1/1                       |
 
 ## Inventory count reconciliation
 

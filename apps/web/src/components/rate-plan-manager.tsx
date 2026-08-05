@@ -153,6 +153,7 @@ export function RatePlanManager() {
   const [creating, setCreating] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [priceEditId, setPriceEditId] = useState<string>();
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [selectionEditId, setSelectionEditId] = useState<string>();
   const [createDraft, setCreateDraft] = useState<CreateDraft>(initialCreateDraft);
   const [selectionDrafts, setSelectionDrafts] = useState<Record<string, SelectionDraft>>({});
@@ -609,6 +610,7 @@ export function RatePlanManager() {
                       description={translate(locale, 'ratePlan.priceDescription')}
                     >
                       {plan.prices.map((price) => {
+                        const priceDraftKey = `${plan.id}:${price.priceTierId}`;
                         const tierName =
                           priceTierById.get(price.priceTierId)?.name ??
                           translate(locale, 'ratePlan.unknownPriceTier');
@@ -618,11 +620,20 @@ export function RatePlanManager() {
                               <FieldLabel>{tierName}</FieldLabel>
                               <Input
                                 aria-label={`${translate(locale, 'admin.amount')} ${plan.name} ${tierName}`}
-                                defaultValue={price.amountVnd ?? ''}
                                 disabled={pending || plan.status === 'INACTIVE'}
                                 inputMode="numeric"
                                 min="1"
+                                onChange={(event) =>
+                                  setPriceDrafts((current) => ({
+                                    ...current,
+                                    [priceDraftKey]: event.target.value,
+                                  }))
+                                }
                                 type="number"
+                                value={
+                                  priceDrafts[priceDraftKey] ??
+                                  (price.amountVnd === null ? '' : String(price.amountVnd))
+                                }
                               />
                             </Field>
                             <span className="admin-muted">
