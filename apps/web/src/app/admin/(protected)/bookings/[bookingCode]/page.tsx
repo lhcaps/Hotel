@@ -304,10 +304,14 @@ export default function AdminBookingDetailPage() {
                   adminApi.checkInAdminBooking(detail.bookingCode),
                 )}
               >
-                <button disabled={pendingAction !== undefined} type="submit">
+                <button
+                  aria-label={translate(locale, 'admin.legacyCheckInLabel')}
+                  disabled={pendingAction !== undefined}
+                  type="submit"
+                >
                   {pendingAction === 'check-in'
                     ? translate(locale, 'admin.checkingIn')
-                    : 'Check-in'}
+                    : translate(locale, 'account.checkIn')}
                 </button>
               </form>
             ) : null}
@@ -317,10 +321,14 @@ export default function AdminBookingDetailPage() {
                   adminApi.checkOutAdminBooking(detail.bookingCode),
                 )}
               >
-                <button disabled={pendingAction !== undefined} type="submit">
+                <button
+                  aria-label={translate(locale, 'admin.legacyCheckOutLabel')}
+                  disabled={pendingAction !== undefined}
+                  type="submit"
+                >
                   {pendingAction === 'check-out'
                     ? translate(locale, 'admin.checkingOut')
-                    : 'Check-out'}
+                    : translate(locale, 'account.checkOut')}
                 </button>
               </form>
             ) : null}
