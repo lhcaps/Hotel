@@ -16,11 +16,10 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { resolveInternalApiOrigin } from '../../../../../lib/internal-api';
+import { rewriteSessionCookie } from '../../../../../lib/session-cookie';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const SESSION_COOKIE_NAME = 'better-auth.session_token';
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const origin = resolveInternalApiOrigin();
@@ -64,33 +63,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const responseHeaders = new Headers();
   const upstreamSetCookies = upstream.headers.getSetCookie();
   for (const setCookie of upstreamSetCookies) {
-    const pair = setCookie.split(';')[0];
-    if (pair === undefined || pair.length === 0) continue;
-    const eq = pair.indexOf('=');
-    if (eq <= 0) continue;
-    const name = pair.slice(0, eq).trim();
-    const value = pair.slice(eq + 1).trim();
-    if (name !== SESSION_COOKIE_NAME) continue;
-    // Rewrite the cookie so the browser stores it on the WEB origin
-    // (the same origin as the page). This is the surgical fix that
-    // makes `SameSite=Lax` allow the protected layout to forward it
-    // on the next navigation. We preserve the path and the original
-    // security attributes.
-    const expiresMatch = /Expires=([^;]+)/i.exec(setCookie);
-    const maxAgeMatch = /Max-Age=(\d+)/i.exec(setCookie);
-    responseHeaders.append(
-      'set-cookie',
-      [
-        `${name}=${value}`,
-        'Path=/',
-        'HttpOnly',
-        'SameSite=Lax',
-        maxAgeMatch !== null ? `Max-Age=${maxAgeMatch[1]}` : null,
-        expiresMatch !== null ? `Expires=${expiresMatch[1]}` : null,
-      ]
-        .filter((segment): segment is string => segment !== null)
-        .join('; '),
-    );
+    const rewritten = rewriteSessionCookie(setCookie);
+    if (rewritten !== null) responseHeaders.append('set-cookie', rewritten);
   }
 
   const responseBody = await upstream.text();
