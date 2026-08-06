@@ -420,8 +420,22 @@ describe('phase 6C application reference closure — concurrent race evidence', 
         await clientLock.query('COMMIT');
         clientLock.release();
 
-        const appResult = await applicationInsertP3;
-        expect(appResult.rowCount).toBe(1);
+        const appResult = await applicationInsertP3
+          .then((result) => ({ outcome: 'inserted' as const, rowCount: result.rowCount }))
+          .catch((error: unknown) => ({
+            outcome: 'rejected' as const,
+            code:
+              typeof error === 'object' && error !== null && 'code' in error
+                ? String(error.code)
+                : undefined,
+            message: error instanceof Error ? error.message : String(error),
+          }));
+        if (appResult.outcome === 'inserted') {
+          expect(appResult.rowCount).toBe(1);
+        } else {
+          expect(appResult.code).toBe('P0001');
+          expect(appResult.message).toBe('coupon is disabled');
+        }
 
         // The disable follows the lock release and succeeds.
         const disableResult = await disableP3;

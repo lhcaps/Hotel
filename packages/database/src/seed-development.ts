@@ -561,7 +561,12 @@ export async function seedDevelopmentData(
 
         const paymentFixtures = [
           ['10000000-0000-4000-8000-000000000741', 1, 'SUCCEEDED', '2027-07-11T12:30:00+07:00'],
-          ['10000000-0000-4000-8000-000000000742', 2, 'PENDING', null],
+          [
+            '10000000-0000-4000-8000-000000000742',
+            2,
+            'REVIEW_REQUIRED',
+            '2027-07-12T08:00:00+07:00',
+          ],
           ['10000000-0000-4000-8000-000000000743', 3, 'CANCELLED', '2027-07-13T08:30:00+07:00'],
         ] as const;
         for (const [id, bookingIndex, status, terminalAt] of paymentFixtures) {
@@ -569,10 +574,11 @@ export async function seedDevelopmentData(
           if (booking === undefined)
             throw new Error('UAT payment fixture references missing booking');
           await client.query(
-            `INSERT INTO payments (id, property_id, booking_id, status, amount_vnd, currency, confirmation_source, succeeded_at, cancelled_at)
+            `INSERT INTO payments (id, property_id, booking_id, status, amount_vnd, currency, confirmation_source, succeeded_at, review_required_at, cancelled_at)
              VALUES ($1, $2, $3, $4::payment_status, $5, 'VND',
                CASE WHEN $4 = 'SUCCEEDED' THEN 'PROVIDER_EVENT'::payment_confirmation_source END,
                CASE WHEN $4 = 'SUCCEEDED' THEN $6::timestamptz END,
+               CASE WHEN $4 = 'REVIEW_REQUIRED' THEN $6::timestamptz END,
                CASE WHEN $4 = 'CANCELLED' THEN $6::timestamptz END)
              ON CONFLICT (id) DO NOTHING`,
             [id, DEMO.property, booking[0], status, booking[7], terminalAt],

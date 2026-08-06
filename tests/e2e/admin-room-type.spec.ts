@@ -36,5 +36,5 @@ test('ADMIN creates a room type', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Lưu trữ Suite' }).click();
-  await expect(suiteRow.getByRole('cell', { name: 'Đang hoạt động', exact: true })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: 'gói giá đang hoạt động' })).toBeVisible();
 });

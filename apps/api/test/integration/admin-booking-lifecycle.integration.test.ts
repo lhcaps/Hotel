@@ -10,6 +10,8 @@ import { randomBytes, randomUUID } from 'node:crypto';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { createCancellationPolicySnapshot } from '@room/booking';
+
 import {
   createDatabaseClient,
   createDatabasePool,
@@ -108,6 +110,11 @@ async function insertHoldBooking(
   const code = options.bookingCode ?? bookingCode(`HOLD-${bookingId.slice(0, 8)}`);
   const checkIn = options.checkIn ?? new Date('2027-02-10T04:00:00.000Z');
   const checkOut = options.checkOut ?? new Date('2027-02-10T07:00:00.000Z');
+  const cancellationPolicySnapshot = createCancellationPolicySnapshot({
+    checkIn,
+    timezone: 'Asia/Ho_Chi_Minh',
+    capturedAt: new Date('2027-01-01T00:00:00.000Z'),
+  });
 
   let couponId: string | null = null;
   let quoteId: string | null = null;
@@ -152,9 +159,9 @@ async function insertHoldBooking(
        (id, property_id, room_type_id, room_id, booking_code, status,
         check_in, check_out, adults, children, currency,
         gross_amount_vnd, discount_amount_vnd, final_amount_vnd,
-        price_snapshot, hold_expires_at, quote_id)
+        price_snapshot, cancellation_policy_snapshot, hold_expires_at, quote_id)
      VALUES ($1, $2, $3, $4, $5, 'HOLD', $6, $7, 1, 0, 'VND',
-             359000, $8, $9, $10::jsonb, '2027-01-01T00:15:00.000Z', $11)`,
+             359000, $8, $9, $10::jsonb, $11::jsonb, '2027-01-01T00:15:00.000Z', $12)`,
     [
       bookingId,
       ids.property,
@@ -166,6 +173,7 @@ async function insertHoldBooking(
       couponId === null ? 0 : 50000,
       couponId === null ? 359000 : 309000,
       JSON.stringify({ ratePlanCode: 'LUNCH_COMBO' }),
+      JSON.stringify(cancellationPolicySnapshot),
       quoteId,
     ],
   );
