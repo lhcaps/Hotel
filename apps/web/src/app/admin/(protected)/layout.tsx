@@ -70,7 +70,11 @@ export default async function AdminProtectedLayout({
             <strong>Room Management</strong>
           </Link>
         </SidebarHeader>
-        <AdminNavigation locale={locale} permissions={resolution.session.permissions} />
+        <AdminNavigation
+          locale={locale}
+          permissions={resolution.session.permissions}
+          profileCode={resolution.session.profileCode}
+        />
       </Sidebar>
       <SidebarInset className="admin-workspace">
         <AdminTopbar

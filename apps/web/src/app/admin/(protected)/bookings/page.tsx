@@ -151,15 +151,21 @@ export default function AdminBookingsPage() {
       setFilters(next.filters);
       setAppliedFilters(next.filters);
       setPage(next.page);
+      if (hasReversedAdminBookingDateRange(next.filters)) {
+        setTotalPages(1);
+        setError(translate(locale, 'admin.bookingDateRangeInvalid'));
+      } else {
+        setError(undefined);
+      }
       setHydrated(true);
     };
     applyUrlState();
     window.addEventListener('popstate', applyUrlState);
     return () => window.removeEventListener('popstate', applyUrlState);
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || hasReversedAdminBookingDateRange(appliedFilters)) return;
     refresh(page, appliedFilters);
   }, [appliedFilters, hydrated, page, refresh]);
 
@@ -180,7 +186,6 @@ export default function AdminBookingsPage() {
     };
     setFilters(submittedFilters);
     if (hasReversedAdminBookingDateRange(submittedFilters)) {
-      setItems(undefined);
       setTotalPages(1);
       setError(translate(locale, 'admin.bookingDateRangeInvalid'));
       return;

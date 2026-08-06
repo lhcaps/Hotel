@@ -19,6 +19,25 @@ function isAdminBookingListResponse(response: import('@playwright/test').Respons
   }
 }
 
+const REVERSED_RANGE_URL = '/admin/bookings?checkInFrom=2026-08-07&checkInTo=2026-08-06';
+
+async function openBookings(page: Page): Promise<void> {
+  await loginAsAdmin(page);
+  const initialResponse = page.waitForResponse(isAdminBookingListResponse);
+  await page.goto('/admin/bookings');
+  await initialResponse;
+}
+
+async function expectReversedRangeState(page: Page): Promise<void> {
+  await expect(page.locator('#admin-booking-check-in-from')).toHaveValue('2026-08-07');
+  await expect(page.locator('#admin-booking-check-in-to')).toHaveValue('2026-08-06');
+  await expect(page.locator('[role="alert"]').filter({ hasText: /start date|Ngày/ })).toHaveCount(
+    1,
+  );
+  await expect(page.getByText(/No matching bookings/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Previous page/ })).toHaveCount(0);
+}
+
 test.describe('ADMIN booking date filter contract', () => {
   test('serializes date-only values, resets page, and survives hard refresh', async ({ page }) => {
     await loginAsAdmin(page);
@@ -66,9 +85,7 @@ test.describe('ADMIN booking date filter contract', () => {
   test('reversed date range shows one Vietnamese validation state without an API call', async ({
     page,
   }) => {
-    await loginAsAdmin(page);
-    await page.goto('/admin/bookings');
-    await page.waitForLoadState('domcontentloaded');
+    await openBookings(page);
     let filteredRequestCount = 0;
     const requestListener = (request: import('@playwright/test').Request) => {
       if (request.url().includes('checkInFrom=')) filteredRequestCount += 1;
@@ -83,6 +100,103 @@ test.describe('ADMIN booking date filter contract', () => {
     expect(filteredRequestCount).toBe(0);
     await expect(page.getByText(/Chưa có đặt phòng phù hợp|No matching bookings/i)).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Trang trước|Previous page/ })).toHaveCount(0);
+    await expect(page.locator('table tbody tr')).not.toHaveCount(0);
+    page.off('request', requestListener);
+  });
+
+  test('reversed date range submitted with Enter preserves the last-known-good data', async ({
+    page,
+  }) => {
+    await openBookings(page);
+    let filteredRequestCount = 0;
+    const requestListener = (request: import('@playwright/test').Request) => {
+      if (request.url().includes('/api/v1/admin/bookings')) filteredRequestCount += 1;
+    };
+    page.on('request', requestListener);
+    await page.locator('#admin-booking-check-in-from').fill('2026-08-07');
+    await page.locator('#admin-booking-check-in-to').fill('2026-08-06');
+    await page.locator('form.admin-filter-toolbar').press('Enter');
+    await expect(page.locator('[role="alert"]').filter({ hasText: /start date|Ng/ })).toHaveCount(
+      1,
+    );
+    expect(filteredRequestCount).toBe(0);
+    await expect(page.locator('table tbody tr')).not.toHaveCount(0);
+    page.off('request', requestListener);
+  });
+
+  test('same-day date range remains valid', async ({ page }) => {
+    await openBookings(page);
+    await page.locator('#admin-booking-check-in-from').fill('2026-08-06');
+    await page.locator('#admin-booking-check-in-to').fill('2026-08-06');
+    const filteredResponse = page.waitForResponse(isAdminBookingListResponse);
+    await page.locator('form.admin-filter-toolbar button[type="submit"]').click();
+    expect((await filteredResponse).ok()).toBe(true);
+  });
+
+  test('from-only and to-only date ranges remain valid', async ({ page }) => {
+    await openBookings(page);
+    await page.locator('#admin-booking-check-in-from').fill('2026-08-06');
+    const fromOnlyResponse = page.waitForResponse(isAdminBookingListResponse);
+    await page.locator('form.admin-filter-toolbar button[type="submit"]').click();
+    expect((await fromOnlyResponse).ok()).toBe(true);
+
+    const resetResponse = page.waitForResponse(isAdminBookingListResponse);
+    await page
+      .locator('form.admin-filter-toolbar .admin-row-actions button[type="button"]')
+      .click();
+    expect((await resetResponse).ok()).toBe(true);
+
+    await page.locator('#admin-booking-check-in-to').fill('2026-08-06');
+    const toOnlyResponse = page.waitForResponse(isAdminBookingListResponse);
+    await page.locator('form.admin-filter-toolbar button[type="submit"]').click();
+    expect((await toOnlyResponse).ok()).toBe(true);
+  });
+
+  test('reversed URL is rejected during initial hydration without an API request', async ({
+    page,
+  }) => {
+    await loginAsAdmin(page);
+    let requestCount = 0;
+    const requestListener = (request: import('@playwright/test').Request) => {
+      if (request.url().includes('/api/v1/admin/bookings')) requestCount += 1;
+    };
+    page.on('request', requestListener);
+    await page.goto(REVERSED_RANGE_URL);
+    await expectReversedRangeState(page);
+    expect(requestCount).toBe(0);
+    page.off('request', requestListener);
+  });
+
+  test('reversed URL remains rejected after a hard refresh', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.goto(REVERSED_RANGE_URL);
+    await expect(page.locator('#admin-booking-check-in-from')).toHaveValue('2026-08-07');
+    let requestCount = 0;
+    const requestListener = (request: import('@playwright/test').Request) => {
+      if (request.url().includes('/api/v1/admin/bookings')) requestCount += 1;
+    };
+    page.on('request', requestListener);
+    await page.reload();
+    await expectReversedRangeState(page);
+    expect(requestCount).toBe(0);
+    page.off('request', requestListener);
+  });
+
+  test('back and forward navigation into a reversed URL keeps validation local', async ({
+    page,
+  }) => {
+    await loginAsAdmin(page);
+    await page.goto('/admin/bookings');
+    await page.goto(REVERSED_RANGE_URL);
+    await page.goBack();
+    let requestCount = 0;
+    const requestListener = (request: import('@playwright/test').Request) => {
+      if (request.url().includes('/api/v1/admin/bookings')) requestCount += 1;
+    };
+    page.on('request', requestListener);
+    await page.goForward();
+    await expectReversedRangeState(page);
+    expect(requestCount).toBe(0);
     page.off('request', requestListener);
   });
 

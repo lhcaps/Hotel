@@ -83,18 +83,25 @@ function isCurrent(pathname: string, href: string) {
     : pathname === href || pathname.startsWith(`${href}/`);
 }
 
+const ROOM_STATUS_VIEWER_NAVIGATION = new Set(['/admin/room-operations']);
+
 export function AdminNavigation({
   locale,
   permissions,
+  profileCode,
 }: Readonly<{
   locale: Locale;
   permissions?: readonly string[];
+  profileCode?: 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
 }>) {
   const pathname = usePathname();
   const visibleGroups = groups
     .map((group) => ({
       ...group,
-      links: group.links.filter(([, , required]) => {
+      links: group.links.filter(([, href, required]) => {
+        if (profileCode === 'ROOM_STATUS_VIEWER' && !ROOM_STATUS_VIEWER_NAVIGATION.has(href)) {
+          return false;
+        }
         return permissions?.includes(required) ?? false;
       }),
     }))
