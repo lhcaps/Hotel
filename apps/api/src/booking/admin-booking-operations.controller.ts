@@ -57,7 +57,7 @@ export class AdminBookingOperationsController {
   ): Promise<AdminBookingListResponse> {
     const property = await this.propertyContext.getCurrent();
     void request;
-    return this.lifecycle.listBookings(property.id, query);
+    return this.lifecycle.listBookings(property.id, query, property.timezone);
   }
 
   @Get('bookings/:bookingCode')

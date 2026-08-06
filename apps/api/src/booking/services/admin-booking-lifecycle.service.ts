@@ -47,6 +47,7 @@ import {
   type AdminOperationalReviewDetailRow,
   type AdminOperationalReviewSummaryRow,
 } from '../repositories/admin-booking.repository.js';
+import { toAdminBookingRepositoryQuery } from '../admin-booking-date-filter.js';
 
 function bigIntToNumber(value: bigint): number {
   if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
@@ -297,9 +298,16 @@ export class AdminBookingLifecycleService {
     private readonly repository: AdminBookingRepository,
   ) {}
 
-  public async listBookings(propertyId: string, query: unknown): Promise<AdminBookingListResponse> {
+  public async listBookings(
+    propertyId: string,
+    query: unknown,
+    propertyTimezone: string,
+  ): Promise<AdminBookingListResponse> {
     const parsed = adminBookingListQuerySchema.parse(query);
-    const result = await this.repository.listBookings(propertyId, parsed);
+    const result = await this.repository.listBookings(
+      propertyId,
+      toAdminBookingRepositoryQuery(parsed, propertyTimezone),
+    );
     return adminBookingListResponseSchema.parse({
       items: result.items.map(toAdminBookingSummary),
       page: parsed.page,

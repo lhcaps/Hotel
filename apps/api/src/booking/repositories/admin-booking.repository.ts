@@ -1,6 +1,8 @@
 import type { DatabasePool } from '@room/database';
 
-import type { AdminBookingListQuery, AdminOperationalReviewListQuery } from '@room/contracts';
+import type { AdminBookingRepositoryQuery } from '../admin-booking-date-filter.js';
+
+import type { AdminOperationalReviewListQuery } from '@room/contracts';
 
 export type AdminBookingStatus =
   'HOLD' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED' | 'NO_SHOW' | 'CHECKED_IN' | 'CHECKED_OUT';
@@ -383,7 +385,7 @@ interface ListFilters {
   params: unknown[];
 }
 
-function buildListFilters(propertyId: string, query: AdminBookingListQuery): ListFilters {
+function buildListFilters(propertyId: string, query: AdminBookingRepositoryQuery): ListFilters {
   const conditions: string[] = ['b.property_id = $1'];
   const params: unknown[] = [propertyId];
   let index = 2;
@@ -419,12 +421,12 @@ function buildListFilters(propertyId: string, query: AdminBookingListQuery): Lis
   }
   if (query.checkInFrom !== undefined) {
     conditions.push(`b.check_in >= $${index}`);
-    params.push(new Date(query.checkInFrom));
+    params.push(query.checkInFrom);
     index += 1;
   }
-  if (query.checkInTo !== undefined) {
-    conditions.push(`b.check_in <= $${index}`);
-    params.push(new Date(query.checkInTo));
+  if (query.checkInToExclusive !== undefined) {
+    conditions.push(`b.check_in < $${index}`);
+    params.push(query.checkInToExclusive);
     index += 1;
   }
   if (query.reviewPresence === 'open') {
@@ -447,7 +449,7 @@ export class AdminBookingRepository {
 
   public async listBookings(
     propertyId: string,
-    query: AdminBookingListQuery,
+    query: AdminBookingRepositoryQuery,
   ): Promise<{ items: AdminBookingListRow[]; totalItems: number }> {
     const filters = buildListFilters(propertyId, query);
     const limit = query.pageSize;

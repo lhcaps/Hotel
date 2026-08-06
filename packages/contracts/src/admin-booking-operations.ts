@@ -4,6 +4,26 @@ import { cancellationPolicySchema } from './pricing.js';
 const uuidSchema = z.uuid();
 const bookingCodeSchema = z.string().regex(/^[A-Z0-9-]{4,32}$/);
 const instantSchema = z.string().datetime({ offset: true });
+const calendarDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/u;
+
+function isValidCalendarDate(value: string): boolean {
+  const match = calendarDatePattern.exec(value);
+  if (match === null) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const sample = new Date(Date.UTC(year, month - 1, day));
+  return (
+    sample.getUTCFullYear() === year &&
+    sample.getUTCMonth() === month - 1 &&
+    sample.getUTCDate() === day
+  );
+}
+
+const adminBookingCalendarDateSchema = z
+  .string()
+  .regex(calendarDatePattern, 'Calendar dates must use YYYY-MM-DD.')
+  .refine(isValidCalendarDate, 'Calendar date is not valid.');
 
 export const bookingStatusSchema = z.enum([
   'HOLD',
@@ -52,11 +72,24 @@ export const adminBookingListQuerySchema = z
     paymentStatus: paymentStatusSummarySchema.optional(),
     customerUserId: uuidSchema.optional(),
     roomTypeId: uuidSchema.optional(),
-    checkInFrom: instantSchema.optional(),
-    checkInTo: instantSchema.optional(),
+    checkInFrom: adminBookingCalendarDateSchema.optional(),
+    checkInTo: adminBookingCalendarDateSchema.optional(),
     reviewPresence: z.enum(['open', 'resolved', 'none']).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      value.checkInFrom !== undefined &&
+      value.checkInTo !== undefined &&
+      value.checkInFrom > value.checkInTo
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['checkInTo'],
+        message: 'checkInFrom must be on or before checkInTo.',
+      });
+    }
+  });
 
 export const adminBookingSummarySchema = z
   .object({

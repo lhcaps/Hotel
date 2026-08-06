@@ -417,11 +417,17 @@ export function AdminEmptyState({
 export function AdminErrorState({
   title,
   description,
-}: Readonly<{ title: React.ReactNode; description?: React.ReactNode }>) {
+  action,
+}: Readonly<{
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+}>) {
   return (
     <Alert variant="destructive" className="admin-error-state">
       <AlertTitle>{title}</AlertTitle>
       {description ? <AlertDescription>{description}</AlertDescription> : null}
+      {action ? <div className="admin-error-state__action">{action}</div> : null}
     </Alert>
   );
 }

@@ -33,6 +33,13 @@ import {
   translateAdminStatus,
   translatePaymentStatus,
 } from '../../../../lib/i18n/messages';
+import {
+  emptyAdminBookingFilters,
+  hasReversedAdminBookingDateRange,
+  readAdminBookingFilterState,
+  toAdminBookingFilterQuery,
+  type AdminBookingFilters,
+} from '../../../../lib/admin-booking-filter-state';
 
 const STATUS_OPTIONS = [
   '',
@@ -64,38 +71,34 @@ function statusTone(value: string): 'neutral' | 'info' | 'success' | 'warning' |
   return 'info';
 }
 
-interface Filters {
-  readonly bookingCode: string;
-  readonly customerUserId: string;
-  readonly status: string;
-  readonly paymentStatus: string;
-  readonly reviewPresence: string;
-  readonly checkInFrom: string;
-  readonly checkInTo: string;
-}
-
-const emptyFilters: Filters = {
-  bookingCode: '',
-  customerUserId: '',
-  status: '',
-  paymentStatus: '',
-  reviewPresence: '',
-  checkInFrom: '',
-  checkInTo: '',
-};
-
 export default function AdminBookingsPage() {
   const locale = useLocale();
   const [items, setItems] = useState<readonly AdminBookingSummary[]>();
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string>();
-  const [filters, setFilters] = useState<Filters>(emptyFilters);
+  const [filters, setFilters] = useState<AdminBookingFilters>(emptyAdminBookingFilters);
+  const [appliedFilters, setAppliedFilters] =
+    useState<AdminBookingFilters>(emptyAdminBookingFilters);
+  const [hydrated, setHydrated] = useState(false);
+
+  const syncUrl = useCallback(
+    (nextPage: number, nextFilters: AdminBookingFilters, replace = false) => {
+      if (typeof window === 'undefined') return;
+      const query = toAdminBookingFilterQuery(nextPage, nextFilters);
+      const nextUrl = `${window.location.pathname}${query === '' ? '' : `?${query}`}`;
+      const currentUrl = `${window.location.pathname}${window.location.search}`;
+      if (nextUrl === currentUrl) return;
+      window.history[replace ? 'replaceState' : 'pushState']({}, '', nextUrl);
+    },
+    [],
+  );
 
   const refresh = useCallback(
-    (nextPage: number, next: Filters) => {
+    (nextPage: number, next: AdminBookingFilters) => {
       setItems(undefined);
       setError(undefined);
+      setTotalPages(1);
       const params: {
         page: number;
         pageSize: number;
@@ -120,12 +123,18 @@ export default function AdminBookingsPage() {
       adminApi
         .listAdminBookings(params)
         .then((response) => {
+          const nextTotalPages = Math.max(1, Math.ceil(response.totalItems / response.pageSize));
+          setTotalPages(nextTotalPages);
+          if (response.page > nextTotalPages) {
+            setPage(nextTotalPages);
+            syncUrl(nextTotalPages, next, true);
+            return;
+          }
           setItems(response.items);
           setPage(response.page);
-          setTotalPages(Math.max(1, Math.ceil(response.totalItems / response.pageSize)));
         })
         .catch((cause: unknown) => {
-          setItems([]);
+          setItems(undefined);
           setError(
             cause instanceof AdminApiError
               ? translate(locale, 'admin.bookingsLoadError')
@@ -133,32 +142,61 @@ export default function AdminBookingsPage() {
           );
         });
     },
-    [locale],
+    [locale, syncUrl],
   );
 
   useEffect(() => {
-    refresh(1, filters);
-  }, [refresh, filters]);
+    const applyUrlState = () => {
+      const next = readAdminBookingFilterState(new URLSearchParams(window.location.search));
+      setFilters(next.filters);
+      setAppliedFilters(next.filters);
+      setPage(next.page);
+      setHydrated(true);
+    };
+    applyUrlState();
+    window.addEventListener('popstate', applyUrlState);
+    return () => window.removeEventListener('popstate', applyUrlState);
+  }, []);
 
   useEffect(() => {
-    const customerUserId = new URLSearchParams(window.location.search).get('customerUserId') ?? '';
-    if (customerUserId !== '' && filters.customerUserId !== customerUserId) {
-      setFilters((current) => ({ ...current, customerUserId }));
-    }
-  }, [filters.customerUserId]);
+    if (!hydrated) return;
+    refresh(page, appliedFilters);
+  }, [appliedFilters, hydrated, page, refresh]);
 
-  function updateFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
+  function updateFilter<K extends keyof AdminBookingFilters>(
+    key: K,
+    value: AdminBookingFilters[K],
+  ) {
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    refresh(1, filters);
+    const formData = new FormData(event.currentTarget);
+    const submittedFilters: AdminBookingFilters = {
+      ...filters,
+      checkInFrom: String(formData.get('checkInFrom') ?? filters.checkInFrom),
+      checkInTo: String(formData.get('checkInTo') ?? filters.checkInTo),
+    };
+    setFilters(submittedFilters);
+    if (hasReversedAdminBookingDateRange(submittedFilters)) {
+      setItems(undefined);
+      setTotalPages(1);
+      setError(translate(locale, 'admin.bookingDateRangeInvalid'));
+      return;
+    }
+    setAppliedFilters(submittedFilters);
+    setPage(1);
+    setError(undefined);
+    syncUrl(1, submittedFilters);
   }
 
   function resetFilters() {
-    setFilters(emptyFilters);
-    refresh(1, emptyFilters);
+    setFilters(emptyAdminBookingFilters);
+    setAppliedFilters(emptyAdminBookingFilters);
+    setPage(1);
+    setError(undefined);
+    syncUrl(1, emptyAdminBookingFilters);
   }
 
   return (
@@ -270,6 +308,7 @@ export default function AdminBookingsPage() {
           </FieldLabel>
           <Input
             id="admin-booking-check-in-from"
+            name="checkInFrom"
             onChange={(event) => updateFilter('checkInFrom', event.target.value)}
             type="date"
             value={filters.checkInFrom}
@@ -281,6 +320,7 @@ export default function AdminBookingsPage() {
           </FieldLabel>
           <Input
             id="admin-booking-check-in-to"
+            name="checkInTo"
             onChange={(event) => updateFilter('checkInTo', event.target.value)}
             type="date"
             value={filters.checkInTo}
@@ -297,7 +337,14 @@ export default function AdminBookingsPage() {
         <AdminLoadingState label={translate(locale, 'admin.loadingData')} />
       ) : null}
       {error === undefined ? null : (
-        <AdminErrorState title={translate(locale, 'admin.bookingsLoadError')} description={error} />
+        <AdminErrorState
+          title={error}
+          action={
+            <Button onClick={() => refresh(page, appliedFilters)} type="button" variant="outline">
+              {translate(locale, 'admin.retry')}
+            </Button>
+          }
+        />
       )}
       {items !== undefined && items.length === 0 ? (
         <AdminEmptyState title={translate(locale, 'admin.bookingsEmpty')} />
@@ -371,13 +418,18 @@ export default function AdminBookingsPage() {
           </Table>
         </AdminDataTable>
       ) : null}
-      <AdminTablePagination
-        page={page}
-        pageCount={totalPages}
-        onPageChange={(nextPage) => refresh(nextPage, filters)}
-        previousLabel={translate(locale, 'admin.previousPage')}
-        nextLabel={translate(locale, 'admin.nextPage')}
-      />
+      {items !== undefined && error === undefined && items.length > 0 && totalPages > 1 ? (
+        <AdminTablePagination
+          page={page}
+          pageCount={totalPages}
+          onPageChange={(nextPage) => {
+            setPage(nextPage);
+            syncUrl(nextPage, appliedFilters);
+          }}
+          previousLabel={translate(locale, 'admin.previousPage')}
+          nextLabel={translate(locale, 'admin.nextPage')}
+        />
+      ) : null}
     </section>
   );
 }

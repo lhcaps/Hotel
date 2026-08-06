@@ -858,6 +858,72 @@ describe('Phase 7G admin booking lifecycle', () => {
     });
   });
 
+  describe('Booking date filtering', () => {
+    it('includes both local-day boundaries and excludes the next local midnight', async () => {
+      const start = await insertHoldBooking(fixture.database, {
+        bookingCode: 'TEST-DATE-START',
+        checkIn: new Date('2026-08-05T17:00:00.000Z'),
+        checkOut: new Date('2026-08-05T18:00:00.000Z'),
+      });
+      const end = await insertHoldBooking(fixture.database, {
+        bookingCode: 'TEST-DATE-END',
+        checkIn: new Date('2026-08-06T16:59:00.000Z'),
+        checkOut: new Date('2026-08-06T17:00:00.000Z'),
+      });
+      const nextDay = await insertHoldBooking(fixture.database, {
+        bookingCode: 'TEST-DATE-NEXT',
+        checkIn: new Date('2026-08-06T17:00:00.000Z'),
+        checkOut: new Date('2026-08-06T18:00:00.000Z'),
+      });
+
+      const result = await fixture.service.listBookings(
+        ids.property,
+        {
+          page: 1,
+          pageSize: 100,
+          checkInFrom: '2026-08-06',
+          checkInTo: '2026-08-06',
+        },
+        'Asia/Ho_Chi_Minh',
+      );
+
+      expect(result.items.map((item) => item.bookingCode)).toEqual(
+        expect.arrayContaining([start.bookingCode, end.bookingCode]),
+      );
+      expect(result.items.map((item) => item.bookingCode)).not.toContain(nextDay.bookingCode);
+      expect(result.totalItems).toBe(2);
+    });
+
+    it('supports from-only and to-only local calendar filters', async () => {
+      const before = await insertHoldBooking(fixture.database, {
+        bookingCode: 'TEST-DATE-BEFORE',
+        checkIn: new Date('2026-08-05T16:59:00.000Z'),
+        checkOut: new Date('2026-08-05T17:00:00.000Z'),
+      });
+      const after = await insertHoldBooking(fixture.database, {
+        bookingCode: 'TEST-DATE-AFTER',
+        checkIn: new Date('2026-08-07T17:00:00.000Z'),
+        checkOut: new Date('2026-08-07T18:00:00.000Z'),
+      });
+
+      const fromOnly = await fixture.service.listBookings(
+        ids.property,
+        { page: 1, pageSize: 100, checkInFrom: '2026-08-06' },
+        'Asia/Ho_Chi_Minh',
+      );
+      const toOnly = await fixture.service.listBookings(
+        ids.property,
+        { page: 1, pageSize: 100, checkInTo: '2026-08-06' },
+        'Asia/Ho_Chi_Minh',
+      );
+
+      expect(fromOnly.items.map((item) => item.bookingCode)).toContain(after.bookingCode);
+      expect(fromOnly.items.map((item) => item.bookingCode)).not.toContain(before.bookingCode);
+      expect(toOnly.items.map((item) => item.bookingCode)).toContain(before.bookingCode);
+      expect(toOnly.items.map((item) => item.bookingCode)).not.toContain(after.bookingCode);
+    });
+  });
+
   describe('Not-found', () => {
     it('rejects operations on a missing booking with BookingNotFoundError', async () => {
       await expect(
