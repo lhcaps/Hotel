@@ -1,0 +1,3011 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "PeaceNest Chatbot API (Sanitized)",
+    "version": "1.0.0",
+    "description": "Sanitized chatbot integration surface derived from the committed public-v1 and operations-v1 artifacts at release 93d55752. Customer-session operations are retained for traceability and marked CONTRACT_MISMATCH where the committed operations artifact is incomplete."
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/api/v1",
+      "description": "Placeholder integration host; replace per approved environment."
+    }
+  ],
+  "paths": {
+    "/api/v1/public/room-types": {
+      "get": {
+        "operationId": "listPublicRoomTypes",
+        "responses": {
+          "200": {
+            "description": "Active public room types with customer-safe descriptions, capacity and amenities. No physical-room or operational facts are exposed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRoomCatalogResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/availability/search": {
+      "post": {
+        "operationId": "searchAvailability",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilitySearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Available room types only; no physical-room identifiers are exposed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilitySearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          }
+        }
+      }
+    },
+    "/api/v1/public/availability/nearby": {
+      "post": {
+        "operationId": "searchNearbyAvailability",
+        "description": "Bounded server-orchestrated nearby availability search. Returns shifted check-in candidates within `expandMinutes` (max 120) for the same active property when the requested interval has limited supply. Read-only; never creates quotes, bookings, HOLDs, coupon reservations or any persistent state.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NearbyAvailabilityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Available nearby candidates ordered by absolute shift, earlier/later tie-rule, offer amount, plan code and stable room-type id. No physical-room identifiers, housekeeping details or maintenance reasons are exposed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NearbyAvailabilityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          }
+        }
+      }
+    },
+    "/api/v1/quotes/offers": {
+      "post": {
+        "operationId": "listEligibleQuoteOffers",
+        "description": "Read-only server-computed eligible base plans for a room type and interval. Does not create a quote, HOLD, booking, or payment.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityOfferRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Active, price-complete eligible plan offers only; no physical-room identities.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityOfferResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          }
+        }
+      }
+    },
+    "/api/v1/quotes": {
+      "post": {
+        "operationId": "createQuote",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Server-calculated, immutable fifteen-minute quote snapshot.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Quote"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/QuoteCreationUnavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/quotes/{id}": {
+      "get": {
+        "operationId": "getQuote",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unexpired immutable quote snapshot.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Quote"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/QuoteUnavailable"
+          },
+          "409": {
+            "$ref": "#/components/responses/QuoteExpired"
+          }
+        }
+      }
+    },
+    "/api/v1/public/quotes/{quoteId}/bookings": {
+      "post": {
+        "operationId": "createBookingHold",
+        "parameters": [
+          {
+            "name": "quoteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingHoldRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking HOLD created. Server-calculated amount, status and expiry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHoldResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/QuoteUnavailable"
+          },
+          "409": {
+            "$ref": "#/components/responses/BookingHoldConflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/BookingHoldCleanupRetry"
+          }
+        }
+      }
+    },
+    "/api/v1/public/guest-access/otp/request": {
+      "post": {
+        "operationId": "requestGuestAccessOtp",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuestAccessOtpRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP challenge issued. Identical envelope for real and decoy paths; rate limits apply.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestAccessOtpRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/OtpRateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/public/guest-access/otp/verify": {
+      "post": {
+        "operationId": "verifyGuestAccessOtp",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuestAccessOtpVerify"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP verified. Sets the rm_guest_session_v1 HttpOnly cookie and returns a safe envelope.",
+            "headers": {
+              "Set-Cookie": {
+                "description": "HttpOnly SameSite=Lax cookie named rm_guest_session_v1.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestAccessOtpVerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/OtpInvalidOrExpired"
+          },
+          "429": {
+            "$ref": "#/components/responses/OtpRateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/public/bookings/{bookingCode}": {
+      "get": {
+        "operationId": "getPublicBooking",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z0-9-]{4,32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking detail with masked contact. Contact is masked regardless of session scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/GuestSessionRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/BookingNotFound"
+          }
+        }
+      }
+    },
+    "/api/v1/public/bookings/{bookingCode}/payments/momo/attempts": {
+      "post": {
+        "operationId": "initiateMomoPayment",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z0-9-]{4,32}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server-authoritative MoMo checkout handoff for the booking HOLD.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MomoPaymentInitiationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/GuestSessionRequired"
+          },
+          "409": {
+            "$ref": "#/components/responses/PaymentInitiationConflict"
+          }
+        }
+      }
+    },
+    "/api/v1/public/bookings/{bookingCode}/payments/vnpay/attempts": {
+      "post": {
+        "operationId": "initiateVnpayPayment",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server-authoritative VNPAY checkout handoff.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VnpayPaymentInitiationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/GuestSessionRequired"
+          },
+          "409": {
+            "$ref": "#/components/responses/PaymentInitiationConflict"
+          }
+        }
+      }
+    },
+    "/api/v1/public/provider-readiness": {
+      "get": {
+        "operationId": "getPublicProviderReadiness",
+        "responses": {
+          "200": {
+            "description": "Non-secret server-derived provider readiness for customer actions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["google"],
+                  "properties": {
+                    "google": {
+                      "type": "object",
+                      "required": ["enabled", "unavailableReason"],
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "unavailableReason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/payment-providers": {
+      "get": {
+        "operationId": "listPaymentProviders",
+        "responses": {
+          "200": {
+            "description": "All property payment providers with server-derived safe enabled state and availability reason.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PaymentProviderAvailability"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/bookings/{bookingCode}/payment": {
+      "get": {
+        "operationId": "getPaymentStatus",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "bookingCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authoritative persisted payment status; browser return parameters have no authority.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/GuestSessionRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/public/booking-holds/status": {
+      "post": {
+        "operationId": "getBookingHoldStatus",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingHoldStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns HOLD, EXPIRED or UNKNOWN — never an error code for known inputs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingHoldStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          }
+        }
+      }
+    },
+    "/api/v1/public/guest-access/logout": {
+      "post": {
+        "operationId": "logoutGuestAccess",
+        "responses": {
+          "200": {
+            "description": "Always returns loggedOutAt. Clears the rm_guest_session_v1 cookie via Set-Cookie Max-Age=0.",
+            "headers": {
+              "Set-Cookie": {
+                "description": "rm_guest_session_v1 cleared with Max-Age=0.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestLogoutResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer/profile/session": {
+      "get": {
+        "operationId": "getCustomerSessionStatus",
+        "summary": "Read whether the current optional cookie belongs to an authenticated customer.",
+        "responses": {
+          "200": {
+            "description": "Session status resolved without exposing customer profile data."
+          }
+        },
+        "security": [
+          {
+            "customerCookieAuth": []
+          }
+        ],
+        "x-peacenest-integration-status": "CONTRACT_MISMATCH",
+        "x-peacenest-mismatch-note": "Source controller behavior is more specific than operations-v1.json: request/response schemas and/or source-required query or cookie inputs are not fully documented. Do not implement from this operation until the contract is reconciled."
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}/claim": {
+      "post": {
+        "operationId": "claimCustomerBooking",
+        "summary": "Claim an eligible booking for the authenticated customer.",
+        "security": [
+          {
+            "customerCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized operation completed."
+          },
+          "401": {
+            "description": "Authentication is required."
+          },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        },
+        "x-peacenest-integration-status": "CONTRACT_MISMATCH",
+        "x-peacenest-mismatch-note": "Source controller behavior is more specific than operations-v1.json: request/response schemas and/or source-required query or cookie inputs are not fully documented. Do not implement from this operation until the contract is reconciled."
+      }
+    },
+    "/api/v1/customer/bookings": {
+      "get": {
+        "operationId": "listCustomerBookings",
+        "summary": "List bookings owned by the authenticated customer.",
+        "security": [
+          {
+            "customerCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized operation completed."
+          },
+          "401": {
+            "description": "Authentication is required."
+          },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        },
+        "x-peacenest-integration-status": "CONTRACT_MISMATCH",
+        "x-peacenest-mismatch-note": "Source controller behavior is more specific than operations-v1.json: request/response schemas and/or source-required query or cookie inputs are not fully documented. Do not implement from this operation until the contract is reconciled."
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}": {
+      "get": {
+        "operationId": "getCustomerBooking",
+        "summary": "Read a booking owned by the authenticated customer.",
+        "security": [
+          {
+            "customerCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized operation completed."
+          },
+          "401": {
+            "description": "Authentication is required."
+          },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        },
+        "x-peacenest-integration-status": "CONTRACT_MISMATCH",
+        "x-peacenest-mismatch-note": "Source controller behavior is more specific than operations-v1.json: request/response schemas and/or source-required query or cookie inputs are not fully documented. Do not implement from this operation until the contract is reconciled."
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}/cancellation-preview": {
+      "post": {
+        "operationId": "previewCustomerBookingCancellation",
+        "summary": "Preview cancellation eligibility and the server-calculated outcome.",
+        "security": [
+          {
+            "customerCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized operation completed."
+          },
+          "401": {
+            "description": "Authentication is required."
+          },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        },
+        "x-peacenest-integration-status": "CONTRACT_MISMATCH",
+        "x-peacenest-mismatch-note": "Source controller behavior is more specific than operations-v1.json: request/response schemas and/or source-required query or cookie inputs are not fully documented. Do not implement from this operation until the contract is reconciled."
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}/payments/momo/attempts": {
+      "post": {
+        "operationId": "initiateCustomerMomoPayment",
+        "summary": "Start a MoMo payment attempt for an owned booking.",
+        "security": [
+          {
+            "customerCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized operation completed."
+          },
+          "401": {
+            "description": "Authentication is required."
+          },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        },
+        "x-peacenest-integration-status": "CONTRACT_MISMATCH",
+        "x-peacenest-mismatch-note": "Source controller behavior is more specific than operations-v1.json: request/response schemas and/or source-required query or cookie inputs are not fully documented. Do not implement from this operation until the contract is reconciled."
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}/payments/vnpay/attempts": {
+      "post": {
+        "operationId": "initiateCustomerVnpayPayment",
+        "summary": "Start a VNPAY payment attempt for an owned booking.",
+        "security": [
+          {
+            "customerCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized operation completed."
+          },
+          "401": {
+            "description": "Authentication is required."
+          },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        },
+        "x-peacenest-integration-status": "CONTRACT_MISMATCH",
+        "x-peacenest-mismatch-note": "Source controller behavior is more specific than operations-v1.json: request/response schemas and/or source-required query or cookie inputs are not fully documented. Do not implement from this operation until the contract is reconciled."
+      }
+    },
+    "/api/v1/customer/bookings/{bookingCode}/payment": {
+      "get": {
+        "operationId": "getCustomerPaymentStatus",
+        "summary": "Read persisted payment status for an owned booking.",
+        "security": [
+          {
+            "customerCookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized operation completed."
+          },
+          "401": {
+            "description": "Authentication is required."
+          },
+          "403": {
+            "description": "The authenticated actor is not permitted to perform this operation."
+          }
+        },
+        "x-peacenest-integration-status": "CONTRACT_MISMATCH",
+        "x-peacenest-mismatch-note": "Source controller behavior is more specific than operations-v1.json: request/response schemas and/or source-required query or cookie inputs are not fully documented. Do not implement from this operation until the contract is reconciled."
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AvailabilityOfferRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "checkIn": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "checkOut": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["hourly", "overnight"]
+          },
+          "adults": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "children": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "roomTypeId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": ["checkIn", "checkOut", "adults", "children", "roomTypeId"],
+        "additionalProperties": false
+      },
+      "AvailabilityOfferResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "planCode": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[A-Z0-9_]+$"
+                },
+                "planLabel": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "includedDurationMinutes": {
+                  "type": "integer",
+                  "minimum": 60,
+                  "maximum": 1440
+                },
+                "extraUnits": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 24
+                },
+                "totalAmountVnd": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "minCheckInMinuteInclusive": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1425
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "maxCheckInMinuteExclusive": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 15,
+                      "maximum": 1440
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "planCode",
+                "planLabel",
+                "includedDurationMinutes",
+                "extraUnits",
+                "totalAmountVnd",
+                "minCheckInMinuteInclusive",
+                "maxCheckInMinuteExclusive"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["items"],
+        "additionalProperties": false
+      },
+      "AvailabilitySearchRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "checkIn": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "checkOut": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["hourly", "overnight"]
+          },
+          "adults": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "children": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20
+          }
+        },
+        "required": ["checkIn", "checkOut", "adults", "children"],
+        "additionalProperties": false
+      },
+      "AvailabilitySearchResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "NO_EXACT_AVAILABILITY",
+              "PRICING_CONFIGURATION_UNAVAILABLE",
+              "CATALOG_UNAVAILABLE",
+              "INVALID_INTERVAL"
+            ]
+          },
+          "policy": {
+            "type": "object",
+            "properties": {
+              "minimumStayMinutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 44640
+              },
+              "maximumStayMinutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 44640
+              },
+              "minimumLeadTimeMinutes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 44640
+              },
+              "maximumAdvanceBookingDays": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3650
+              },
+              "defaultOvernightDurationMinutes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 44640
+              }
+            },
+            "required": [
+              "minimumStayMinutes",
+              "maximumStayMinutes",
+              "minimumLeadTimeMinutes",
+              "maximumAdvanceBookingDays",
+              "defaultOvernightDurationMinutes"
+            ],
+            "additionalProperties": false
+          },
+          "requestedInterval": {
+            "type": "object",
+            "properties": {
+              "checkIn": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "checkOut": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "required": ["checkIn", "checkOut"],
+            "additionalProperties": false
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "roomTypeId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "roomTypeName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "maxAdults": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "maxChildren": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "maxOccupancy": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "amenities": {
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  }
+                },
+                "availableRoomCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "offer": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "planLabel": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        },
+                        "amountVnd": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": ["planLabel", "amountVnd"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "offers": {
+                  "maxItems": 24,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "planLabel": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "amountVnd": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["planLabel", "amountVnd"],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "roomTypeId",
+                "roomTypeName",
+                "maxAdults",
+                "maxChildren",
+                "maxOccupancy",
+                "amenities",
+                "availableRoomCount",
+                "offer"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["items"],
+        "additionalProperties": false
+      },
+      "CreateQuoteRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "checkIn": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "checkOut": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["hourly", "overnight"]
+          },
+          "adults": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "children": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "roomTypeId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "couponCode": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9-]{4,32}$"
+          },
+          "selectedPlanCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Z0-9_]+$"
+          }
+        },
+        "required": ["checkIn", "checkOut", "adults", "children", "roomTypeId"],
+        "additionalProperties": false
+      },
+      "Quote": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "roomTypeId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "roomTypeName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "checkIn": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "checkOut": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "adults": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "children": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "pricing": {
+            "type": "object",
+            "properties": {
+              "ruleVersion": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "phase-4-pricing-availability-v1"
+                  },
+                  {
+                    "type": "string",
+                    "const": "phase-7b-data-driven-pricing-v1"
+                  },
+                  {
+                    "type": "string",
+                    "const": "phase-8b-cheapest-eligible-pricing-v1"
+                  }
+                ]
+              },
+              "selectedPlanCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[A-Z0-9_]+$"
+              },
+              "basePlanCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[A-Z0-9_]+$"
+              },
+              "baseMinutes": {
+                "type": "integer",
+                "minimum": 60,
+                "maximum": 1440
+              },
+              "extraUnits": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 24
+              },
+              "baseAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "extraAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "totalAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "lineItems": {
+                "minItems": 1,
+                "maxItems": 2,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[A-Z0-9_]+$"
+                    },
+                    "amountVnd": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "units": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 168
+                    }
+                  },
+                  "required": ["code", "amountVnd", "units"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "ruleVersion",
+              "selectedPlanCode",
+              "basePlanCode",
+              "baseMinutes",
+              "extraUnits",
+              "baseAmountVnd",
+              "extraAmountVnd",
+              "totalAmountVnd",
+              "lineItems"
+            ],
+            "additionalProperties": false
+          },
+          "coupon": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 32,
+                "pattern": "^[A-Za-z0-9-]{4,32}$"
+              },
+              "discountType": {
+                "type": "string",
+                "enum": ["FIXED", "PERCENTAGE"]
+              },
+              "grossAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "discountAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "finalAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "revalidationNotice": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 280
+              }
+            },
+            "required": [
+              "code",
+              "discountType",
+              "grossAmountVnd",
+              "discountAmountVnd",
+              "finalAmountVnd",
+              "revalidationNotice"
+            ],
+            "additionalProperties": false
+          },
+          "cancellationPolicy": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "timezone": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "refundBasis": {
+                "type": "string",
+                "const": "PAID_AMOUNT"
+              },
+              "capturedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "checkIn": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "sevenDayDeadline": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "threeDayDeadline": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "required": [
+              "code",
+              "version",
+              "timezone",
+              "refundBasis",
+              "capturedAt",
+              "checkIn",
+              "sevenDayDeadline",
+              "threeDayDeadline"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "roomTypeId",
+          "roomTypeName",
+          "checkIn",
+          "checkOut",
+          "adults",
+          "children",
+          "expiresAt",
+          "pricing"
+        ],
+        "additionalProperties": false
+      },
+      "CreateBookingHoldRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "contact": {
+            "type": "object",
+            "properties": {
+              "fullName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "email": {
+                "type": "string",
+                "maxLength": 254,
+                "format": "email",
+                "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+              },
+              "phone": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 20,
+                "pattern": "^(?:\\+[1-9]\\d{7,14}|0(?:3|5|7|8|9)\\d{8})$"
+              }
+            },
+            "required": ["fullName", "email", "phone"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["contact"],
+        "additionalProperties": false
+      },
+      "BookingHoldResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "bookingCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9-]{4,32}$"
+          },
+          "status": {
+            "type": "string",
+            "const": "HOLD"
+          },
+          "checkIn": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "checkOut": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "holdExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "amountVnd": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "currency": {
+            "type": "string",
+            "const": "VND"
+          },
+          "idempotent": {
+            "type": "boolean"
+          },
+          "coupon": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 32,
+                "pattern": "^[A-Za-z0-9-]{4,32}$"
+              },
+              "discountType": {
+                "type": "string",
+                "enum": ["FIXED", "PERCENTAGE"]
+              },
+              "grossAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "discountAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "finalAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "code",
+              "discountType",
+              "grossAmountVnd",
+              "discountAmountVnd",
+              "finalAmountVnd"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "bookingId",
+          "bookingCode",
+          "status",
+          "checkIn",
+          "checkOut",
+          "holdExpiresAt",
+          "amountVnd",
+          "currency",
+          "idempotent"
+        ],
+        "additionalProperties": false
+      },
+      "GuestAccessOtpRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "bookingCode": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32,
+            "pattern": "^[A-Z0-9-]+$"
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          }
+        },
+        "required": ["bookingCode", "email"],
+        "additionalProperties": false
+      },
+      "GuestAccessOtpRequestResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "challengeRef": {
+            "type": "string",
+            "pattern": "^[1-9A-HJKMNP-Z]{32}$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "cooldownSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3600
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["challengeRef", "expiresAt", "cooldownSeconds", "serverTime"],
+        "additionalProperties": false
+      },
+      "GuestAccessOtpVerify": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "challengeRef": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 32,
+            "pattern": "^[1-9A-HJKMNP-Z]{32}$"
+          },
+          "otp": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          }
+        },
+        "required": ["challengeRef", "otp"],
+        "additionalProperties": false
+      },
+      "GuestAccessOtpVerifyResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "bookingCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9-]{4,32}$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["bookingCode", "expiresAt", "issuedAt"],
+        "additionalProperties": false
+      },
+      "BookingDetailResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "bookingCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9-]{4,32}$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "HOLD",
+              "CONFIRMED",
+              "EXPIRED",
+              "CANCELLED",
+              "NO_SHOW",
+              "CHECKED_IN",
+              "CHECKED_OUT"
+            ]
+          },
+          "property": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "pattern": "^[A-Z0-9_-]{2,64}$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "timezone": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              }
+            },
+            "required": ["code", "name", "timezone"],
+            "additionalProperties": false
+          },
+          "roomType": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "pattern": "^[A-Z0-9_-]{2,64}$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "maxOccupancy": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 32
+              }
+            },
+            "required": ["code", "name", "maxOccupancy"],
+            "additionalProperties": false
+          },
+          "checkIn": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "checkOut": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "adults": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "children": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16
+          },
+          "amountVnd": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "currency": {
+            "type": "string",
+            "const": "VND"
+          },
+          "holdExpiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contact": {
+            "type": "object",
+            "properties": {
+              "fullName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "emailMasked": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 254
+              },
+              "phoneMasked": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 32
+              }
+            },
+            "required": ["fullName", "emailMasked", "phoneMasked"],
+            "additionalProperties": false
+          },
+          "cancellationPolicy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "version": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "refundBasis": {
+                    "type": "string",
+                    "const": "PAID_AMOUNT"
+                  },
+                  "capturedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "checkIn": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "sevenDayDeadline": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "threeDayDeadline": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  }
+                },
+                "required": [
+                  "code",
+                  "version",
+                  "timezone",
+                  "refundBasis",
+                  "capturedAt",
+                  "checkIn",
+                  "sevenDayDeadline",
+                  "threeDayDeadline"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coupon": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 32,
+                "pattern": "^[A-Za-z0-9-]{4,32}$"
+              },
+              "discountType": {
+                "type": "string",
+                "enum": ["FIXED", "PERCENTAGE"]
+              },
+              "grossAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "discountAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "finalAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "code",
+              "discountType",
+              "grossAmountVnd",
+              "discountAmountVnd",
+              "finalAmountVnd"
+            ],
+            "additionalProperties": false
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "bookingCode",
+          "status",
+          "property",
+          "roomType",
+          "checkIn",
+          "checkOut",
+          "adults",
+          "children",
+          "amountVnd",
+          "currency",
+          "holdExpiresAt",
+          "contact",
+          "cancellationPolicy",
+          "serverTime"
+        ],
+        "additionalProperties": false
+      },
+      "BookingAccessPassResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "bookingCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9-]{4,32}$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "svg": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["bookingCode", "expiresAt", "svg"],
+        "additionalProperties": false
+      },
+      "BookingHoldStatusRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "bookingCode": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32,
+            "pattern": "^[A-Z0-9-]+$"
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 254,
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          }
+        },
+        "required": ["bookingCode", "email"],
+        "additionalProperties": false
+      },
+      "BookingHoldStatusResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["HOLD", "EXPIRED", "UNKNOWN"]
+          },
+          "holdExpiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["status", "holdExpiresAt", "serverTime"],
+        "additionalProperties": false
+      },
+      "GuestLogoutResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "loggedOutAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["loggedOutAt"],
+        "additionalProperties": false
+      },
+      "MomoPaymentInitiationResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "paymentAttemptId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "provider": {
+            "type": "string",
+            "const": "MOMO"
+          },
+          "status": {
+            "type": "string",
+            "const": "PENDING"
+          },
+          "redirectUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "paymentId",
+          "paymentAttemptId",
+          "provider",
+          "status",
+          "redirectUrl",
+          "expiresAt"
+        ]
+      },
+      "VnpayPaymentInitiationResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "paymentId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "paymentAttemptId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "provider": {
+            "type": "string",
+            "const": "VNPAY"
+          },
+          "status": {
+            "type": "string",
+            "const": "PENDING"
+          },
+          "redirectUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "paymentId",
+          "paymentAttemptId",
+          "provider",
+          "status",
+          "redirectUrl",
+          "expiresAt"
+        ]
+      },
+      "PaymentProviderAvailability": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": ["MOMO", "VNPAY"]
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "displayOrder": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "checkoutExpiryMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "maintenanceMessage": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "unavailableReason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["CONFIGURATION_REQUIRED", "PROPERTY_DISABLED", "MAINTENANCE"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "environment": {
+            "type": "string",
+            "enum": ["sandbox", "production"]
+          }
+        },
+        "required": [
+          "provider",
+          "displayName",
+          "displayOrder",
+          "checkoutExpiryMinutes",
+          "maintenanceMessage",
+          "enabled",
+          "unavailableReason"
+        ]
+      },
+      "PaymentStatusResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["MOMO", "VNPAY"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "paymentStatus": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["PENDING", "SUCCEEDED", "REVIEW_REQUIRED", "CANCELLED", "EXPIRED"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attemptStatus": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "PENDING",
+                  "SUCCEEDED",
+                  "FAILED",
+                  "REVIEW_REQUIRED",
+                  "EXPIRED",
+                  "CANCELLED"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bookingStatus": {
+            "type": "string",
+            "enum": [
+              "HOLD",
+              "CONFIRMED",
+              "EXPIRED",
+              "CANCELLED",
+              "NO_SHOW",
+              "CHECKED_IN",
+              "CHECKED_OUT"
+            ]
+          },
+          "amountVnd": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "currency": {
+            "type": "string",
+            "const": "VND"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reviewRequired": {
+            "type": "boolean"
+          },
+          "customerMessage": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "provider",
+          "paymentStatus",
+          "attemptStatus",
+          "bookingStatus",
+          "amountVnd",
+          "currency",
+          "createdAt",
+          "updatedAt",
+          "completedAt",
+          "reviewRequired",
+          "customerMessage"
+        ]
+      },
+      "ProblemDetails": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "errors": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                }
+              },
+              "required": ["field", "message"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["type", "title", "status", "code", "detail", "requestId", "errors"],
+        "additionalProperties": false
+      },
+      "RecommendationRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "checkIn": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "checkOut": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["hourly", "overnight"]
+          },
+          "adults": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "children": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "roomTypeId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "couponCode": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9-]{4,32}$"
+          }
+        },
+        "required": ["checkIn", "checkOut", "adults", "children", "roomTypeId"],
+        "additionalProperties": false
+      },
+      "RecommendationResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "exactResult": {
+            "type": "object",
+            "properties": {
+              "pricing": {
+                "type": "object",
+                "properties": {
+                  "ruleVersion": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": "phase-4-pricing-availability-v1"
+                      },
+                      {
+                        "type": "string",
+                        "const": "phase-7b-data-driven-pricing-v1"
+                      },
+                      {
+                        "type": "string",
+                        "const": "phase-8b-cheapest-eligible-pricing-v1"
+                      }
+                    ]
+                  },
+                  "selectedPlanCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[A-Z0-9_]+$"
+                  },
+                  "basePlanCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[A-Z0-9_]+$"
+                  },
+                  "baseMinutes": {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 1440
+                  },
+                  "extraUnits": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 24
+                  },
+                  "baseAmountVnd": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "extraAmountVnd": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "totalAmountVnd": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "lineItems": {
+                    "minItems": 1,
+                    "maxItems": 2,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[A-Z0-9_]+$"
+                        },
+                        "amountVnd": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "units": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 168
+                        }
+                      },
+                      "required": ["code", "amountVnd", "units"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "ruleVersion",
+                  "selectedPlanCode",
+                  "basePlanCode",
+                  "baseMinutes",
+                  "extraUnits",
+                  "baseAmountVnd",
+                  "extraAmountVnd",
+                  "totalAmountVnd",
+                  "lineItems"
+                ],
+                "additionalProperties": false
+              },
+              "finalAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "discountAmountVnd": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["pricing", "finalAmountVnd", "discountAmountVnd"],
+            "additionalProperties": false
+          },
+          "recommendations": {
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "checkIn": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "checkOut": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "shiftMinutes": {
+                  "type": "integer",
+                  "minimum": -60,
+                  "maximum": 60
+                },
+                "selectedPlanCode": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[A-Z0-9_]+$"
+                },
+                "grossAmountVnd": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "discountAmountVnd": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "finalAmountVnd": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "savingsVnd": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "availabilityStatus": {
+                  "type": "string",
+                  "enum": ["AVAILABLE", "UNAVAILABLE", "UNKNOWN"]
+                },
+                "category": {
+                  "type": "string",
+                  "enum": ["CLOSEST_CHEAPER", "CHEAPEST_NEARBY", "PARETO_ALTERNATIVE"]
+                }
+              },
+              "required": [
+                "checkIn",
+                "checkOut",
+                "shiftMinutes",
+                "selectedPlanCode",
+                "grossAmountVnd",
+                "discountAmountVnd",
+                "finalAmountVnd",
+                "savingsVnd",
+                "availabilityStatus",
+                "category"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "advisoryExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": ["exactResult", "recommendations", "generatedAt", "advisoryExpiresAt"],
+        "additionalProperties": false
+      },
+      "PublicRoomCatalogResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 2000
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "maxAdults": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "maxChildren": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "maxOccupancy": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "amenities": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      }
+                    },
+                    "required": ["name"],
+                    "additionalProperties": false
+                  }
+                },
+                "priceTier": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 160
+                    },
+                    "sortOrder": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": ["code", "name", "sortOrder"],
+                  "additionalProperties": false
+                },
+                "startingFromVnd": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "description",
+                "maxAdults",
+                "maxChildren",
+                "maxOccupancy",
+                "amenities"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["items"],
+        "additionalProperties": false
+      },
+      "NearbyAvailabilityRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "checkIn": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "checkOut": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["hourly", "overnight"]
+          },
+          "adults": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "children": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "expandMinutes": {
+            "default": 60,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 120
+          },
+          "limit": {
+            "default": 6,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          }
+        },
+        "required": ["checkIn", "checkOut", "adults", "children"],
+        "additionalProperties": false
+      },
+      "NearbyAvailabilityResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "requestedCheckIn": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "requestedCheckOut": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 44640
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2678400
+          },
+          "candidates": {
+            "maxItems": 12,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "checkIn": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "checkOut": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "shiftMinutes": {
+                  "type": "integer",
+                  "minimum": -120,
+                  "maximum": 120
+                },
+                "roomTypes": {
+                  "maxItems": 40,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "roomTypeId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "roomTypeName": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 160
+                      },
+                      "maxAdults": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "maxChildren": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "maxOccupancy": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "amenities": {
+                        "maxItems": 12,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 160
+                        }
+                      },
+                      "availableRoomCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "offer": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "planLabel": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 160
+                              },
+                              "amountVnd": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": ["planLabel", "amountVnd"],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "offers": {
+                        "maxItems": 24,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "planLabel": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 160
+                            },
+                            "amountVnd": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": ["planLabel", "amountVnd"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "description": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "roomTypeId",
+                      "roomTypeName",
+                      "maxAdults",
+                      "maxChildren",
+                      "maxOccupancy",
+                      "amenities",
+                      "availableRoomCount",
+                      "offer",
+                      "description"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": ["checkIn", "checkOut", "shiftMinutes", "roomTypes"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["requestedCheckIn", "requestedCheckOut", "durationMinutes", "candidates"],
+        "additionalProperties": false
+      }
+    },
+    "responses": {
+      "InvalidRequest": {
+        "description": "Request body or parameters failed validation.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "QuoteCreationUnavailable": {
+        "description": "The room is unavailable or pricing is not configured for the requested stay.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "QuoteUnavailable": {
+        "description": "The requested quote does not exist (RFC 7807 type=quote-unavailable).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "QuoteExpired": {
+        "description": "The requested quote has expired (RFC 7807 type=quote-expired).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "BookingHoldConflict": {
+        "description": "Booking HOLD could not be created (room unavailable, allocation busy, quote already used or expired). RFC 7807 type is booking-hold-{code}.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "BookingHoldCleanupRetry": {
+        "description": "Booking HOLD cleanup hit its safety bound and the request should be retried later. RFC 7807 type=booking-hold-stale-hold-cleanup-retry.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "OtpInvalidOrExpired": {
+        "description": "The provided OTP is invalid or expired.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "OtpRateLimited": {
+        "description": "OTP rate-limited (RFC 7807 type=otp-rate-limited). The Retry-After header and problem-detail body carry retryAfterSeconds.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "GuestSessionRequired": {
+        "description": "No rm_guest_session_v1 cookie was presented (RFC 7807 type=guest-session-required).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "BookingNotFound": {
+        "description": "The requested booking could not be found (RFC 7807 type=booking-not-found).",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "BookingAccessPassInvalid": {
+        "description": "The booking access pass is unavailable because the booking is not confirmed or the pass was revoked.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "PaymentInitiationConflict": {
+        "description": "The booking cannot start a MoMo attempt in its current payment state.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "rm_guest_session_v1",
+        "description": "HttpOnly, SameSite=Lax, Secure-in-production guest session cookie. Raw token is never returned in any JSON body."
+      },
+      "customerCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session"
+      }
+    }
+  },
+  "x-peacenest": {
+    "backendSha": "93d55752b6948572a0fd1c8abe97912514862b71",
+    "sourceArtifacts": ["docs/openapi/public-v1.json", "docs/openapi/operations-v1.json"],
+    "readyOperationCount": 17,
+    "contractMismatchOperationCount": 8
+  }
+}

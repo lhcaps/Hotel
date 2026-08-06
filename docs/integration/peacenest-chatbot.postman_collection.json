@@ -1,0 +1,1671 @@
+{
+  "info": {
+    "name": "PeaceNest Chatbot API - Sanitized",
+    "_postman_id": "550e8400-e29b-41d4-a716-446655440001",
+    "description": "Sanitized integration collection. Placeholder host only. Cookie-based sessions are managed by the client cookie jar; no token or credential is stored in this collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "CHATBOT_API_BASE_URL",
+      "value": "https://api.example.com/api/v1",
+      "type": "default"
+    },
+    {
+      "key": "QUOTE_ID",
+      "value": "550e8400-e29b-41d4-a716-446655440000",
+      "type": "default"
+    }
+  ],
+  "item": [
+    {
+      "name": "Public catalog",
+      "description": "Public property and room information.",
+      "item": [
+        {
+          "name": "/api/v1/public/room-types",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/room-types",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "room-types"]
+            },
+            "description": "Safe read-only catalog. No credentials are required."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Availability",
+      "description": "Read-only interval-aware searches.",
+      "item": [
+        {
+          "name": "/api/v1/availability/search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/availability/search",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["availability", "search"]
+            },
+            "description": "Read-only server availability search.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkIn\": \"2026-09-20T14:00:00+07:00\",\n  \"checkOut\": \"2026-09-21T14:00:00+07:00\",\n  \"mode\": \"overnight\",\n  \"adults\": 2,\n  \"children\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/public/availability/nearby",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/availability/nearby",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "availability", "nearby"]
+            },
+            "description": "Read-only bounded nearby search.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkIn\": \"2026-09-20T14:00:00+07:00\",\n  \"checkOut\": \"2026-09-21T14:00:00+07:00\",\n  \"mode\": \"overnight\",\n  \"adults\": 2,\n  \"children\": 0,\n  \"expandMinutes\": 60,\n  \"limit\": 6\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Quotes",
+      "description": "Server-authoritative offer and quote operations.",
+      "item": [
+        {
+          "name": "/api/v1/quotes/offers",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/quotes/offers",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["quotes", "offers"]
+            },
+            "description": "Read-only eligible offer lookup.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkIn\": \"2026-09-20T14:00:00+07:00\",\n  \"checkOut\": \"2026-09-21T14:00:00+07:00\",\n  \"mode\": \"overnight\",\n  \"adults\": 2,\n  \"children\": 0,\n  \"roomTypeId\": \"550e8400-e29b-41d4-a716-446655440000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/quotes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/quotes",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["quotes"]
+            },
+            "description": "Creates a server-side quote. Disabled by default because it is a state-changing request.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkIn\": \"2026-09-20T14:00:00+07:00\",\n  \"checkOut\": \"2026-09-21T14:00:00+07:00\",\n  \"mode\": \"overnight\",\n  \"adults\": 2,\n  \"children\": 0,\n  \"roomTypeId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"couponCode\": \"DEMO2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "disabled": true
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/quotes/{{QUOTE_ID}}",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/quotes/{{QUOTE_ID}}",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["quotes", "{{QUOTE_ID}}"]
+            },
+            "description": "Read an unexpired quote. QUOTE_ID is a placeholder variable."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Booking HOLD",
+      "description": "HOLD creation and status; mutation requests are disabled by default.",
+      "item": [
+        {
+          "name": "/api/v1/public/quotes/{{QUOTE_ID}}/bookings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/quotes/{{QUOTE_ID}}/bookings",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "quotes", "{{QUOTE_ID}}", "bookings"]
+            },
+            "description": "Creates a booking HOLD and sets an HttpOnly guest session cookie. Disabled by default because it mutates booking state.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contact\": {\n    \"fullName\": \"Nguyen Minh An\",\n    \"email\": \"minh.an@example.com\",\n    \"phone\": \"+84901234567\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "disabled": true
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/public/booking-holds/status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/booking-holds/status",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "booking-holds", "status"]
+            },
+            "description": "Read-only HOLD status lookup.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingCode\": \"PN-DEMO-2026\",\n  \"email\": \"minh.an@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Guest access",
+      "description": "OTP and guest-owned booking lookup. Use the Postman cookie jar; never paste a session token into examples.",
+      "item": [
+        {
+          "name": "/api/v1/public/guest-access/otp/request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/guest-access/otp/request",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "guest-access", "otp", "request"]
+            },
+            "description": "Requests an OTP. The OTP is sent out-of-band and is never stored in this collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingCode\": \"PN-DEMO-2026\",\n  \"email\": \"minh.an@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/public/guest-access/otp/verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/guest-access/otp/verify",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "guest-access", "otp", "verify"]
+            },
+            "description": "Safe shape only. Use a real out-of-band OTP at runtime; no token is saved here.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeRef\": \"7H2K5N8P4R6T9V3X5Z7C2M8Q4W6Y9A2B\",\n  \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/public/bookings/PN-DEMO-2026",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/bookings/PN-DEMO-2026",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "bookings", "PN-DEMO-2026"]
+            },
+            "description": "Requires the guest session cookie in the Postman cookie jar."
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/public/guest-access/logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/guest-access/logout",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "guest-access", "logout"]
+            },
+            "description": "Clears the guest session cookie."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments and readiness",
+      "description": "Provider readiness, checkout handoff, and persisted status.",
+      "item": [
+        {
+          "name": "/api/v1/public/provider-readiness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/provider-readiness",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "provider-readiness"]
+            },
+            "description": "Read-only non-secret readiness."
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/public/payment-providers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/payment-providers",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "payment-providers"]
+            },
+            "description": "Read-only provider availability and safe reason."
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/public/bookings/PN-DEMO-2026/payments/momo/attempts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "demo-idempotency-2026-0001",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/bookings/PN-DEMO-2026/payments/momo/attempts",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "bookings", "PN-DEMO-2026", "payments", "momo", "attempts"]
+            },
+            "description": "Starts a MoMo checkout handoff. Disabled by default because it creates a payment attempt.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "disabled": true
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/public/bookings/PN-DEMO-2026/payments/vnpay/attempts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "demo-idempotency-2026-0001",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/bookings/PN-DEMO-2026/payments/vnpay/attempts",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "bookings", "PN-DEMO-2026", "payments", "vnpay", "attempts"]
+            },
+            "description": "Starts a VNPAY checkout handoff. Disabled by default because it creates a payment attempt.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "disabled": true
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/public/bookings/PN-DEMO-2026/payment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/public/bookings/PN-DEMO-2026/payment",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["public", "bookings", "PN-DEMO-2026", "payment"]
+            },
+            "description": "Read persisted payment status; requires the guest session cookie."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Customer session - contract mismatch",
+      "description": "Customer-owned booking operations retained for traceability only; all requests are disabled until operations-v1.json is reconciled with source.",
+      "item": [
+        {
+          "name": "/api/v1/customer/profile/session",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/customer/profile/session",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["customer", "profile", "session"]
+            },
+            "description": "CONTRACT_MISMATCH: source behavior and operations-v1.json are not fully aligned. Disabled until contract reconciliation.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "disabled": true
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/customer/bookings/PN-DEMO-2026/claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/customer/bookings/PN-DEMO-2026/claim",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["customer", "bookings", "PN-DEMO-2026", "claim"]
+            },
+            "description": "CONTRACT_MISMATCH: source behavior and operations-v1.json are not fully aligned. Disabled until contract reconciliation.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "disabled": true
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/customer/bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/customer/bookings",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["customer", "bookings"]
+            },
+            "description": "CONTRACT_MISMATCH: source behavior and operations-v1.json are not fully aligned. Disabled until contract reconciliation.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "disabled": true
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/customer/bookings/PN-DEMO-2026",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/customer/bookings/PN-DEMO-2026",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["customer", "bookings", "PN-DEMO-2026"]
+            },
+            "description": "CONTRACT_MISMATCH: source behavior and operations-v1.json are not fully aligned. Disabled until contract reconciliation.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "disabled": true
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/customer/bookings/PN-DEMO-2026/cancellation-preview",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/customer/bookings/PN-DEMO-2026/cancellation-preview",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["customer", "bookings", "PN-DEMO-2026", "cancellation-preview"]
+            },
+            "description": "CONTRACT_MISMATCH: source behavior and operations-v1.json are not fully aligned. Disabled until contract reconciliation.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "disabled": true
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/customer/bookings/PN-DEMO-2026/payments/momo/attempts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/customer/bookings/PN-DEMO-2026/payments/momo/attempts",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["customer", "bookings", "PN-DEMO-2026", "payments", "momo", "attempts"]
+            },
+            "description": "CONTRACT_MISMATCH: source behavior and operations-v1.json are not fully aligned. Disabled until contract reconciliation.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "disabled": true
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/customer/bookings/PN-DEMO-2026/payments/vnpay/attempts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/customer/bookings/PN-DEMO-2026/payments/vnpay/attempts",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["customer", "bookings", "PN-DEMO-2026", "payments", "vnpay", "attempts"]
+            },
+            "description": "CONTRACT_MISMATCH: source behavior and operations-v1.json are not fully aligned. Disabled until contract reconciliation.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "disabled": true
+          },
+          "response": []
+        },
+        {
+          "name": "/api/v1/customer/bookings/PN-DEMO-2026/payment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{CHATBOT_API_BASE_URL}}/customer/bookings/PN-DEMO-2026/payment",
+              "host": ["{{CHATBOT_API_BASE_URL}}"],
+              "path": ["customer", "bookings", "PN-DEMO-2026", "payment"]
+            },
+            "description": "CONTRACT_MISMATCH: source behavior and operations-v1.json are not fully aligned. Disabled until contract reconciliation.\n\nDISABLED BY DEFAULT: contract mismatch or production mutation.",
+            "disabled": true
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('HTTP response is in a documented range', function () {",
+          "  pm.expect(pm.response.code).to.be.within(200, 599);",
+          "});"
+        ]
+      }
+    }
+  ]
+}
