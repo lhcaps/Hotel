@@ -1,4 +1,4 @@
-import type { DatabasePool } from '@room/database';
+import { CLIENT_ROOM_MANIFEST, type DatabasePool } from '@room/database';
 import type { AdminRoomOperationsQuery } from '@room/contracts';
 
 import type {
@@ -21,12 +21,17 @@ interface DbRow {
   active_housekeeping_task: unknown;
 }
 
+const APPROVED_PEACE_HOME_PHYSICAL_ROOM_CODES = CLIENT_ROOM_MANIFEST.rooms.map(
+  (room) => room.physicalRoomCode,
+);
+
 export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
   public constructor(private readonly pool: Pick<DatabasePool, 'query'>) {}
 
   public async list(
     propertyId: string,
     query: AdminRoomOperationsQuery,
+    propertyCode?: string,
   ): Promise<readonly RoomOperationRow[]> {
     const result = await this.pool.query<DbRow>(
       `SELECT r.id AS room_id, r.room_number, r.physical_room_code,
@@ -84,9 +89,18 @@ export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
           AND b.status NOT IN ('CANCELLED', 'EXPIRED')
         WHERE r.property_id = $1
           AND (r.status = 'ACTIVE' OR $4::boolean = TRUE)
+          AND ($5::text IS DISTINCT FROM 'PEACE_HOME'
+            OR r.physical_room_code = ANY($6::text[]))
         GROUP BY r.id, rt.name, rt.code, pt.name, pt.code
         ORDER BY r.room_number ASC`,
-      [propertyId, new Date(query.from), new Date(query.to), query.includeInactive],
+      [
+        propertyId,
+        new Date(query.from),
+        new Date(query.to),
+        query.includeInactive,
+        propertyCode ?? null,
+        APPROVED_PEACE_HOME_PHYSICAL_ROOM_CODES,
+      ],
     );
     return result.rows.map((row) => ({
       roomId: row.room_id,

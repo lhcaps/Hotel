@@ -116,7 +116,7 @@ Fresh final result: 120/120 checks PASS; document horizontal overflow: 0.
 ACTIVE_PHYSICAL_ROOM_SQL_COUNT=6
 ACTIVE_PHYSICAL_ROOM_API_COUNT=6
 ACTIVE_PHYSICAL_ROOM_UI_COUNT=6
-INVENTORY_COUNT_EXPLANATION=The local development PostgreSQL database contains six ACTIVE physical-room rows. The authenticated ADMIN rooms API returns the same six records and the default /admin/rooms view renders all six. Production is a separate 25 ACTIVE / 7 INACTIVE dataset and was not modified by local acceptance.
+INVENTORY_COUNT_EXPLANATION=The local development PostgreSQL database contains six ACTIVE physical-room rows. The authenticated ADMIN rooms API returns the same six records and the default /admin/rooms view renders all six. Production is a separate 25 ACTIVE / 7 INACTIVE dataset: 23 ACTIVE rows match the approved CLIENT_ROOM_MANIFEST physical-room codes, while the two unsuffixed Nami and Rose rows are concept placeholders and are excluded from the PEACE_HOME physical-room API views.
 ```
 
 ## Defects and fixes

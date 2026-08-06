@@ -59,6 +59,53 @@ describe('physical room catalog transactions', () => {
     });
   });
 
+  it('keeps PEACE_HOME concept placeholders out of physical-room views', async () => {
+    const peaceHomePropertyId = '550e8400-e29b-41d4-a716-446655440011';
+    const peaceHomeTierId = '550e8400-e29b-41d4-a716-446655440021';
+    const peaceHomeRoomTypeId = '550e8400-e29b-41d4-a716-446655440031';
+    await database.pool.query(
+      `INSERT INTO properties (id, code, name, timezone)
+         VALUES ($1, 'PEACE_HOME', 'Peace Home', 'Asia/Ho_Chi_Minh')`,
+      [peaceHomePropertyId],
+    );
+    await database.pool.query(
+      `INSERT INTO price_tiers (id, property_id, code, name, sort_order)
+         VALUES ($1, $2, 'STANDARD', 'Standard', 1)`,
+      [peaceHomeTierId, peaceHomePropertyId],
+    );
+    await database.pool.query(
+      `INSERT INTO room_types
+         (id, property_id, price_tier_id, code, name, max_adults, max_children, max_occupancy)
+         VALUES ($1, $2, $3, 'STANDARD', 'Standard', 2, 1, 3)`,
+      [peaceHomeRoomTypeId, peaceHomePropertyId, peaceHomeTierId],
+    );
+    await database.pool.query(
+      `INSERT INTO rooms
+         (property_id, room_type_id, room_number, physical_room_code, status, housekeeping_status)
+         VALUES
+           ($1, $2, '94BDT-WabiG01', '94BDT-WabiG01', 'ACTIVE', 'CLEAN'),
+           ($1, $2, 'Nami', 'Nami', 'ACTIVE', 'CLEAN')`,
+      [peaceHomePropertyId, peaceHomeRoomTypeId],
+    );
+
+    const operations = new RoomOperationsService(new RoomOperationsRepository(database.pool));
+    const response = await operations.list(
+      peaceHomePropertyId,
+      {
+        from: '2027-02-10T00:00:00.000Z',
+        to: '2027-02-10T08:00:00.000Z',
+      },
+      new Date('2027-02-10T00:00:00.000Z'),
+      'PEACE_HOME',
+    );
+    expect(response.items.map((item) => item.physicalRoomCode)).toEqual(['94BDT-WabiG01']);
+
+    const peaceHomeRooms = await new CatalogRepository(
+      createDatabaseClient(database.pool),
+    ).listRooms(peaceHomePropertyId, 1, 20, 'PEACE_HOME');
+    expect(peaceHomeRooms.map((room) => room.physicalRoomCode)).toEqual(['94BDT-WabiG01']);
+  });
+
   it('advances the turnover task with the required DIRTY, CLEANING, CLEAN lifecycle', async () => {
     const room = await catalog.createRoom(actor, {
       roomTypeId: '550e8400-e29b-41d4-a716-446655440030',

@@ -26,7 +26,7 @@ export class RoomOperationsController {
     @Query() query: unknown,
   ): Promise<AdminRoomOperationsResponse> {
     const property = await this.propertyContext.getCurrent();
-    const response = await this.service.list(property.id, query, new Date());
+    const response = await this.service.list(property.id, query, new Date(), property.code);
     if (request.actor.profileCode !== 'ROOM_STATUS_VIEWER') return response;
     return adminRoomOperationsResponseSchema.parse({
       ...response,

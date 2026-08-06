@@ -4,4 +4,5 @@ export * from './migrations.js';
 export * from './schema-status.js';
 export * from './schema.js';
 export * from './seed-development.js';
+export * from './client-room-import.js';
 export { and, asc, eq, gte, gt, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';

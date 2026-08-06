@@ -39,7 +39,11 @@ export interface RoomOperationRow {
 }
 
 export interface RoomOperationsRepositoryPort {
-  list(propertyId: string, query: AdminRoomOperationsQuery): Promise<readonly RoomOperationRow[]>;
+  list(
+    propertyId: string,
+    query: AdminRoomOperationsQuery,
+    propertyCode?: string,
+  ): Promise<readonly RoomOperationRow[]>;
 }
 
 export class RoomOperationsService {
@@ -49,9 +53,10 @@ export class RoomOperationsService {
     propertyId: string,
     query: unknown,
     now = new Date(),
+    propertyCode?: string,
   ): Promise<AdminRoomOperationsResponse> {
     const parsed = adminRoomOperationsQuerySchema.parse(query);
-    const items = await this.repository.list(propertyId, parsed);
+    const items = await this.repository.list(propertyId, parsed, propertyCode);
     return adminRoomOperationsResponseSchema.parse({
       items: items.map(({ blockedIntervals, activeHousekeepingTask, ...room }) => {
         const bookings = room.bookings.map((booking) => ({

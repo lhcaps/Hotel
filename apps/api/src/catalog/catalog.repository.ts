@@ -1,4 +1,5 @@
 import {
+  CLIENT_ROOM_MANIFEST,
   and,
   amenities,
   asc,
@@ -42,6 +43,10 @@ import type {
 } from './catalog.service.js';
 
 type CatalogDatabase = DatabaseClient;
+
+const APPROVED_PEACE_HOME_PHYSICAL_ROOM_CODES = CLIENT_ROOM_MANIFEST.rooms.map(
+  (room) => room.physicalRoomCode,
+);
 
 function asCatalogDatabase(transaction: unknown, fallback: CatalogDatabase): CatalogDatabase {
   return transaction === undefined ? fallback : (transaction as CatalogDatabase);
@@ -449,9 +454,16 @@ export class CatalogRepository implements CatalogRepositoryPort {
     propertyId: string,
     page: number,
     pageSize: number,
+    propertyCode?: string,
   ): Promise<readonly CatalogRoomRecord[]> {
     return this.database.query.rooms.findMany({
-      where: (room, operators) => operators.eq(room.propertyId, propertyId),
+      where: (room, operators) =>
+        propertyCode === 'PEACE_HOME'
+          ? operators.and(
+              operators.eq(room.propertyId, propertyId),
+              operators.inArray(room.physicalRoomCode, APPROVED_PEACE_HOME_PHYSICAL_ROOM_CODES),
+            )
+          : operators.eq(room.propertyId, propertyId),
       orderBy: [asc(rooms.roomNumber), asc(rooms.id)],
       limit: pageSize,
       offset: (page - 1) * pageSize,

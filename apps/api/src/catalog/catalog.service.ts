@@ -266,6 +266,7 @@ export interface CatalogRepositoryPort {
     propertyId: string,
     page: number,
     pageSize: number,
+    propertyCode?: string,
   ): Promise<readonly CatalogRoomRecord[]>;
   createMaintenance(
     transaction: unknown,
@@ -905,7 +906,12 @@ export class CatalogService {
     const page = paginationQuerySchema.parse(input);
     const property = await this.repository.getCurrentProperty();
     if (property === undefined) throw new CatalogNotFoundError();
-    const items = await this.repository.listRooms(property.id, page.page, page.pageSize);
+    const items = await this.repository.listRooms(
+      property.id,
+      page.page,
+      page.pageSize,
+      property.code,
+    );
     return { ...page, items: items.map(toRoom) };
   }
   public async createMaintenanceBlock(actor: ActorContext, input: unknown) {
