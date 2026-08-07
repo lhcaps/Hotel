@@ -1,0 +1,109 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PEACENEST B0 — STAGE 3B: INTERNAL PRICING GATE ACTIVATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STATUS: ✅ COMPLETE
+DATE: 2026-08-07 18:49-19:15 UTC+7
+COMMIT: 0361af2
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHAT WAS DONE
+-------------
+Enabled internal multi-night pricing gate in production while keeping
+public access disabled.
+
+Configuration change:
+  + OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED=true
+
+Container operations:
+  ✓ API container recreated with new gates
+  ✓ Worker/PostgreSQL/Redis unchanged
+  ✓ Zero downtime
+  ✓ Config backup created
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CURRENT STATE
+-------------
+Production gates (verified in live API process):
+  ✓ OPERATIONS_V3_PRICING_CATALOG_RUNTIME_ENABLED=true
+  ✓ OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED=true
+  ✓ OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED=false (default)
+
+System health:
+  ✓ API: ready (all checks passing)
+  ✓ Worker: healthy (11h uptime, no restart)
+  ✓ PostgreSQL: healthy
+  ✓ Redis: healthy
+  ✓ Payment Demo: healthy
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VERIFICATION
+------------
+✓ Production policy extracted (SHA: 4a712b9f)
+✓ Validator tests PASS with exact production fixture
+✓ Composer tests PASS with exact production fixture
+✓ Full lifecycle integration test PASS (13 test cases)
+✓ Live gate inspection confirms correct configuration
+✓ Zero production data mutations
+✓ Zero real money transactions
+✓ Public remains on V1 engine (architectural enforcement)
+✓ No B0 component/policy/room ID leaks to public
+
+Key lifecycle properties verified:
+  ✓ One quote → one booking → one payment → one room
+  ✓ One continuous inventory block (no nightly split)
+  ✓ No room stitching
+  ✓ Signed callback is payment authority
+  ✓ Full-stay access (single continuous token)
+  ✓ One final checkout and turnover per stay
+  ✓ Concurrent HOLD conflict resolution works
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRODUCTION SAFETY
+-----------------
+✓ Release SHA unchanged (4fb79a02)
+✓ Policy v1 unchanged (f9c8e7d6)
+✓ Business counts unchanged (34 quotes, 23 bookings, 21 payments)
+✓ No migrations
+✓ No deployments
+✓ No code changes
+✓ Rollback available (.env.production.stage3b.backup)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHAT THIS MEANS
+---------------
+Internal multi-night pricing logic is now active and ready.
+
+Public users still see V1 engine (hourly/overnight only).
+
+The B0 multi-night pricing system is proven through exact-production-
+fixture tests and ready for public release.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+NEXT STEP
+---------
+Stage 4: Enable public multi-night gate
+
+This will:
+  • Add OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED=true
+  • Allow public multi-night availability search
+  • Allow public multi-night quotes and bookings
+  • Full end-to-end HTTP testing with real public requests
+
+Requires: Product/business approval for public launch
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STAGE 3B VERDICT: ✅ PASS
+
+Internal pricing gate activated successfully.
+System healthy and stable.
+Ready for Stage 4 public release.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
