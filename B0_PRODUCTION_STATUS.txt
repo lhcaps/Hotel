@@ -1,0 +1,99 @@
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  PEACENEST B0 MULTI-NIGHT PRICING — PRODUCTION STATUS      ┃
+┃  Updated: 2026-08-07 19:15 UTC+7                           ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+┌────────────────────────────────────────────────────────────┐
+│ PRODUCTION GATES                                           │
+├────────────────────────────────────────────────────────────┤
+│ Catalog Runtime:        ✅ ON                              │
+│ Internal Pricing:       ✅ ON  (Stage 3B completed)        │
+│ Public Multi-Night:     🔒 OFF (awaiting Stage 4)          │
+└────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────┐
+│ SYSTEM HEALTH                                              │
+├────────────────────────────────────────────────────────────┤
+│ API:             ✅ Ready                                   │
+│ Worker:          ✅ Healthy (11h uptime)                    │
+│ PostgreSQL:      ✅ Healthy                                 │
+│ Redis:           ✅ Healthy                                 │
+│ Payment Demo:    ✅ Healthy                                 │
+└────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────┐
+│ PRICING POLICY                                             │
+├────────────────────────────────────────────────────────────┤
+│ Version:         1                                         │
+│ Status:          Published                                 │
+│ Components:      4 (LEADING, CONTINUATION, FINAL, TRAILING)│
+│ Prices:          12 (across 3 tiers)                       │
+│ Effective:       2026-08-07 13:00:00+00                    │
+│ Applicability:   STAY_START                                │
+└────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────┐
+│ PUBLIC EXPERIENCE                                          │
+├────────────────────────────────────────────────────────────┤
+│ Hourly:          ✅ V1 engine                               │
+│ Overnight:       ✅ V1 engine                               │
+│ Multi-night:     ⏸️  SERVICE_UNAVAILABLE (gate off)        │
+└────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────┐
+│ VERIFICATION STATUS                                        │
+├────────────────────────────────────────────────────────────┤
+│ Exact fixture:   ✅ PASS (validator + composer + lifecycle) │
+│ Live gates:      ✅ CONFIRMED (inspected in process)        │
+│ Zero mutations:  ✅ PASS (no prod data changes)             │
+│ Health checks:   ✅ PASS (all systems green)                │
+└────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────┐
+│ STAGE PROGRESS                                             │
+├────────────────────────────────────────────────────────────┤
+│ Stage 1:  Schema migration                     ✅ Complete  │
+│ Stage 2:  B0 bootstrap draft                   ✅ Complete  │
+│ Stage 2.5: Publication + catalog gate          ✅ Complete  │
+│ Stage 3:  Runtime activation                   ✅ Complete  │
+│ Stage 3B: Internal pricing gate                ✅ Complete  │
+│ Stage 4:  Public multi-night release           🔜 Next      │
+└────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────┐
+│ NEXT ACTION                                                │
+├────────────────────────────────────────────────────────────┤
+│ Awaiting approval for Stage 4 public multi-night release  │
+│                                                            │
+│ Stage 4 will enable:                                       │
+│   • Public multi-night availability search                 │
+│   • Public multi-night quotes and bookings                 │
+│   • Full end-to-end public testing                         │
+│                                                            │
+│ Ready when you are.                                        │
+└────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────┐
+│ ROLLBACK                                                   │
+├────────────────────────────────────────────────────────────┤
+│ Backup:    .env.production.stage3b.backup                  │
+│ Method:    Restore config + recreate API container        │
+│ Required:  NO (system healthy)                             │
+└────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────┐
+│ KEY ARTIFACTS                                              │
+├────────────────────────────────────────────────────────────┤
+│ B0_STAGE3B_EXECUTIVE_SUMMARY.txt                           │
+│ B0_STAGE3B_INTERNAL_PRICING_REPORT.txt                     │
+│ B0_STAGE3B_SUMMARY.txt                                     │
+│ production-policy-extract.txt                              │
+└────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Stage 3B Status: ✅ COMPLETE
+Internal pricing: ✅ ON
+Public multi-night: 🔒 OFF (by design)
+System: ✅ HEALTHY
+Ready for: Stage 4 public release
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
