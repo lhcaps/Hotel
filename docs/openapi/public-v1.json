@@ -540,7 +540,7 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
-          "mode": { "type": "string", "enum": ["hourly", "overnight"] },
+          "mode": { "type": "string", "enum": ["hourly", "overnight", "multi_night"] },
           "adults": { "type": "integer", "minimum": 1, "maximum": 20 },
           "children": { "type": "integer", "minimum": 0, "maximum": 20 },
           "roomTypeId": {
@@ -571,6 +571,10 @@
                 "includedDurationMinutes": { "type": "integer", "minimum": 60, "maximum": 1440 },
                 "extraUnits": { "type": "integer", "minimum": 0, "maximum": 24 },
                 "totalAmountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                "nightCount": { "type": "integer", "minimum": 1, "maximum": 31 },
+                "leadingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
+                "trailingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
+                "summary": { "type": "string", "minLength": 1, "maxLength": 240 },
                 "minCheckInMinuteInclusive": {
                   "anyOf": [
                     { "type": "integer", "minimum": 0, "maximum": 1425 },
@@ -614,7 +618,7 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
-          "mode": { "type": "string", "enum": ["hourly", "overnight"] },
+          "mode": { "type": "string", "enum": ["hourly", "overnight", "multi_night"] },
           "adults": { "type": "integer", "minimum": 1, "maximum": 20 },
           "children": { "type": "integer", "minimum": 0, "maximum": 20 }
         },
@@ -632,7 +636,14 @@
               "NO_EXACT_AVAILABILITY",
               "PRICING_CONFIGURATION_UNAVAILABLE",
               "CATALOG_UNAVAILABLE",
-              "INVALID_INTERVAL"
+              "INVALID_INTERVAL",
+              "BELOW_MINIMUM_STAY",
+              "ABOVE_MAXIMUM_STAY",
+              "INVALID_GUEST_COUNT",
+              "NO_CONTINUOUS_ROOM",
+              "NO_VALID_PRICING",
+              "POLICY_NOT_CONFIGURED",
+              "SERVICE_UNAVAILABLE"
             ]
           },
           "policy": {
@@ -708,7 +719,11 @@
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
-                        }
+                        },
+                        "nightCount": { "type": "integer", "minimum": 1, "maximum": 31 },
+                        "leadingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
+                        "trailingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
+                        "summary": { "type": "string", "minLength": 1, "maxLength": 280 }
                       },
                       "required": ["planLabel", "amountVnd"],
                       "additionalProperties": false
@@ -723,7 +738,11 @@
                     "type": "object",
                     "properties": {
                       "planLabel": { "type": "string", "minLength": 1, "maxLength": 160 },
-                      "amountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+                      "amountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                      "nightCount": { "type": "integer", "minimum": 1, "maximum": 31 },
+                      "leadingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
+                      "trailingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
+                      "summary": { "type": "string", "minLength": 1, "maxLength": 280 }
                     },
                     "required": ["planLabel", "amountVnd"],
                     "additionalProperties": false
@@ -761,7 +780,7 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
-          "mode": { "type": "string", "enum": ["hourly", "overnight"] },
+          "mode": { "type": "string", "enum": ["hourly", "overnight", "multi_night"] },
           "adults": { "type": "integer", "minimum": 1, "maximum": 20 },
           "children": { "type": "integer", "minimum": 0, "maximum": 20 },
           "roomTypeId": {
@@ -812,71 +831,310 @@
           },
           "adults": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
           "children": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "mode": { "type": "string", "enum": ["hourly", "overnight", "multi_night"] },
           "expiresAt": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
           "pricing": {
-            "type": "object",
-            "properties": {
-              "ruleVersion": {
-                "anyOf": [
-                  { "type": "string", "const": "phase-4-pricing-availability-v1" },
-                  { "type": "string", "const": "phase-7b-data-driven-pricing-v1" },
-                  { "type": "string", "const": "phase-8b-cheapest-eligible-pricing-v1" }
-                ]
-              },
-              "selectedPlanCode": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 64,
-                "pattern": "^[A-Z0-9_]+$"
-              },
-              "basePlanCode": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 64,
-                "pattern": "^[A-Z0-9_]+$"
-              },
-              "baseMinutes": { "type": "integer", "minimum": 60, "maximum": 1440 },
-              "extraUnits": { "type": "integer", "minimum": 0, "maximum": 24 },
-              "baseAmountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-              "extraAmountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-              "totalAmountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-              "lineItems": {
-                "minItems": 1,
-                "maxItems": 2,
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 64,
-                      "pattern": "^[A-Z0-9_]+$"
-                    },
-                    "amountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-                    "units": { "type": "integer", "minimum": 1, "maximum": 168 }
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "ruleVersion": {
+                    "anyOf": [
+                      { "type": "string", "const": "phase-4-pricing-availability-v1" },
+                      { "type": "string", "const": "phase-7b-data-driven-pricing-v1" },
+                      { "type": "string", "const": "phase-8b-cheapest-eligible-pricing-v1" }
+                    ]
                   },
-                  "required": ["code", "amountVnd", "units"],
-                  "additionalProperties": false
-                }
+                  "selectedPlanCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[A-Z0-9_]+$"
+                  },
+                  "basePlanCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[A-Z0-9_]+$"
+                  },
+                  "baseMinutes": { "type": "integer", "minimum": 60, "maximum": 1440 },
+                  "extraUnits": { "type": "integer", "minimum": 0, "maximum": 24 },
+                  "baseAmountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                  "extraAmountVnd": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "totalAmountVnd": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "lineItems": {
+                    "minItems": 1,
+                    "maxItems": 2,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[A-Z0-9_]+$"
+                        },
+                        "amountVnd": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "units": { "type": "integer", "minimum": 1, "maximum": 168 }
+                      },
+                      "required": ["code", "amountVnd", "units"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "ruleVersion",
+                  "selectedPlanCode",
+                  "basePlanCode",
+                  "baseMinutes",
+                  "extraUnits",
+                  "baseAmountVnd",
+                  "extraAmountVnd",
+                  "totalAmountVnd",
+                  "lineItems"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "snapshotSchemaVersion": {
+                    "type": "string",
+                    "const": "operations-v3-b0.2-pricing-candidate-v1"
+                  },
+                  "ruleVersion": {
+                    "type": "string",
+                    "const": "operations-v3-b0.2-pricing-candidate-v1"
+                  },
+                  "selectedPlanCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[A-Z0-9_]+$"
+                  },
+                  "basePlanCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[A-Z0-9_]+$"
+                  },
+                  "policyId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "policyVersion": { "type": "string", "pattern": "^\\d+$" },
+                  "applicabilityBasis": { "type": "string", "const": "STAY_START" },
+                  "applicabilityInstant": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "observedPolicyInterval": {
+                    "type": "object",
+                    "properties": {
+                      "effectiveFrom": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "effectiveUntil": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          { "type": "null" }
+                        ]
+                      }
+                    },
+                    "required": ["effectiveFrom", "effectiveUntil"],
+                    "additionalProperties": false
+                  },
+                  "requestedInterval": {
+                    "type": "object",
+                    "properties": {
+                      "checkInAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "checkOutAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      }
+                    },
+                    "required": ["checkInAt", "checkOutAt"],
+                    "additionalProperties": false
+                  },
+                  "propertyTimezone": { "type": "string", "minLength": 1, "maxLength": 64 },
+                  "lines": {
+                    "minItems": 1,
+                    "maxItems": 64,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "componentId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "componentCode": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[A-Z0-9_]+$"
+                        },
+                        "componentDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+                        "startAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "endAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        "coverageModel": {
+                          "type": "string",
+                          "enum": ["FIXED_ELAPSED", "LOCAL_CLOCK_WINDOW", "REQUEST_BOUNDARY"]
+                        },
+                        "boundaryPosition": {
+                          "anyOf": [
+                            { "type": "string", "enum": ["LEADING", "TRAILING"] },
+                            { "type": "null" }
+                          ]
+                        },
+                        "billingModel": {
+                          "type": "string",
+                          "enum": ["FIXED_OCCURRENCE", "STARTED_UNIT"]
+                        },
+                        "occurrenceCount": { "type": "integer", "minimum": 1, "maximum": 64 },
+                        "billingUnitQuantity": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 44640
+                        },
+                        "unitAmountVnd": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "lineAmountVnd": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "restrictions": {
+                          "type": "object",
+                          "propertyNames": { "type": "string" },
+                          "additionalProperties": {}
+                        },
+                        "sourceV1Provenance": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "propertyNames": { "type": "string" },
+                              "additionalProperties": {}
+                            },
+                            { "type": "null" }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "componentId",
+                        "componentCode",
+                        "componentDigest",
+                        "startAt",
+                        "endAt",
+                        "coverageModel",
+                        "boundaryPosition",
+                        "billingModel",
+                        "occurrenceCount",
+                        "billingUnitQuantity",
+                        "unitAmountVnd",
+                        "lineAmountVnd",
+                        "restrictions",
+                        "sourceV1Provenance"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "displayNightCount": { "type": "integer", "minimum": 1, "maximum": 31 },
+                  "grossAmountVnd": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "discountAmountVnd": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "finalAmountVnd": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "totalAmountVnd": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "componentCount": { "type": "integer", "minimum": 1, "maximum": 64 },
+                  "conditionComplexity": { "type": "integer", "minimum": 0, "maximum": 64000 },
+                  "restrictionRank": { "type": "integer", "minimum": 0, "maximum": 64000 },
+                  "stableCandidateId": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+                  "rationale": { "type": "string", "minLength": 1, "maxLength": 1000 }
+                },
+                "required": [
+                  "snapshotSchemaVersion",
+                  "ruleVersion",
+                  "selectedPlanCode",
+                  "basePlanCode",
+                  "policyId",
+                  "policyVersion",
+                  "applicabilityBasis",
+                  "applicabilityInstant",
+                  "observedPolicyInterval",
+                  "requestedInterval",
+                  "propertyTimezone",
+                  "lines",
+                  "displayNightCount",
+                  "grossAmountVnd",
+                  "discountAmountVnd",
+                  "finalAmountVnd",
+                  "totalAmountVnd",
+                  "componentCount",
+                  "conditionComplexity",
+                  "restrictionRank",
+                  "stableCandidateId",
+                  "rationale"
+                ],
+                "additionalProperties": false
               }
-            },
-            "required": [
-              "ruleVersion",
-              "selectedPlanCode",
-              "basePlanCode",
-              "baseMinutes",
-              "extraUnits",
-              "baseAmountVnd",
-              "extraAmountVnd",
-              "totalAmountVnd",
-              "lineItems"
-            ],
-            "additionalProperties": false
+            ]
           },
           "coupon": {
             "type": "object",
@@ -1597,7 +1855,7 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
-          "mode": { "type": "string", "enum": ["hourly", "overnight"] },
+          "mode": { "type": "string", "enum": ["hourly", "overnight", "multi_night"] },
           "adults": { "type": "integer", "minimum": 1, "maximum": 20 },
           "children": { "type": "integer", "minimum": 0, "maximum": 20 },
           "roomTypeId": {
@@ -1856,7 +2114,7 @@
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
           },
-          "mode": { "type": "string", "enum": ["hourly", "overnight"] },
+          "mode": { "type": "string", "enum": ["hourly", "overnight", "multi_night"] },
           "adults": { "type": "integer", "minimum": 1, "maximum": 20 },
           "children": { "type": "integer", "minimum": 0, "maximum": 20 },
           "expandMinutes": { "default": 60, "type": "integer", "minimum": 0, "maximum": 120 },
@@ -1941,7 +2199,19 @@
                                 "type": "integer",
                                 "minimum": 0,
                                 "maximum": 9007199254740991
-                              }
+                              },
+                              "nightCount": { "type": "integer", "minimum": 1, "maximum": 31 },
+                              "leadingExtraUnits": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 5
+                              },
+                              "trailingExtraUnits": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 5
+                              },
+                              "summary": { "type": "string", "minLength": 1, "maxLength": 280 }
                             },
                             "required": ["planLabel", "amountVnd"],
                             "additionalProperties": false
@@ -1960,7 +2230,11 @@
                               "type": "integer",
                               "minimum": 0,
                               "maximum": 9007199254740991
-                            }
+                            },
+                            "nightCount": { "type": "integer", "minimum": 1, "maximum": 31 },
+                            "leadingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
+                            "trailingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
+                            "summary": { "type": "string", "minLength": 1, "maxLength": 280 }
                           },
                           "required": ["planLabel", "amountVnd"],
                           "additionalProperties": false

@@ -6,10 +6,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { FullConfig } from '@playwright/test';
+import { createDatabaseClient } from '@room/database';
 import {
   createPreparedGuardedTestDatabase,
   type GuardedTestDatabase,
 } from '@room/database/testing';
+import { PricingPolicyEventWriter } from '../src/pricing-policy/pricing-policy.events.js';
+import { PricingPolicyRepository } from '../src/pricing-policy/pricing-policy.repository.js';
+import { PricingPolicyService } from '../src/pricing-policy/pricing-policy.service.js';
 
 import { resolvePnpmInvocation } from '../../../scripts/command-executable.mjs';
 import { startOidcTestServer, type OidcTestServer } from './oauth/oidc-test-server.js';
@@ -311,6 +315,44 @@ INSERT INTO rate_plans (id, property_id, code, name, status, included_duration_m
   );
 }
 
+async function seedPlaywrightB0Policy(database: GuardedTestDatabase): Promise<void> {
+  const client = createDatabaseClient(database.pool);
+  const repository = new PricingPolicyRepository(client);
+  const service = new PricingPolicyService(
+    client as unknown as {
+      transaction<T>(operation: (transaction: unknown) => Promise<T>): Promise<T>;
+    },
+    repository,
+    new PricingPolicyEventWriter(),
+  );
+  const admin = await database.pool.query<{ id: string }>(
+    `SELECT id FROM users WHERE email = 'admin.playwright@example.test' LIMIT 1`,
+  );
+  const adminId = admin.rows[0]?.id;
+  if (adminId === undefined) throw new Error('Playwright B0 admin bootstrap did not create a user');
+  const actor = {
+    userId: adminId,
+    requestId: 'playwright-b0-policy-bootstrap',
+    correlationId: 'playwright-b0-policy-correlation',
+  };
+  const bootstrapped = await service.bootstrapDraft(actor, {
+    internalName: 'Playwright B0 multi-night release',
+    effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
+    effectiveUntil: null,
+    overnightWindow: '21-09',
+    nightPlanCode: 'NIGHT_COMBO',
+    extraHourPlanCode: 'EXTRA_HOUR',
+    idempotencyKey: 'playwright-b0-bootstrap-001',
+    dryRun: false,
+  });
+  if (!bootstrapped.publicationReady) {
+    throw new Error(
+      `Playwright B0 policy is not publication-ready: ${JSON.stringify(bootstrapped.errors)}`,
+    );
+  }
+  await service.publishInitial(actor, bootstrapped.policyId, 'playwright-b0-publish-001');
+}
+
 async function seedPhase8iReportingEvidence(database: GuardedTestDatabase): Promise<void> {
   await database.pool.query(
     `INSERT INTO users (id, name, email, email_verified, role, status)
@@ -522,6 +564,8 @@ export default async function globalSetup(_config: FullConfig): Promise<() => Pr
     await seedPlaywrightCatalog(database);
     await seedPhase8iReportingEvidence(database);
     await bootstrapPlaywrightAdmin(database.databaseUrl);
+    const b0Enabled = process.env.PLAYWRIGHT_B0_ENABLED === 'true';
+    if (b0Enabled) await seedPlaywrightB0Policy(database);
     const api = startServer(
       'Playwright API',
       ['--filter', '@room/api', 'exec', 'tsx', 'src/main.ts'],
@@ -572,6 +616,13 @@ export default async function globalSetup(_config: FullConfig): Promise<() => Pr
         // same loopback address. Keep production's default anti-abuse limit
         // intact while preventing one spec from rate-limiting another.
         GUEST_OTP_IP_LIMIT: '1000',
+        ...(b0Enabled
+          ? {
+              OPERATIONS_V3_PRICING_CATALOG_RUNTIME_ENABLED: 'true',
+              OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED: 'true',
+              OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED: 'true',
+            }
+          : {}),
       },
     );
     servers.push(api);

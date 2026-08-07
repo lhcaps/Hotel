@@ -2,12 +2,41 @@ import { randomUUID } from 'node:crypto';
 import { quotes, sql, type DatabaseClient } from '@room/database';
 import type { CreateQuoteRequest } from '@room/contracts';
 import type { PricingCatalog, PricingBreakdown } from './pricing-engine.js';
+import type { MultiNightPricingCandidate } from '../pricing-policy/pricing-policy.composer.js';
 import type { QuoteRepositoryPort } from './quote.service.js';
 import type { ProvisionalCouponEvaluation } from './coupon.repository.js';
 import { toCouponQuoteSummary } from './coupon.repository.js';
 import { isWithinPropertyStayPolicy, propertyStayPolicy } from './stay-policy.js';
 import { createCancellationPolicySnapshot } from '@room/booking';
 type Database = Pick<DatabaseClient, 'execute' | 'query' | 'insert'>;
+
+type QuotePricing = PricingBreakdown | MultiNightPricingCandidate;
+
+function isMultiNightPricing(value: QuotePricing): value is MultiNightPricingCandidate {
+  return 'snapshotSchemaVersion' in value;
+}
+
+function serializePricing(value: QuotePricing): Record<string, unknown> {
+  if (!isMultiNightPricing(value)) return value as unknown as Record<string, unknown>;
+  return {
+    ...value,
+    ruleVersion: 'operations-v3-b0.2-pricing-candidate-v1',
+    applicabilityInstant: value.applicabilityInstant.toISOString(),
+    observedPolicyInterval: {
+      effectiveFrom: value.observedPolicyInterval.effectiveFrom.toISOString(),
+      effectiveUntil: value.observedPolicyInterval.effectiveUntil?.toISOString() ?? null,
+    },
+    requestedInterval: {
+      checkInAt: value.requestedInterval.checkInAt.toISOString(),
+      checkOutAt: value.requestedInterval.checkOutAt.toISOString(),
+    },
+    lines: value.lines.map((line) => ({
+      ...line,
+      startAt: line.startAt.toISOString(),
+      endAt: line.endAt.toISOString(),
+    })),
+  };
+}
 function databaseTimestamp(result: { readonly rows: readonly unknown[] }): Date {
   const value = (result.rows[0] as { now?: unknown } | undefined)?.now;
   const timestamp = value instanceof Date ? value : new Date(String(value));
@@ -27,6 +56,31 @@ export interface CatalogSource {
 
 export class QuoteRepository implements QuoteRepositoryPort {
   public constructor(private readonly database: Database) {}
+
+  private async roomContextFor(input: CreateQuoteRequest) {
+    const property = await this.database.query.properties.findFirst({
+      where: (item, operators) => operators.eq(item.status, 'ACTIVE'),
+      orderBy: (item, operators) => [operators.asc(item.createdAt), operators.asc(item.id)],
+    });
+    const roomType =
+      property === undefined
+        ? undefined
+        : await this.database.query.roomTypes.findFirst({
+            where: (row, op) =>
+              op.and(
+                op.eq(row.id, input.roomTypeId),
+                op.eq(row.propertyId, property.id),
+                op.eq(row.status, 'ACTIVE'),
+              ),
+          });
+    if (property === undefined || roomType === undefined) return undefined;
+    return {
+      propertyId: property.id,
+      propertyTimezone: property.timezone,
+      roomTypeName: roomType.name,
+    };
+  }
+
   public async catalogFor(input: CreateQuoteRequest) {
     // Match the public availability projection: the product currently has one
     // customer-facing property and both paths must resolve it deterministically.
@@ -124,10 +178,12 @@ export class QuoteRepository implements QuoteRepositoryPort {
   }
   public async issue(
     input: CreateQuoteRequest,
-    pricing: PricingBreakdown,
+    pricing: QuotePricing,
     coupon: ProvisionalCouponEvaluation | undefined,
   ): Promise<unknown> {
-    const source = await this.catalogFor(input);
+    const source = isMultiNightPricing(pricing)
+      ? await this.roomContextFor(input)
+      : await this.catalogFor(input);
     if (!source) throw new Error('Quote room type disappeared.');
     const current = await this.database.execute(sql`SELECT CURRENT_TIMESTAMP AS now`);
     const now = databaseTimestamp(current);
@@ -137,16 +193,25 @@ export class QuoteRepository implements QuoteRepositoryPort {
       timezone: source.propertyTimezone,
       capturedAt: now,
     });
+    const serializedPricing = serializePricing(pricing);
+    const baseAmountVnd = isMultiNightPricing(pricing)
+      ? pricing.finalAmountVnd
+      : pricing.baseAmountVnd;
+    const extraAmountVnd = isMultiNightPricing(pricing) ? 0 : pricing.extraAmountVnd;
+    const totalAmountVnd = isMultiNightPricing(pricing)
+      ? pricing.finalAmountVnd
+      : pricing.totalAmountVnd;
     const snapshot: Record<string, unknown> = {
       id: randomUUID(),
       roomTypeId: input.roomTypeId,
       roomTypeName: source.roomTypeName,
       checkIn: input.checkIn,
       checkOut: input.checkOut,
+      mode: input.mode,
       adults: input.adults,
       children: input.children,
       expiresAt: expiresAt.toISOString(),
-      pricing,
+      pricing: serializedPricing,
       cancellationPolicy: {
         code: cancellationPolicy.code,
         version: cancellationPolicy.version,
@@ -167,9 +232,9 @@ export class QuoteRepository implements QuoteRepositoryPort {
       checkOut: new Date(input.checkOut),
       adults: input.adults,
       children: input.children,
-      baseAmountVnd: BigInt(pricing.baseAmountVnd),
-      extraAmountVnd: BigInt(pricing.extraAmountVnd),
-      totalAmountVnd: BigInt(pricing.totalAmountVnd),
+      baseAmountVnd: BigInt(baseAmountVnd),
+      extraAmountVnd: BigInt(extraAmountVnd),
+      totalAmountVnd: BigInt(totalAmountVnd),
       pricingSnapshot: snapshot,
       expiresAt,
       ...(coupon

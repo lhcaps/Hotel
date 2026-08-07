@@ -204,6 +204,13 @@
       "sha256": "731de458af5e241d23b206be38fdc418e6fb017336f0aa8f7cee992e2b8063e7",
       "phase": "uncategorized",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 29,
+      "fileName": "0029_operations_v3_pricing_policy_release.sql",
+      "sha256": "3bb65243c761660ca23def25d416a337fb4bab32c91cf637607128fb39354b11",
+      "phase": "uncategorized",
+      "previousIntroductionReference": null
     }
   ]
 }

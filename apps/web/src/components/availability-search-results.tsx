@@ -34,6 +34,9 @@ const INVALID_INTERVAL_CODES = new Set([
   'VALIDATION_ERROR',
   'INVALID_PRICING_INTERVAL',
   'OVERNIGHT_ONE_NIGHT',
+  'BELOW_MINIMUM_STAY',
+  'ABOVE_MAXIMUM_STAY',
+  'INVALID_GUEST_COUNT',
 ]);
 const PRICING_UNAVAILABLE_CODES = new Set([
   'PRICING_CONFIGURATION_UNAVAILABLE',
@@ -42,6 +45,9 @@ const PRICING_UNAVAILABLE_CODES = new Set([
   'PRICING_RULE_INVALID',
   'PRICING_PRICE_MISSING',
   'PRICING_EXTRA_PRICE_MISSING',
+  'NO_VALID_PRICING',
+  'POLICY_NOT_CONFIGURED',
+  'SERVICE_UNAVAILABLE',
 ]);
 
 interface AvailabilityErrorFallback {
@@ -81,6 +87,50 @@ function describeAvailabilityError(
     title: translate(locale, fallback.titleKey),
     help: translate(locale, fallback.helpKey),
   };
+}
+
+function responseStateCopy(
+  locale: Locale,
+  state: string | undefined,
+): { readonly title: string; readonly help: string } {
+  switch (state) {
+    case 'BELOW_MINIMUM_STAY':
+      return {
+        title: translate(locale, 'search.belowMinimumStayTitle'),
+        help: translate(locale, 'search.belowMinimumStayHelp'),
+      };
+    case 'ABOVE_MAXIMUM_STAY':
+      return {
+        title: translate(locale, 'search.aboveMaximumStayTitle'),
+        help: translate(locale, 'search.aboveMaximumStayHelp'),
+      };
+    case 'INVALID_GUEST_COUNT':
+      return {
+        title: translate(locale, 'search.invalidGuestCountTitle'),
+        help: translate(locale, 'search.invalidGuestCountHelp'),
+      };
+    case 'NO_CONTINUOUS_ROOM':
+      return {
+        title: translate(locale, 'search.noContinuousRoomTitle'),
+        help: translate(locale, 'search.noContinuousRoomHelp'),
+      };
+    case 'INVALID_INTERVAL':
+      return {
+        title: translate(locale, 'search.invalidIntervalErrorTitle'),
+        help: translate(locale, 'search.invalidIntervalErrorHelp'),
+      };
+    case 'NO_VALID_PRICING':
+    case 'POLICY_NOT_CONFIGURED':
+      return {
+        title: translate(locale, 'search.pricingUnavailableErrorTitle'),
+        help: translate(locale, 'search.pricingUnavailableErrorHelp'),
+      };
+    default:
+      return {
+        title: translate(locale, 'search.loadErrorTitle'),
+        help: translate(locale, 'search.loadErrorHelp'),
+      };
+  }
 }
 
 export function AvailabilitySearchResults({
@@ -123,7 +173,14 @@ export function AvailabilitySearchResults({
       ? 'error'
       : responseState === 'PRICING_CONFIGURATION_UNAVAILABLE' ||
           responseState === 'CATALOG_UNAVAILABLE' ||
-          responseState === 'INVALID_INTERVAL'
+          responseState === 'INVALID_INTERVAL' ||
+          responseState === 'BELOW_MINIMUM_STAY' ||
+          responseState === 'ABOVE_MAXIMUM_STAY' ||
+          responseState === 'INVALID_GUEST_COUNT' ||
+          responseState === 'NO_CONTINUOUS_ROOM' ||
+          responseState === 'NO_VALID_PRICING' ||
+          responseState === 'POLICY_NOT_CONFIGURED' ||
+          responseState === 'SERVICE_UNAVAILABLE'
         ? 'unavailable'
         : items
           ? items.length === 0
@@ -193,27 +250,17 @@ export function AvailabilitySearchResults({
 
   if (exactStatus === 'unavailable') {
     const unavailableState = (controlledExactResponse ?? exactResponse)?.state;
-    const pricingUnavailable = unavailableState === 'PRICING_CONFIGURATION_UNAVAILABLE';
+    const responseCopy = responseStateCopy(locale, unavailableState);
     const invalidOvernight = state.mode === 'overnight' && unavailableState === 'INVALID_INTERVAL';
     return (
       <Alert className="availability-results__error" variant="destructive">
         <AlertTitle>
           {invalidOvernight
             ? translate(locale, 'search.overnightOneNightTitle')
-            : pricingUnavailable
-              ? translate(locale, 'search.pricingUnavailableErrorTitle')
-              : unavailableState === 'INVALID_INTERVAL'
-                ? translate(locale, 'search.invalidIntervalErrorTitle')
-                : translate(locale, 'search.loadErrorTitle')}
+            : responseCopy.title}
         </AlertTitle>
         <AlertDescription>
-          {invalidOvernight
-            ? translate(locale, 'search.overnightOneNightHelp')
-            : pricingUnavailable
-              ? translate(locale, 'search.pricingUnavailableErrorHelp')
-              : unavailableState === 'INVALID_INTERVAL'
-                ? translate(locale, 'search.invalidIntervalErrorHelp')
-                : translate(locale, 'search.loadErrorHelp')}
+          {invalidOvernight ? translate(locale, 'search.overnightOneNightHelp') : responseCopy.help}
         </AlertDescription>
         {onRetry ? (
           <Button onClick={onRetry} size="sm" type="button">
@@ -327,7 +374,11 @@ function ResultCard({
           {translate(locale, 'search.capacity', { count: maxOccupancy })} ·{' '}
           {translate(
             locale,
-            state.mode === 'hourly' ? 'search.modeHourly' : 'search.modeOvernight',
+            state.mode === 'hourly'
+              ? 'search.modeHourly'
+              : state.mode === 'multi_night'
+                ? 'search.modeMultiNight'
+                : 'search.modeOvernight',
           )}
         </CardDescription>
       </CardHeader>

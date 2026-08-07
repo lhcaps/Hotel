@@ -10,6 +10,7 @@ export default defineConfig({
     '**/api-unavailable.spec.ts',
     '**/public-release.spec.ts',
     '**/final-local-demo-acceptance.spec.ts',
+    '**/multi-night-b0.spec.ts',
     '**/verify-*.spec.ts',
   ],
   fullyParallel: false,

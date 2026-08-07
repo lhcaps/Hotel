@@ -60,4 +60,20 @@ describe('AvailabilityService', () => {
       checkOut: '2099-07-25T04:15:46.000Z',
     });
   });
+
+  it('rejects multi-night safely while the public gate is not wired', async () => {
+    const repository: AvailabilityRepositoryPort = {
+      search: vi.fn(),
+      searchWithState: vi.fn(),
+    };
+    const result = await new AvailabilityService(repository).search({
+      ...request,
+      checkIn: '2026-07-22T21:00:00+07:00',
+      checkOut: '2026-07-24T09:00:00+07:00',
+      mode: 'multi_night',
+    });
+    expect(result.state).toBe('SERVICE_UNAVAILABLE');
+    expect(repository.search).not.toHaveBeenCalled();
+    expect(repository.searchWithState).not.toHaveBeenCalled();
+  });
 });

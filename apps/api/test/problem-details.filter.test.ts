@@ -18,6 +18,7 @@ import {
   QuoteExpiredError,
   QuotePricingConfigurationError,
   QuoteUnavailableError,
+  QuoteMultiNightStateError,
 } from '../src/pricing/quote.service.js';
 import {
   InvalidPricingIntervalError,
@@ -80,6 +81,9 @@ describe('ProblemDetailsFilter', () => {
     );
     expect(invoke(new QuoteUnavailableError()).send).toHaveBeenCalledWith(
       expect.objectContaining({ status: 409, code: 'AVAILABILITY_UNAVAILABLE' }),
+    );
+    expect(invoke(new QuoteMultiNightStateError('NO_CONTINUOUS_ROOM')).send).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 409, code: 'NO_CONTINUOUS_ROOM' }),
     );
     expect(invoke(new QuotePricingConfigurationError()).send).toHaveBeenCalledWith(
       expect.objectContaining({ status: 409, code: 'PRICING_CONFIGURATION_UNAVAILABLE' }),

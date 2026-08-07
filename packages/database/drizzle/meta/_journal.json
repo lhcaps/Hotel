@@ -204,6 +204,13 @@
       "when": 1785911756387,
       "tag": "0028_admin_v2_membership_bootstrap",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1786054226511,
+      "tag": "0029_operations_v3_pricing_policy_release",
+      "breakpoints": true
     }
   ]
 }

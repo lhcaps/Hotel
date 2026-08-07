@@ -48,6 +48,7 @@ import {
   type AdminOperationalReviewSummaryRow,
 } from '../repositories/admin-booking.repository.js';
 import { toAdminBookingRepositoryQuery } from '../admin-booking-date-filter.js';
+import { readBookingStayRepresentation } from '../stay-representation.js';
 
 function bigIntToNumber(value: bigint): number {
   if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
@@ -166,6 +167,7 @@ function toAdminBookingDetail(
       discountAmountVnd: bigIntToNumber(row.discountAmountVnd),
       finalAmountVnd: bigIntToNumber(row.finalAmountVnd),
       currency: 'VND',
+      ...readBookingStayRepresentation(row.priceSnapshot),
       coupon:
         row.coupon === null
           ? null
@@ -455,6 +457,8 @@ export class AdminBookingLifecycleService {
                 cancellation_refund_state = $6,
                 cancellation_refund_amount_vnd = $7,
                 cancellation_retained_amount_vnd = $8,
+                access_pass_version = access_pass_version + 1,
+                access_pass_revoked_at = $2,
                 updated_at = $2
           WHERE id = $1`,
         [

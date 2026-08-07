@@ -144,6 +144,9 @@ export const adminBookingPricingSchema = z
     discountAmountVnd: z.number().int().min(0),
     finalAmountVnd: z.number().int().min(0),
     currency: z.literal('VND'),
+    stayMode: z.enum(['hourly', 'overnight', 'multi_night']).optional(),
+    nightCount: z.number().int().min(1).max(31).nullable().optional(),
+    pricingRuleVersion: z.string().trim().min(1).max(120).nullable().optional(),
     coupon: z
       .object({
         code: z.string().min(1).max(64),

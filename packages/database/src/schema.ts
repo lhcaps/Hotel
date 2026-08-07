@@ -11,6 +11,7 @@ import {
   pgEnum,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   unique,
@@ -105,6 +106,33 @@ export const operationalReviewCategory = pgEnum('operational_review_category', [
   'PAID_CANCELLATION',
 ]);
 export const operationalReviewStatus = pgEnum('operational_review_status', ['OPEN', 'RESOLVED']);
+export const pricingPolicyVersionStatus = pgEnum('pricing_policy_version_status', [
+  'DRAFT',
+  'PUBLISHED',
+  'RETIRED',
+  'CANCELLED',
+]);
+export const pricingPolicyApplicabilityBasis = pgEnum('pricing_policy_applicability_basis', [
+  'QUOTE_INSTANT',
+  'STAY_START',
+]);
+export const pricingPolicyComponentKind = pgEnum('pricing_policy_component_kind', [
+  'BASE_STAY',
+  'EXTENSION',
+]);
+export const pricingPolicyCoverageModel = pgEnum('pricing_policy_coverage_model', [
+  'FIXED_ELAPSED',
+  'LOCAL_CLOCK_WINDOW',
+  'REQUEST_BOUNDARY',
+]);
+export const pricingPolicyBillingModel = pgEnum('pricing_policy_billing_model', [
+  'FIXED_OCCURRENCE',
+  'STARTED_UNIT',
+]);
+export const pricingPolicyBoundaryPosition = pgEnum('pricing_policy_boundary_position', [
+  'LEADING',
+  'TRAILING',
+]);
 
 export const schemaMetadata = pgTable(
   'schema_metadata',
@@ -597,6 +625,315 @@ export const ratePlanPrices = pgTable(
     uniqueIndex('rate_plan_prices_plan_tier_uq').on(table.ratePlanId, table.priceTierId),
     check('rate_plan_prices_amount_positive_ck', sql`${table.amountVnd} > 0`),
     check('rate_plan_prices_currency_vnd_ck', sql`${table.currency} = 'VND'`),
+  ],
+);
+
+export const pricingPolicyVersions = pgTable(
+  'pricing_policy_versions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    propertyId: uuid('property_id').notNull(),
+    versionNumber: bigint('version_number', { mode: 'bigint' }).notNull(),
+    internalName: text('internal_name').notNull(),
+    status: pricingPolicyVersionStatus('status').notNull().default('DRAFT'),
+    applicabilityBasis: pricingPolicyApplicabilityBasis('applicability_basis').notNull(),
+    effectiveFrom: timestamptz('effective_from').notNull(),
+    effectiveUntil: timestamptz('effective_until'),
+    timezoneSnapshot: text('timezone_snapshot').notNull(),
+    ruleSchemaVersion: text('rule_schema_version').notNull(),
+    maximumComponentLines: integer('maximum_component_lines').notNull().default(64),
+    createdBy: uuid('created_by').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+    publishedBy: uuid('published_by'),
+    publishedAt: timestamptz('published_at'),
+    retiredBy: uuid('retired_by'),
+    retiredAt: timestamptz('retired_at'),
+    cancelledBy: uuid('cancelled_by'),
+    cancelledAt: timestamptz('cancelled_at'),
+    cancellationReason: text('cancellation_reason'),
+    changeNote: text('change_note'),
+    legacyProvenance: jsonb('legacy_provenance'),
+  },
+  (table) => [
+    foreignKey({
+      name: 'pricing_policy_versions_property_fk',
+      columns: [table.propertyId],
+      foreignColumns: [properties.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'pricing_policy_versions_created_by_fk',
+      columns: [table.createdBy],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'pricing_policy_versions_published_by_fk',
+      columns: [table.publishedBy],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'pricing_policy_versions_retired_by_fk',
+      columns: [table.retiredBy],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'pricing_policy_versions_cancelled_by_fk',
+      columns: [table.cancelledBy],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+    unique('pricing_policy_versions_property_id_id_uq').on(table.propertyId, table.id),
+    unique('pricing_policy_versions_property_version_uq').on(table.propertyId, table.versionNumber),
+    index('pricing_policy_versions_property_status_effective_idx').on(
+      table.propertyId,
+      table.status,
+      table.effectiveFrom,
+    ),
+    index('pricing_policy_versions_property_basis_idx').on(
+      table.propertyId,
+      table.applicabilityBasis,
+    ),
+    check('pricing_policy_versions_version_positive_ck', sql`${table.versionNumber} > 0`),
+    check(
+      'pricing_policy_versions_name_ck',
+      sql`btrim(${table.internalName}) <> '' AND char_length(${table.internalName}) <= 200`,
+    ),
+    check(
+      'pricing_policy_versions_effective_interval_ck',
+      sql`${table.effectiveUntil} IS NULL OR ${table.effectiveUntil} > ${table.effectiveFrom}`,
+    ),
+    check(
+      'pricing_policy_versions_timezone_ck',
+      sql`btrim(${table.timezoneSnapshot}) <> '' AND char_length(${table.timezoneSnapshot}) <= 100`,
+    ),
+    check(
+      'pricing_policy_versions_rule_schema_ck',
+      sql`${table.ruleSchemaVersion} ~ '^operations-v3-b0\\.2-policy-v[0-9]+$'`,
+    ),
+    check(
+      'pricing_policy_versions_component_limit_ck',
+      sql`${table.maximumComponentLines} BETWEEN 1 AND 64`,
+    ),
+    check(
+      'pricing_policy_versions_legacy_provenance_ck',
+      sql`${table.legacyProvenance} IS NULL OR jsonb_typeof(${table.legacyProvenance}) = 'object'`,
+    ),
+    check(
+      'pricing_policy_versions_status_metadata_ck',
+      sql`(${table.status} = 'DRAFT'
+            AND ${table.publishedBy} IS NULL AND ${table.publishedAt} IS NULL
+            AND ${table.retiredBy} IS NULL AND ${table.retiredAt} IS NULL
+            AND ${table.cancelledBy} IS NULL AND ${table.cancelledAt} IS NULL
+            AND ${table.cancellationReason} IS NULL)
+          OR (${table.status} = 'PUBLISHED'
+            AND ${table.publishedBy} IS NOT NULL AND ${table.publishedAt} IS NOT NULL
+            AND ${table.retiredBy} IS NULL AND ${table.retiredAt} IS NULL
+            AND ${table.cancelledBy} IS NULL AND ${table.cancelledAt} IS NULL
+            AND ${table.cancellationReason} IS NULL)
+          OR (${table.status} = 'RETIRED'
+            AND ${table.publishedBy} IS NOT NULL AND ${table.publishedAt} IS NOT NULL
+            AND ${table.retiredBy} IS NOT NULL AND ${table.retiredAt} IS NOT NULL
+            AND ${table.cancelledBy} IS NULL AND ${table.cancelledAt} IS NULL
+            AND ${table.cancellationReason} IS NULL)
+          OR (${table.status} = 'CANCELLED'
+            AND ${table.publishedBy} IS NULL AND ${table.publishedAt} IS NULL
+            AND ${table.retiredBy} IS NULL AND ${table.retiredAt} IS NULL
+            AND ${table.cancelledBy} IS NOT NULL AND ${table.cancelledAt} IS NOT NULL
+            AND btrim(${table.cancellationReason}) <> '')`,
+    ),
+  ],
+);
+
+export const pricingPolicyComponents = pgTable(
+  'pricing_policy_components',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    policyVersionId: uuid('policy_version_id').notNull(),
+    componentCode: text('component_code').notNull(),
+    componentKind: pricingPolicyComponentKind('component_kind').notNull(),
+    coverageModel: pricingPolicyCoverageModel('coverage_model').notNull(),
+    billingModel: pricingPolicyBillingModel('billing_model').notNull(),
+    fixedDurationMinutes: integer('fixed_duration_minutes'),
+    localStartMinuteInclusive: integer('local_start_minute_inclusive'),
+    localEndMinuteExclusive: integer('local_end_minute_exclusive'),
+    localEndDayOffset: smallint('local_end_day_offset'),
+    boundaryPosition: pricingPolicyBoundaryPosition('boundary_position'),
+    boundaryMinDurationMinutes: integer('boundary_min_duration_minutes'),
+    boundaryMaxDurationMinutes: integer('boundary_max_duration_minutes'),
+    billingUnitMinutes: integer('billing_unit_minutes'),
+    minimumBillingUnits: integer('minimum_billing_units'),
+    maximumBillingUnits: integer('maximum_billing_units'),
+    maximumOccurrencesPerCandidate: integer('maximum_occurrences_per_candidate')
+      .notNull()
+      .default(1),
+    conditionComplexityRank: integer('condition_complexity_rank').notNull().default(0),
+    tieBreakRank: integer('tie_break_rank').notNull().default(0),
+    restrictionMetadata: jsonb('restriction_metadata').notNull().default({}),
+    displayMetadata: jsonb('display_metadata').notNull().default({}),
+    legacyProvenance: jsonb('legacy_provenance'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'pricing_policy_components_policy_version_fk',
+      columns: [table.policyVersionId],
+      foreignColumns: [pricingPolicyVersions.id],
+    }).onDelete('restrict'),
+    unique('pricing_policy_components_policy_version_id_id_uq').on(table.policyVersionId, table.id),
+    unique('pricing_policy_components_policy_code_uq').on(
+      table.policyVersionId,
+      table.componentCode,
+    ),
+    index('pricing_policy_components_policy_idx').on(table.policyVersionId),
+    check('pricing_policy_components_code_ck', sql`${table.componentCode} ~ '^[A-Z0-9_]{1,64}$'`),
+    check(
+      'pricing_policy_components_coverage_shape_ck',
+      sql`(${table.coverageModel} = 'FIXED_ELAPSED'
+            AND ${table.fixedDurationMinutes} IS NOT NULL
+            AND ${table.fixedDurationMinutes} BETWEEN 15 AND 44640
+            AND ${table.fixedDurationMinutes} % 15 = 0
+            AND ${table.localStartMinuteInclusive} IS NULL
+            AND ${table.localEndMinuteExclusive} IS NULL
+            AND ${table.localEndDayOffset} IS NULL
+            AND ${table.boundaryPosition} IS NULL
+            AND ${table.boundaryMinDurationMinutes} IS NULL
+            AND ${table.boundaryMaxDurationMinutes} IS NULL)
+          OR (${table.coverageModel} = 'LOCAL_CLOCK_WINDOW'
+            AND ${table.fixedDurationMinutes} IS NULL
+            AND ${table.localStartMinuteInclusive} IS NOT NULL
+            AND ${table.localEndMinuteExclusive} IS NOT NULL
+            AND ${table.localEndDayOffset} IS NOT NULL
+            AND ${table.localStartMinuteInclusive} BETWEEN 0 AND 1425
+            AND ${table.localStartMinuteInclusive} % 15 = 0
+            AND ${table.localEndMinuteExclusive} BETWEEN 15 AND 1440
+            AND ${table.localEndMinuteExclusive} % 15 = 0
+            AND ${table.localEndDayOffset} IN (0, 1)
+            AND ${table.localEndMinuteExclusive} + ${table.localEndDayOffset} * 1440 > ${table.localStartMinuteInclusive}
+            AND ${table.boundaryPosition} IS NULL
+            AND ${table.boundaryMinDurationMinutes} IS NULL
+            AND ${table.boundaryMaxDurationMinutes} IS NULL)
+          OR (${table.coverageModel} = 'REQUEST_BOUNDARY'
+            AND ${table.fixedDurationMinutes} IS NULL
+            AND ${table.localStartMinuteInclusive} IS NULL
+            AND ${table.localEndMinuteExclusive} IS NULL
+            AND ${table.localEndDayOffset} IS NULL
+            AND ${table.boundaryPosition} IS NOT NULL
+            AND ${table.boundaryMinDurationMinutes} IS NOT NULL
+            AND ${table.boundaryMaxDurationMinutes} IS NOT NULL
+            AND ${table.boundaryMinDurationMinutes} BETWEEN 15 AND 44640
+            AND ${table.boundaryMinDurationMinutes} % 15 = 0
+            AND ${table.boundaryMaxDurationMinutes} BETWEEN ${table.boundaryMinDurationMinutes} AND 44640
+            AND ${table.boundaryMaxDurationMinutes} % 15 = 0
+            AND ${table.maximumOccurrencesPerCandidate} = 1)`,
+    ),
+    check(
+      'pricing_policy_components_billing_shape_ck',
+      sql`(${table.billingModel} = 'FIXED_OCCURRENCE'
+            AND ${table.billingUnitMinutes} IS NULL
+            AND ${table.minimumBillingUnits} IS NULL
+            AND ${table.maximumBillingUnits} IS NULL)
+          OR (${table.billingModel} = 'STARTED_UNIT'
+            AND ${table.billingUnitMinutes} IS NOT NULL
+            AND ${table.billingUnitMinutes} BETWEEN 15 AND 44640
+            AND ${table.billingUnitMinutes} % 15 = 0
+            AND (${table.minimumBillingUnits} IS NULL OR ${table.minimumBillingUnits} > 0)
+            AND (${table.maximumBillingUnits} IS NULL OR ${table.maximumBillingUnits} > 0)
+            AND (${table.maximumBillingUnits} IS NULL OR ${table.minimumBillingUnits} IS NULL
+              OR ${table.maximumBillingUnits} >= ${table.minimumBillingUnits}))`,
+    ),
+    check(
+      'pricing_policy_components_occurrence_rank_ck',
+      sql`${table.maximumOccurrencesPerCandidate} BETWEEN 1 AND 64
+        AND ${table.conditionComplexityRank} BETWEEN 0 AND 1000
+        AND ${table.tieBreakRank} BETWEEN 0 AND 1000000`,
+    ),
+    check(
+      'pricing_policy_components_metadata_ck',
+      sql`jsonb_typeof(${table.restrictionMetadata}) = 'object'
+        AND jsonb_typeof(${table.displayMetadata}) = 'object'
+        AND (${table.legacyProvenance} IS NULL OR jsonb_typeof(${table.legacyProvenance}) = 'object')`,
+    ),
+  ],
+);
+
+export const pricingPolicyComponentPrices = pgTable(
+  'pricing_policy_component_prices',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    propertyId: uuid('property_id').notNull(),
+    policyVersionId: uuid('policy_version_id').notNull(),
+    componentId: uuid('component_id').notNull(),
+    priceTierId: uuid('price_tier_id').notNull(),
+    amountVnd: moneyVnd('amount_vnd').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'pricing_policy_component_prices_policy_component_fk',
+      columns: [table.policyVersionId, table.componentId],
+      foreignColumns: [pricingPolicyComponents.policyVersionId, pricingPolicyComponents.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'pricing_policy_component_prices_property_policy_fk',
+      columns: [table.propertyId, table.policyVersionId],
+      foreignColumns: [pricingPolicyVersions.propertyId, pricingPolicyVersions.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'pricing_policy_component_prices_property_tier_fk',
+      columns: [table.propertyId, table.priceTierId],
+      foreignColumns: [priceTiers.propertyId, priceTiers.id],
+    }).onDelete('restrict'),
+    unique('pricing_policy_component_prices_policy_component_tier_uq').on(
+      table.policyVersionId,
+      table.componentId,
+      table.priceTierId,
+    ),
+    index('pricing_policy_component_prices_policy_idx').on(table.policyVersionId),
+    check('pricing_policy_component_prices_amount_positive_ck', sql`${table.amountVnd} > 0`),
+  ],
+);
+
+export const pricingPolicyComponentEdges = pgTable(
+  'pricing_policy_component_edges',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    policyVersionId: uuid('policy_version_id').notNull(),
+    predecessorComponentId: uuid('predecessor_component_id').notNull(),
+    successorComponentId: uuid('successor_component_id').notNull(),
+    restrictionMetadata: jsonb('restriction_metadata'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'pricing_policy_component_edges_policy_predecessor_fk',
+      columns: [table.policyVersionId, table.predecessorComponentId],
+      foreignColumns: [pricingPolicyComponents.policyVersionId, pricingPolicyComponents.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'pricing_policy_component_edges_policy_successor_fk',
+      columns: [table.policyVersionId, table.successorComponentId],
+      foreignColumns: [pricingPolicyComponents.policyVersionId, pricingPolicyComponents.id],
+    }).onDelete('restrict'),
+    unique('pricing_policy_component_edges_policy_id_uq').on(table.policyVersionId, table.id),
+    unique('pricing_policy_component_edges_directed_uq').on(
+      table.policyVersionId,
+      table.predecessorComponentId,
+      table.successorComponentId,
+    ),
+    index('pricing_policy_component_edges_predecessor_idx').on(
+      table.policyVersionId,
+      table.predecessorComponentId,
+    ),
+    index('pricing_policy_component_edges_successor_idx').on(
+      table.policyVersionId,
+      table.successorComponentId,
+    ),
+    check(
+      'pricing_policy_component_edges_metadata_ck',
+      sql`${table.restrictionMetadata} IS NULL OR jsonb_typeof(${table.restrictionMetadata}) = 'object'`,
+    ),
   ],
 );
 
@@ -1875,6 +2212,10 @@ export const databaseSchema = {
   priceTiers,
   properties,
   quotes,
+  pricingPolicyComponentEdges,
+  pricingPolicyComponentPrices,
+  pricingPolicyComponents,
+  pricingPolicyVersions,
   ratePlanPrices,
   ratePlans,
   roomInventoryBlocks,

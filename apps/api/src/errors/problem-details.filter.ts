@@ -9,6 +9,9 @@ import {
   QuoteNotFoundError,
   QuotePricingConfigurationError,
   QuoteUnavailableError,
+  QuoteServiceUnavailableError,
+  QuoteNoValidPricingError,
+  QuoteMultiNightStateError,
   CouponExpiredError as QuoteCouponExpiredError,
   CouponInvalidInputError as QuoteCouponInvalidInputError,
   CouponMinimumNotMetError as QuoteCouponMinimumNotMetError,
@@ -46,6 +49,16 @@ import {
   InvalidPricingIntervalError,
   PricingConfigurationError,
 } from '../pricing/pricing-engine.js';
+import { MultiNightGateDisabledError } from '../pricing-policy/multi-night.gate.js';
+import {
+  PricingCatalogRuntimeDisabledError,
+  PricingPolicyBootstrapDisabledError,
+} from '../pricing-policy/pricing-policy.gate.js';
+import {
+  PricingPolicyConflictError,
+  PricingPolicyNotFoundError,
+  PricingPolicyValidationError,
+} from '../pricing-policy/pricing-policy.errors.js';
 
 const logger = createLogger({ service: 'api', environment: process.env.NODE_ENV ?? 'unknown' });
 
@@ -144,6 +157,104 @@ export class ProblemDetailsFilter implements ExceptionFilter {
         status,
         code: error.code,
         detail: 'The requested room type is not available for this interval.',
+        ...base,
+      };
+    } else if (error instanceof QuoteMultiNightStateError) {
+      status =
+        error.code === 'SERVICE_UNAVAILABLE'
+          ? 503
+          : error.code === 'INVALID_INTERVAL' ||
+              error.code === 'BELOW_MINIMUM_STAY' ||
+              error.code === 'ABOVE_MAXIMUM_STAY' ||
+              error.code === 'INVALID_GUEST_COUNT'
+            ? 400
+            : 409;
+      body = {
+        type:
+          status === 400
+            ? 'validation-error'
+            : status === 503
+              ? 'service-unavailable'
+              : 'availability-unavailable',
+        title:
+          status === 400
+            ? 'Invalid multi-night interval'
+            : status === 503
+              ? 'Service unavailable'
+              : 'Multi-night request unavailable',
+        status,
+        code: error.code,
+        detail: 'The requested multi-night stay cannot be served as one continuous booking.',
+        ...base,
+      };
+    } else if (
+      error instanceof QuoteServiceUnavailableError ||
+      error instanceof MultiNightGateDisabledError
+    ) {
+      status = 503;
+      body = {
+        type: 'service-unavailable',
+        title: 'Service unavailable',
+        status,
+        code: error.code,
+        detail: 'The requested multi-night service is not currently available.',
+        ...base,
+      };
+    } else if (error instanceof QuoteNoValidPricingError) {
+      status = 409;
+      body = {
+        type: 'pricing-unavailable',
+        title: 'No valid pricing',
+        status,
+        code: error.code,
+        detail: 'No valid pricing covers the complete requested interval.',
+        ...base,
+      };
+    } else if (
+      error instanceof PricingCatalogRuntimeDisabledError ||
+      error instanceof PricingPolicyBootstrapDisabledError
+    ) {
+      status = 503;
+      body = {
+        type: 'service-unavailable',
+        title: 'Operations V3 runtime unavailable',
+        status,
+        code: error.code,
+        detail: 'The Operations V3 pricing catalog runtime is not enabled for this environment.',
+        ...base,
+      };
+    } else if (error instanceof PricingPolicyNotFoundError) {
+      status = 404;
+      body = {
+        type: 'pricing-policy-not-found',
+        title: 'Pricing policy not found',
+        status,
+        code: error.code,
+        detail: 'The requested pricing policy was not found.',
+        ...base,
+      };
+    } else if (error instanceof PricingPolicyValidationError) {
+      status = 409;
+      body = {
+        type: 'pricing-policy-validation-error',
+        title: 'Pricing policy is not publication-ready',
+        status,
+        code: error.code,
+        detail: 'The pricing policy contains validation errors.',
+        ...base,
+        errors: error.violations.map((violation) => ({
+          field: violation.path,
+          message: violation.message,
+        })),
+      };
+    } else if (error instanceof PricingPolicyConflictError) {
+      status = 409;
+      body = {
+        type: 'pricing-policy-conflict',
+        title: 'Pricing policy conflict',
+        status,
+        code: error.code,
+        detail: error.message,
         ...base,
       };
     } else if (

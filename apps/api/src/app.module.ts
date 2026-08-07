@@ -40,6 +40,22 @@ import { BookingModule } from './booking/booking.module.js';
 import { CustomerModule } from './customer/customer.module.js';
 import { PaymentModule } from './payment/payment.module.js';
 import { ReportingModule } from './reporting/reporting.module.js';
+import { PricingPolicyEventWriter } from './pricing-policy/pricing-policy.events.js';
+import {
+  createOperationsV3PricingCatalogGate,
+  OperationsV3PricingCatalogGate,
+} from './pricing-policy/pricing-policy.gate.js';
+import { PublishedPricingPolicyLookupService } from './pricing-policy/pricing-policy.lookup.service.js';
+import { PricingPolicyRepository } from './pricing-policy/pricing-policy.repository.js';
+import { PricingPolicyService } from './pricing-policy/pricing-policy.service.js';
+import { PricingPolicyAdminController } from './pricing-policy/pricing-policy.admin.controller.js';
+import {
+  createMultiNightPricingGate,
+  createMultiNightPublicGate,
+  MultiNightPricingGate,
+  MultiNightPublicGate,
+} from './pricing-policy/multi-night.gate.js';
+import { MultiNightOfferService } from './pricing/multi-night-offer.service.js';
 
 @Module({
   imports: [
@@ -62,6 +78,7 @@ import { ReportingModule } from './reporting/reporting.module.js';
     RecommendationController,
     NearbyAvailabilityController,
     PublicRoomCatalogController,
+    PricingPolicyAdminController,
   ],
   providers: [
     Reflector,
@@ -109,9 +126,9 @@ import { ReportingModule } from './reporting/reporting.module.js';
     },
     {
       provide: AvailabilityService,
-      inject: [DatabaseProvider],
-      useFactory: (database: DatabaseProvider) =>
-        new AvailabilityService(new AvailabilityRepository(database.client)),
+      inject: [DatabaseProvider, MultiNightOfferService],
+      useFactory: (database: DatabaseProvider, multiNight: MultiNightOfferService) =>
+        new AvailabilityService(new AvailabilityRepository(database.client), multiNight),
     },
     {
       provide: NearbyAvailabilityService,
@@ -127,10 +144,11 @@ import { ReportingModule } from './reporting/reporting.module.js';
     },
     {
       provide: QuoteService,
-      inject: [DatabaseProvider],
-      useFactory: (database: DatabaseProvider) =>
+      inject: [DatabaseProvider, MultiNightOfferService],
+      useFactory: (database: DatabaseProvider, multiNight: MultiNightOfferService) =>
         new QuoteService(new QuoteRepository(database.client), {
           couponRepository: new QuoteCouponRepository(database.client),
+          multiNight,
         }),
     },
     {
@@ -143,6 +161,68 @@ import { ReportingModule } from './reporting/reporting.module.js';
       provide: 'DatabaseClient',
       inject: [DatabaseProvider],
       useFactory: (database: DatabaseProvider) => database.client,
+    },
+    {
+      provide: PricingPolicyRepository,
+      inject: [DatabaseProvider],
+      useFactory: (database: DatabaseProvider) => new PricingPolicyRepository(database.client),
+    },
+    PricingPolicyEventWriter,
+    {
+      provide: MultiNightPricingGate,
+      inject: [API_ENVIRONMENT],
+      useFactory: createMultiNightPricingGate,
+    },
+    {
+      provide: MultiNightPublicGate,
+      inject: [API_ENVIRONMENT],
+      useFactory: createMultiNightPublicGate,
+    },
+    {
+      provide: OperationsV3PricingCatalogGate,
+      inject: [API_ENVIRONMENT],
+      useFactory: createOperationsV3PricingCatalogGate,
+    },
+    {
+      provide: PricingPolicyService,
+      inject: [DatabaseProvider, PricingPolicyRepository, PricingPolicyEventWriter],
+      useFactory: (
+        database: DatabaseProvider,
+        repository: PricingPolicyRepository,
+        events: PricingPolicyEventWriter,
+      ) =>
+        new PricingPolicyService(
+          database.client as unknown as import('./pricing-policy/pricing-policy.service.js').PricingPolicyTransactionManager,
+          repository,
+          events,
+        ),
+    },
+    {
+      provide: PublishedPricingPolicyLookupService,
+      inject: [OperationsV3PricingCatalogGate, PricingPolicyRepository],
+      useFactory: (gate: OperationsV3PricingCatalogGate, repository: PricingPolicyRepository) =>
+        new PublishedPricingPolicyLookupService(gate, repository),
+    },
+    {
+      provide: MultiNightOfferService,
+      inject: [
+        DatabaseProvider,
+        PublishedPricingPolicyLookupService,
+        MultiNightPricingGate,
+        MultiNightPublicGate,
+      ],
+      useFactory: (
+        database: DatabaseProvider,
+        lookup: PublishedPricingPolicyLookupService,
+        pricingGate: MultiNightPricingGate,
+        publicGate: MultiNightPublicGate,
+      ) =>
+        new MultiNightOfferService({
+          database: database.client,
+          lookup,
+          pricingGate,
+          publicGate,
+        }),
     },
   ],
 })

@@ -324,6 +324,16 @@ export function AvailabilitySearchForm({
           >
             {translate(locale, 'search.modeOvernight')}
           </ToggleGroupItem>
+          <ToggleGroupItem
+            aria-label={translate(locale, 'search.modeMultiNight')}
+            data-testid="availability-mode-multi-night"
+            onPressedChange={(pressed) => {
+              if (pressed) setBookingMode('multi_night');
+            }}
+            value="multi_night"
+          >
+            {translate(locale, 'search.modeMultiNight')}
+          </ToggleGroupItem>
         </ToggleGroup>
         {bookingMode === 'hourly' ? (
           <FieldGroup className="availability-search__fields">
@@ -510,58 +520,60 @@ export function AvailabilitySearchForm({
                 value={overnightEndTime}
               />
             </Field>
-            <Field>
-              <FieldLabel>{translate(locale, 'search.overnightWindow')}</FieldLabel>
-              <input name="overnightWindow" type="hidden" value={overnightWindow} />
-              <ToggleGroup
-                aria-label={translate(locale, 'search.overnightWindow')}
-                onValueChange={(value) => {
-                  if (value.length === 0) return;
-                  const nextWindow = value[0] as OvernightWindow;
-                  const preset = OVERNIGHT_WINDOWS[nextWindow];
-                  setOvernightWindow(nextWindow);
-                  setOvernightStartTime(preset.start);
-                  setOvernightEndTime(preset.end);
-                  if (overnightDate) {
-                    setOvernightCheckOutDate(addDaysToDate(overnightDate, 1));
-                  }
-                }}
-                value={[overnightWindow]}
-              >
-                <ToggleGroupItem
-                  aria-label={translate(locale, 'search.overnightWindow2109')}
-                  onPressedChange={(pressed) => {
-                    if (pressed) {
-                      setOvernightWindow('21-09');
-                      setOvernightStartTime('21:00');
-                      setOvernightEndTime('09:00');
-                      if (overnightDate) {
-                        setOvernightCheckOutDate(addDaysToDate(overnightDate, 1));
-                      }
+            {bookingMode === 'overnight' ? (
+              <Field>
+                <FieldLabel>{translate(locale, 'search.overnightWindow')}</FieldLabel>
+                <input name="overnightWindow" type="hidden" value={overnightWindow} />
+                <ToggleGroup
+                  aria-label={translate(locale, 'search.overnightWindow')}
+                  onValueChange={(value) => {
+                    if (value.length === 0) return;
+                    const nextWindow = value[0] as OvernightWindow;
+                    const preset = OVERNIGHT_WINDOWS[nextWindow];
+                    setOvernightWindow(nextWindow);
+                    setOvernightStartTime(preset.start);
+                    setOvernightEndTime(preset.end);
+                    if (overnightDate) {
+                      setOvernightCheckOutDate(addDaysToDate(overnightDate, 1));
                     }
                   }}
-                  value="21-09"
+                  value={[overnightWindow]}
                 >
-                  {translate(locale, 'search.overnightWindow2109')}
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  aria-label={translate(locale, 'search.overnightWindow2210')}
-                  onPressedChange={(pressed) => {
-                    if (pressed) {
-                      setOvernightWindow('22-10');
-                      setOvernightStartTime('22:00');
-                      setOvernightEndTime('10:00');
-                      if (overnightDate) {
-                        setOvernightCheckOutDate(addDaysToDate(overnightDate, 1));
+                  <ToggleGroupItem
+                    aria-label={translate(locale, 'search.overnightWindow2109')}
+                    onPressedChange={(pressed) => {
+                      if (pressed) {
+                        setOvernightWindow('21-09');
+                        setOvernightStartTime('21:00');
+                        setOvernightEndTime('09:00');
+                        if (overnightDate) {
+                          setOvernightCheckOutDate(addDaysToDate(overnightDate, 1));
+                        }
                       }
-                    }
-                  }}
-                  value="22-10"
-                >
-                  {translate(locale, 'search.overnightWindow2210')}
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </Field>
+                    }}
+                    value="21-09"
+                  >
+                    {translate(locale, 'search.overnightWindow2109')}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    aria-label={translate(locale, 'search.overnightWindow2210')}
+                    onPressedChange={(pressed) => {
+                      if (pressed) {
+                        setOvernightWindow('22-10');
+                        setOvernightStartTime('22:00');
+                        setOvernightEndTime('10:00');
+                        if (overnightDate) {
+                          setOvernightCheckOutDate(addDaysToDate(overnightDate, 1));
+                        }
+                      }
+                    }}
+                    value="22-10"
+                  >
+                    {translate(locale, 'search.overnightWindow2210')}
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </Field>
+            ) : null}
           </FieldGroup>
         )}
         <FieldGroup className="availability-search__fields availability-search__fields--guests">

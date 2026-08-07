@@ -42,6 +42,60 @@ export interface CatalogPage<T> {
   readonly items: readonly T[];
 }
 
+export type PricingPolicyStatus = 'DRAFT' | 'PUBLISHED' | 'RETIRED' | 'CANCELLED';
+
+export interface AdminPricingPolicyHeader {
+  readonly id: string;
+  readonly propertyId: string;
+  readonly versionNumber: string;
+  readonly internalName: string;
+  readonly status: PricingPolicyStatus;
+  readonly applicabilityBasis: 'QUOTE_INSTANT' | 'STAY_START';
+  readonly effectiveFrom: string;
+  readonly effectiveUntil: string | null;
+  readonly timezoneSnapshot: string;
+  readonly ruleSchemaVersion: string;
+  readonly maximumComponentLines: number;
+  readonly createdBy: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly changeNote: string | null;
+  readonly componentCount?: number;
+  readonly priceCount?: number;
+  readonly requiredPriceTierCount?: number;
+  readonly priceComplete?: boolean;
+}
+
+export interface AdminPricingPolicyAggregate {
+  readonly root: AdminPricingPolicyHeader;
+  readonly components: readonly Record<string, unknown>[];
+  readonly prices: readonly Record<string, unknown>[];
+  readonly edges: readonly Record<string, unknown>[];
+}
+
+export interface AdminPricingPolicyValidation {
+  readonly code: string;
+  readonly path: string;
+  readonly message: string;
+}
+
+export interface AdminPricingPolicyPreview {
+  readonly policyId: string;
+  readonly propertyId: string;
+  readonly errors: readonly AdminPricingPolicyValidation[];
+  readonly warnings: readonly AdminPricingPolicyValidation[];
+  readonly publicationReady: boolean;
+  readonly normalized?: AdminPricingPolicyAggregate;
+}
+
+export interface AdminPricingPolicyBootstrap extends AdminPricingPolicyPreview {
+  readonly dryRun: boolean;
+  readonly created: boolean;
+  readonly idempotent: boolean;
+  readonly versionNumber: string;
+  readonly provenance: Readonly<Record<string, string>>;
+}
+
 export interface PaymentProviderAdmin {
   readonly provider: 'MOMO' | 'VNPAY';
   readonly configured: boolean;
@@ -158,6 +212,55 @@ export const adminApi = {
       body: JSON.stringify(body),
     }),
   listRatePlans: () => request<{ items: readonly RatePlan[] }>('/admin/rate-plans'),
+  listPricingPolicies: () =>
+    request<{ propertyId: string; releases: readonly AdminPricingPolicyHeader[] }>(
+      '/admin/pricing-policies',
+    ),
+  getPricingPolicy: (id: string) =>
+    request<AdminPricingPolicyAggregate>(`/admin/pricing-policies/${id}`),
+  createPricingPolicyDraft: (body: unknown) =>
+    request<{ policyId: string } & Record<string, unknown>>('/admin/pricing-policies', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  bootstrapPricingPolicy: (body: unknown) =>
+    request<AdminPricingPolicyBootstrap>('/admin/pricing-policies/bootstrap', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  updatePricingPolicyDraft: (id: string, body: unknown) =>
+    request<{ policyId: string } & Record<string, unknown>>(`/admin/pricing-policies/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  previewPricingPolicy: (id: string) =>
+    request<AdminPricingPolicyPreview>(`/admin/pricing-policies/${id}/preview`, { method: 'POST' }),
+  cancelPricingPolicy: (id: string, reason: string) =>
+    request<Record<string, unknown>>(`/admin/pricing-policies/${id}/cancel`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    }),
+  publishPricingPolicy: (id: string, idempotencyKey: string) =>
+    request<Record<string, unknown>>(`/admin/pricing-policies/${id}/publish`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ idempotencyKey }),
+    }),
+  supersedePricingPolicy: (
+    predecessorId: string,
+    body: { successorId: string; cutover: string; idempotencyKey: string },
+  ) =>
+    request<Record<string, unknown>>(`/admin/pricing-policies/${predecessorId}/supersede`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  retirePricingPolicy: (id: string) =>
+    request<Record<string, unknown>>(`/admin/pricing-policies/${id}/retire`, { method: 'POST' }),
   createRatePlan: (body: RatePlanCreateCommand) =>
     request<RatePlan>('/admin/rate-plans', {
       method: 'POST',

@@ -1185,6 +1185,240 @@ const document = {
         },
       },
     },
+    '/api/v1/admin/pricing-policies': {
+      get: {
+        operationId: 'listPricingPolicies',
+        responses: {
+          '200': {
+            description: 'Server-owned pricing policy releases for the current property.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    propertyId: { type: 'string', format: 'uuid' },
+                    releases: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/PricingPolicyHeader' },
+                    },
+                  },
+                  required: ['propertyId', 'releases'],
+                  additionalProperties: false,
+                },
+              },
+            },
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '503': { description: 'The server-owned catalog runtime gate is closed.' },
+        },
+      },
+      post: {
+        operationId: 'createPricingPolicyDraft',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/PricingPolicyDraftCommand' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Created a DRAFT pricing policy.' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { description: 'Draft creation conflicts with the current property lineage.' },
+          '503': { description: 'The server-owned catalog runtime gate is closed.' },
+        },
+      },
+    },
+    '/api/v1/admin/pricing-policies/bootstrap': {
+      post: {
+        operationId: 'bootstrapPricingPolicyDraft',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/PricingPolicyBootstrapCommand' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Previewed or created a B0 DRAFT from explicit V1 technical plans.',
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { description: 'The V1 bootstrap source or aggregate is invalid.' },
+          '503': { description: 'Bootstrap is disabled outside the explicit development gate.' },
+        },
+      },
+    },
+    '/api/v1/admin/pricing-policies/{id}': {
+      get: {
+        operationId: 'getPricingPolicy',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          '200': {
+            description: 'Complete policy aggregate.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PricingPolicyAggregate' },
+              },
+            },
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '404': { $ref: '#/components/responses/NotFound' },
+          '503': { description: 'The server-owned catalog runtime gate is closed.' },
+        },
+      },
+      patch: {
+        operationId: 'updatePricingPolicyDraft',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/PricingPolicyAggregateUpdate' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Updated a DRAFT policy aggregate.' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { description: 'The draft is stale, immutable, or not publication-ready.' },
+          '503': { description: 'The server-owned catalog runtime gate is closed.' },
+        },
+      },
+    },
+    '/api/v1/admin/pricing-policies/{id}/preview': {
+      post: {
+        operationId: 'previewPricingPolicy',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          '200': {
+            description: 'Mutation-free aggregate validation preview.',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/PricingPolicyPreview' } },
+            },
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '404': { $ref: '#/components/responses/NotFound' },
+          '503': { description: 'The server-owned catalog runtime gate is closed.' },
+        },
+      },
+    },
+    '/api/v1/admin/pricing-policies/{id}/cancel': {
+      post: {
+        operationId: 'cancelPricingPolicyDraft',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['reason'],
+                properties: { reason: { type: 'string', minLength: 1, maxLength: 500 } },
+                additionalProperties: false,
+              },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Cancelled a DRAFT policy.' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { description: 'Published policy cancellation is forbidden.' },
+          '503': { description: 'The server-owned catalog runtime gate is closed.' },
+        },
+      },
+    },
+    '/api/v1/admin/pricing-policies/{id}/publish': {
+      post: {
+        operationId: 'publishPricingPolicy',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['idempotencyKey'],
+                properties: { idempotencyKey: { type: 'string', minLength: 8, maxLength: 160 } },
+                additionalProperties: false,
+              },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Published an initially valid DRAFT policy.' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { description: 'Publication validation or lineage conflict.' },
+          '503': { description: 'The server-owned catalog runtime gate is closed.' },
+        },
+      },
+    },
+    '/api/v1/admin/pricing-policies/{predecessorId}/supersede': {
+      post: {
+        operationId: 'schedulePricingPolicySupersession',
+        parameters: [
+          {
+            name: 'predecessorId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/PricingPolicySupersessionCommand' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description:
+              'Published the successor at the exact cutover and closed the predecessor interval.',
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { description: 'Supersession interval, basis, or aggregate conflict.' },
+          '503': { description: 'The server-owned catalog runtime gate is closed.' },
+        },
+      },
+    },
+    '/api/v1/admin/pricing-policies/{id}/retire': {
+      post: {
+        operationId: 'retirePricingPolicy',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        responses: {
+          '200': { description: 'Retired an ended PUBLISHED policy.' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { description: 'Policy is not ended or is not PUBLISHED.' },
+          '503': { description: 'The server-owned catalog runtime gate is closed.' },
+        },
+      },
+    },
     '/api/v1/admin/coupons': {
       get: {
         operationId: 'listCoupons',
@@ -1412,6 +1646,34 @@ const document = {
       AdminReportPaymentStatus: jsonSchema(
         z.enum(['NONE', 'PENDING', 'SUCCEEDED', 'REVIEW_REQUIRED', 'CANCELLED', 'EXPIRED']),
       ),
+      PricingPolicyHeader: {
+        type: 'object',
+        additionalProperties: true,
+      },
+      PricingPolicyDraftCommand: {
+        type: 'object',
+        additionalProperties: true,
+      },
+      PricingPolicyBootstrapCommand: {
+        type: 'object',
+        additionalProperties: true,
+      },
+      PricingPolicyAggregate: {
+        type: 'object',
+        additionalProperties: true,
+      },
+      PricingPolicyAggregateUpdate: {
+        type: 'object',
+        additionalProperties: true,
+      },
+      PricingPolicyPreview: {
+        type: 'object',
+        additionalProperties: true,
+      },
+      PricingPolicySupersessionCommand: {
+        type: 'object',
+        additionalProperties: true,
+      },
     },
     responses: {
       ValidationError: {

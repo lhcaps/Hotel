@@ -316,6 +316,18 @@ const apiEnvironmentSchema = sharedEnvironmentSchema
     // surface and the worker batch process; both must agree.
     PAYMENT_RECONCILIATION_MAX_ATTEMPTS: paymentReconciliationMaxAttemptsSchema,
     PAYMENT_RECONCILIATION_RETRY_DELAYS_MS: paymentReconciliationRetryDelaysSchema,
+    // B0.2 remains dark by default. This server-only switch enables only the
+    // internal pricing-policy runtime; it does not expose a reader or writer
+    // route and is intentionally absent from web/client configuration.
+    OPERATIONS_V3_PRICING_CATALOG_RUNTIME_ENABLED: enabledSchema,
+    // Separate fail-closed gates for the approved local B0 multi-night path.
+    // These are server-only and never mirrored to browser configuration.
+    OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED: enabledSchema,
+    OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED: enabledSchema,
+    // Explicit local-only switch for creating a B0 draft from the reviewed V1
+    // technical plans. It never enables public pricing and is rejected outside
+    // development below.
+    OPERATIONS_V3_B0_BOOTSTRAP_ENABLED: enabledSchema,
   })
   .superRefine((value, context) => {
     if (value.BOOKING_ACCESS_QR_SECRET === value.GUEST_SESSION_SECRET) {
@@ -353,6 +365,14 @@ const apiEnvironmentSchema = sharedEnvironmentSchema
           addIssue(context, key, `Production ${key} must not use the test placeholder value`);
         }
       }
+    }
+
+    if (value.OPERATIONS_V3_B0_BOOTSTRAP_ENABLED && value.NODE_ENV !== 'development') {
+      addIssue(
+        context,
+        'OPERATIONS_V3_B0_BOOTSTRAP_ENABLED',
+        'is only allowed when NODE_ENV=development',
+      );
     }
 
     if (value.PAYMENT_DEMO_ENABLED) {

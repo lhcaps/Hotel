@@ -1,6 +1,11 @@
-import type { AvailabilityPolicy } from '@room/contracts';
+import type { AvailabilityPolicy, StayIntent } from '@room/contracts';
 
-export type StayMode = 'hourly' | 'overnight';
+export type StayMode = StayIntent;
+
+export interface StayFacts {
+  readonly durationMinutes: number;
+  readonly displayNightCount: number;
+}
 
 interface LocalDateTimeParts {
   readonly year: number;
@@ -35,6 +40,20 @@ function localDateTimeParts(instant: string, timezone: string): LocalDateTimePar
 
 function localDayNumber(parts: LocalDateTimeParts): number {
   return Date.UTC(parts.year, parts.month - 1, parts.day) / 86_400_000;
+}
+
+export function deriveStayFacts(checkIn: string, checkOut: string, timezone: string): StayFacts {
+  const checkInMs = new Date(checkIn).getTime();
+  const checkOutMs = new Date(checkOut).getTime();
+  if (!Number.isFinite(checkInMs) || !Number.isFinite(checkOutMs) || checkOutMs <= checkInMs) {
+    throw new RangeError('Stay interval must be a positive pair of instants.');
+  }
+  const start = localDateTimeParts(checkIn, timezone);
+  const end = localDateTimeParts(checkOut, timezone);
+  return {
+    durationMinutes: Math.ceil((checkOutMs - checkInMs) / 60_000),
+    displayNightCount: localDayNumber(end) - localDayNumber(start),
+  };
 }
 
 export function isSupportedOvernightWindow(

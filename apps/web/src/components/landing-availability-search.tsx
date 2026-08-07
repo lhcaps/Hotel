@@ -43,7 +43,14 @@ export function LandingAvailabilitySearch() {
       setExactStatus(
         nextResponse.state === 'PRICING_CONFIGURATION_UNAVAILABLE' ||
           nextResponse.state === 'CATALOG_UNAVAILABLE' ||
-          nextResponse.state === 'INVALID_INTERVAL'
+          nextResponse.state === 'INVALID_INTERVAL' ||
+          nextResponse.state === 'BELOW_MINIMUM_STAY' ||
+          nextResponse.state === 'ABOVE_MAXIMUM_STAY' ||
+          nextResponse.state === 'INVALID_GUEST_COUNT' ||
+          nextResponse.state === 'NO_CONTINUOUS_ROOM' ||
+          nextResponse.state === 'NO_VALID_PRICING' ||
+          nextResponse.state === 'POLICY_NOT_CONFIGURED' ||
+          nextResponse.state === 'SERVICE_UNAVAILABLE'
           ? 'unavailable'
           : nextResponse.items.length === 0
             ? 'empty'

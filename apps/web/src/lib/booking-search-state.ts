@@ -1,4 +1,4 @@
-export type BookingMode = 'hourly' | 'overnight';
+export type BookingMode = 'hourly' | 'overnight' | 'multi_night';
 
 export interface BookingSearchState {
   readonly mode: BookingMode;
@@ -149,7 +149,7 @@ export function readBookingSearchQuery(input: URLSearchParams): BookingSearchSta
   const adults = Number(input.get('adults'));
   const children = Number(input.get('children'));
   if (
-    (mode !== 'hourly' && mode !== 'overnight') ||
+    (mode !== 'hourly' && mode !== 'overnight' && mode !== 'multi_night') ||
     checkIn === null ||
     checkOut === null ||
     !Number.isInteger(adults) ||

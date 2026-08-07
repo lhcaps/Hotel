@@ -95,6 +95,70 @@ describe('API environment', () => {
     expect(result).toMatchObject({ success: true });
   });
 
+  it('keeps the Operations V3 pricing catalog runtime dark by default', () => {
+    const disabled = parseApiEnvironment(valid);
+    expect(disabled).toMatchObject({
+      success: true,
+      data: { OPERATIONS_V3_PRICING_CATALOG_RUNTIME_ENABLED: false },
+    });
+
+    const enabled = parseApiEnvironment({
+      ...valid,
+      OPERATIONS_V3_PRICING_CATALOG_RUNTIME_ENABLED: 'true',
+    });
+    expect(enabled).toMatchObject({
+      success: true,
+      data: { OPERATIONS_V3_PRICING_CATALOG_RUNTIME_ENABLED: true },
+    });
+  });
+
+  it('keeps the internal and public multi-night gates independently dark by default', () => {
+    expect(parseApiEnvironment(valid)).toMatchObject({
+      success: true,
+      data: {
+        OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED: false,
+        OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED: false,
+      },
+    });
+    expect(
+      parseApiEnvironment({
+        ...valid,
+        OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED: 'true',
+        OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED: 'false',
+      }),
+    ).toMatchObject({
+      success: true,
+      data: {
+        OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED: true,
+        OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED: false,
+      },
+    });
+  });
+
+  it('allows B0 bootstrap only with an explicit development setting', () => {
+    expect(parseApiEnvironment(valid)).toMatchObject({
+      success: true,
+      data: { OPERATIONS_V3_B0_BOOTSTRAP_ENABLED: false },
+    });
+    expect(
+      parseApiEnvironment({
+        ...valid,
+        NODE_ENV: 'development',
+        OPERATIONS_V3_B0_BOOTSTRAP_ENABLED: 'true',
+      }),
+    ).toMatchObject({
+      success: true,
+      data: { OPERATIONS_V3_B0_BOOTSTRAP_ENABLED: true },
+    });
+    expect(
+      parseApiEnvironment({
+        ...valid,
+        NODE_ENV: 'test',
+        OPERATIONS_V3_B0_BOOTSTRAP_ENABLED: 'true',
+      }).success,
+    ).toBe(false);
+  });
+
   it('rejects a missing Better Auth secret without exposing it', () => {
     const result = parseApiEnvironment({ ...valid, BETTER_AUTH_SECRET: undefined });
 

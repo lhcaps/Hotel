@@ -8,6 +8,8 @@ import { useLocale } from './locale-provider';
 
 export function QuoteSummary({ quote }: { readonly quote: Quote }) {
   const locale = useLocale();
+  const pricing = quote.pricing;
+  const isLegacyPricing = 'lineItems' in pricing;
   return (
     <section aria-labelledby="quote-summary-heading" className="quote-summary">
       <h2 id="quote-summary-heading" className="sr-only">
@@ -23,12 +25,19 @@ export function QuoteSummary({ quote }: { readonly quote: Quote }) {
         {translatePlanLabel(locale, quote.pricing.selectedPlanCode)}
       </h3>
       <ul className="mt-2 space-y-1 text-sm">
-        {quote.pricing.lineItems.map((line) => (
-          <li key={line.code}>
-            {translatePlanLabel(locale, line.code)} x {line.units}:{' '}
-            {formatVnd(locale, line.amountVnd)}
-          </li>
-        ))}
+        {isLegacyPricing
+          ? pricing.lineItems.map((line) => (
+              <li key={line.code}>
+                {translatePlanLabel(locale, line.code)} x {line.units}:{' '}
+                {formatVnd(locale, line.amountVnd)}
+              </li>
+            ))
+          : pricing.lines.map((line) => (
+              <li key={line.componentId}>
+                {translatePlanLabel(locale, line.componentCode)} x {line.billingUnitQuantity}:{' '}
+                {formatVnd(locale, line.lineAmountVnd)}
+              </li>
+            ))}
       </ul>
       <p className="mt-4">
         {translate(locale, quote.coupon !== undefined ? 'quote.grossTotal' : 'quote.total')}{' '}
@@ -56,20 +65,29 @@ export function QuoteSummary({ quote }: { readonly quote: Quote }) {
           <dt className="text-slate-500">{translate(locale, 'quote.basePlan')}</dt>
           <dd className="font-medium">{translatePlanLabel(locale, quote.pricing.basePlanCode)}</dd>
         </div>
-        <div>
-          <dt className="text-slate-500">{translate(locale, 'quote.extraHours')}</dt>
-          <dd className="font-medium">{quote.pricing.extraUnits}</dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">{translate(locale, 'quote.baseAmount')}</dt>
-          <dd className="font-medium">{formatVnd(locale, quote.pricing.baseAmountVnd)}</dd>
-        </div>
-        {quote.pricing.extraAmountVnd > 0 ? (
+        {isLegacyPricing ? (
+          <>
+            <div>
+              <dt className="text-slate-500">{translate(locale, 'quote.extraHours')}</dt>
+              <dd className="font-medium">{pricing.extraUnits}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">{translate(locale, 'quote.baseAmount')}</dt>
+              <dd className="font-medium">{formatVnd(locale, pricing.baseAmountVnd)}</dd>
+            </div>
+            {pricing.extraAmountVnd > 0 ? (
+              <div>
+                <dt className="text-slate-500">{translate(locale, 'quote.extraAmount')}</dt>
+                <dd className="font-medium">{formatVnd(locale, pricing.extraAmountVnd)}</dd>
+              </div>
+            ) : null}
+          </>
+        ) : (
           <div>
-            <dt className="text-slate-500">{translate(locale, 'quote.extraAmount')}</dt>
-            <dd className="font-medium">{formatVnd(locale, quote.pricing.extraAmountVnd)}</dd>
+            <dt className="text-slate-500">{translate(locale, 'quote.nightCount')}</dt>
+            <dd className="font-medium">{pricing.displayNightCount}</dd>
           </div>
-        ) : null}
+        )}
       </dl>
       {quote.coupon !== undefined ? (
         <div className="mt-4">

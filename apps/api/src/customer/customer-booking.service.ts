@@ -35,6 +35,7 @@ import {
   BookingAccessPassError,
   BookingAccessPassService,
 } from '../booking/services/booking-access-pass.service.js';
+import { readBookingStayRepresentation } from '../booking/stay-representation.js';
 
 export interface CustomerBookingSummary {
   readonly bookingId: string;
@@ -192,6 +193,7 @@ export class CustomerBookingService {
       finalAmountVnd: row.finalAmountVnd.toString(),
       adults: row.adults,
       children: row.children,
+      ...readBookingStayRepresentation(row.priceSnapshot),
       paymentStatus,
       roomType: { id: row.roomTypeId, name: row.roomTypeName },
       offer: readOffer(row.priceSnapshot),
@@ -314,6 +316,8 @@ export class CustomerBookingService {
           cancellationRefundState: refundState,
           cancellationRefundAmountVnd: evaluation.refundAmountVnd,
           cancellationRetainedAmountVnd: evaluation.retainedAmountVnd,
+          accessPassVersion: sql`${bookings.accessPassVersion} + 1`,
+          accessPassRevokedAt: now,
           updatedAt: now,
         })
         .where(eq(bookings.id, booking.id));
@@ -419,7 +423,10 @@ export class CustomerBookingService {
   public async alterationPreviewForCustomer(userId: string, bookingCode: string, input: unknown) {
     const command = customerAlterationPreviewRequestSchema.parse(input);
     const booking = await this.findCustomerBooking(userId, bookingCode);
+    const stay = readBookingStayRepresentation(booking.priceSnapshot);
+    const isMultiNight = stay.stayMode === 'multi_night';
     const eligible =
+      !isMultiNight &&
       (booking.status === 'HOLD' || booking.status === 'CONFIRMED') &&
       booking.checkIn.getTime() > Date.now();
     let quote = null;
@@ -444,11 +451,13 @@ export class CustomerBookingService {
       eligible: eligible && quote !== null,
       currentFinalAmountVnd: booking.finalAmountVnd.toString(),
       quote,
-      policyMessage: !eligible
-        ? 'Chỉ có thể thay đổi đặt phòng đang hoạt động trước giờ nhận phòng.'
-        : quote === null
-          ? 'Khoảng thời gian mới chưa có báo giá hoặc phòng phù hợp.'
-          : 'Báo giá mới chỉ là bản xem trước; đặt phòng cũ chưa bị thay đổi.',
+      policyMessage: isMultiNight
+        ? 'Multi-night bookings do not support date, duration, or guest amendments.'
+        : !eligible
+          ? 'Chỉ có thể thay đổi đặt phòng đang hoạt động trước giờ nhận phòng.'
+          : quote === null
+            ? 'Khoảng thời gian mới chưa có báo giá hoặc phòng phù hợp.'
+            : 'Báo giá mới chỉ là bản xem trước; đặt phòng cũ chưa bị thay đổi.',
     });
   }
 

@@ -35,6 +35,9 @@ export const customerBookingDetailSchema = z
     finalAmountVnd: z.string().regex(/^\d+$/),
     adults: z.number().int().min(1).max(20),
     children: z.number().int().min(0).max(20),
+    stayMode: z.enum(['hourly', 'overnight', 'multi_night']).optional(),
+    nightCount: z.number().int().min(1).max(31).nullable().optional(),
+    pricingRuleVersion: z.string().trim().min(1).max(120).nullable().optional(),
     paymentStatus: z.enum([
       'NONE',
       'PENDING',

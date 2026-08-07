@@ -98,10 +98,12 @@ export function RoomDetailQuoteAction({
         >
           <strong>{translatePlanLabel(locale, offer.planCode)}</strong>
           <span className="block text-sm">
-            {translate(locale, 'ratePlan.includeDuration', {
-              minutes: offer.includedDurationMinutes,
-            })}
-            {offer.extraUnits > 0
+            {offer.nightCount !== undefined
+              ? `${offer.nightCount} ${translate(locale, 'quote.nightCount').toLowerCase()}`
+              : translate(locale, 'ratePlan.includeDuration', {
+                  minutes: offer.includedDurationMinutes,
+                })}
+            {offer.nightCount === undefined && offer.extraUnits > 0
               ? `, ${translate(locale, 'ratePlan.extraHourCopy', { count: offer.extraUnits })}`
               : ''}
           </span>

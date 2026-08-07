@@ -38,13 +38,37 @@ function validInterval(checkIn: string, checkOut: string): boolean {
   return Number.isInteger(durationSeconds) && durationSeconds > 0 && durationSeconds <= 31 * 86_400;
 }
 
-const stayModeSchema = z.enum(['hourly', 'overnight']);
+const stayModeSchema = z.enum(['hourly', 'overnight', 'multi_night']);
+export const stayIntentSchema = z.enum(['hourly', 'overnight', 'multi_night']);
 
 const publicIntervalSchema = z
   .object({
     checkIn: instantSchema,
     checkOut: instantSchema,
     mode: stayModeSchema.optional(),
+    adults: z.number().int().min(1).max(20),
+    children: z.number().int().min(0).max(20),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (!validInterval(value.checkIn, value.checkOut)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['checkOut'],
+        message: 'Stay duration must be greater than zero and no longer than 31 days.',
+      });
+    }
+  });
+
+/**
+ * Additive B0 representation for the public multi-night request. The server
+ * still owns policy, pricing, room continuity, and amount authority.
+ */
+export const multiNightIntentSchema = z
+  .object({
+    checkIn: instantSchema,
+    checkOut: instantSchema,
+    mode: z.literal('multi_night'),
     adults: z.number().int().min(1).max(20),
     children: z.number().int().min(0).max(20),
   })
@@ -141,6 +165,10 @@ export const availabilityOfferSummarySchema = z
   .object({
     planLabel: z.string().trim().min(1).max(160),
     amountVnd: amountVndSchema,
+    nightCount: z.number().int().min(1).max(31).optional(),
+    leadingExtraUnits: z.number().int().min(0).max(5).optional(),
+    trailingExtraUnits: z.number().int().min(0).max(5).optional(),
+    summary: z.string().trim().min(1).max(280).optional(),
   })
   .strict();
 
@@ -150,6 +178,13 @@ export const availabilityStateSchema = z.enum([
   'PRICING_CONFIGURATION_UNAVAILABLE',
   'CATALOG_UNAVAILABLE',
   'INVALID_INTERVAL',
+  'BELOW_MINIMUM_STAY',
+  'ABOVE_MAXIMUM_STAY',
+  'INVALID_GUEST_COUNT',
+  'NO_CONTINUOUS_ROOM',
+  'NO_VALID_PRICING',
+  'POLICY_NOT_CONFIGURED',
+  'SERVICE_UNAVAILABLE',
 ]);
 
 export const availabilityPolicySchema = z
@@ -243,6 +278,10 @@ export const availabilityEligibleOfferSchema = z
     includedDurationMinutes: z.number().int().min(60).max(1_440),
     extraUnits: z.number().int().min(0).max(24),
     totalAmountVnd: amountVndSchema,
+    nightCount: z.number().int().min(1).max(31).optional(),
+    leadingExtraUnits: z.number().int().min(0).max(5).optional(),
+    trailingExtraUnits: z.number().int().min(0).max(5).optional(),
+    summary: z.string().trim().min(1).max(240).optional(),
     minCheckInMinuteInclusive: z.number().int().min(0).max(1_425).nullable(),
     maxCheckInMinuteExclusive: z.number().int().min(15).max(1_440).nullable(),
   })
@@ -251,6 +290,94 @@ export const availabilityEligibleOfferSchema = z
 export const availabilityOfferResponseSchema = z
   .object({ items: z.array(availabilityEligibleOfferSchema) })
   .strict();
+
+const multiNightCoverageModelSchema = z.enum([
+  'FIXED_ELAPSED',
+  'LOCAL_CLOCK_WINDOW',
+  'REQUEST_BOUNDARY',
+]);
+const multiNightBillingModelSchema = z.enum(['FIXED_OCCURRENCE', 'STARTED_UNIT']);
+
+export const multiNightPricingLineSchema = z
+  .object({
+    componentId: uuidSchema,
+    componentCode: planCodeSchema,
+    componentDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    startAt: instantSchema,
+    endAt: instantSchema,
+    coverageModel: multiNightCoverageModelSchema,
+    boundaryPosition: z.enum(['LEADING', 'TRAILING']).nullable(),
+    billingModel: multiNightBillingModelSchema,
+    occurrenceCount: z.number().int().min(1).max(64),
+    billingUnitQuantity: z.number().int().min(1).max(44_640),
+    unitAmountVnd: amountVndSchema,
+    lineAmountVnd: amountVndSchema,
+    restrictions: z.record(z.string(), z.unknown()),
+    sourceV1Provenance: z.record(z.string(), z.unknown()).nullable(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.lineAmountVnd !== value.unitAmountVnd * value.billingUnitQuantity) {
+      context.addIssue({
+        code: 'custom',
+        path: ['lineAmountVnd'],
+        message: 'Line amount must equal unit amount times billing quantity.',
+      });
+    }
+    if (new Date(value.endAt).getTime() <= new Date(value.startAt).getTime()) {
+      context.addIssue({
+        code: 'custom',
+        path: ['endAt'],
+        message: 'Pricing line interval must be positive.',
+      });
+    }
+  });
+
+export const multiNightPricingSchema = z
+  .object({
+    snapshotSchemaVersion: z.literal('operations-v3-b0.2-pricing-candidate-v1'),
+    ruleVersion: z.literal('operations-v3-b0.2-pricing-candidate-v1'),
+    selectedPlanCode: planCodeSchema,
+    basePlanCode: planCodeSchema,
+    policyId: uuidSchema,
+    policyVersion: z.string().regex(/^\d+$/),
+    applicabilityBasis: z.literal('STAY_START'),
+    applicabilityInstant: instantSchema,
+    observedPolicyInterval: z
+      .object({ effectiveFrom: instantSchema, effectiveUntil: instantSchema.nullable() })
+      .strict(),
+    requestedInterval: z.object({ checkInAt: instantSchema, checkOutAt: instantSchema }).strict(),
+    propertyTimezone: z.string().min(1).max(64),
+    lines: z.array(multiNightPricingLineSchema).min(1).max(64),
+    displayNightCount: z.number().int().min(1).max(31),
+    grossAmountVnd: amountVndSchema,
+    discountAmountVnd: amountVndSchema,
+    finalAmountVnd: amountVndSchema,
+    totalAmountVnd: amountVndSchema,
+    componentCount: z.number().int().min(1).max(64),
+    conditionComplexity: z.number().int().min(0).max(64_000),
+    restrictionRank: z.number().int().min(0).max(64_000),
+    stableCandidateId: z.string().regex(/^[a-f0-9]{64}$/),
+    rationale: z.string().trim().min(1).max(1_000),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.componentCount !== value.lines.length) {
+      context.addIssue({
+        code: 'custom',
+        path: ['componentCount'],
+        message: 'Component count must match pricing lines.',
+      });
+    }
+    const lineTotal = value.lines.reduce((sum, line) => sum + line.lineAmountVnd, 0);
+    if (value.grossAmountVnd !== lineTotal || value.finalAmountVnd !== value.grossAmountVnd) {
+      context.addIssue({
+        code: 'custom',
+        path: ['finalAmountVnd'],
+        message: 'Pricing totals must match the immutable line total.',
+      });
+    }
+  });
 
 export const couponQuoteSummarySchema = z
   .object({
@@ -285,8 +412,9 @@ export const quoteSchema = z
     checkOut: instantSchema,
     adults: z.number().int().min(1),
     children: z.number().int().min(0),
+    mode: stayModeSchema.optional(),
     expiresAt: instantSchema,
-    pricing: pricingBreakdownSchema,
+    pricing: z.union([pricingBreakdownSchema, multiNightPricingSchema]),
     coupon: couponQuoteSummarySchema.optional(),
     cancellationPolicy: cancellationPolicySchema.optional(),
   })
@@ -503,6 +631,8 @@ export type NearbyAvailabilityCandidate = z.infer<typeof nearbyAvailabilityCandi
 export type AvailabilityOfferRequest = z.infer<typeof availabilityOfferRequestSchema>;
 export type AvailabilityOfferResponse = z.infer<typeof availabilityOfferResponseSchema>;
 export type CreateQuoteRequest = z.infer<typeof createQuoteRequestSchema>;
+export type StayIntent = z.infer<typeof stayIntentSchema>;
+export type MultiNightIntent = z.infer<typeof multiNightIntentSchema>;
 export type PricingRuleVersion = z.infer<typeof pricingRuleVersionSchema>;
 export type PricingBreakdown = z.infer<typeof pricingBreakdownSchema>;
 export type Quote = z.infer<typeof quoteSchema>;
