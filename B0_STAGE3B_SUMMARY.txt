@@ -1,0 +1,143 @@
+PEACENEST B0 — STAGE 3B COMPLETION SUMMARY
+==========================================
+
+EXECUTION: 2026-08-07 18:49-19:15 UTC+7
+STATUS: ✓ PASS
+COMMIT: 0897aeb
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OBJECTIVE
+---------
+Enable internal multi-night pricing gate in production while keeping 
+public gate disabled.
+
+GATE CHANGES
+------------
+BEFORE:
+  OPERATIONS_V3_PRICING_CATALOG_RUNTIME_ENABLED=true
+  OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED=(not set, defaults false)
+  OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED=(not set, defaults false)
+
+AFTER:
+  OPERATIONS_V3_PRICING_CATALOG_RUNTIME_ENABLED=true
+  OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED=true
+  OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED=(not set, defaults false)
+
+CHANGES:
+  ✓ Added OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED=true
+  ✓ Recreated API container (c8dea4821603)
+  ✓ Verified live gate state in running process
+  ✓ Config backup created (.env.production.stage3b.backup)
+
+VERIFICATION
+------------
+✓ Exact production policy extracted (SHA: 4a712b9f)
+✓ Validator tests PASS with production fixture
+✓ Composer tests PASS with production fixture  
+✓ Full lifecycle integration test PASS (13 cases)
+✓ Live gate inspection confirms PRICING=true, PUBLIC=false
+✓ All health checks PASS
+✓ Worker stable (no restart, 11h uptime)
+✓ Zero production data mutations
+✓ Zero real money transactions
+
+PRODUCTION POLICY
+-----------------
+Policy ID: f9c8e7d6-b5a4-4321-9876-543210fedcba
+Version: 1
+Status: PUBLISHED
+Components: 4 (B0_LEADING, B0_CONTINUATION, B0_FINAL_NIGHT, B0_TRAILING)
+Prices: 12
+Edges: 5
+Applicability: STAY_START
+Timezone: Asia/Ho_Chi_Minh
+Effective: 2026-08-07 13:00:00+00
+
+SYSTEM HEALTH
+-------------
+✓ API: healthy ({"status":"ok","checks":{"process":"up"}})
+✓ Worker: healthy (11h uptime)
+✓ PostgreSQL: healthy
+✓ Redis: healthy
+✓ Payment Demo: healthy
+
+BUSINESS COUNTS
+---------------
+Quotes: 34 → 34 (Δ=0)
+Bookings: 23 → 23 (Δ=0)
+Payments: 21 → 21 (Δ=0)
+Active blocks: 12 → 12 (Δ=0)
+
+INTERNAL PRICING STATUS
+-----------------------
+Gate: ✓ ON (verified in live process)
+Logic: ✓ VERIFIED (via exact-fixture tests)
+Endpoint: ⚠ NO ADMIN ENDPOINT (deferred to Stage 4)
+
+Note: Direct HTTP-based internal pricing requests not performed because 
+current release has no authenticated admin pricing endpoint while 
+publicGate=false. Internal pricing gate is confirmed ON and functional 
+through exact-fixture tests and live gate inspection.
+
+PUBLIC STATUS
+-------------
+Public gate: ✓ OFF (publicGate=false)
+Public engine: ✓ V1 (architectural enforcement)
+B0 component leak: ✓ NO
+Policy ID leak: ✓ NO
+Physical room leak: ✓ NO
+
+KEY LIFECYCLE VERIFICATION
+---------------------------
+✓ One quote per request
+✓ One booking per quote
+✓ One payment per booking
+✓ One physical room per multi-night stay
+✓ One continuous inventory block (no nightly split)
+✓ No room stitching
+✓ Signed callback is payment authority
+✓ Browser return is NOT payment authority
+✓ Full-stay access (single continuous token)
+✓ One final checkout per stay
+✓ One final turnover per stay
+✓ Whole-booking cancellation releases inventory once
+✓ Concurrent HOLD conflict resolution works
+
+ROLLBACK
+--------
+Required: NO
+Backup: /opt/room-management/shared/.env.production.stage3b.backup
+Method: Restore backup + recreate API container
+
+ARTIFACTS
+---------
+- B0_STAGE3B_INTERNAL_PRICING_REPORT.txt (full report)
+- production-policy-extract.txt (policy aggregate)
+- extract-policy.sql (extraction query)
+- count-policy.sql (policy counts)
+- count-business.sql (business counts)
+
+ISSUES
+------
+P0: 0
+P1: 0
+P2: 1 (deferred auth residual from Stage 3, non-blocking)
+
+NEXT STEPS
+----------
+□ Stage 4: Enable public multi-night gate
+□ Full end-to-end HTTP testing with public requests
+□ Public V3 multi-night availability
+□ Public V3 multi-night quotes
+□ Public V3 multi-night bookings
+
+STAGE 3B VERDICT
+----------------
+✓ PASS
+
+Internal multi-night pricing gate successfully activated.
+System healthy and stable.
+Ready for Stage 4 public release.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
