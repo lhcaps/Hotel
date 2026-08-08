@@ -328,6 +328,11 @@ const apiEnvironmentSchema = sharedEnvironmentSchema
     // technical plans. It never enables public pricing and is rejected outside
     // development below.
     OPERATIONS_V3_B0_BOOTSTRAP_ENABLED: enabledSchema,
+    // Explicit production remediation switch for Stage 4 P1 v2 creation. Allows
+    // the bootstrap endpoint in production when PUBLIC multi-night is disabled.
+    // Fail-closed: defaults to false, refused when PUBLIC is enabled. This is a
+    // narrow authorized remediation path, not a general production bootstrap surface.
+    OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED: enabledSchema,
   })
   .superRefine((value, context) => {
     if (value.BOOKING_ACCESS_QR_SECRET === value.GUEST_SESSION_SECRET) {
@@ -373,6 +378,23 @@ const apiEnvironmentSchema = sharedEnvironmentSchema
         'OPERATIONS_V3_B0_BOOTSTRAP_ENABLED',
         'is only allowed when NODE_ENV=development',
       );
+    }
+
+    if (value.OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED) {
+      if (value.NODE_ENV !== 'production') {
+        addIssue(
+          context,
+          'OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED',
+          'is only allowed when NODE_ENV=production',
+        );
+      }
+      if (value.OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED) {
+        addIssue(
+          context,
+          'OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED',
+          'must not be enabled while OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED is true',
+        );
+      }
     }
 
     if (value.PAYMENT_DEMO_ENABLED) {

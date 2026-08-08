@@ -33,6 +33,7 @@
     "rxjs": "7.8.2"
   },
   "devDependencies": {
+    "@nestjs/testing": "11.1.28",
     "@room/eslint-config": "workspace:*",
     "@room/typescript-config": "workspace:*",
     "@types/qrcode": "1.5.5",

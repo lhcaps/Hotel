@@ -157,6 +157,70 @@ describe('API environment', () => {
         OPERATIONS_V3_B0_BOOTSTRAP_ENABLED: 'true',
       }).success,
     ).toBe(false);
+    expect(
+      parseApiEnvironment({
+        ...valid,
+        NODE_ENV: 'production',
+        OPERATIONS_V3_B0_BOOTSTRAP_ENABLED: 'true',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('keeps production remediation bootstrap dark by default and fail-closed', () => {
+    expect(parseApiEnvironment(valid)).toMatchObject({
+      success: true,
+      data: { OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED: false },
+    });
+  });
+
+  it('allows production remediation only in NODE_ENV=production', () => {
+    const inProduction = parseApiEnvironment({
+      ...valid,
+      NODE_ENV: 'production',
+      WEB_ORIGIN: 'https://example.com',
+      DATABASE_URL: 'postgresql://user:pass@db.example.com:5432/room',
+      REDIS_URL: 'redis://redis.example.com:6379',
+      OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED: 'true',
+    });
+    expect(inProduction).toMatchObject({
+      success: true,
+      data: { OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED: true },
+    });
+
+    const inDevelopment = parseApiEnvironment({
+      ...valid,
+      NODE_ENV: 'development',
+      OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED: 'true',
+    });
+    expect(inDevelopment.success).toBe(false);
+    if (!inDevelopment.success) {
+      expect(inDevelopment.error.message).toContain(
+        'OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED',
+      );
+    }
+
+    const inTest = parseApiEnvironment({
+      ...valid,
+      NODE_ENV: 'test',
+      OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED: 'true',
+    });
+    expect(inTest.success).toBe(false);
+  });
+
+  it('refuses production remediation when PUBLIC multi-night is enabled', () => {
+    const result = parseApiEnvironment({
+      ...valid,
+      NODE_ENV: 'production',
+      WEB_ORIGIN: 'https://example.com',
+      DATABASE_URL: 'postgresql://user:pass@db.example.com:5432/room',
+      REDIS_URL: 'redis://redis.example.com:6379',
+      OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED: 'true',
+      OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED: 'true',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.message).toContain('OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED');
+    }
   });
 
   it('rejects a missing Better Auth secret without exposing it', () => {

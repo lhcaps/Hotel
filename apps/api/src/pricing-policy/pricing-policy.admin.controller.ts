@@ -51,7 +51,10 @@ export class PricingPolicyAdminController {
     @Inject(API_ENVIRONMENT)
     private readonly environment: Pick<
       ApiEnvironment,
-      'NODE_ENV' | 'OPERATIONS_V3_B0_BOOTSTRAP_ENABLED'
+      | 'NODE_ENV'
+      | 'OPERATIONS_V3_B0_BOOTSTRAP_ENABLED'
+      | 'OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED'
+      | 'OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED'
     >,
   ) {}
 
@@ -61,10 +64,18 @@ export class PricingPolicyAdminController {
 
   private assertBootstrapEnabled(): void {
     this.assertCatalogRuntime();
-    if (
-      this.environment.NODE_ENV !== 'development' ||
-      !this.environment.OPERATIONS_V3_B0_BOOTSTRAP_ENABLED
-    ) {
+    const isDevelopmentBootstrap =
+      this.environment.NODE_ENV === 'development' &&
+      this.environment.OPERATIONS_V3_B0_BOOTSTRAP_ENABLED;
+    const isProductionRemediation =
+      this.environment.NODE_ENV === 'production' &&
+      this.environment.OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED;
+    if (!isDevelopmentBootstrap && !isProductionRemediation) {
+      throw new PricingPolicyBootstrapDisabledError();
+    }
+    // Production remediation may not run while public multi-night traffic is
+    // live: the emergency bootstrap must never race a customer-facing rollout.
+    if (isProductionRemediation && this.environment.OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED) {
       throw new PricingPolicyBootstrapDisabledError();
     }
   }
