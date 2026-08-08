@@ -431,6 +431,9 @@ export function validatePricingPolicyAggregate(
 
   const componentIds = new Set<string>();
   const componentCodes = new Set<string>();
+  // RFC 4122 UUID pattern (versions 1-8, proper variant bits)
+  const strictUuidPattern =
+    /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
   for (const [index, component] of aggregate.components.entries()) {
     if (componentIds.has(component.id))
       pushError(
@@ -438,6 +441,13 @@ export function validatePricingPolicyAggregate(
         'DUPLICATE_COMPONENT_ID',
         `components[${index}].id`,
         'Component id is duplicated.',
+      );
+    if (!strictUuidPattern.test(component.id))
+      pushError(
+        errors,
+        'INVALID_COMPONENT_UUID',
+        `components[${index}].id`,
+        'Component id must be a valid RFC 4122 UUID with correct variant bits.',
       );
     componentIds.add(component.id);
     if (componentCodes.has(component.componentCode))
