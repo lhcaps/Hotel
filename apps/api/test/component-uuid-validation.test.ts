@@ -3,10 +3,10 @@ import { multiNightPricingLineSchema } from '@room/contracts';
 
 /**
  * B0 Stage 4 P1 Defect Root Cause Test
- * 
+ *
  * Production component IDs from Stage 2 bootstrap (0030_b0_production_bootstrap.sql)
  * were hardcoded with invalid UUID variant nibbles for FINAL_NIGHT and TRAILING.
- * 
+ *
  * PostgreSQL accepts these as valid UUIDs, but Zod's strict UUID validator rejects them.
  */
 
@@ -51,11 +51,10 @@ test('B0_FINAL_NIGHT component ID fails strict UUID validation (variant nibble 0
   const result = validateComponentId(PRODUCTION_COMPONENT_IDS.B0_FINAL_NIGHT);
   expect(result.success).toBe(false);
   if (!result.success) {
-    // Zod may nest the error under issues
-    const firstError = result.error.issues?.[0] ?? result.error.errors?.[0];
-    expect(firstError).toBeDefined();
-    expect(firstError.message).toBe('Invalid UUID');
-    expect(firstError.path).toContain('componentId');
+    const errors = result.error.issues ?? [];
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]?.message).toBe('Invalid UUID');
+    expect(errors[0]?.path).toContain('componentId');
   }
 });
 
@@ -63,24 +62,24 @@ test('B0_TRAILING component ID fails strict UUID validation (variant nibble 1)',
   const result = validateComponentId(PRODUCTION_COMPONENT_IDS.B0_TRAILING);
   expect(result.success).toBe(false);
   if (!result.success) {
-    const firstError = result.error.issues?.[0] ?? result.error.errors?.[0];
-    expect(firstError).toBeDefined();
-    expect(firstError.message).toBe('Invalid UUID');
-    expect(firstError.path).toContain('componentId');
+    const errors = result.error.issues ?? [];
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]?.message).toBe('Invalid UUID');
+    expect(errors[0]?.path).toContain('componentId');
   }
 });
 
 test('UUID variant nibble analysis shows root cause', () => {
   const getVariantNibble = (uuid: string) => uuid.charAt(19);
-  
+
   // Valid UUIDs have variant nibble in [89abAB]
   expect(['8', '9', 'a', 'b', 'A', 'B']).toContain(
-    getVariantNibble(PRODUCTION_COMPONENT_IDS.B0_LEADING)
+    getVariantNibble(PRODUCTION_COMPONENT_IDS.B0_LEADING),
   );
   expect(['8', '9', 'a', 'b', 'A', 'B']).toContain(
-    getVariantNibble(PRODUCTION_COMPONENT_IDS.B0_CONTINUATION)
+    getVariantNibble(PRODUCTION_COMPONENT_IDS.B0_CONTINUATION),
   );
-  
+
   // Invalid UUIDs have wrong variant nibble
   expect(getVariantNibble(PRODUCTION_COMPONENT_IDS.B0_FINAL_NIGHT)).toBe('0');
   expect(getVariantNibble(PRODUCTION_COMPONENT_IDS.B0_TRAILING)).toBe('1');
