@@ -16,7 +16,9 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { EXPECTED_SCHEMA_VERSION, getSchemaStatus } from '../../src/schema-status.js';
 import { createPreparedGuardedTestDatabase, type GuardedTestDatabase } from '../../src/testing.js';
 import { migrateDatabase } from '../../src/migrations.js';
@@ -438,21 +440,27 @@ describe('phase-6-coupon-core-v3 hardening', () => {
 });
 
 describe('migration identity', () => {
-  it('byte-identical 0000..0006 to commit 7698353', async () => {
-    const { execSync } = await import('node:child_process');
-    const result = execSync(
-      `git diff 7698353 -- packages/database/drizzle/0000_*.sql packages/database/drizzle/0001_*.sql packages/database/drizzle/0002_*.sql packages/database/drizzle/0003_*.sql packages/database/drizzle/0004_*.sql packages/database/drizzle/0005_*.sql packages/database/drizzle/0006_*.sql`,
-      { cwd: process.cwd(), encoding: 'utf8' },
-    );
-    expect(result.trim()).toBe('');
-  });
+  const canonicalBlobs = {
+    '0000_silly_jocasta.sql': '384366c8d0e8f8c5f4e2262ec6e8c9cd9c8597a9',
+    '0001_custom_invariants.sql': '37a09ac6e7df2bb743a40ca7d68e8e9e746d12c3',
+    '0002_tiny_ultragirl.sql': 'dd4f8791590692a53a3470da872be6ceb7c72c61',
+    '0003_gorgeous_punisher.sql': '2eb09b03ab4242d19df3da924782e6a442576fd2',
+    '0004_natural_paper_doll.sql': '50f48907be866e5178ee7e6fab3a412b342098f9',
+    '0005_ambiguous_blazing_skull.sql': '80f195a5b1c1ba43293b2efc6d3526d2f132aae0',
+    '0006_phase5_custom_invariants.sql': '71ca006b3f17e4c89c7a507faded983fe191ee0f',
+    '0007_phase6_coupon_core.sql': 'bee72a23d190984878a97b334253802360b0ee9c',
+    '0008_phase6_coupon_invariants.sql': '58f0048a629074224055536ba1e327e6dcafc954',
+  } as const;
 
-  it('byte-identical 0007..0008 to commit 721f9d0', async () => {
-    const { execSync } = await import('node:child_process');
-    const result = execSync(
-      `git diff 721f9d0 -- packages/database/drizzle/0007_*.sql packages/database/drizzle/0008_*.sql`,
-      { cwd: process.cwd(), encoding: 'utf8' },
-    );
-    expect(result.trim()).toBe('');
+  it('matches the canonical Git blobs for migrations 0000 through 0008', () => {
+    for (const [name, expectedBlob] of Object.entries(canonicalBlobs)) {
+      const source = readFileSync(resolve(process.cwd(), 'drizzle', name));
+      const blob = createHash('sha1')
+        .update(`blob ${source.length}\0`)
+        .update(source)
+        .digest('hex');
+
+      expect(blob).toBe(expectedBlob);
+    }
   });
 });

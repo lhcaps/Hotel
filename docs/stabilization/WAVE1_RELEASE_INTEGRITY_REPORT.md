@@ -104,6 +104,19 @@ suite remains mandatory and will be exercised in the next hosted run. Audit,
 secret scanning, build, release-integrity, Storybook, web unit, browser setup,
 and E2E were skipped after this failure and are not passing evidence.
 
+### Hosted rerun 31335752154: migration identity provenance
+
+The database source integration suite reached its intended files, but two
+identity assertions depended on commit objects `7698353` and `721f9d0` that
+are no longer reachable in the hosted repository. The migration SQL itself
+was not reported as changed; only those historical Git object lookups failed.
+
+The assertions now verify the same migrations 0000 through 0008 against their
+canonical Git blob IDs. This is clone-independent and remains fail-closed for
+any byte change. Local database integration passed 25 files and 222 tests.
+A final hosted rerun is required. Audit and all later gates of run 31335752154
+were skipped after the provenance failure and are not passing evidence.
+
 ### Local post-fix verification
 
 Format, lint, typecheck, the full 16-task unit suite, auth/catalog
