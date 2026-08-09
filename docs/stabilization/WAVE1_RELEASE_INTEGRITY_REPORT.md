@@ -91,6 +91,19 @@ HTTP assertions. A hosted rerun is required; auth through E2E and the
 dependency audit were skipped after this catalog failure and are not passing
 evidence.
 
+### Hosted rerun 31335450125: database integration discovery
+
+This run passed install, formatting, lint, typecheck, units, catalog
+integration (including the vertical API smoke test), auth, pricing,
+availability, quotes, OpenAPI, and database schema validation. `pnpm db:test`
+then selected compiled `dist/database/test/integration` artifacts as well as
+the source suite because it still used the unquoted `dist/**` exclusion.
+
+Database integration now uses `vitest run --dir test/integration`. The source
+suite remains mandatory and will be exercised in the next hosted run. Audit,
+secret scanning, build, release-integrity, Storybook, web unit, browser setup,
+and E2E were skipped after this failure and are not passing evidence.
+
 ### Local post-fix verification
 
 Format, lint, typecheck, the full 16-task unit suite, auth/catalog
