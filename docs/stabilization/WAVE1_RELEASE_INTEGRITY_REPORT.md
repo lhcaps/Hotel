@@ -36,6 +36,37 @@ LOCAL_GATES=PASS_AFTER_CONTRACTS_DISCOVERY_FIX
 DEPENDENCY_SECURITY_GATE=FAIL_KNOWN_6_HIGH_FINDINGS
 ```
 
+### Hosted rerun 31333821505: database discovery failure
+
+The contracts fix was exercised by hosted CI, but the next `pnpm test:unit`
+failure was `@room/database:test:unit`. Its script used the same unquoted
+`dist/**` pattern and, under the GitHub Linux Bash shell, expanded to
+`dist/booking dist/database`. Vitest treated `dist/booking` as the exclusion
+value and `dist/database` as a positional test filter, then executed compiled
+database unit and integration artifacts.
+
+Database unit tests now use `vitest run --dir test/unit` (and the coverage
+equivalent). The added source-discovery regression fails if a compiled
+`dist/database/test/unit` copy is selected. Both a clean source run and a
+post-build run passed with 6 test files and 20 tests; no compiled database
+test executed in either run. This is the verified current hosted blocker and
+requires another PR rerun before any hosted gate can be called passing.
+
+The hosted unit workflow also now provides its disposable PostgreSQL service
+URL to `pnpm test:unit`. This was verified locally with the same URL and a
+full 16-task unit run exited successfully; it is required by the booking
+unit cases that create guarded disposable test databases. No test was
+skipped, removed, or reclassified to make that run pass.
+
+### Local post-fix verification
+
+Format, lint, typecheck, the full 16-task unit suite, auth/catalog
+integration, pricing, availability, quotes, OpenAPI, database schema check,
+build, and the 22 release-integrity tests all passed. A local Gitleaks source
+scan found no leaks. `pnpm audit --prod --audit-level=high --json` remains a
+failing mandatory security gate with 6 high and 0 critical findings; it has
+not been downgraded or bypassed.
+
 ## Fresh quality evidence
 
 | Gate                           | Command                                                           | Exit | Result                                                 |
