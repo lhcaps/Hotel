@@ -49,14 +49,31 @@ Database unit tests now use `vitest run --dir test/unit` (and the coverage
 equivalent). The added source-discovery regression fails if a compiled
 `dist/database/test/unit` copy is selected. Both a clean source run and a
 post-build run passed with 6 test files and 20 tests; no compiled database
-test executed in either run. This is the verified current hosted blocker and
-requires another PR rerun before any hosted gate can be called passing.
+test executed in either run.
 
 The hosted unit workflow also now provides its disposable PostgreSQL service
 URL to `pnpm test:unit`. This was verified locally with the same URL and a
 full 16-task unit run exited successfully; it is required by the booking
 unit cases that create guarded disposable test databases. No test was
 skipped, removed, or reclassified to make that run pass.
+
+### Hosted rerun 31334384885: auth discovery failure
+
+This rerun passed install, format, lint, typecheck, the contracts source
+suite (17 files, 269 tests), and the database source suite (6 files, 20
+tests). Its unit failure was then `@room/auth:test:unit`: Bash-expanded
+`dist/**` caused Vitest to execute `dist/test/bootstrap-credentials.test.js`,
+which tried to read a source fixture relative to the compiled directory.
+
+The same hosted log also proved compiled config and booking tests were being
+selected. To make source discovery deterministic throughout this unit graph,
+auth, config, booking, observability, API, and worker scripts now use positive
+source directories (`--dir test`, with API's unit task also excluding its
+integration subtree). API integration now positively targets
+`--dir test/integration`. Post-build local tests passed for auth 5/23, config
+1/89, booking 20/127, observability 1/1, API 75/421, and worker 16/91. A
+further hosted rerun is required; all later steps of run 31334384885 were
+skipped after the unit failure and are not passing evidence.
 
 ### Local post-fix verification
 

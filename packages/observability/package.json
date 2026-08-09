@@ -10,8 +10,8 @@
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src test",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:unit": "vitest run --exclude dist/**",
-    "test:coverage": "vitest run --coverage --exclude dist/**"
+    "test:unit": "vitest run --dir test",
+    "test:coverage": "vitest run --coverage --dir test"
   },
   "dependencies": {
     "pino": "10.3.1"

@@ -9,9 +9,9 @@
     "start": "node dist/apps/api/src/main.js",
     "lint": "eslint src test",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:unit": "vitest run --exclude dist/** --exclude test/integration/**",
-    "test:integration": "node ../../scripts/with-local-env.mjs vitest run --exclude dist/** test/integration",
-    "test:coverage": "vitest run --coverage --exclude dist/**"
+    "test:unit": "vitest run --dir test --exclude integration/**",
+    "test:integration": "node ../../scripts/with-local-env.mjs vitest run --dir test/integration",
+    "test:coverage": "vitest run --coverage --dir test"
   },
   "dependencies": {
     "@fastify/cookie": "11.0.2",
