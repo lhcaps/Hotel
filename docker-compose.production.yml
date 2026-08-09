@@ -7,11 +7,9 @@ x-app: &app
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://example.invalid/api/v1}
       RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
   restart: unless-stopped
-  env_file:
-    - path: /opt/room-management/shared/.env.production
-      required: false
   environment:
     RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
+    RELEASE_ID: ${RELEASE_ID:?RELEASE_ID must name the immutable release}
   labels:
     org.opencontainers.image.revision: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
   networks:
@@ -32,8 +30,8 @@ services:
       PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-}
       PAYMENT_DEMO_DOMAIN: ${PAYMENT_DEMO_DOMAIN:-}
     env_file:
-      - path: /opt/room-management/shared/.env.production
-        required: false
+      - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/caddy.env
+        required: true
     ports:
       - '80:80'
       - '443:443'
@@ -47,31 +45,43 @@ services:
 
   web:
     <<: *app
+    env_file:
+      - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/web.env
+        required: true
     command: ['node', 'apps/web/.next/standalone/apps/web/server.js']
     environment:
       PORT: '3000'
       HOSTNAME: '0.0.0.0'
       RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
+      RELEASE_ID: ${RELEASE_ID:?RELEASE_ID must name the immutable release}
     expose:
       - '3000'
 
   payment-demo:
     <<: *app
+    env_file:
+      - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/payment-demo.env
+        required: true
     command: ['node', 'apps/payment-demo/main.mjs']
     environment:
       PAYMENT_DEMO_HOST: '0.0.0.0'
       PAYMENT_DEMO_PORT: '3090'
       RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
+      RELEASE_ID: ${RELEASE_ID:?RELEASE_ID must name the immutable release}
     expose:
       - '3090'
 
   api:
     <<: *app
+    env_file:
+      - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/api.env
+        required: true
     command: ['node', 'apps/api/dist/apps/api/src/main.js']
     environment:
       API_HOST: '0.0.0.0'
       API_PORT: '3001'
       RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
+      RELEASE_ID: ${RELEASE_ID:?RELEASE_ID must name the immutable release}
     expose:
       - '3001'
     networks:
@@ -97,6 +107,9 @@ services:
 
   worker:
     <<: *app
+    env_file:
+      - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/worker.env
+        required: true
     command: ['node', 'apps/worker/dist/src/main.js']
     networks:
       - private
@@ -109,6 +122,9 @@ services:
 
   migrate:
     <<: *app
+    env_file:
+      - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/migrate.env
+        required: true
     command: ['node', 'packages/database/dist/database/scripts/migrate.js']
     restart: 'no'
     depends_on:
@@ -119,8 +135,8 @@ services:
     image: postgres:18.1-alpine
     restart: unless-stopped
     env_file:
-      - path: /opt/room-management/shared/.env.production
-        required: false
+      - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/postgres.env
+        required: true
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
