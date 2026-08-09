@@ -9,15 +9,15 @@ Wave 1 adds immutable release manifests, migration provenance, service-specific 
 
 ## Delivered controls
 
-| Area                 | Evidence                                                                                                                                                     |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| CI repair            | pnpm is bootstrapped before cached Node setup; release-integrity test gate is part of CI.                                                                    |
-| Manifest             | exact source/image/Compose/Caddy/migration/environment-schema identity; verification rejects tampering and mutable image manifests.                          |
-| Environment safety   | per-service allowlists, placeholder rejection, and service environment rendering tests.                                                                      |
-| Attestation/topology | governed services, pointer, release ID, ownership, image identity, Compose/Caddy, and migration evidence are checked; mixed and staging-owned fixtures fail. |
-| Deploy/rollback      | fail-closed preflight and phase evidence on an isolated target; rollback restores a complete known release.                                                  |
-| Canonical Compose    | application services require explicit image variables rather than implicit checkout builds.                                                                  |
-| Rehearsal            | A deploy/attest, B deploy/attest, injected mixed rejection, B-to-A governed rollback, and restored-A attestation all pass.                                   |
+| Area                 | Evidence                                                                                                                                                                                                                                                    |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CI repair            | pnpm is bootstrapped before cached Node setup; release-integrity test gate is part of CI.                                                                                                                                                                   |
+| Manifest             | exact source/image/Compose/Caddy/migration/environment-schema identity; verification rejects tampering and mutable image manifests.                                                                                                                         |
+| Environment safety   | per-service allowlists, placeholder rejection, and service environment rendering tests.                                                                                                                                                                     |
+| Attestation/topology | governed services, pointer, release ID, ownership, image identity, Compose/Caddy, and migration evidence are checked; mixed and staging-owned fixtures fail.                                                                                                |
+| Deploy/rollback      | fail-closed preflight verifies backup evidence, target disk, release-pointer truth, candidate uniqueness, resolved Compose topology, rollback compatibility, and service environments before isolated mutation; rollback restores a complete known release. |
+| Canonical Compose    | application services require explicit image variables rather than implicit checkout builds.                                                                                                                                                                 |
+| Rehearsal            | A deploy/attest, B deploy/attest, injected mixed rejection, B-to-A governed rollback, and restored-A attestation all pass.                                                                                                                                  |
 
 Fresh `pnpm test:release-integrity` result: 22 passed, 0 failed. The rehearsal command also exited 0. Detailed evidence: [WAVE1_RELEASE_REHEARSAL.md](WAVE1_RELEASE_REHEARSAL.md).
 

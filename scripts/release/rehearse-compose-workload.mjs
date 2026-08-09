@@ -133,6 +133,11 @@ function makeRelease(root, name, sourceSha) {
     envSchemaSha256: hashFile(join(directory, 'deploy', 'environment-schema.json')),
   });
   writeFileSync(join(directory, 'release-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+  const backupEvidenceFile = join(directory, 'backup-evidence.json');
+  writeFileSync(
+    backupEvidenceFile,
+    `${JSON.stringify({ releaseId: manifest.releaseId, verified: true })}\n`,
+  );
   const environmentValues = {
     ...readEnvironmentFile(join(REPOSITORY_ROOT, '.env.example')),
     RELEASE_ID: manifest.releaseId,
@@ -164,6 +169,7 @@ function makeRelease(root, name, sourceSha) {
   return {
     directory,
     environment: join(directory, 'rehearsal.env'),
+    backupEvidenceFile,
     serviceEnvironmentDirectory,
     image,
     manifest,
@@ -204,6 +210,8 @@ export function runComposeWorkloadRehearsal() {
         release.environment,
         '--service-env-directory',
         release.serviceEnvironmentDirectory,
+        '--backup-evidence-file',
+        release.backupEvidenceFile,
         '--execute',
       ]);
     const attest = (release) =>
