@@ -51,6 +51,8 @@
     "check:providers": "node scripts/check-providers.mjs",
     "check:gitleaks-fixtures": "node scripts/check-gitleaks-fixtures.mjs",
     "check:production-runtime": "node scripts/deploy/verify-production-runtime.mjs",
+    "test:release-integrity": "node scripts/release/run-tests.mjs",
+    "check:release-integrity": "pnpm test:release-integrity",
     "check:runtime-package-manifests": "node --test scripts/deploy/write-runtime-package-manifests.test.mjs",
     "test:e2e:google-live-local": "node scripts/run-provider-live-acceptance.mjs google",
     "test:e2e:momo-sandbox": "node scripts/run-provider-live-acceptance.mjs momo",
