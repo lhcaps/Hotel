@@ -95,6 +95,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.61.1",
+    "@room/contracts": "workspace:*",
     "@room/eslint-config": "workspace:*",
     "@types/node": "24.10.1",
     "@typescript-eslint/eslint-plugin": "8.65.0",
