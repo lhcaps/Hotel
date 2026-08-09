@@ -21,6 +21,21 @@ Wave 1 adds immutable release manifests, migration provenance, service-specific 
 
 Fresh `pnpm test:release-integrity` result: 22 passed, 0 failed. The rehearsal command also exited 0. Detailed evidence: [WAVE1_RELEASE_REHEARSAL.md](WAVE1_RELEASE_REHEARSAL.md).
 
+## Hosted PR CI truth
+
+The first hosted CI evidence for PR #10 is **FAIL**, not a release-candidate approval. GitHub Actions run `31331742723` (PR head `e75b2c23b9080cccf19e26c9de7e8e51f1354c0a`, base `88ece32a32fe8a7b669aaddbd57d914c8ba5834c`, merge-test SHA `63df6791c46a57590cfec0e361f5f9f8aee97935`) passed install, format, lint, and typecheck, then stopped at `pnpm test:unit`. The later required jobs were skipped and are not PASS evidence.
+
+The root cause was Bash expansion of the unquoted contracts argument `dist/**` into `dist/src dist/test`; Vitest consumed `dist/src` as the exclude value and selected `dist/test` as a positional filter. Compiled tests then resolved repository-relative fixtures from `packages/contracts/dist/test` and failed. Contracts now uses `vitest run --dir test` (and the coverage equivalent), which positively scopes discovery to source tests. Its regression fails if a compiled `dist/test` copy executes.
+
+```text
+HOSTED_PR_CI=FAIL_BEFORE_CONTRACTS_DISCOVERY_FIX
+PR_HEAD_SHA=e75b2c23b9080cccf19e26c9de7e8e51f1354c0a
+PR_MERGE_TEST_SHA=63df6791c46a57590cfec0e361f5f9f8aee97935
+BASE_SHA=88ece32a32fe8a7b669aaddbd57d914c8ba5834c
+LOCAL_GATES=PASS_AFTER_CONTRACTS_DISCOVERY_FIX
+DEPENDENCY_SECURITY_GATE=FAIL_KNOWN_6_HIGH_FINDINGS
+```
+
 ## Fresh quality evidence
 
 | Gate                           | Command                                                           | Exit | Result                                                 |
