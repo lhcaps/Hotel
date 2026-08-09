@@ -33,6 +33,9 @@ export function preflightRelease({ checks }) {
 function pointerPath(root) {
   return join(root, 'current');
 }
+function releaseDirectoryName(releaseId) {
+  return releaseId.replace(':', '-');
+}
 function previousPointer(root) {
   return existsSync(pointerPath(root)) ? readFileSync(pointerPath(root), 'utf8').trim() : undefined;
 }
@@ -48,7 +51,7 @@ export function executeIsolatedDeploy({ targetRoot, releaseId, sourceDirectory, 
   if (!preflight.ok) return { status: 'FAIL', evidence, preflight };
   const root = resolve(targetRoot);
   const releases = join(root, 'releases');
-  const destination = join(releases, releaseId);
+  const destination = join(releases, releaseDirectoryName(releaseId));
   const temporary = `${destination}.partial`;
   const previous = previousPointer(root);
   try {
@@ -87,7 +90,7 @@ export function executeIsolatedDeploy({ targetRoot, releaseId, sourceDirectory, 
 
 export function executeIsolatedRollback({ targetRoot, targetReleaseId, checks, fault }) {
   const root = resolve(targetRoot);
-  const targetDirectory = join(root, 'releases', targetReleaseId);
+  const targetDirectory = join(root, 'releases', releaseDirectoryName(targetReleaseId));
   const preflight = preflightRelease({ checks });
   if (!existsSync(targetDirectory))
     return {
