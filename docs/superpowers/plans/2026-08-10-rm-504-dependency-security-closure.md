@@ -21,9 +21,11 @@
 ### Task 1: Lock the intended production dependency closure
 
 **Files:**
+
 - Create: `scripts/release/production-dependency-closure.test.mjs`
 
 **Interfaces:**
+
 - Consumes: root `package.json` and `apps/web/package.json` manifests.
 - Produces: a Node test executed by `pnpm test:release-integrity`.
 
@@ -61,11 +63,13 @@ Expected: FAIL until the manifest and lockfile change in Task 2.
 ### Task 2: Apply the smallest compatible dependency graph change
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `apps/web/package.json`
 - Modify: `pnpm-lock.yaml`
 
 **Interfaces:**
+
 - Consumes: Fastify parents declaring `fast-uri` ranges `^3.0.0` and `^4.0.0`, jsdom declaring `undici ^7.25.0`, cosmiconfig declaring `js-yaml ^4.1.0`, and PostCSS declaring `nanoid ^3.3.16`.
 - Produces: a production lockfile whose high/critical audit count is zero.
 
@@ -105,9 +109,11 @@ Expected: PASS.
 ### Task 3: Prove production-image closure and runtime behavior
 
 **Files:**
+
 - Modify: `docs/stabilization/DEPENDENCY_SECURITY_TRIAGE.md`
 
 **Interfaces:**
+
 - Consumes: the final Dockerfile runtime stage and the candidate dependency graph.
 - Produces: per-advisory image-presence and runtime-reachability evidence.
 
@@ -132,11 +138,13 @@ Expected: all pass without business-logic changes.
 ### Task 4: Refresh security records and complete local gates
 
 **Files:**
+
 - Modify: `docs/stabilization/DEPENDENCY_SECURITY_TRIAGE.md`
 - Modify: `docs/stabilization/WAVE1_RELEASE_INTEGRITY_REPORT.md`
 - Modify: `WAVE1_SUMMARY.txt`
 
 **Interfaces:**
+
 - Consumes: fresh audit, image inspection, lockfile diff, and full local command results.
 - Produces: a release record that distinguishes engineering readiness from production reconciliation.
 
@@ -159,9 +167,11 @@ Record original and final versions, parent ranges, override safety, final image 
 ### Task 5: Push and close the hosted evidence loop
 
 **Files:**
+
 - Modify: only files completed in Tasks 1-4.
 
 **Interfaces:**
+
 - Consumes: current draft PR #10.
 - Produces: one normal fast-forward push to `codex/stabilize-release-integrity`.
 
