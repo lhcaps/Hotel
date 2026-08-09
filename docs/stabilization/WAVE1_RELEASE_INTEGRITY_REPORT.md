@@ -75,6 +75,22 @@ integration subtree). API integration now positively targets
 further hosted rerun is required; all later steps of run 31334384885 were
 skipped after the unit failure and are not passing evidence.
 
+### Hosted rerun 31334811401: vertical API subprocess portability
+
+The source-scoped unit gate passed in hosted CI. Catalog integration then ran
+27 suites successfully before the vertical API smoke suite timed out. Its
+subprocess used the bare `pnpm` executable name and a hard-coded Windows
+working directory; GitHub's `pnpm/action-setup` exposes the actual executable
+through `PNPM_HOME`, so the child could not be launched on Linux.
+
+The vertical test now starts the API through its current Node runtime from its
+actual package directory, with the guarded test database URL supplied as the
+application database URL. It no longer relies on `pnpm --filter` or a relative
+environment-file path. The test still starts the API and performs all eight
+HTTP assertions. A hosted rerun is required; auth through E2E and the
+dependency audit were skipped after this catalog failure and are not passing
+evidence.
+
 ### Local post-fix verification
 
 Format, lint, typecheck, the full 16-task unit suite, auth/catalog
