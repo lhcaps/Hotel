@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "sha256:8724cd421517c1d51404eca4bee6f0d1863f936cf09ef5f7cd9397ded274638a",
+  "sourceSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "createdAt": "2026-08-10T00:00:00.000Z",
+  "images": {
+    "web": {
+      "repository": "registry.example/peacenest/web",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "api": {
+      "repository": "registry.example/peacenest/api",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "worker": {
+      "repository": "registry.example/peacenest/worker",
+      "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "paymentDemo": {
+      "repository": "registry.example/peacenest/payment-demo",
+      "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    }
+  },
+  "compose": { "sha256": "5555555555555555555555555555555555555555555555555555555555555555" },
+  "caddy": { "sha256": "6666666666666666666666666666666666666666666666666666666666666666" },
+  "migrations": {
+    "latest": "0029_operations_v3_pricing_policy_release.sql",
+    "aggregateSha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "rollbackCompatibleWith": []
+  },
+  "envSchema": { "sha256": "8888888888888888888888888888888888888888888888888888888888888888" }
+}

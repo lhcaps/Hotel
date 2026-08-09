@@ -1,14 +1,67 @@
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+
+import { hashFile } from './lib/canonical.mjs';
+import { createManifest } from './lib/manifest.mjs';
+import { deriveMigrationSet } from './lib/migrations.mjs';
+
 function printHelp() {
-  process.stdout.write(`Usage: node scripts/release/generate-release-manifest.mjs [options]\n\n`);
   process.stdout.write(
-    `Generates an immutable release manifest from verified release artifacts.\n`,
+    `Usage: node scripts/release/generate-release-manifest.mjs --release-directory <path> --source-sha <sha> --web-image <repository@digest> --api-image <repository@digest> --worker-image <repository@digest> --payment-demo-image <repository@digest> [options]\n\n`,
   );
+  process.stdout.write(`Options:\n`);
+  process.stdout.write(
+    `  --repository-root <path>  Repository containing immutable migration provenance (default: current directory)\n`,
+  );
+  process.stdout.write(`  --created-at <timestamp>  Manifest timestamp (default: current time)\n`);
 }
 
-if (process.argv.includes('--help') || process.argv.includes('-h')) {
-  printHelp();
-  process.exit(0);
+function readOption(name, required = true) {
+  const index = process.argv.indexOf(name);
+  const value = index === -1 ? undefined : process.argv[index + 1];
+  if (required && (value === undefined || value.startsWith('--'))) {
+    throw new Error(`${name} is required.`);
+  }
+  return value;
 }
 
-process.stderr.write('Use --help to view the release manifest generator interface.\n');
-process.exit(2);
+function parseImage(value, name) {
+  const separator = value.lastIndexOf('@');
+  if (separator <= 0 || separator === value.length - 1) {
+    throw new Error(`${name} must use repository@sha256:digest form.`);
+  }
+  return { repository: value.slice(0, separator), digest: value.slice(separator + 1) };
+}
+
+try {
+  if (process.argv.includes('--help') || process.argv.includes('-h')) {
+    printHelp();
+    process.exit(0);
+  }
+
+  const releaseDirectory = resolve(readOption('--release-directory'));
+  const repositoryRoot = resolve(readOption('--repository-root', false) ?? process.cwd());
+  const manifest = createManifest({
+    sourceSha: readOption('--source-sha'),
+    createdAt: readOption('--created-at', false) ?? new Date().toISOString(),
+    images: {
+      web: parseImage(readOption('--web-image'), 'web image'),
+      api: parseImage(readOption('--api-image'), 'api image'),
+      worker: parseImage(readOption('--worker-image'), 'worker image'),
+      paymentDemo: parseImage(readOption('--payment-demo-image'), 'payment-demo image'),
+    },
+    composeSha256: hashFile(join(releaseDirectory, 'docker-compose.production.yml')),
+    caddySha256: hashFile(join(releaseDirectory, 'deploy', 'Caddyfile')),
+    migrations: deriveMigrationSet(repositoryRoot),
+    envSchemaSha256: hashFile(join(releaseDirectory, 'deploy', 'environment-schema.json')),
+  });
+  const outputPath = join(releaseDirectory, 'release-manifest.json');
+  mkdirSync(dirname(outputPath), { recursive: true });
+  writeFileSync(outputPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  process.stdout.write(`RELEASE_MANIFEST_GENERATED=PASS\nRELEASE_ID=${manifest.releaseId}\n`);
+} catch (error) {
+  process.stderr.write(
+    `RELEASE_MANIFEST_GENERATED=FAIL\n${error instanceof Error ? error.message : String(error)}\n`,
+  );
+  process.exit(1);
+}
