@@ -1,11 +1,6 @@
 name: room-management
 
 x-app: &app
-  build:
-    context: .
-    args:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://example.invalid/api/v1}
-      RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
   restart: unless-stopped
   environment:
     RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
@@ -45,6 +40,7 @@ services:
 
   web:
     <<: *app
+    image: ${WEB_IMAGE:?WEB_IMAGE must name an immutable web image}
     env_file:
       - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/web.env
         required: true
@@ -59,6 +55,7 @@ services:
 
   payment-demo:
     <<: *app
+    image: ${PAYMENT_DEMO_IMAGE:?PAYMENT_DEMO_IMAGE must name an immutable payment-demo image}
     env_file:
       - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/payment-demo.env
         required: true
@@ -73,6 +70,7 @@ services:
 
   api:
     <<: *app
+    image: ${API_IMAGE:?API_IMAGE must name an immutable api image}
     env_file:
       - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/api.env
         required: true
@@ -107,6 +105,7 @@ services:
 
   worker:
     <<: *app
+    image: ${WORKER_IMAGE:?WORKER_IMAGE must name an immutable worker image}
     env_file:
       - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/worker.env
         required: true
@@ -122,6 +121,7 @@ services:
 
   migrate:
     <<: *app
+    image: ${API_IMAGE:?API_IMAGE must name the immutable api image used for migration}
     env_file:
       - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/migrate.env
         required: true

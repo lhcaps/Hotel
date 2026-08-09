@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { executeIsolatedRollback, preflightRelease } from './lib/release-state.mjs';
+import {
+  executeIsolatedRollback,
+  preflightRelease,
+  releaseDirectoryName,
+} from './lib/release-state.mjs';
 
 function option(name, required = false) {
   const i = process.argv.indexOf(name);
@@ -22,7 +26,7 @@ try {
   );
   const releaseId = option('--target-release-id', true);
   const manifestExists = existsSync(
-    resolve(targetRoot, 'releases', releaseId, 'release-manifest.json'),
+    resolve(targetRoot, 'releases', releaseDirectoryName(releaseId), 'release-manifest.json'),
   );
   const preflight = preflightRelease({
     checks: {

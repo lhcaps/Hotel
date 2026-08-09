@@ -33,7 +33,7 @@ export function preflightRelease({ checks }) {
 function pointerPath(root) {
   return join(root, 'current');
 }
-function releaseDirectoryName(releaseId) {
+export function releaseDirectoryName(releaseId) {
   return releaseId.replace(':', '-');
 }
 function previousPointer(root) {
