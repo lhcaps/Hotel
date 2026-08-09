@@ -2,6 +2,18 @@
 
 ## Outcome
 
+## 2026-08-10 local E2E and RM-504 closure update
+
+The Playwright worker previously attempted to execute the raw TypeScript export of `@room/contracts`. The test runtime now has an explicit workspace dependency and ESM boundary, covered by `tests/e2e/contracts-runtime-resolution.spec.ts`. A separate SSR hydration guard prevents the guest OTP form from performing a native submission before React owns it under full-suite load.
+
+Fresh local evidence: frozen install, format, lint, typecheck, unit, catalog, auth, pricing, availability, quotes, OpenAPI, DB check/test, high-severity dependency audit, redacted branch-scoped secret scan, build, release integrity, Storybook, web unit, full E2E, production-image runtime verification, and the A/B rollback rehearsal all passed. Full E2E: 168 primary tests plus 1 unavailable-state test, 0 failures. The same frozen-install full E2E run passed in an isolated clean worktree.
+
+`RM504_STATUS=PASS`
+`LOCAL_E2E=PASS`
+`HOSTED_CI_AFTER_SECURITY_FIX=NOT_YET_RUN`
+`PRODUCTION_RECONCILIATION_EXECUTED=NO`
+`FINAL_APPROVED_RELEASE_SHA=NOT_APPROVED`
+
 **TOOLING_READY=YES: canonical isolated Compose release validation.**
 **PRODUCTION_RECONCILED=NO.** Production remains untouched and is demonstrably mixed.
 

@@ -1,5 +1,12 @@
 # Dependency security triage
 
+## RM-504 closure update (2026-08-10)
+
+The remediation in `6cb3873` is verified by a fresh `pnpm audit --prod --audit-level=high`: 0 high and 0 critical findings (the audit reports only 1 low and 2 moderate findings). The dependency regression remains enforced by `pnpm check:release-integrity`.
+
+`RM504_STATUS=PASS`
+`DEPENDENCY_AUDIT=PASS_HIGH_0_CRITICAL_0`
+
 Fresh command: `pnpm audit --prod --audit-level=high --json` on 2026-08-10. Exit code: `1`. Result: 6 HIGH findings, 0 critical, 820 production dependencies. No dependency update was made in Wave 1.
 
 | Advisory                             | Package / current     | Dependency path                                                                  | Direct     | Runtime reachability | Affected service               | Patched version | Recommended action                                                                             |
