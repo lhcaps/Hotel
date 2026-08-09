@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { evaluateTopology } from './lib/topology.mjs';
+import { dockerSnapshot } from './lib/docker-snapshot.mjs';
 
 function option(name, required = false) {
   const index = process.argv.indexOf(name);
@@ -13,14 +14,17 @@ function option(name, required = false) {
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
   process.stdout.write(
-    'Usage: node scripts/release/check-release-topology.mjs --manifest <path> --snapshot <path> [--strict]\n',
+    'Usage: node scripts/release/check-release-topology.mjs --manifest <path> (--snapshot <path> | --target docker --project <compose-project>) [--strict]\n',
   );
   process.exit(0);
 }
 
 try {
   const manifest = JSON.parse(readFileSync(resolve(option('--manifest', true)), 'utf8'));
-  const runtimeSnapshot = JSON.parse(readFileSync(resolve(option('--snapshot', true)), 'utf8'));
+  const runtimeSnapshot =
+    option('--target') === 'docker'
+      ? dockerSnapshot({ manifest, project: option('--project', true) })
+      : JSON.parse(readFileSync(resolve(option('--snapshot', true)), 'utf8'));
   const report = evaluateTopology({
     manifest,
     runtimeSnapshot,

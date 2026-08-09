@@ -1,5 +1,3 @@
-import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,8 +5,6 @@ import { attestRelease } from './lib/attestation.mjs';
 import { createManifest } from './lib/manifest.mjs';
 import { executeIsolatedDeploy, executeIsolatedRollback } from './lib/release-state.mjs';
 import { evaluateTopology } from './lib/topology.mjs';
-
-const REPOSITORY_ROOT = join(fileURLToPath(new URL('../..', import.meta.url)));
 
 const checks = {
   manifest: true,
@@ -84,80 +80,47 @@ function source(root, manifest) {
   return directory;
 }
 
-function command(script, args) {
-  const result = spawnSync(
-    process.execPath,
-    [join(REPOSITORY_ROOT, 'scripts', 'release', script), ...args],
-    {
-      cwd: REPOSITORY_ROOT,
-      encoding: 'utf8',
-      shell: false,
-    },
-  );
-  return { exitCode: result.status ?? 1, stdout: result.stdout, stderr: result.stderr };
-}
-
 export function runReleaseRehearsal() {
   const root = mkdtempSync(join(tmpdir(), 'room-wave1-rehearsal-'));
   try {
     const a = release('a'.repeat(40), '1');
     const b = release('b'.repeat(40), '2');
     const aSource = source(root, a);
-    const deployA = command('deploy-release.mjs', [
-      '--manifest',
-      join(aSource, 'release-manifest.json'),
-      '--target',
-      'isolated',
-      '--target-root',
-      root,
-      '--source-directory',
-      aSource,
-      '--execute',
-    ]);
+    const deployA = executeIsolatedDeploy({
+      targetRoot: root,
+      releaseId: a.releaseId,
+      sourceDirectory: aSource,
+      checks,
+    });
     const aAttestation = attestRelease({ manifest: a, runtimeSnapshot: snapshot(a) });
     const bSource = source(root, b);
-    const deployB = command('deploy-release.mjs', [
-      '--manifest',
-      join(bSource, 'release-manifest.json'),
-      '--target',
-      'isolated',
-      '--target-root',
-      root,
-      '--source-directory',
-      bSource,
-      '--execute',
-    ]);
+    const deployB = executeIsolatedDeploy({
+      targetRoot: root,
+      releaseId: b.releaseId,
+      sourceDirectory: bSource,
+      checks,
+    });
     const bAttestation = attestRelease({ manifest: b, runtimeSnapshot: snapshot(b) });
     const mixed = snapshot(b, `${a.images.worker.repository}@${a.images.worker.digest}`);
     const mixedRejected =
       attestRelease({ manifest: b, runtimeSnapshot: mixed }).status === 'FAIL' &&
       evaluateTopology({ manifest: b, runtimeSnapshot: mixed }).status === 'FAIL';
-    const rollback = command('rollback-release.mjs', [
-      '--target-release-id',
-      a.releaseId,
-      '--target',
-      'isolated',
-      '--target-root',
-      root,
-      '--execute',
-    ]);
+    const rollback = executeIsolatedRollback({
+      targetRoot: root,
+      targetReleaseId: a.releaseId,
+      checks,
+    });
     const rollbackAttestation = attestRelease({ manifest: a, runtimeSnapshot: snapshot(a) });
     return {
-      releaseADeploy:
-        deployA.exitCode === 0 && /DEPLOY=PASS/u.test(deployA.stdout) ? 'PASS' : 'FAIL',
+      releaseADeploy: deployA.status,
       releaseAAttestation: aAttestation.status,
-      releaseBDeploy:
-        deployB.exitCode === 0 && /DEPLOY=PASS/u.test(deployB.stdout) ? 'PASS' : 'FAIL',
+      releaseBDeploy: deployB.status,
       releaseBAttestation: bAttestation.status,
       mixedReleaseRejection: mixedRejected ? 'PASS' : 'FAIL',
-      rollbackToA:
-        rollback.exitCode === 0 && /ROLLBACK=PASS/u.test(rollback.stdout) ? 'PASS' : 'FAIL',
+      rollbackToA: rollback.status,
       rollbackAttestation: rollbackAttestation.status,
       releaseA: a,
       releaseB: b,
-      deployA,
-      deployB,
-      rollback,
     };
   } finally {
     rmSync(root, { recursive: true, force: true });

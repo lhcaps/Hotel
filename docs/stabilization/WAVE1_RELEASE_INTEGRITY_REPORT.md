@@ -2,7 +2,7 @@
 
 ## Outcome
 
-**TOOLING_READY=PARTIAL: isolated governed-release validation only.**  
+**TOOLING_READY=YES: canonical isolated Compose release validation.**
 **PRODUCTION_RECONCILED=NO.** Production remains untouched and is demonstrably mixed.
 
 Wave 1 adds immutable release manifests, migration provenance, service-specific environment validation, strict attestation/topology checks, explicit isolated deploy/rollback phases, and an executable A/B/rollback/mixed-state rehearsal.
@@ -33,6 +33,7 @@ Fresh `pnpm test:release-integrity` result: 22 passed, 0 failed. The rehearsal c
 | Pricing / availability / quote | `pnpm test:pricing`, `pnpm test:availability`, `pnpm test:quotes` |    0 | PASS; 30 / 5 / 3 tests                                 |
 | OpenAPI / migration schema     | `pnpm check:openapi`, `pnpm db:check`                             |    0 | PASS                                                   |
 | Release integrity              | `pnpm test:release-integrity`                                     |    0 | PASS; 22 tests                                         |
+| Compose workload rehearsal     | `node scripts/release/rehearse-compose-workload.mjs`              |    0 | PASS; A/B, mixed rejection, restore, governed rollback |
 | Build                          | `pnpm turbo build --force`                                        |    0 | PASS; 10 package tasks                                 |
 | Dependency audit               | `pnpm audit --prod --audit-level=high --json`                     |    1 | FAIL_KNOWN_SECURITY_FINDINGS; 6 HIGH                   |
 | Secret scan                    | redacted Gitleaks source scan                                     |    0 | PASS; 0 findings                                       |
@@ -47,11 +48,10 @@ The reconciliation procedure is intentionally a plan, not an execution: [PEACENE
 
 ## Remaining gaps and blockers
 
-1. Docker-backed workload rehearsal remains a hardening follow-up. The current executable rehearsal operates the isolated release artifact/state adapter, not a production-like database/application Compose workload.
-2. Production reconciliation is not authorized and must not be inferred from local tests.
-3. Dependency audit remains failed with six HIGH findings; see [DEPENDENCY_SECURITY_TRIAGE.md](DEPENDENCY_SECURITY_TRIAGE.md).
-4. Branch-protection configuration is external to this repository and needs repository-administrator confirmation.
+1. Production reconciliation is not authorized and must not be inferred from local tests.
+2. Dependency audit remains failed with six HIGH findings; see [DEPENDENCY_SECURITY_TRIAGE.md](DEPENDENCY_SECURITY_TRIAGE.md).
+3. Branch-protection configuration is external to this repository and needs repository-administrator confirmation.
 
-`CANONICAL_RELEASE_TOOLING_READY=PARTIAL_ISOLATED_TARGET_ONLY`  
+`CANONICAL_RELEASE_TOOLING_READY=YES`
 `LIVE_PRODUCTION_RECONCILIATION=NOT_EXECUTED`  
 `WAITING_FOR=HUMAN_REVIEW_OF_WAVE1_AND_EXPLICIT_PRODUCTION_RECONCILIATION_APPROVAL`

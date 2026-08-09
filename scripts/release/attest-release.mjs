@@ -1,8 +1,8 @@
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { attestRelease } from './lib/attestation.mjs';
+import { dockerSnapshot } from './lib/docker-snapshot.mjs';
 
 function option(name, required = false) {
   const index = process.argv.indexOf(name);
@@ -14,37 +14,8 @@ function option(name, required = false) {
 
 function printHelp() {
   process.stdout.write(
-    'Usage: node scripts/release/attest-release.mjs --manifest <path> --target <local|docker> [--snapshot <path>] [--json] [--strict]\n',
+    'Usage: node scripts/release/attest-release.mjs --manifest <path> --target <local|docker> [--snapshot <path> | --project <compose-project>] [--json] [--strict]\n',
   );
-}
-
-function dockerSnapshot() {
-  const identifiers = execFileSync('docker', ['ps', '--quiet'], { encoding: 'utf8' })
-    .split(/\r?\n/u)
-    .filter(Boolean);
-  const inspected =
-    identifiers.length === 0
-      ? []
-      : JSON.parse(execFileSync('docker', ['inspect', ...identifiers], { encoding: 'utf8' }));
-  const services = Object.fromEntries(
-    inspected
-      .map((container) => [container.Config?.Labels?.['com.docker.compose.service'], container])
-      .filter(([service]) => typeof service === 'string')
-      .map(([service, container]) => [
-        service,
-        {
-          image: container.RepoDigests?.[0] ?? container.Image,
-          releaseId:
-            container.Config?.Labels?.RELEASE_ID ??
-            container.Config?.Env?.find((entry) => entry.startsWith('RELEASE_ID='))?.slice(
-              'RELEASE_ID='.length,
-            ),
-          workingDirectory: container.Config?.Labels?.['com.docker.compose.project.working_dir'],
-          state: container.State?.Running ? 'running' : container.State?.Status,
-        },
-      ]),
-  );
-  return { services, migrationCompleted: false };
 }
 
 try {
@@ -58,7 +29,7 @@ try {
   const runtimeSnapshot =
     target === 'local'
       ? JSON.parse(readFileSync(resolve(option('--snapshot', true)), 'utf8'))
-      : dockerSnapshot();
+      : dockerSnapshot({ manifest, project: option('--project', true) });
   const report = attestRelease({ manifest, runtimeSnapshot });
   const output = process.argv.includes('--json')
     ? JSON.stringify(report, null, 2)
