@@ -17,7 +17,11 @@ const manifest = createManifest({
   },
   composeSha256: '5'.repeat(64),
   caddySha256: '6'.repeat(64),
-  migrations: { latest: '0000_test.sql', aggregateSha256: '7'.repeat(64), rollbackCompatibleWith: [] },
+  migrations: {
+    latest: '0000_test.sql',
+    aggregateSha256: '7'.repeat(64),
+    rollbackCompatibleWith: [],
+  },
   envSchemaSha256: '8'.repeat(64),
 });
 
@@ -30,13 +34,48 @@ function snapshot() {
     caddySha256: manifest.caddy.sha256,
     migrationCompleted: true,
     services: {
-      caddy: { image: 'caddy@sha256:edge', releaseId: manifest.releaseId, workingDirectory: releaseDirectory, state: 'running' },
-      web: { image: `registry.example/web@${digest('1')}`, releaseId: manifest.releaseId, workingDirectory: releaseDirectory, state: 'running' },
-      api: { image: `registry.example/api@${digest('2')}`, releaseId: manifest.releaseId, workingDirectory: releaseDirectory, state: 'running' },
-      worker: { image: `registry.example/worker@${digest('3')}`, releaseId: manifest.releaseId, workingDirectory: releaseDirectory, state: 'running' },
-      'payment-demo': { image: `registry.example/payment-demo@${digest('4')}`, releaseId: manifest.releaseId, workingDirectory: releaseDirectory, state: 'running' },
-      postgres: { image: 'postgres@sha256:data', releaseId: manifest.releaseId, workingDirectory: releaseDirectory, state: 'running' },
-      redis: { image: 'redis@sha256:cache', releaseId: manifest.releaseId, workingDirectory: releaseDirectory, state: 'running' },
+      caddy: {
+        image: 'caddy@sha256:edge',
+        releaseId: manifest.releaseId,
+        workingDirectory: releaseDirectory,
+        state: 'running',
+      },
+      web: {
+        image: `registry.example/web@${digest('1')}`,
+        releaseId: manifest.releaseId,
+        workingDirectory: releaseDirectory,
+        state: 'running',
+      },
+      api: {
+        image: `registry.example/api@${digest('2')}`,
+        releaseId: manifest.releaseId,
+        workingDirectory: releaseDirectory,
+        state: 'running',
+      },
+      worker: {
+        image: `registry.example/worker@${digest('3')}`,
+        releaseId: manifest.releaseId,
+        workingDirectory: releaseDirectory,
+        state: 'running',
+      },
+      'payment-demo': {
+        image: `registry.example/payment-demo@${digest('4')}`,
+        releaseId: manifest.releaseId,
+        workingDirectory: releaseDirectory,
+        state: 'running',
+      },
+      postgres: {
+        image: 'postgres@sha256:data',
+        releaseId: manifest.releaseId,
+        workingDirectory: releaseDirectory,
+        state: 'running',
+      },
+      redis: {
+        image: 'redis@sha256:cache',
+        releaseId: manifest.releaseId,
+        workingDirectory: releaseDirectory,
+        state: 'running',
+      },
     },
   };
 }

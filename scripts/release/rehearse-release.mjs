@@ -85,11 +85,15 @@ function source(root, manifest) {
 }
 
 function command(script, args) {
-  const result = spawnSync(process.execPath, [join(REPOSITORY_ROOT, 'scripts', 'release', script), ...args], {
-    cwd: REPOSITORY_ROOT,
-    encoding: 'utf8',
-    shell: false,
-  });
+  const result = spawnSync(
+    process.execPath,
+    [join(REPOSITORY_ROOT, 'scripts', 'release', script), ...args],
+    {
+      cwd: REPOSITORY_ROOT,
+      encoding: 'utf8',
+      shell: false,
+    },
+  );
   return { exitCode: result.status ?? 1, stdout: result.stdout, stderr: result.stderr };
 }
 
@@ -139,12 +143,15 @@ export function runReleaseRehearsal() {
     ]);
     const rollbackAttestation = attestRelease({ manifest: a, runtimeSnapshot: snapshot(a) });
     return {
-      releaseADeploy: deployA.exitCode === 0 && /DEPLOY=PASS/u.test(deployA.stdout) ? 'PASS' : 'FAIL',
+      releaseADeploy:
+        deployA.exitCode === 0 && /DEPLOY=PASS/u.test(deployA.stdout) ? 'PASS' : 'FAIL',
       releaseAAttestation: aAttestation.status,
-      releaseBDeploy: deployB.exitCode === 0 && /DEPLOY=PASS/u.test(deployB.stdout) ? 'PASS' : 'FAIL',
+      releaseBDeploy:
+        deployB.exitCode === 0 && /DEPLOY=PASS/u.test(deployB.stdout) ? 'PASS' : 'FAIL',
       releaseBAttestation: bAttestation.status,
       mixedReleaseRejection: mixedRejected ? 'PASS' : 'FAIL',
-      rollbackToA: rollback.exitCode === 0 && /ROLLBACK=PASS/u.test(rollback.stdout) ? 'PASS' : 'FAIL',
+      rollbackToA:
+        rollback.exitCode === 0 && /ROLLBACK=PASS/u.test(rollback.stdout) ? 'PASS' : 'FAIL',
       rollbackAttestation: rollbackAttestation.status,
       releaseA: a,
       releaseB: b,

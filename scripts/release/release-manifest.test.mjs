@@ -15,6 +15,14 @@ const DIGEST_B = `sha256:${'2'.repeat(64)}`;
 const DIGEST_C = `sha256:${'3'.repeat(64)}`;
 const DIGEST_D = `sha256:${'4'.repeat(64)}`;
 
+test('canonical production Compose requires explicit immutable application image inputs', () => {
+  const compose = readFileSync('docker-compose.production.yml', 'utf8');
+  assert.doesNotMatch(compose, /^x-app:\s*&app\r?\n\s+build:/mu);
+  for (const imageVariable of ['WEB_IMAGE', 'API_IMAGE', 'WORKER_IMAGE', 'PAYMENT_DEMO_IMAGE']) {
+    assert.match(compose, new RegExp(`\\$\\{${imageVariable}:\\?`, 'u'));
+  }
+});
+
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
 }

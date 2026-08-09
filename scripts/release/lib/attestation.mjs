@@ -14,7 +14,12 @@ export function attestRelease({ manifest, runtimeSnapshot }) {
       if (actual.releaseId !== manifest.releaseId) checks.push('release-id');
       if (actual.workingDirectory !== expectedDirectory) checks.push('compose-ownership');
       const imageName = APP_IMAGES[service];
-      if (imageName && actual.image !== `${manifest.images[imageName].repository}@${manifest.images[imageName].digest}`) checks.push('image');
+      if (
+        imageName &&
+        actual.image !==
+          `${manifest.images[imageName].repository}@${manifest.images[imageName].digest}`
+      )
+        checks.push('image');
     }
     services[service] = { match: checks.length === 0, checks };
     if (checks.length > 0) failures.push(`${service}:${checks.join(',')}`);
