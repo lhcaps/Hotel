@@ -133,16 +133,18 @@ describe('unified room inventory blocks', () => {
         [IDS.property, IDS.otherRoom, bookingOne],
       );
 
-      const losingInsert = second.query(
-        `INSERT INTO room_inventory_blocks
-           (property_id, room_id, booking_id, block_type, status, starts_at, ends_at)
-         VALUES ($1, $2, $3, 'BOOKING', 'ACTIVE', '2027-03-01T05:00:00Z', '2027-03-01T07:00:00Z')`,
-        [IDS.property, IDS.otherRoom, bookingTwo],
-      );
+      const losingInsert = second
+        .query(
+          `INSERT INTO room_inventory_blocks
+             (property_id, room_id, booking_id, block_type, status, starts_at, ends_at)
+           VALUES ($1, $2, $3, 'BOOKING', 'ACTIVE', '2027-03-01T05:00:00Z', '2027-03-01T07:00:00Z')`,
+          [IDS.property, IDS.otherRoom, bookingTwo],
+        )
+        .catch((error: unknown) => error);
       await setTimeout(50);
       await first.query('COMMIT');
 
-      const raceError = await losingInsert.catch((error: unknown) => error);
+      const raceError = await losingInsert;
       expect(postgresErrorCode(raceError)).toBe('23P01');
       await second.query('ROLLBACK');
     } finally {
