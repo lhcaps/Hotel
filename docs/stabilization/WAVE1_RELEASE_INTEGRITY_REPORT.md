@@ -26,7 +26,7 @@ Fresh `pnpm test:release-integrity` result: 22 passed, 0 failed. The rehearsal c
 | Gate                           | Command                                                           | Exit | Result                                                 |
 | ------------------------------ | ----------------------------------------------------------------- | ---: | ------------------------------------------------------ |
 | Format                         | `pnpm format:check`                                               |    0 | PASS                                                   |
-| Lint                           | `pnpm lint`                                                       |    0 | PASS                                                   |
+| Lint                           | `pnpm turbo lint --force`                                         |    0 | PASS; 10 package tasks, zero cache hits                |
 | Typecheck                      | `pnpm turbo typecheck --force`                                    |    0 | PASS                                                   |
 | Unit                           | `pnpm turbo test:unit --force --concurrency=1`                    |    0 | PASS; 16 package tasks                                 |
 | Auth/RBAC and integration      | `pnpm test:integration`                                           |    0 | PASS; 23 auth + 9 API auth + 178 API integration tests |
