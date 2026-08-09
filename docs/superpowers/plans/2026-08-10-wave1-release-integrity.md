@@ -22,26 +22,26 @@
 
 ## File Structure
 
-| Path | Responsibility |
-| --- | --- |
-| .github/workflows/ci.yml | Deterministic CI bootstrap and Wave 1 gates |
-| deploy/release-manifest.schema.json | Machine-readable manifest contract |
-| deploy/release-manifest.example.json | Redacted immutable example |
-| deploy/environment-schema.json | Value-free key inventory, classification, allowlists, production rules |
-| docker-compose.production.yml | Canonical service-specific environment-file references |
-| scripts/release/lib/canonical.mjs | Canonical JSON, SHA-256, parsing, safe error primitives |
-| scripts/release/lib/migrations.mjs | Existing-provenance migration-set derivation |
-| scripts/release/lib/manifest.mjs | Manifest construction and artifact verification |
-| scripts/release/lib/environment.mjs | Key inventory, allowlist validation, safe environment rendering |
-| scripts/release/lib/topology.mjs | Canonical Compose and runtime topology rules |
-| scripts/release/lib/attestation.mjs | Full-service sanitized runtime comparison |
-| scripts/release/lib/release-state.mjs | Atomic target-root state transitions and deterministic failure handling |
-| scripts/release/lib/preflight.mjs | Deploy and rollback preflight plans |
-| scripts/release/*.mjs | Generate, verify, validate, render, attest, deploy, rollback, rehearse CLIs |
-| scripts/release/*.test.mjs | Behavior-focused Node test suites |
-| docs/audit/WAVE1_CURRENT_RELEASE_PIPELINE.md | Intended versus actual pipeline and script classification |
-| docs/stabilization/*.md | Wave 0 truth, Wave 1 report, dependency triage, reconciliation plan |
-| WAVE1_SUMMARY.txt | Exact final release-integrity status and gate outcomes |
+| Path                                         | Responsibility                                                              |
+| -------------------------------------------- | --------------------------------------------------------------------------- |
+| .github/workflows/ci.yml                     | Deterministic CI bootstrap and Wave 1 gates                                 |
+| deploy/release-manifest.schema.json          | Machine-readable manifest contract                                          |
+| deploy/release-manifest.example.json         | Redacted immutable example                                                  |
+| deploy/environment-schema.json               | Value-free key inventory, classification, allowlists, production rules      |
+| docker-compose.production.yml                | Canonical service-specific environment-file references                      |
+| scripts/release/lib/canonical.mjs            | Canonical JSON, SHA-256, parsing, safe error primitives                     |
+| scripts/release/lib/migrations.mjs           | Existing-provenance migration-set derivation                                |
+| scripts/release/lib/manifest.mjs             | Manifest construction and artifact verification                             |
+| scripts/release/lib/environment.mjs          | Key inventory, allowlist validation, safe environment rendering             |
+| scripts/release/lib/topology.mjs             | Canonical Compose and runtime topology rules                                |
+| scripts/release/lib/attestation.mjs          | Full-service sanitized runtime comparison                                   |
+| scripts/release/lib/release-state.mjs        | Atomic target-root state transitions and deterministic failure handling     |
+| scripts/release/lib/preflight.mjs            | Deploy and rollback preflight plans                                         |
+| scripts/release/*.mjs                        | Generate, verify, validate, render, attest, deploy, rollback, rehearse CLIs |
+| scripts/release/*.test.mjs                   | Behavior-focused Node test suites                                           |
+| docs/audit/WAVE1_CURRENT_RELEASE_PIPELINE.md | Intended versus actual pipeline and script classification                   |
+| docs/stabilization/*.md                      | Wave 0 truth, Wave 1 report, dependency triage, reconciliation plan         |
+| WAVE1_SUMMARY.txt                            | Exact final release-integrity status and gate outcomes                      |
 
 ### Task 1: Repair CI bootstrap and establish release-tool test commands
 
@@ -61,13 +61,16 @@
 
 - [ ] **Step 1: Write the failing CLI-help test**
 
-~~~js
+```js
 test('release CLI help does not require target or environment input', () => {
-  const result = spawnSync(process.execPath, ['scripts/release/generate-release-manifest.mjs', '--help']);
+  const result = spawnSync(process.execPath, [
+    'scripts/release/generate-release-manifest.mjs',
+    '--help',
+  ]);
   assert.equal(result.status, 0);
   assert.match(result.stdout, /Usage:/);
 });
-~~~
+```
 
 - [ ] **Step 2: Run the test to verify it fails**
 
@@ -77,16 +80,16 @@ Expected: FAIL because the release CLI is absent.
 
 - [ ] **Step 3: Add minimal CLI help and package test commands**
 
-~~~json
+```json
 {
   "test:release-integrity": "node --test scripts/release/*.test.mjs",
   "check:release-integrity": "pnpm test:release-integrity"
 }
-~~~
+```
 
 - [ ] **Step 4: Repair workflow ordering and add mandatory release checks**
 
-~~~yaml
+```yaml
 - uses: pnpm/action-setup@v4
   with:
     version: 10.33.2
@@ -94,7 +97,7 @@ Expected: FAIL because the release CLI is absent.
   with:
     node-version: 24.18.0
     cache: pnpm
-~~~
+```
 
 Keep checkout, package setup, Node/cache, frozen install, format, lint, typecheck, unit, integration/auth, pricing/availability/quote, OpenAPI, migration/schema, dependency audit, secret scan, build, and Wave 1 checks in that order.
 
@@ -108,10 +111,10 @@ Expected: PASS.
 
 Commit:
 
-~~~bash
+```bash
 git add .github/workflows/ci.yml package.json scripts/release
 git commit -m "ci: bootstrap pnpm before cache and add release gates"
-~~~
+```
 
 ### Task 2: Implement immutable manifest identity and migration provenance verification
 
@@ -132,7 +135,7 @@ git commit -m "ci: bootstrap pnpm before cache and add release gates"
 
 - [ ] **Step 1: Write failing tests for identity stability and artifact mismatch**
 
-~~~js
+```js
 test('createdAt does not change immutable release identity', () => {
   assert.equal(
     createManifest({ ...baseInput, createdAt: '2026-08-10T00:00:00.000Z' }).releaseId,
@@ -144,7 +147,7 @@ test('verification rejects a changed Compose artifact', () => {
   writeFileSync(join(releaseDirectory, 'docker-compose.production.yml'), 'services: {}\n');
   assert.throws(() => verifyManifest({ manifest, releaseDirectory }), /Compose digest/);
 });
-~~~
+```
 
 Add independent tests for malformed SHA, missing service, mutable image, changed Caddy, migration change, environment-schema change, and manifest tampering.
 
@@ -156,11 +159,17 @@ Expected: FAIL because manifest functions are absent.
 
 - [ ] **Step 3: Implement canonical identity and provenance checks**
 
-~~~js
-export function canonicalJson(value) { /* recursive lexical object-key sort */ }
-export function sha256(value) { /* lowercase SHA-256 hex */ }
-export function releaseIdentity(manifest) { /* omit createdAt and releaseId */ }
-~~~
+```js
+export function canonicalJson(value) {
+  /* recursive lexical object-key sort */
+}
+export function sha256(value) {
+  /* lowercase SHA-256 hex */
+}
+export function releaseIdentity(manifest) {
+  /* omit createdAt and releaseId */
+}
+```
 
 Verify every SQL migration against its provenance hash, verify journal order, and hash verified index/filename/digest tuples in index order.
 
@@ -176,10 +185,10 @@ Expected: PASS.
 
 Commit:
 
-~~~bash
+```bash
 git add deploy/release-manifest.schema.json deploy/release-manifest.example.json scripts/release package.json
 git commit -m "feat: add immutable release manifest verification"
-~~~
+```
 
 ### Task 3: Implement source-derived environment schema and per-service allowlists
 
@@ -200,15 +209,31 @@ git commit -m "feat: add immutable release manifest verification"
 
 - [ ] **Step 1: Write failing allowlist and unsafe-value tests**
 
-~~~js
+```js
 test('web rejects database configuration even with a valid browser origin', () => {
-  assert.throws(() => renderServiceEnvironments({ values: { ...valid, DATABASE_URL: 'postgres://synthetic' }, schema, destinationDirectory }), /web.*DATABASE_URL/i);
+  assert.throws(
+    () =>
+      renderServiceEnvironments({
+        values: { ...valid, DATABASE_URL: 'postgres://synthetic' },
+        schema,
+        destinationDirectory,
+      }),
+    /web.*DATABASE_URL/i,
+  );
 });
 
 test('real production rejects an invalid SMTP host without exposing its value', () => {
-  assert.throws(() => validateEnvironment({ values: { ...valid, SMTP_HOST: 'smtp.pending.invalid' }, schema, deploymentClass: 'real-production' }), /SMTP_HOST/);
+  assert.throws(
+    () =>
+      validateEnvironment({
+        values: { ...valid, SMTP_HOST: 'smtp.pending.invalid' },
+        schema,
+        deploymentClass: 'real-production',
+      }),
+    /SMTP_HOST/,
+  );
 });
-~~~
+```
 
 Cover Caddy, payment-demo, worker, Postgres, Redis, unclassified keys, empty critical secrets, loopback origins, wildcard CORS, development defaults, missing release ID, and demo payment authority.
 
@@ -226,11 +251,11 @@ Read key names from deploy/.env.production.example, packages/config/src/index.ts
 
 Write only allowed keys to each service file. Restrict file permissions where supported. Report key names and counts only.
 
-~~~yaml
+```yaml
 env_file:
   - path: RELEASE_ENV_DIR/api.env
     required: true
-~~~
+```
 
 Apply an equivalent explicit file for each canonical service and remove global shared secret inheritance.
 
@@ -244,10 +269,10 @@ Expected: PASS using example values only.
 
 Commit:
 
-~~~bash
+```bash
 git add deploy/environment-schema.json docker-compose.production.yml scripts/release
 git commit -m "feat: enforce per-service release environment allowlists"
-~~~
+```
 
 ### Task 4: Implement canonical topology checks and complete release attestation
 
@@ -267,13 +292,18 @@ git commit -m "feat: enforce per-service release environment allowlists"
 
 - [ ] **Step 1: Write failing mixed-worker attestation test**
 
-~~~js
+```js
 test('worker digest mismatch fails attestation while other services match', () => {
-  const report = attestRelease({ manifest, releaseDirectory, runtimeSnapshot: mixedWorkerSnapshot, currentPointer });
+  const report = attestRelease({
+    manifest,
+    releaseDirectory,
+    runtimeSnapshot: mixedWorkerSnapshot,
+    currentPointer,
+  });
   assert.equal(report.status, 'FAIL');
   assert.equal(report.services.worker.match, false);
 });
-~~~
+```
 
 Add independent cases for missing canonical service, staging ownership, pointer mismatch, mutable app image, shared release mismatch, Compose mismatch, Caddy mismatch, unexpected service, and failed migration evidence.
 
@@ -299,10 +329,10 @@ Expected: PASS.
 
 Commit:
 
-~~~bash
+```bash
 git add scripts/release package.json
 git commit -m "feat: attest complete release topology"
-~~~
+```
 
 ### Task 5: Implement governed deploy, rollback, and isolated failure rehearsal
 
@@ -325,13 +355,19 @@ git commit -m "feat: attest complete release topology"
 
 - [ ] **Step 1: Write failing interruption test**
 
-~~~js
+```js
 test('interrupted candidate deployment leaves current pointer at release A', () => {
-  const result = executeReleasePlan(planDeploy({ candidate: releaseB, previous: releaseA }), failingAdapter({ failAt: 'start-complete-set' }));
+  const result = executeReleasePlan(
+    planDeploy({ candidate: releaseB, previous: releaseA }),
+    failingAdapter({ failAt: 'start-complete-set' }),
+  );
   assert.equal(result.status, 'FAIL');
-  assert.equal(readlinkSync(join(targetRoot, 'current')), join(targetRoot, 'releases', releaseA.releaseId));
+  assert.equal(
+    readlinkSync(join(targetRoot, 'current')),
+    join(targetRoot, 'releases', releaseA.releaseId),
+  );
 });
-~~~
+```
 
 Cover missing image, tampered manifest, wrong Compose digest, startup failure, health failure, interruption, pointer-switch failure, mixed image, unknown current release, missing rollback manifest, and migration compatibility rejection.
 
@@ -353,9 +389,9 @@ Stage candidate artifacts in a sibling temporary directory, verify, atomically r
 
 Reject partial, mutable, incompatible, and unknown state. Prove:
 
-~~~text
+```text
 release A deploy -> attest A -> release B deploy -> attest B -> rollback A -> attest A -> mixed worker image rejected
-~~~
+```
 
 - [ ] **Step 6: Verify and commit**
 
@@ -367,10 +403,10 @@ Expected: PASS with a temporary target root only.
 
 Commit:
 
-~~~bash
+```bash
 git add scripts/release package.json
 git commit -m "feat: add governed release deploy and rollback tooling"
-~~~
+```
 
 ### Task 6: Record Wave 0/1 evidence and run fresh quality gates
 
@@ -440,10 +476,10 @@ Inspect every match. Retain only intentional rejection tests or explanatory docu
 
 - [ ] **Step 5: Commit documentation**
 
-~~~bash
+```bash
 git add docs/audit docs/stabilization WAVE1_SUMMARY.txt
 git commit -m "docs: record wave1 release integrity evidence"
-~~~
+```
 
 ### Task 7: Final review and non-deploying publication
 
@@ -472,14 +508,13 @@ Expected: no unintended files and no change outside Wave 0/1 scope.
 
 - [ ] **Step 3: Push and create a draft pull request when permitted**
 
-~~~bash
+```bash
 git push --set-upstream origin codex/stabilize-release-integrity
 gh pr create --draft --base main --head codex/stabilize-release-integrity --title "Wave 1 release integrity foundation"
-~~~
+```
 
 If GitHub denies either operation, retain local commits and report the non-secret permission failure.
 
 - [ ] **Step 4: Report required final fields**
 
 Report local and hosted CI separately, declare PRODUCTION_MUTATIONS_PERFORMED=NO, list any RM-504 dependency blocker, and finish with WAITING_FOR=HUMAN_REVIEW_AND_APPROVAL_OF_PRODUCTION_RELEASE_RECONCILIATION.
-
