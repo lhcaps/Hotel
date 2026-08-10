@@ -239,6 +239,13 @@
       "when": 1786367633000,
       "tag": "0033_curious_brother_voodoo",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1786380213944,
+      "tag": "0034_admin_property_memberships",
+      "breakpoints": true
     }
   ]
 }

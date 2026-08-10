@@ -239,6 +239,13 @@
       "sha256": "0b95b60c4d83f9fe7ccc79e6863105f11b8b79e078641379e75a8c49dc34482e",
       "phase": "uncategorized",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 34,
+      "fileName": "0034_admin_property_memberships.sql",
+      "sha256": "27732927607f168c264721f9ee2f32efa10659dc3c5652167793608096a4f128",
+      "phase": "Operations V3 multi-property authorization membership",
+      "previousIntroductionReference": null
     }
   ]
 }

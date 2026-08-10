@@ -344,6 +344,46 @@ export const properties = pgTable(
   ],
 );
 
+// Explicit per-property authorization scope for admin users.
+// property_id = NULL means explicit ALL-PROPERTY authority (still a deliberate row).
+// SUPER_ADMIN derives global authority from ROLE_PERMISSIONS, not from rows here.
+export const adminPropertyMemberships = pgTable(
+  'admin_property_memberships',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull(),
+    // null = all-property explicit grant
+    propertyId: uuid('property_id'),
+    status: adminMembershipStatus('status').notNull().default('ACTIVE'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+    revokedAt: timestamptz('revoked_at'),
+  },
+  (table) => [
+    foreignKey({
+      name: 'admin_property_memberships_user_fk',
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'admin_property_memberships_property_fk',
+      columns: [table.propertyId],
+      foreignColumns: [properties.id],
+    }).onDelete('restrict'),
+    // One active row per (user, property) including the ALL-PROPERTY (NULL) row.
+    // COALESCE uses the nil UUID as a stable surrogate for NULL in the unique predicate.
+    uniqueIndex('admin_property_memberships_user_property_active_uq')
+      .on(table.userId, sql`COALESCE(${table.propertyId}, '00000000-0000-0000-0000-000000000000'::uuid)`)
+      .where(sql`${table.status} = 'ACTIVE'`),
+    index('admin_property_memberships_user_status_idx').on(table.userId, table.status),
+    check(
+      'admin_property_memberships_revoked_at_ck',
+      sql`(${table.status} = 'ACTIVE' AND ${table.revokedAt} IS NULL)
+          OR (${table.status} = 'REVOKED' AND ${table.revokedAt} IS NOT NULL)`,
+    ),
+  ],
+);
+
 export const priceTiers = pgTable(
   'price_tiers',
   {
