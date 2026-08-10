@@ -154,6 +154,18 @@ describe('OtpVerifyPanel', () => {
     expect(await screen.findByText('Enter exactly six digits.')).toBeInTheDocument();
   });
 
+  it('retains the generic request acknowledgement in verification state', () => {
+    render(
+      <LocaleProvider locale="en">
+        <OtpVerifyPanel challengeRef={'A'.repeat(32)} onVerified={vi.fn()} />
+      </LocaleProvider>,
+    );
+
+    expect(
+      screen.getByText('If the booking details are valid, a verification code will be sent by email.'),
+    ).toBeInTheDocument();
+  });
+
   it('requires exactly six digits before submitting', async () => {
     const onVerified = vi.fn();
     const user = userEvent.setup();
