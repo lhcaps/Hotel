@@ -207,4 +207,28 @@ describe('issueAccessCredentials', () => {
       ).rows[0]?.count,
     ).toBe(0);
   });
+
+  it('does not report a maintenance-blocked booking as remaining eligible work', async () => {
+    const { pool } = await useFixture();
+    await seedHold(pool, {
+      status: 'CONFIRMED',
+      checkInOffsetMinutes: 29,
+    });
+    const maintenanceBooking = await seedHold(pool, {
+      status: 'CONFIRMED',
+      checkInOffsetMinutes: 30,
+    });
+    await pool.query(
+      `INSERT INTO maintenance_blocks (property_id, room_id, starts_at, ends_at, reason)
+       SELECT property_id, room_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + interval '4 hours', 'T-30 bound'
+         FROM bookings WHERE id = $1`,
+      [maintenanceBooking],
+    );
+
+    await expect(issueAccessCredentials({ pool, batchSize: 1, maxBatches: 1 })).resolves.toEqual({
+      processed: 1,
+      batches: 1,
+      exhaustedSafetyBound: false,
+    });
+  });
 });

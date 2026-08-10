@@ -88,15 +88,6 @@ async function processBatch(
           )
           AND NOT EXISTS (
             SELECT 1
-              FROM maintenance_blocks mb
-             WHERE mb.property_id = b.property_id
-               AND mb.room_id = b.room_id
-               AND mb.status = 'ACTIVE'
-               AND mb.starts_at < b.check_out
-               AND mb.ends_at > b.check_in
-          )
-          AND NOT EXISTS (
-            SELECT 1
               FROM access_credentials ac
              WHERE ac.booking_id = b.id
                AND ac.status IN ('PENDING', 'ISSUED')
@@ -204,6 +195,15 @@ async function hasUnlockedEligibleBooking(pool: DatabasePool): Promise<boolean> 
           AND b.check_out > CURRENT_TIMESTAMP
           AND r.status = 'ACTIVE'
           AND r.housekeeping_status = 'CLEAN'
+          AND NOT EXISTS (
+            SELECT 1
+              FROM maintenance_blocks mb
+             WHERE mb.property_id = b.property_id
+               AND mb.room_id = b.room_id
+               AND mb.status = 'ACTIVE'
+               AND mb.starts_at < b.check_out
+               AND mb.ends_at > b.check_in
+          )
           AND NOT EXISTS (
             SELECT 1 FROM access_credentials ac
              WHERE ac.booking_id = b.id AND ac.status IN ('PENDING', 'ISSUED')
