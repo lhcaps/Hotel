@@ -78,3 +78,18 @@ rerun does not erase the original failure record.
 | PLANNED_WAVE      | Wave 5 - Housekeeping lifecycle                                                                                                                                         |
 | RESOLUTION        | Added forward migration 0030, task actor/version fields, active-user checked assignment API, transaction-scoped audit event, and compare-and-swap version precondition. |
 | VERIFICATION      | `apps/api/test/integration/rooms.integration.test.ts`: 4/4 PASS; API/contracts typecheck, API/contracts lint, OpenAPI integrity, and guarded database suite PASS.       |
+
+## FAIL-W5-HOUSEKEEPING-VERIFICATION-001
+
+| Field             | Value                                                                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DISCOVERED_AT     | 2026-08-10                                                                                                                                                         |
+| AREA              | Housekeeping operations lifecycle                                                                                                                                  |
+| SEVERITY          | P0 / ORIGINAL_REQUIREMENT_GAP                                                                                                                                      |
+| SYMPTOM           | After task completion, no verification or reopen command existed; a room could not be safely returned to DIRTY for remedial turnover.                              |
+| ROOT_CAUSE_STATUS | CONFIRMED - the task model ended at DONE and held no verifier/reopen audit fields or versioned state transitions.                                                  |
+| DEPENDENCIES      | Versioned housekeeping task, catalog transaction, immutable audit trail                                                                                            |
+| BLOCKS_WHAT       | Original Wave 5 verification/reopen acceptance and next-booking readiness recovery                                                                                 |
+| PLANNED_WAVE      | Wave 5 - Housekeeping lifecycle                                                                                                                                    |
+| RESOLUTION        | Added forward migration 0031, verification/reopen actor fields, versioned commands, audit events, and atomic reopen that resets the task to DUE and room to DIRTY. |
+| VERIFICATION      | `apps/api/test/integration/rooms.integration.test.ts`: 4/4 PASS; guarded `pnpm db:test`: 25 files, 224 tests PASS.                                                 |

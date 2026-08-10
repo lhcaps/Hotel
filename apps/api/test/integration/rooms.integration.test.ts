@@ -167,6 +167,9 @@ describe('physical room catalog transactions', () => {
       )
     ).rows[0];
     expect(reassignedTask).toEqual({ assigned_to: replacementCleanerId, version: 2 });
+    await expect(
+      catalog.assignRoomHousekeeping(actor, room.id, { assigneeId: cleanerId, expectedVersion: 1 }),
+    ).rejects.toMatchObject({ code: 'ROOM_HOUSEKEEPING_ASSIGNMENT_CONFLICT' });
 
     await expect(
       catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
@@ -212,6 +215,55 @@ describe('physical room catalog transactions', () => {
     expect(completedTask?.completed_at).toBeInstanceOf(Date);
     expect(completedTask?.completed_by).toBe(actor.userId);
     expect(completedTask?.version).toBe(4);
+
+    await expect(
+      catalog.verifyRoomHousekeeping(actor, room.id, { expectedVersion: 4 }),
+    ).resolves.toMatchObject({ version: 5 });
+    const verifiedTask = (
+      await database.pool.query<{
+        verified_by: string | null;
+        verified_at: Date | null;
+        version: number;
+      }>(`SELECT verified_by, verified_at, version FROM housekeeping_tasks WHERE room_id = $1`, [
+        room.id,
+      ])
+    ).rows[0];
+    expect(verifiedTask).toMatchObject({ verified_by: actor.userId, version: 5 });
+    expect(verifiedTask?.verified_at).toBeInstanceOf(Date);
+
+    await expect(
+      catalog.reopenRoomHousekeeping(actor, room.id, {
+        expectedVersion: 5,
+        reason: 'Verification found incomplete turnover.',
+      }),
+    ).resolves.toMatchObject({ version: 6 });
+    const reopened = (
+      await database.pool.query<{
+        status: string;
+        completed_at: Date | null;
+        reopened_by: string | null;
+        reopened_at: Date | null;
+        reopen_reason: string | null;
+        version: number;
+        housekeeping_status: string;
+      }>(
+        `SELECT ht.status, ht.completed_at, ht.reopened_by, ht.reopened_at, ht.reopen_reason,
+                ht.version, r.housekeeping_status
+           FROM housekeeping_tasks ht
+           JOIN rooms r ON r.id = ht.room_id
+          WHERE ht.room_id = $1`,
+        [room.id],
+      )
+    ).rows[0];
+    expect(reopened).toMatchObject({
+      status: 'DUE',
+      completed_at: null,
+      reopened_by: actor.userId,
+      reopen_reason: 'Verification found incomplete turnover.',
+      version: 6,
+      housekeeping_status: 'DIRTY',
+    });
+    expect(reopened?.reopened_at).toBeInstanceOf(Date);
   });
 
   it('returns merged inventory-free windows and the active housekeeping task from PostgreSQL', async () => {

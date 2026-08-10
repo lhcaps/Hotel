@@ -15,7 +15,7 @@ does not infer production verification from local source or test evidence.
 | Occupy through final checkout                | PARTIAL     | PARTIAL        | NO      | NO         | Connected multi-night/access proof absent                                 |
 | Check out -> room DIRTY -> one turnover task | YES         | YES            | PARTIAL | NO         | Browser-level canonical lifecycle coverage remains                        |
 | Assign/reassign cleaner                      | PARTIAL     | YES            | NO      | NO         | Versioned assignment exists; staff-specific RBAC and browser proof absent |
-| Start, complete, verify/reopen cleaning      | PARTIAL     | YES            | NO      | NO         | Start/complete attribution exists; verification/reopen absent             |
+| Start, complete, verify/reopen cleaning      | YES         | YES            | NO      | NO         | Dedicated staff role and browser proof remain                             |
 | Derive ready room for next booking           | PARTIAL     | PARTIAL        | NO      | NO         | Client-side room grouping is not authoritative derived state              |
 | Allocate next booking without overlap        | YES         | YES            | PARTIAL | PARTIAL    | Must be proven after the new readiness/housekeeping flow                  |
 

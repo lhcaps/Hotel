@@ -10,6 +10,9 @@ import {
   type RoomHousekeepingCommand,
   type HousekeepingTaskAssignment,
   type HousekeepingTaskAssignmentCommand,
+  type HousekeepingTaskAction,
+  type HousekeepingTaskReopenCommand,
+  type HousekeepingTaskVersionCommand,
   type MaintenanceBlockCommand,
   amenityCommandSchema,
   amenitySchema,
@@ -29,6 +32,9 @@ import {
   roomHousekeepingCommandSchema,
   housekeepingTaskAssignmentCommandSchema,
   housekeepingTaskAssignmentSchema,
+  housekeepingTaskActionSchema,
+  housekeepingTaskReopenCommandSchema,
+  housekeepingTaskVersionCommandSchema,
   roomSchema,
   maintenanceBlockCommandSchema,
   maintenanceBlockSchema,
@@ -118,6 +124,12 @@ export interface CatalogHousekeepingTaskAssignmentRecord {
   readonly assignedTo: string;
   readonly assignedBy: string;
   readonly assignedAt: Date;
+  readonly version: number;
+}
+
+export interface CatalogHousekeepingTaskActionRecord {
+  readonly id: string;
+  readonly roomId: string;
   readonly version: number;
 }
 
@@ -283,6 +295,20 @@ export interface CatalogRepositoryPort {
     command: HousekeepingTaskAssignmentCommand,
     actorId: string,
   ): Promise<CatalogHousekeepingTaskAssignmentRecord | undefined>;
+  verifyRoomHousekeeping?(
+    transaction: unknown,
+    propertyId: string,
+    roomId: string,
+    command: HousekeepingTaskVersionCommand,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskActionRecord | undefined>;
+  reopenRoomHousekeeping?(
+    transaction: unknown,
+    propertyId: string,
+    roomId: string,
+    command: HousekeepingTaskReopenCommand,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskActionRecord | undefined>;
   listRooms(
     propertyId: string,
     page: number,
@@ -907,6 +933,81 @@ export class CatalogService {
         assignedBy: assignment.assignedBy,
         assignedAt: assignment.assignedAt.toISOString(),
         version: assignment.version,
+      });
+    });
+  }
+  public async verifyRoomHousekeeping(
+    actor: ActorContext,
+    roomId: string,
+    input: unknown,
+  ): Promise<HousekeepingTaskAction> {
+    const command = housekeepingTaskVersionCommandSchema.parse(input);
+    return this.applyHousekeepingTaskAction(
+      actor,
+      roomId,
+      command,
+      'verifyRoomHousekeeping',
+      'ROOM_HOUSEKEEPING_VERIFIED',
+    );
+  }
+  public async reopenRoomHousekeeping(
+    actor: ActorContext,
+    roomId: string,
+    input: unknown,
+  ): Promise<HousekeepingTaskAction> {
+    const command = housekeepingTaskReopenCommandSchema.parse(input);
+    return this.applyHousekeepingTaskAction(
+      actor,
+      roomId,
+      command,
+      'reopenRoomHousekeeping',
+      'ROOM_HOUSEKEEPING_REOPENED',
+    );
+  }
+  private async applyHousekeepingTaskAction(
+    actor: ActorContext,
+    roomId: string,
+    command: HousekeepingTaskVersionCommand | HousekeepingTaskReopenCommand,
+    operation: 'verifyRoomHousekeeping' | 'reopenRoomHousekeeping',
+    eventType: 'ROOM_HOUSEKEEPING_VERIFIED' | 'ROOM_HOUSEKEEPING_REOPENED',
+  ): Promise<HousekeepingTaskAction> {
+    return this.database.transaction(async (transaction) => {
+      const property = await this.repository.getCurrentProperty(transaction);
+      if (property === undefined) throw new CatalogNotFoundError();
+      await this.repository.lockRoom(transaction, property.id, roomId);
+      const action = this.repository[operation];
+      if (action === undefined) {
+        throw new CatalogConflictError(
+          'ROOM_HOUSEKEEPING_ACTION_UNAVAILABLE',
+          'Housekeeping action is unavailable.',
+        );
+      }
+      const result = await action.call(
+        this.repository,
+        transaction,
+        property.id,
+        roomId,
+        command as never,
+        actor.userId,
+      );
+      if (result === undefined) {
+        throw new CatalogConflictError(
+          'ROOM_HOUSEKEEPING_ACTION_CONFLICT',
+          'The turnover task is no longer available for this action.',
+        );
+      }
+      await this.audit.write(transaction, {
+        propertyId: property.id,
+        aggregateType: 'HOUSEKEEPING_TASK',
+        aggregateId: result.id,
+        eventType,
+        actorId: actor.userId,
+        payload: { roomId, version: result.version },
+      });
+      return housekeepingTaskActionSchema.parse({
+        taskId: result.id,
+        roomId: result.roomId,
+        version: result.version,
       });
     });
   }

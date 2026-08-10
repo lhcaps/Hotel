@@ -1281,6 +1281,11 @@ export const housekeepingTasks = pgTable(
     startedBy: uuid('started_by'),
     completedAt: timestamptz('completed_at'),
     completedBy: uuid('completed_by'),
+    verifiedAt: timestamptz('verified_at'),
+    verifiedBy: uuid('verified_by'),
+    reopenedAt: timestamptz('reopened_at'),
+    reopenedBy: uuid('reopened_by'),
+    reopenReason: text('reopen_reason'),
     version: integer('version').notNull().default(0),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
     updatedAt: timestamptz('updated_at').notNull().defaultNow(),
@@ -1319,6 +1324,16 @@ export const housekeepingTasks = pgTable(
     foreignKey({
       name: 'housekeeping_tasks_completed_by_fk',
       columns: [table.completedBy],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'housekeeping_tasks_verified_by_fk',
+      columns: [table.verifiedBy],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'housekeeping_tasks_reopened_by_fk',
+      columns: [table.reopenedBy],
       foreignColumns: [users.id],
     }).onDelete('restrict'),
     unique('housekeeping_tasks_property_id_uq').on(table.propertyId, table.id),

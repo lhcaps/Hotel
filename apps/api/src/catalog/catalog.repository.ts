@@ -27,6 +27,8 @@ import type {
   RoomPatch,
   RoomHousekeepingCommand,
   HousekeepingTaskAssignmentCommand,
+  HousekeepingTaskReopenCommand,
+  HousekeepingTaskVersionCommand,
   MaintenanceBlockCommand,
 } from '@room/contracts';
 
@@ -40,6 +42,7 @@ import type {
   CatalogRoomRecord,
   CatalogMaintenanceRecord,
   CatalogHousekeepingTaskAssignmentRecord,
+  CatalogHousekeepingTaskActionRecord,
   RoomCommitmentSummary,
   RoomTypeDependencySummary,
 } from './catalog.service.js';
@@ -52,6 +55,22 @@ const APPROVED_PEACE_HOME_PHYSICAL_ROOM_CODES = CLIENT_ROOM_MANIFEST.rooms.map(
 
 function asCatalogDatabase(transaction: unknown, fallback: CatalogDatabase): CatalogDatabase {
   return transaction === undefined ? fallback : (transaction as CatalogDatabase);
+}
+
+function toHousekeepingTaskAction(row: unknown): CatalogHousekeepingTaskActionRecord | undefined {
+  if (
+    typeof row !== 'object' ||
+    row === null ||
+    !('id' in row) ||
+    !('room_id' in row) ||
+    !('version' in row) ||
+    typeof row.id !== 'string' ||
+    typeof row.room_id !== 'string' ||
+    typeof row.version !== 'number'
+  ) {
+    return undefined;
+  }
+  return { id: row.id, roomId: row.room_id, version: row.version };
 }
 
 export class CatalogRepository implements CatalogRepositoryPort {
@@ -517,6 +536,82 @@ export class CatalogRepository implements CatalogRepositoryPort {
       version: row.version,
     };
   }
+  public async verifyRoomHousekeeping(
+    transaction: unknown,
+    propertyId: string,
+    roomId: string,
+    command: HousekeepingTaskVersionCommand,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskActionRecord | undefined> {
+    const database = asCatalogDatabase(transaction, this.database);
+    const result = await database.execute(sql`
+      WITH next_task AS (
+        SELECT id
+          FROM housekeeping_tasks
+         WHERE property_id = ${propertyId}
+           AND room_id = ${roomId}
+           AND type = 'TURNOVER'
+           AND status = 'DONE'
+           AND verified_at IS NULL
+         ORDER BY completed_at DESC, id DESC
+         FOR UPDATE SKIP LOCKED
+         LIMIT 1
+      )
+      UPDATE housekeeping_tasks
+         SET verified_by = ${actorId},
+             verified_at = CURRENT_TIMESTAMP,
+             version = version + 1,
+             updated_at = CURRENT_TIMESTAMP
+       WHERE id IN (SELECT id FROM next_task)
+         AND version = ${command.expectedVersion}
+      RETURNING id, room_id, version
+    `);
+    return toHousekeepingTaskAction(result.rows[0]);
+  }
+  public async reopenRoomHousekeeping(
+    transaction: unknown,
+    propertyId: string,
+    roomId: string,
+    command: HousekeepingTaskReopenCommand,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskActionRecord | undefined> {
+    const database = asCatalogDatabase(transaction, this.database);
+    const result = await database.execute(sql`
+      WITH next_task AS (
+        SELECT id
+          FROM housekeeping_tasks
+         WHERE property_id = ${propertyId}
+           AND room_id = ${roomId}
+           AND type = 'TURNOVER'
+           AND status = 'DONE'
+         ORDER BY completed_at DESC, id DESC
+         FOR UPDATE SKIP LOCKED
+         LIMIT 1
+      ), reopened_task AS (
+        UPDATE housekeeping_tasks
+           SET status = 'DUE',
+               completed_at = NULL,
+               completed_by = NULL,
+               reopened_by = ${actorId},
+               reopened_at = CURRENT_TIMESTAMP,
+               reopen_reason = ${command.reason},
+               version = version + 1,
+               updated_at = CURRENT_TIMESTAMP
+         WHERE id IN (SELECT id FROM next_task)
+           AND version = ${command.expectedVersion}
+        RETURNING id, room_id, version
+      ), dirty_room AS (
+        UPDATE rooms
+           SET housekeeping_status = 'DIRTY', updated_at = CURRENT_TIMESTAMP
+         WHERE id = ${roomId}
+           AND property_id = ${propertyId}
+           AND EXISTS (SELECT 1 FROM reopened_task)
+      )
+      SELECT id, room_id, version FROM reopened_task
+    `);
+    return toHousekeepingTaskAction(result.rows[0]);
+  }
+
   public async listRooms(
     propertyId: string,
     page: number,

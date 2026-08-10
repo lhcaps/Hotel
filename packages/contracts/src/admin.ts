@@ -399,6 +399,22 @@ export const housekeepingTaskAssignmentSchema = z
   })
   .strict();
 
+export const housekeepingTaskVersionCommandSchema = z
+  .object({ expectedVersion: z.number().int().min(0) })
+  .strict();
+
+export const housekeepingTaskReopenCommandSchema = housekeepingTaskVersionCommandSchema.extend({
+  reason: z.string().trim().min(1).max(1_000),
+});
+
+export const housekeepingTaskActionSchema = z
+  .object({
+    taskId: uuidSchema,
+    roomId: uuidSchema,
+    version: z.number().int().min(1),
+  })
+  .strict();
+
 export const maintenanceBlockSchema = z
   .object({
     id: uuidSchema,
@@ -459,5 +475,8 @@ export type HousekeepingTaskAssignmentCommand = z.infer<
   typeof housekeepingTaskAssignmentCommandSchema
 >;
 export type HousekeepingTaskAssignment = z.infer<typeof housekeepingTaskAssignmentSchema>;
+export type HousekeepingTaskVersionCommand = z.infer<typeof housekeepingTaskVersionCommandSchema>;
+export type HousekeepingTaskReopenCommand = z.infer<typeof housekeepingTaskReopenCommandSchema>;
+export type HousekeepingTaskAction = z.infer<typeof housekeepingTaskActionSchema>;
 export type MaintenanceBlock = z.infer<typeof maintenanceBlockSchema>;
 export type MaintenanceBlockCommand = z.infer<typeof maintenanceBlockCommandSchema>;
