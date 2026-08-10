@@ -38,6 +38,8 @@ describe('CatalogService', () => {
       propertyId: property.id,
       roomTypeId: '550e8400-e29b-41d4-a716-446655440112',
       roomNumber: '111',
+      physicalRoomCode: '111',
+      notes: null,
       status: 'ACTIVE' as const,
       housekeepingStatus: 'DIRTY' as const,
       createdAt: new Date(),

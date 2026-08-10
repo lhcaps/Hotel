@@ -474,6 +474,7 @@ export const rooms = pgTable(
     physicalRoomCode: text('physical_room_code').notNull(),
     status: roomStatus('status').notNull().default('ACTIVE'),
     housekeepingStatus: housekeepingStatus('housekeeping_status').notNull().default('CLEAN'),
+    notes: text('notes'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
     updatedAt: timestamptz('updated_at').notNull().defaultNow(),
   },

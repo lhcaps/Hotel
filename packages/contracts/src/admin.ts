@@ -348,6 +348,7 @@ export const roomSchema = z
     roomTypeId: uuidSchema,
     roomNumber: z.string().trim().min(1).max(64),
     physicalRoomCode: z.string().trim().min(1).max(128),
+    notes: z.string().trim().min(1).max(2_000).nullable(),
     status: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE']),
     housekeepingStatus: roomHousekeepingStatusSchema,
     createdAt: instantSchema,
@@ -360,6 +361,7 @@ export const roomCommandSchema = z
     roomTypeId: uuidSchema,
     roomNumber: z.string().trim().min(1).max(64),
     physicalRoomCode: z.string().trim().min(1).max(128).optional(),
+    notes: z.string().trim().min(1).max(2_000).nullable().optional(),
     status: z.enum(['ACTIVE', 'INACTIVE', 'MAINTENANCE']).optional(),
   })
   .strict();
@@ -374,6 +376,7 @@ export const roomPatchSchema = z
   .object({
     roomNumber: z.string().trim().min(1).max(64).optional(),
     roomTypeId: uuidSchema.optional(),
+    notes: z.union([z.string().trim().min(1).max(2_000), z.null()]).optional(),
   })
   .strict()
   .superRefine((value, context) => {

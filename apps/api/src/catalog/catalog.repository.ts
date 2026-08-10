@@ -857,6 +857,7 @@ export class CatalogRepository implements CatalogRepositoryPort {
     const patch: Partial<typeof rooms.$inferInsert> = { updatedAt: new Date() };
     if (command.roomNumber !== undefined) patch.roomNumber = command.roomNumber;
     if (command.roomTypeId !== undefined) patch.roomTypeId = command.roomTypeId;
+    if ('notes' in command) patch.notes = command.notes;
     const [updated] = await database
       .update(rooms)
       .set(patch)

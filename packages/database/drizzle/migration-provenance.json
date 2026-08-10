@@ -253,6 +253,13 @@
       "sha256": "908c8aa5c5b326f83bbda550218b32ef7559a2fc37eb9b9f9585d7b5b97fcb2c",
       "phase": "Operations V3 operational RBAC profiles",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 36,
+      "fileName": "0036_physical_room_notes.sql",
+      "sha256": "f55a25c17f276c649d001b17edea74daaa1eae930fd61712ba54473e00d4a39f",
+      "phase": "Operations V3 catalog simplification physical room notes",
+      "previousIntroductionReference": null
     }
   ]
 }

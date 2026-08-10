@@ -36,6 +36,7 @@ const existingRoom = {
   roomTypeId: '550e8400-e29b-41d4-a716-446655440031',
   roomNumber: '101',
   physicalRoomCode: '101',
+  notes: null,
   status: 'ACTIVE' as const,
   housekeepingStatus: 'CLEAN' as const,
   createdAt: new Date('2026-01-01T00:00:00.000Z'),

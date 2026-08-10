@@ -253,6 +253,13 @@
       "when": 1786401600000,
       "tag": "0035_add_operational_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1786402800000,
+      "tag": "0036_physical_room_notes",
+      "breakpoints": true
     }
   ]
 }
