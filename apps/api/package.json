@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage --dir test"
   },
   "dependencies": {
-    "@fastify/cookie": "11.0.2",
+    "@fastify/cookie": "11.1.2",
     "@fastify/cors": "11.3.0",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",
