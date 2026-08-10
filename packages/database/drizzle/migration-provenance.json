@@ -225,6 +225,13 @@
       "sha256": "94d9f23f8ffabde1d4e62a3216f6f62ec10b762318ae8f3e03b84c859bbdf831",
       "phase": "Operations V3 housekeeping verification and reopen",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 32,
+      "fileName": "0032_soft_wraith.sql",
+      "sha256": "ef8abfd6bd2a5ec028dfa353c946eae459396911900ab54911e8b82870371d0b",
+      "phase": "Operations V3 Demo access credential foundation",
+      "previousIntroductionReference": null
     }
   ]
 }

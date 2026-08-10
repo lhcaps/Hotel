@@ -51,6 +51,13 @@ export const bookingStatus = pgEnum('booking_status', [
 export const maintenanceBlockStatus = pgEnum('maintenance_block_status', ['ACTIVE', 'CANCELLED']);
 export const inventoryBlockType = pgEnum('inventory_block_type', ['BOOKING', 'MAINTENANCE']);
 export const inventoryBlockStatus = pgEnum('inventory_block_status', ['ACTIVE', 'RELEASED']);
+export const accessCredentialProvider = pgEnum('access_credential_provider', ['DEMO']);
+export const accessCredentialStatus = pgEnum('access_credential_status', [
+  'PENDING',
+  'ISSUED',
+  'REVOKED',
+  'FAILED',
+]);
 export const auditActorType = pgEnum('audit_actor_type', ['GUEST', 'CUSTOMER', 'ADMIN', 'SYSTEM']);
 export const outboxStatus = pgEnum('outbox_status', ['PENDING', 'PUBLISHED', 'FAILED']);
 export const userRole = pgEnum('user_role', [
@@ -1356,6 +1363,90 @@ export const housekeepingTasks = pgTable(
           OR (${table.status} <> 'DONE' AND ${table.completedAt} IS NULL)`,
     ),
     check('housekeeping_tasks_version_nonnegative_ck', sql`${table.version} >= 0`),
+  ],
+);
+
+/**
+ * Provider-managed access credentials deliberately store only a provider
+ * reference. Plaintext door codes and signed payloads remain outside the
+ * application database and audit stream.
+ */
+export const accessCredentials = pgTable(
+  'access_credentials',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    propertyId: uuid('property_id').notNull(),
+    bookingId: uuid('booking_id').notNull(),
+    roomId: uuid('room_id').notNull(),
+    provider: accessCredentialProvider('provider').notNull(),
+    providerCredentialReference: text('provider_credential_reference').notNull(),
+    status: accessCredentialStatus('status').notNull().default('PENDING'),
+    validFrom: timestamptz('valid_from').notNull(),
+    validUntil: timestamptz('valid_until').notNull(),
+    issuedAt: timestamptz('issued_at'),
+    deliveredAt: timestamptz('delivered_at'),
+    revokedAt: timestamptz('revoked_at'),
+    failureCode: text('failure_code'),
+    idempotencyKey: text('idempotency_key').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'access_credentials_property_fk',
+      columns: [table.propertyId],
+      foreignColumns: [properties.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'access_credentials_property_booking_fk',
+      columns: [table.propertyId, table.bookingId],
+      foreignColumns: [bookings.propertyId, bookings.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'access_credentials_property_room_fk',
+      columns: [table.propertyId, table.roomId],
+      foreignColumns: [rooms.propertyId, rooms.id],
+    }).onDelete('restrict'),
+    uniqueIndex('access_credentials_provider_reference_uq').on(
+      table.provider,
+      table.providerCredentialReference,
+    ),
+    uniqueIndex('access_credentials_booking_idempotency_uq').on(
+      table.bookingId,
+      table.idempotencyKey,
+    ),
+    uniqueIndex('access_credentials_booking_active_uq')
+      .on(table.bookingId)
+      .where(sql`${table.status} IN ('PENDING', 'ISSUED')`),
+    index('access_credentials_issuance_idx').on(table.status, table.validFrom),
+    check(
+      'access_credentials_reference_nonempty_ck',
+      sql`btrim(${table.providerCredentialReference}) <> ''`,
+    ),
+    check(
+      'access_credentials_idempotency_key_nonempty_ck',
+      sql`btrim(${table.idempotencyKey}) <> '' AND char_length(${table.idempotencyKey}) <= 128`,
+    ),
+    check('access_credentials_valid_interval_ck', sql`${table.validUntil} > ${table.validFrom}`),
+    check(
+      'access_credentials_status_fields_ck',
+      sql`(${table.status} = 'PENDING'
+             AND ${table.issuedAt} IS NULL
+             AND ${table.revokedAt} IS NULL
+             AND ${table.failureCode} IS NULL)
+          OR (${table.status} = 'ISSUED'
+              AND ${table.issuedAt} IS NOT NULL
+              AND ${table.revokedAt} IS NULL
+              AND ${table.failureCode} IS NULL)
+          OR (${table.status} = 'REVOKED'
+              AND ${table.issuedAt} IS NOT NULL
+              AND ${table.revokedAt} IS NOT NULL
+              AND ${table.failureCode} IS NULL)
+          OR (${table.status} = 'FAILED'
+              AND ${table.issuedAt} IS NULL
+              AND ${table.revokedAt} IS NULL
+              AND ${table.failureCode} IS NOT NULL)`,
+    ),
   ],
 );
 

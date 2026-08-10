@@ -108,3 +108,18 @@ rerun does not erase the original failure record.
 | PLANNED_WAVE      | Wave 2 — hosted CI closure                                                                                                                                                                                                           |
 | RESOLUTION        | Attempt 1 of 3: retain the route/page, locale, and responsive assertions while removing the non-contractual heading requirement; retain a scoped NO_SHOW visibility assertion and remove the duplicate unscoped strict locator.      |
 | VERIFICATION      | Local isolated Playwright: `admin-v2-responsive.spec.ts` 1/1 PASS (all six viewports and route sweep); `phase-7g-admin-booking-operations.spec.ts --grep NO_SHOW` 1/1 PASS. Hosted full-pipeline rerun pending.                      |
+
+## FAIL-W5-ACCESS-CREDENTIAL-001
+
+| Field             | Value                                                                                                                                                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DISCOVERED_AT     | 2026-08-10                                                                                                                                                                                                            |
+| AREA              | T-30 Demo access credential lifecycle                                                                                                                                                                                 |
+| SEVERITY          | P0 / ORIGINAL_REQUIREMENT_GAP                                                                                                                                                                                         |
+| SYMPTOM           | Confirmed bookings had only an on-demand signed access pass. There was no provider abstraction, durable credential record, readiness-gated T-30 worker, or transactional credential audit/outbox evidence.            |
+| ROOT_CAUSE_STATUS | CONFIRMED - prior access presentation was deliberately stateless and could not prove provider lifecycle, readiness, idempotency, or safe delivery boundaries.                                                         |
+| DEPENDENCIES      | Existing booking allocation at HOLD, room status/housekeeping state, maintenance blocks, worker scheduler, append-only audit and outbox                                                                               |
+| BLOCKS_WHAT       | Operations V3 access credential acceptance and the connected booking-to-next-booking golden flow                                                                                                                      |
+| PLANNED_WAVE      | Wave 5 - access and accountable housekeeping                                                                                                                                                                          |
+| RESOLUTION        | Attempt 1 of 3: added forward migration 0032, reference-only `access_credentials`, a Demo provider abstraction, a PostgreSQL-authoritative T-30 worker gate, masked SYSTEM audit event, and post-commit outbox event. |
+| VERIFICATION      | `apps/worker/test/process-housekeeping-reminders.test.ts`: 4/4 PASS; worker typecheck/lint PASS; guarded `pnpm db:check` PASS; guarded `pnpm db:test`: 25 files, 225 tests PASS.                                      |
