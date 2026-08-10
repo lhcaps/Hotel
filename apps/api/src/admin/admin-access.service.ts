@@ -36,10 +36,22 @@ type AdminDatabase = Pick<
   'delete' | 'insert' | 'query' | 'select' | 'update' | 'transaction'
 >;
 
-const ADMIN_ROLES = ['ADMIN', 'SUPER_ADMIN', 'ROOM_STATUS_VIEWER'] as const;
+const ADMIN_ROLES = [
+  'ADMIN',
+  'SUPER_ADMIN',
+  'ROOM_STATUS_VIEWER',
+  'OPERATIONS_MANAGER',
+  'HOUSEKEEPING_MANAGER',
+  'HOUSEKEEPING_STAFF',
+  'PAYMENT_STAFF',
+] as const;
 const ADMIN_PROFILE_RANK: Readonly<Record<AdminProfileCode, number>> = {
   ROOM_STATUS_VIEWER: 1,
-  SUPER_ADMIN: 2,
+  HOUSEKEEPING_STAFF: 2,
+  PAYMENT_STAFF: 3,
+  HOUSEKEEPING_MANAGER: 4,
+  OPERATIONS_MANAGER: 5,
+  SUPER_ADMIN: 6,
 };
 
 function isAdminRole(value: string): value is (typeof ADMIN_ROLES)[number] {
@@ -47,7 +59,14 @@ function isAdminRole(value: string): value is (typeof ADMIN_ROLES)[number] {
 }
 
 function isAdminProfile(value: string): value is AdminProfileCode {
-  return value === 'SUPER_ADMIN' || value === 'ROOM_STATUS_VIEWER';
+  return (
+    value === 'SUPER_ADMIN' ||
+    value === 'ROOM_STATUS_VIEWER' ||
+    value === 'OPERATIONS_MANAGER' ||
+    value === 'HOUSEKEEPING_MANAGER' ||
+    value === 'HOUSEKEEPING_STAFF' ||
+    value === 'PAYMENT_STAFF'
+  );
 }
 
 function maskEmail(email: string): string {
@@ -116,27 +135,38 @@ export class AdminAccessService {
       throw new BadRequestException({ code: 'INVALID_DEPARTMENT_ID' });
     }
     await this.database.transaction(async (transaction) => {
+      // users.role only supports base auth roles. Profile-specific codes live in adminMemberships.
+      const baseUserRole: 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER' | 'ADMIN' =
+        role === 'SUPER_ADMIN' || role === 'ROOM_STATUS_VIEWER'
+          ? role
+          : role === null
+            ? target.role === 'ADMIN' || target.role === 'SUPER_ADMIN' || target.role === 'ROOM_STATUS_VIEWER'
+              ? target.role
+              : 'ADMIN'
+            : 'ADMIN';
       await transaction
         .update(users)
         .set({
-          role: role ?? target.role,
+          role: baseUserRole,
           status: patch.status ?? target.status,
           updatedAt: new Date(),
         })
         .where(eq(users.id, id));
       if (patch.departmentIds !== undefined) {
         await transaction.delete(adminMemberships).where(eq(adminMemberships.userId, id));
-        await transaction.insert(adminMemberships).values(
-          patch.departmentIds.map((departmentId) => ({
-            userId: id,
-            departmentId,
-            role: role as 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER',
-          })),
-        );
+        if (patch.departmentIds.length > 0) {
+          await transaction.insert(adminMemberships).values(
+            patch.departmentIds.map((departmentId) => ({
+              userId: id,
+              departmentId,
+              role: role as AdminProfileCode,
+            })),
+          );
+        }
       } else if (patch.role !== undefined) {
         await transaction
           .update(adminMemberships)
-          .set({ role: patch.role, updatedAt: new Date() })
+          .set({ role: patch.role as AdminProfileCode, updatedAt: new Date() })
           .where(eq(adminMemberships.userId, id));
       }
       await this.writeAudit(transaction, actor, id, 'ADMIN_ACCOUNT_UPDATED', {
@@ -208,7 +238,11 @@ export class AdminAccessService {
       email: command.email,
       name: command.displayName,
       password: command.password,
-      role: command.role,
+      // Users table only supports base auth roles; profile codes live in memberships
+      role:
+        command.role === 'SUPER_ADMIN' || command.role === 'ROOM_STATUS_VIEWER'
+          ? command.role
+          : 'ROOM_STATUS_VIEWER',
     });
     await this.database.transaction(async (transaction) => {
       if (command.departmentIds.length > 0) {

@@ -40,11 +40,21 @@ import {
   AdminStatusBadge,
 } from '../../../../components/admin/admin-ui';
 
-type AdminProfileCode = 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
+type AdminProfileCode =
+  | 'SUPER_ADMIN'
+  | 'ROOM_STATUS_VIEWER'
+  | 'OPERATIONS_MANAGER'
+  | 'HOUSEKEEPING_MANAGER'
+  | 'HOUSEKEEPING_STAFF'
+  | 'PAYMENT_STAFF';
 const profileOptions: readonly { readonly value: AdminProfileCode; readonly label: MessageKey }[] =
   [
     { value: 'SUPER_ADMIN', label: 'admin.roleSuperAdmin' },
     { value: 'ROOM_STATUS_VIEWER', label: 'admin.roleRoomStatusViewer' },
+    { value: 'OPERATIONS_MANAGER', label: 'admin.roleOperationsManager' },
+    { value: 'HOUSEKEEPING_MANAGER', label: 'admin.roleHousekeepingManager' },
+    { value: 'HOUSEKEEPING_STAFF', label: 'admin.roleHousekeepingStaff' },
+    { value: 'PAYMENT_STAFF', label: 'admin.rolePaymentStaff' },
   ];
 type AccountDraft = { readonly role: AdminProfileCode; readonly departmentIds: readonly string[] };
 

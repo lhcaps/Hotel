@@ -86,6 +86,7 @@ function isCurrent(pathname: string, href: string) {
 }
 
 const ROOM_STATUS_VIEWER_NAVIGATION = new Set(['/admin/room-operations']);
+const HOUSEKEEPING_STAFF_NAVIGATION = new Set(['/admin/room-operations']);
 
 export function AdminNavigation({
   locale,
@@ -94,7 +95,13 @@ export function AdminNavigation({
 }: Readonly<{
   locale: Locale;
   permissions?: readonly string[];
-  profileCode?: 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
+  profileCode?:
+    | 'SUPER_ADMIN'
+    | 'ROOM_STATUS_VIEWER'
+    | 'OPERATIONS_MANAGER'
+    | 'HOUSEKEEPING_MANAGER'
+    | 'HOUSEKEEPING_STAFF'
+    | 'PAYMENT_STAFF';
 }>) {
   const pathname = usePathname();
   const visibleGroups = groups
@@ -102,6 +109,9 @@ export function AdminNavigation({
       ...group,
       links: group.links.filter(([, href, required]) => {
         if (profileCode === 'ROOM_STATUS_VIEWER' && !ROOM_STATUS_VIEWER_NAVIGATION.has(href)) {
+          return false;
+        }
+        if (profileCode === 'HOUSEKEEPING_STAFF' && !HOUSEKEEPING_STAFF_NAVIGATION.has(href)) {
           return false;
         }
         return permissions?.includes(required) ?? false;

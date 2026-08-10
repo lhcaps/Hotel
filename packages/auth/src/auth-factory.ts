@@ -30,6 +30,7 @@ export interface AdminUserCreationInput {
   readonly email: string;
   readonly name: string;
   readonly password: string;
+  // The user-level role for auth. New profile-specific roles are only in adminMemberships.
   readonly role: 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
 }
 

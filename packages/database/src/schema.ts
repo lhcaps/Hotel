@@ -67,7 +67,15 @@ export const userRole = pgEnum('user_role', [
   'ROOM_STATUS_VIEWER',
   'CUSTOMER',
 ]);
-export const adminRole = pgEnum('admin_role', ['ADMIN', 'SUPER_ADMIN', 'ROOM_STATUS_VIEWER']);
+export const adminRole = pgEnum('admin_role', [
+  'ADMIN',
+  'SUPER_ADMIN',
+  'ROOM_STATUS_VIEWER',
+  'OPERATIONS_MANAGER',
+  'HOUSEKEEPING_MANAGER',
+  'HOUSEKEEPING_STAFF',
+  'PAYMENT_STAFF',
+]);
 export const adminMembershipStatus = pgEnum('admin_membership_status', ['ACTIVE', 'REVOKED']);
 export const userStatus = pgEnum('user_status', ['ACTIVE', 'DISABLED']);
 export const couponStatus = pgEnum('coupon_status', ['ACTIVE', 'DISABLED']);

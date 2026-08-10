@@ -3,17 +3,30 @@ import { describe, expect, it } from 'vitest';
 import {
   ADMIN_PROFILE_CODES,
   ADMIN_PROFILE_LABELS_VI,
+  getProfilePermissions,
   hasPermissions,
   PERMISSIONS,
+  PROFILE_PERMISSIONS,
   ROLE_PERMISSIONS,
 } from '../src/permissions.js';
 
 describe('Phase 3 permissions', () => {
-  it('exposes exactly the two scoped administrator profiles', () => {
-    expect(ADMIN_PROFILE_CODES).toEqual(['SUPER_ADMIN', 'ROOM_STATUS_VIEWER']);
+  it('exposes all administrator profiles including V3 operational profiles', () => {
+    expect(ADMIN_PROFILE_CODES).toEqual([
+      'SUPER_ADMIN',
+      'ROOM_STATUS_VIEWER',
+      'OPERATIONS_MANAGER',
+      'HOUSEKEEPING_MANAGER',
+      'HOUSEKEEPING_STAFF',
+      'PAYMENT_STAFF',
+    ]);
     expect(ADMIN_PROFILE_LABELS_VI).toEqual({
       SUPER_ADMIN: 'Tổng quản trị',
       ROOM_STATUS_VIEWER: 'Nhân viên theo dõi phòng',
+      OPERATIONS_MANAGER: 'Quản lý vận hành',
+      HOUSEKEEPING_MANAGER: 'Quản lý buồng phòng',
+      HOUSEKEEPING_STAFF: 'Nhân viên buồng phòng',
+      PAYMENT_STAFF: 'Nhân viên thanh toán',
     });
     expect(ROLE_PERMISSIONS.ADMIN).toEqual([]);
     expect(ROLE_PERMISSIONS.SUPER_ADMIN).toEqual(PERMISSIONS);
@@ -65,5 +78,96 @@ describe('Phase 8B.1 payment reconciliation permissions', () => {
     expect(hasPermissions('ROOM_STATUS_VIEWER', ['admin.account.read'])).toBe(false);
     expect(hasPermissions('ROOM_STATUS_VIEWER', ['payments.read'])).toBe(false);
     expect(hasPermissions('SUPER_ADMIN', ['admin.account.manage', 'admin.audit.read'])).toBe(true);
+  });
+});
+
+describe('V3 RBAC operational profiles — least-privilege separation', () => {
+  it('OPERATIONS_MANAGER has booking and room management but not payment mutation or account admin', () => {
+    const perms = PROFILE_PERMISSIONS.OPERATIONS_MANAGER;
+    expect(perms).toContain('bookings.read');
+    expect(perms).toContain('bookings.manage');
+    expect(perms).toContain('room_operations.manage');
+    expect(perms).toContain('catalog.room.manage');
+    // Must NOT have financial or account management
+    expect(perms).not.toContain('payments.refund');
+    expect(perms).not.toContain('admin.account.manage');
+    expect(perms).not.toContain('pricing.policy.publish');
+  });
+
+  it('HOUSEKEEPING_MANAGER has room/maintenance ops but not booking mutation or financial access', () => {
+    const perms = PROFILE_PERMISSIONS.HOUSEKEEPING_MANAGER;
+    expect(perms).toContain('room_operations.manage');
+    expect(perms).toContain('rooms.read');
+    expect(perms).toContain('catalog.room.status.read');
+    // Must NOT have financial, booking mutation, or account access
+    expect(perms).not.toContain('bookings.manage');
+    expect(perms).not.toContain('payments.read');
+    expect(perms).not.toContain('admin.account.read');
+    expect(perms).not.toContain('pricing.manage');
+  });
+
+  it('HOUSEKEEPING_STAFF has only read access to rooms and operations — cannot mutate catalog or bookings', () => {
+    const perms = PROFILE_PERMISSIONS.HOUSEKEEPING_STAFF;
+    expect(perms).toContain('rooms.read');
+    expect(perms).toContain('room_operations.read');
+    expect(perms).toContain('catalog.room.status.read');
+    // Must NOT have any mutation permission
+    expect(perms).not.toContain('room_operations.manage');
+    expect(perms).not.toContain('catalog.room.manage');
+    expect(perms).not.toContain('bookings.manage');
+    expect(perms).not.toContain('payments.read');
+    expect(perms).not.toContain('admin.account.read');
+  });
+
+  it('PAYMENT_STAFF has payment reconciliation but not booking mutation or catalog access', () => {
+    const perms = PROFILE_PERMISSIONS.PAYMENT_STAFF;
+    expect(perms).toContain('payments.read');
+    expect(perms).toContain('payment.reconciliation.read');
+    expect(perms).toContain('payment.reconciliation.manage');
+    // Must NOT have room/catalog/booking mutation
+    expect(perms).not.toContain('bookings.manage');
+    expect(perms).not.toContain('catalog.room.manage');
+    expect(perms).not.toContain('admin.account.manage');
+  });
+
+  it('getProfilePermissions returns correct permissions for each profile', () => {
+    expect(getProfilePermissions('SUPER_ADMIN')).toEqual(PERMISSIONS);
+    expect(getProfilePermissions('ROOM_STATUS_VIEWER')).toEqual(
+      PROFILE_PERMISSIONS.ROOM_STATUS_VIEWER,
+    );
+    expect(getProfilePermissions('OPERATIONS_MANAGER')).toEqual(
+      PROFILE_PERMISSIONS.OPERATIONS_MANAGER,
+    );
+    expect(getProfilePermissions('HOUSEKEEPING_MANAGER')).toEqual(
+      PROFILE_PERMISSIONS.HOUSEKEEPING_MANAGER,
+    );
+    expect(getProfilePermissions('HOUSEKEEPING_STAFF')).toEqual(
+      PROFILE_PERMISSIONS.HOUSEKEEPING_STAFF,
+    );
+    expect(getProfilePermissions('PAYMENT_STAFF')).toEqual(PROFILE_PERMISSIONS.PAYMENT_STAFF);
+  });
+
+  it('no profile other than SUPER_ADMIN grants admin.account.manage', () => {
+    for (const code of ADMIN_PROFILE_CODES) {
+      if (code === 'SUPER_ADMIN') continue;
+      expect(PROFILE_PERMISSIONS[code]).not.toContain('admin.account.manage');
+    }
+  });
+
+  it('no profile other than SUPER_ADMIN grants pricing.policy.publish', () => {
+    for (const code of ADMIN_PROFILE_CODES) {
+      if (code === 'SUPER_ADMIN') continue;
+      expect(PROFILE_PERMISSIONS[code]).not.toContain('pricing.policy.publish');
+    }
+  });
+
+  it('SUPER_ADMIN is the only profile with full PERMISSIONS set', () => {
+    for (const code of ADMIN_PROFILE_CODES) {
+      if (code === 'SUPER_ADMIN') {
+        expect(PROFILE_PERMISSIONS[code]).toEqual(PERMISSIONS);
+      } else {
+        expect(PROFILE_PERMISSIONS[code].length).toBeLessThan(PERMISSIONS.length);
+      }
+    }
   });
 });

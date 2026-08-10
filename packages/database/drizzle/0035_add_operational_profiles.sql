@@ -1,0 +1,9 @@
+-- Migration: Add operational RBAC profiles
+-- Previous: 0034_admin_property_memberships
+-- Description: Add OPERATIONS_MANAGER, HOUSEKEEPING_MANAGER, HOUSEKEEPING_STAFF, PAYMENT_STAFF to admin_role enum
+
+-- Add new enum values to admin_role
+ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'OPERATIONS_MANAGER';
+ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'HOUSEKEEPING_MANAGER';
+ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'HOUSEKEEPING_STAFF';
+ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'PAYMENT_STAFF';

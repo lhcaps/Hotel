@@ -1,9 +1,20 @@
-export const ADMIN_PROFILE_CODES = ['SUPER_ADMIN', 'ROOM_STATUS_VIEWER'] as const;
+export const ADMIN_PROFILE_CODES = [
+  'SUPER_ADMIN',
+  'ROOM_STATUS_VIEWER',
+  'OPERATIONS_MANAGER',
+  'HOUSEKEEPING_MANAGER',
+  'HOUSEKEEPING_STAFF',
+  'PAYMENT_STAFF',
+] as const;
 export type AdminProfileCode = (typeof ADMIN_PROFILE_CODES)[number];
 
 export const ADMIN_PROFILE_LABELS_VI: Readonly<Record<AdminProfileCode, string>> = {
   SUPER_ADMIN: 'Tổng quản trị',
   ROOM_STATUS_VIEWER: 'Nhân viên theo dõi phòng',
+  OPERATIONS_MANAGER: 'Quản lý vận hành',
+  HOUSEKEEPING_MANAGER: 'Quản lý buồng phòng',
+  HOUSEKEEPING_STAFF: 'Nhân viên buồng phòng',
+  PAYMENT_STAFF: 'Nhân viên thanh toán',
 };
 
 export const PERMISSIONS = [
@@ -81,10 +92,7 @@ export const PERMISSIONS = [
 export type Permission = (typeof PERMISSIONS)[number];
 export type HumanRole = 'ADMIN' | 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER' | 'CUSTOMER';
 
-export const ROLE_PERMISSIONS: Readonly<Record<HumanRole, readonly Permission[]>> = {
-  // Legacy ADMIN rows remain a top-level role for compatibility but do not
-  // acquire an ADMIN V2 profile without an active membership.
-  ADMIN: [],
+export const PROFILE_PERMISSIONS: Readonly<Record<AdminProfileCode, readonly Permission[]>> = {
   SUPER_ADMIN: PERMISSIONS,
   ROOM_STATUS_VIEWER: [
     'catalog.property.read',
@@ -95,10 +103,83 @@ export const ROLE_PERMISSIONS: Readonly<Record<HumanRole, readonly Permission[]>
     'room_operations.read',
     'maintenance.read',
   ],
+  OPERATIONS_MANAGER: [
+    'dashboard.read',
+    'bookings.read',
+    'bookings.manage',
+    'bookings.checkin',
+    'bookings.checkout',
+    'bookings.cancel',
+    'customers.read',
+    'rooms.read',
+    'room_operations.read',
+    'room_operations.manage',
+    'maintenance.read',
+    'maintenance.manage',
+    'catalog.read',
+    'catalog.property.read',
+    'catalog.room_type.read',
+    'catalog.room.read',
+    'catalog.room.status.read',
+    'catalog.room.manage',
+    'catalog.maintenance.read',
+    'catalog.maintenance.manage',
+    'booking.lifecycle.read',
+    'booking.lifecycle.manage',
+    'booking.review.read',
+    'pricing.read',
+    'audit.read',
+    'admin.audit.read',
+  ],
+  HOUSEKEEPING_MANAGER: [
+    'dashboard.read',
+    'rooms.read',
+    'room_operations.read',
+    'room_operations.manage',
+    'maintenance.read',
+    'catalog.property.read',
+    'catalog.room_type.read',
+    'catalog.room.read',
+    'catalog.room.status.read',
+    'catalog.room.manage',
+    'catalog.maintenance.read',
+    'booking.lifecycle.read',
+    'audit.read',
+  ],
+  HOUSEKEEPING_STAFF: [
+    'rooms.read',
+    'room_operations.read',
+    'catalog.property.read',
+    'catalog.room.read',
+    'catalog.room.status.read',
+  ],
+  PAYMENT_STAFF: [
+    'dashboard.read',
+    'bookings.read',
+    'payments.read',
+    'payments.reconcile',
+    'payment.reconciliation.read',
+    'payment.reconciliation.manage',
+    'booking.review.read',
+    'booking.review.manage',
+    'audit.read',
+  ],
+};
+
+export const ROLE_PERMISSIONS: Readonly<Record<HumanRole, readonly Permission[]>> = {
+  // Legacy ADMIN rows remain a top-level role for compatibility but do not
+  // acquire an ADMIN V2 profile without an active membership.
+  ADMIN: [],
+  SUPER_ADMIN: PERMISSIONS,
+  ROOM_STATUS_VIEWER: PROFILE_PERMISSIONS.ROOM_STATUS_VIEWER,
   CUSTOMER: [],
 };
 
 export function hasPermissions(role: HumanRole, required: readonly Permission[]): boolean {
   const granted = ROLE_PERMISSIONS[role];
   return required.every((permission) => granted.includes(permission));
+}
+
+export function getProfilePermissions(profileCode: AdminProfileCode): readonly Permission[] {
+  return PROFILE_PERMISSIONS[profileCode];
 }

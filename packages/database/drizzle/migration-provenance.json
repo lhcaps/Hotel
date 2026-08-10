@@ -246,6 +246,13 @@
       "sha256": "27732927607f168c264721f9ee2f32efa10659dc3c5652167793608096a4f128",
       "phase": "Operations V3 multi-property authorization membership",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 35,
+      "fileName": "0035_add_operational_profiles.sql",
+      "sha256": "908c8aa5c5b326f83bbda550218b32ef7559a2fc37eb9b9f9585d7b5b97fcb2c",
+      "phase": "Operations V3 operational RBAC profiles",
+      "previousIntroductionReference": null
     }
   ]
 }

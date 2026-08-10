@@ -12,7 +12,14 @@ const nameSchema = z.string().trim().min(1).max(160);
 const optionalDescriptionSchema = z.string().trim().min(1).max(2_000).nullable().optional();
 const statusSchema = z.enum(['ACTIVE', 'INACTIVE']);
 export const adminRoleSchema = z.enum(['ADMIN', 'SUPER_ADMIN', 'ROOM_STATUS_VIEWER']);
-export const adminProfileCodeSchema = z.enum(['SUPER_ADMIN', 'ROOM_STATUS_VIEWER']);
+export const adminProfileCodeSchema = z.enum([
+  'SUPER_ADMIN',
+  'ROOM_STATUS_VIEWER',
+  'OPERATIONS_MANAGER',
+  'HOUSEKEEPING_MANAGER',
+  'HOUSEKEEPING_STAFF',
+  'PAYMENT_STAFF',
+]);
 export const roomHousekeepingStatusSchema = z.enum(['CLEAN', 'DIRTY', 'CLEANING']);
 const instantSchema = z.string().datetime({ offset: true });
 
