@@ -195,7 +195,7 @@
       "index": 27,
       "fileName": "0027_superb_sumo.sql",
       "sha256": "3a7564e4aa5d31c1fb9cde9b0b6afd1faa8a9bb667dc24a3c542e88bd7a2b9ee",
-      "phase": "uncategorized",
+      "phase": "Operations V3 access credential delivery lifecycle",
       "previousIntroductionReference": null
     },
     {
@@ -231,6 +231,13 @@
       "fileName": "0032_soft_wraith.sql",
       "sha256": "ef8abfd6bd2a5ec028dfa353c946eae459396911900ab54911e8b82870371d0b",
       "phase": "Operations V3 Demo access credential foundation",
+      "previousIntroductionReference": null
+    },
+    {
+      "index": 33,
+      "fileName": "0033_curious_brother_voodoo.sql",
+      "sha256": "0b95b60c4d83f9fe7ccc79e6863105f11b8b79e078641379e75a8c49dc34482e",
+      "phase": "uncategorized",
       "previousIntroductionReference": null
     }
   ]

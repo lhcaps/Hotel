@@ -105,6 +105,55 @@ describe('processOutbox', () => {
     expect(transport.messages[0]?.messageId).toBe(`<${eventId}@room-management.local>`);
   });
 
+  it('delivers a reference-only issued access credential and records delivery', async () => {
+    const { pool } = await useFixture();
+    const booking = await seedBookingHold(pool, {
+      bookingStatus: 'CONFIRMED',
+      contact: { normalizedEmail: 'guest@example.test' },
+    });
+    const credentialId = randomUUID();
+    const eventId = randomUUID();
+    const issuedAt = new Date('2027-01-10T03:30:00.000Z');
+    await pool.query(
+      `INSERT INTO access_credentials
+         (id, property_id, booking_id, room_id, provider, provider_credential_reference,
+          status, valid_from, valid_until, issued_at, idempotency_key, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, 'DEMO', $5, 'ISSUED', $6, $7, $6, $8, $6, $6)`,
+      [
+        credentialId,
+        booking.propertyId,
+        booking.bookingId,
+        booking.roomId,
+        'demo-provider-reference-must-never-reach-email',
+        issuedAt,
+        new Date('2027-01-10T07:00:00.000Z'),
+        `access-credential:${booking.bookingId}`,
+      ],
+    );
+    await seedOutboxEvent(pool, {
+      id: eventId,
+      aggregateType: 'ACCESS_CREDENTIAL',
+      aggregateId: credentialId,
+      eventType: 'access.credential.issued',
+      payload: { eventVersion: 1, credentialId, bookingId: booking.bookingId, provider: 'DEMO' },
+    });
+    const transport = createRecordingTransport();
+
+    const summary = await processOutbox({ ...PROCESS_OPTIONS, pool, transport }, silentLogger());
+
+    expect(summary.published).toBe(1);
+    expect(summary.skipped).toBe(0);
+    expect(transport.messages).toHaveLength(1);
+    expect(transport.messages[0]?.to).toBe(booking.recipientEmail);
+    expect(transport.messages[0]?.text).not.toContain('demo-provider-reference');
+    const credential = await pool.query<{ status: string; delivered_at: Date | null }>(
+      'SELECT status, delivered_at FROM access_credentials WHERE id = $1',
+      [credentialId],
+    );
+    expect(credential.rows[0]?.status).toBe('DELIVERED');
+    expect(credential.rows[0]?.delivered_at).toBeInstanceOf(Date);
+  });
+
   it('skips a hold-created event when the booking is already EXPIRED', async () => {
     const { pool } = await useFixture();
     const booking = await seedBookingHold(pool, {

@@ -90,7 +90,7 @@ async function processBatch(
             SELECT 1
               FROM access_credentials ac
              WHERE ac.booking_id = b.id
-               AND ac.status IN ('PENDING', 'ISSUED')
+               AND ac.status IN ('PENDING', 'ISSUED', 'DELIVERED')
           )
         ORDER BY b.check_in ASC, b.id ASC
         FOR UPDATE OF b SKIP LOCKED
@@ -206,7 +206,7 @@ async function hasUnlockedEligibleBooking(pool: DatabasePool): Promise<boolean> 
           )
           AND NOT EXISTS (
             SELECT 1 FROM access_credentials ac
-             WHERE ac.booking_id = b.id AND ac.status IN ('PENDING', 'ISSUED')
+             WHERE ac.booking_id = b.id AND ac.status IN ('PENDING', 'ISSUED', 'DELIVERED')
           )
         ORDER BY b.check_in ASC, b.id ASC
         FOR UPDATE OF b SKIP LOCKED

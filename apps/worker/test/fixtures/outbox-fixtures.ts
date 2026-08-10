@@ -172,11 +172,12 @@ export async function seedOutboxEvent(pool: DatabasePool, seed: OutboxEventSeed)
         status, attempt_count, available_at, published_at,
         lease_id, claimed_at, lease_expires_at, last_error_category)
      VALUES
-       ($1, NULL, 'BOOKING', $2, $3, $4::jsonb,
-        $5, $6, $7, $8,
-        $9, $10, $11, $12)`,
+       ($1, NULL, $2, $3, $4, $5::jsonb,
+        $6, $7, $8, $9,
+        $10, $11, $12, $13)`,
     [
       seed.id,
+      seed.aggregateType ?? 'BOOKING',
       seed.aggregateId,
       seed.eventType,
       JSON.stringify(seed.payload ?? {}),

@@ -1024,7 +1024,7 @@ async function revokeAccessCredentials(
               updated_at = $3
         WHERE property_id = $1
           AND booking_id = $2
-          AND status IN ('PENDING', 'ISSUED')
+          AND status IN ('PENDING', 'ISSUED', 'DELIVERED')
       RETURNING id, provider
      )
      INSERT INTO audit_events

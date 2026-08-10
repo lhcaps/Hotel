@@ -55,6 +55,7 @@ export const accessCredentialProvider = pgEnum('access_credential_provider', ['D
 export const accessCredentialStatus = pgEnum('access_credential_status', [
   'PENDING',
   'ISSUED',
+  'DELIVERED',
   'REVOKED',
   'FAILED',
 ]);
@@ -1417,7 +1418,7 @@ export const accessCredentials = pgTable(
     ),
     uniqueIndex('access_credentials_booking_active_uq')
       .on(table.bookingId)
-      .where(sql`${table.status} IN ('PENDING', 'ISSUED')`),
+      .where(sql`${table.status} IN ('PENDING', 'ISSUED', 'DELIVERED')`),
     index('access_credentials_issuance_idx').on(table.status, table.validFrom),
     check(
       'access_credentials_reference_nonempty_ck',
@@ -1432,10 +1433,17 @@ export const accessCredentials = pgTable(
       'access_credentials_status_fields_ck',
       sql`(${table.status} = 'PENDING'
              AND ${table.issuedAt} IS NULL
+             AND ${table.deliveredAt} IS NULL
              AND ${table.revokedAt} IS NULL
              AND ${table.failureCode} IS NULL)
           OR (${table.status} = 'ISSUED'
               AND ${table.issuedAt} IS NOT NULL
+              AND ${table.deliveredAt} IS NULL
+              AND ${table.revokedAt} IS NULL
+              AND ${table.failureCode} IS NULL)
+          OR (${table.status} = 'DELIVERED'
+              AND ${table.issuedAt} IS NOT NULL
+              AND ${table.deliveredAt} IS NOT NULL
               AND ${table.revokedAt} IS NULL
               AND ${table.failureCode} IS NULL)
           OR (${table.status} = 'REVOKED'
@@ -1444,6 +1452,7 @@ export const accessCredentials = pgTable(
               AND ${table.failureCode} IS NULL)
           OR (${table.status} = 'FAILED'
               AND ${table.issuedAt} IS NULL
+              AND ${table.deliveredAt} IS NULL
               AND ${table.revokedAt} IS NULL
               AND ${table.failureCode} IS NOT NULL)`,
     ),

@@ -425,6 +425,38 @@ describe('Phase 7G admin booking lifecycle', () => {
       expect(result.rows[0]?.revoked_at).toBeInstanceOf(Date);
     });
 
+    it('revokes a delivered Demo credential without preserving an active access grant', async () => {
+      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
+      await confirmBooking(fixture.database, bookingId);
+      await fixture.database.pool.query(
+        `INSERT INTO access_credentials
+           (property_id, booking_id, room_id, provider, provider_credential_reference,
+            status, valid_from, valid_until, issued_at, delivered_at, idempotency_key)
+         SELECT property_id, id, room_id, 'DEMO', 'demo-delivered-cancellation-reference',
+                'DELIVERED', check_in, check_out, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
+                'test-delivered-cancellation-credential'
+           FROM bookings WHERE id = $1`,
+        [bookingId],
+      );
+
+      await fixture.service.cancel(actor, bookingCode, { reason: 'guest illness' }, new Date());
+      const result = await fixture.database.pool.query<{
+        status: string;
+        revoked_at: Date | null;
+        audit_count: number;
+      }>(
+        `SELECT ac.status, ac.revoked_at,
+                (SELECT count(*)::int FROM audit_events ae
+                  WHERE ae.aggregate_id = ac.id
+                    AND ae.event_type = 'ACCESS_CREDENTIAL_REVOKED') AS audit_count
+           FROM access_credentials ac
+          WHERE ac.booking_id = $1`,
+        [bookingId],
+      );
+      expect(result.rows[0]).toMatchObject({ status: 'REVOKED', audit_count: 1 });
+      expect(result.rows[0]?.revoked_at).toBeInstanceOf(Date);
+    });
+
     it('cancels the future ARRIVAL_PREP task with the booking', async () => {
       const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {});
       await confirmBooking(fixture.database, bookingId);
