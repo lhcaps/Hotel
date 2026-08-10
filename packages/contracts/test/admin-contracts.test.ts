@@ -38,6 +38,7 @@ describe('admin catalog contracts', () => {
         roomTypeId: '7dd2f7dc-44bb-4f46-a1d4-1f0bb7c70847',
         roomNumber: 'S-01',
         physicalRoomCode: '94BDT-SabiG02',
+        notes: null,
         status: 'ACTIVE',
         housekeepingStatus: 'CLEANING',
         createdAt: '2026-07-29T00:00:00.000Z',
