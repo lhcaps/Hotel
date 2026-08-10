@@ -2,6 +2,19 @@
 
 ## Outcome
 
+## 2026-08-10 latest hosted CI closure
+
+GitHub Actions run `31397637910` passed every mandatory gate for checkpoint
+`5a4a37e257645e7ad69e5a805fa7b790807d7166`: frozen install, format, lint,
+typecheck, unit/catalog/auth/pricing/availability/quote checks, OpenAPI,
+Drizzle check/test, high-severity dependency audit, Gitleaks, build, release
+integrity, Storybook, web unit, and Playwright. The hosted E2E gate reported
+**168 primary tests passed (8.3m)** plus **1 unavailable-state test passed**.
+
+This is non-production evidence only. PR #10 remains draft and unmerged;
+there was no deployment, production migration, public enablement, or
+production reconciliation.
+
 ## 2026-08-10 hosted CI closure
 
 GitHub Actions run `31392757811` passed all mandatory gates for code checkpoint
