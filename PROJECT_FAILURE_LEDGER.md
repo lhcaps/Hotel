@@ -93,3 +93,18 @@ rerun does not erase the original failure record.
 | PLANNED_WAVE      | Wave 5 - Housekeeping lifecycle                                                                                                                                    |
 | RESOLUTION        | Added forward migration 0031, verification/reopen actor fields, versioned commands, audit events, and atomic reopen that resets the task to DUE and room to DIRTY. |
 | VERIFICATION      | `apps/api/test/integration/rooms.integration.test.ts`: 4/4 PASS; guarded `pnpm db:test`: 25 files, 224 tests PASS.                                                 |
+
+## FAIL-CI-E2E-002
+
+| Field             | Value                                                                                                                                                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DISCOVERED_AT     | 2026-08-10                                                                                                                                                                                                                           |
+| AREA              | Hosted ADMIN V2 and booking-operations E2E regression coverage                                                                                                                                                                       |
+| SEVERITY          | P1 / RELEASE_BLOCKER                                                                                                                                                                                                                 |
+| SYMPTOM           | Hosted CI run `31382442211` passed 25 mandatory gates but full E2E failed after 166 tests: the responsive route sweep waited for a generic heading that is not a route invariant, and a NO_SHOW assertion matched two visible nodes. |
+| ROOT_CAUSE_STATUS | CONFIRMED — both failures are test-selector defects: the sweep's actual invariant is a visible localized `.admin-page` without overflow, and the NO_SHOW state is intentionally rendered in more than one visible region.            |
+| DEPENDENCIES      | ADMIN V2 route sweep, booking lifecycle presentation, Playwright strict locator semantics                                                                                                                                            |
+| BLOCKS_WHAT       | Hosted full E2E and release-candidate readiness                                                                                                                                                                                      |
+| PLANNED_WAVE      | Wave 2 — hosted CI closure                                                                                                                                                                                                           |
+| RESOLUTION        | Attempt 1 of 3: retain the route/page, locale, and responsive assertions while removing the non-contractual heading requirement; retain a scoped NO_SHOW visibility assertion and remove the duplicate unscoped strict locator.      |
+| VERIFICATION      | Local isolated Playwright: `admin-v2-responsive.spec.ts` 1/1 PASS (all six viewports and route sweep); `phase-7g-admin-booking-operations.spec.ts --grep NO_SHOW` 1/1 PASS. Hosted full-pipeline rerun pending.                      |

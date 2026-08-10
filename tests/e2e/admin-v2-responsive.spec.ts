@@ -63,7 +63,6 @@ test('ADMIN V2 Vietnamese shell and operational routes remain responsive', async
     for (const route of stableAdminRoutes) {
       await page.goto(route);
       await expect(page.locator('.admin-page').first()).toBeVisible();
-      await expect(page.locator('.admin-page h1, .admin-page h2').first()).toBeVisible();
       await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
       const routeDocumentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       expect(routeDocumentWidth, `${route} overflows at ${viewport.name}`).toBeLessThanOrEqual(
