@@ -13,7 +13,7 @@ does not infer production verification from local source or test evidence.
 | Issue T-30 access credential                 | NO          | NO             | NO      | NO         | No persistent credential/provider/worker lifecycle                 |
 | Check in                                     | YES         | YES            | PARTIAL | PARTIAL    | T-30 credential link absent                                        |
 | Occupy through final checkout                | PARTIAL     | PARTIAL        | NO      | NO         | Connected multi-night/access proof absent                          |
-| Check out -> room DIRTY -> one turnover task | NO          | NO             | NO      | NO         | No atomic checkout-to-task transition                              |
+| Check out -> room DIRTY -> one turnover task | YES         | YES            | PARTIAL | NO         | Browser-level canonical lifecycle coverage remains                 |
 | Assign/reassign cleaner                      | NO          | NO             | NO      | NO         | No assignee/manager task API or permissions                        |
 | Start, complete, verify/reopen cleaning      | NO          | NO             | NO      | NO         | Task state machine and verification policy absent                  |
 | Derive ready room for next booking           | PARTIAL     | PARTIAL        | NO      | NO         | Client-side room grouping is not authoritative derived state       |
