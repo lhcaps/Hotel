@@ -48,3 +48,18 @@ rerun does not erase the original failure record.
 | PLANNED_WAVE      | Wave 2 - Customer Edge / OTP / Booking                                                                                                 |
 | RESOLUTION        | Attempt 1 of 3: apply the repository formatter to the exact test file, then run the full formatter check locally before pushing.       |
 | VERIFICATION      | Pending.                                                                                                                               |
+
+## FAIL-DB-PROVENANCE-001
+
+| Field             | Value                                                                                                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DISCOVERED_AT     | 2026-08-10                                                                                                                                                                                 |
+| AREA              | Database migration release integrity                                                                                                                                                       |
+| SEVERITY          | P1 / RELEASE_BLOCKER                                                                                                                                                                       |
+| SYMPTOM           | `pnpm db:test` rejected new migration `0030_good_malcolm_colcord.sql` because the immutable migration-provenance manifest had no matching journal/SQL identity entry.                      |
+| ROOT_CAUSE_STATUS | CONFIRMED - a forward migration must be deliberately added to the provenance manifest; auto-generation updates the journal and snapshot but does not release the immutable manifest entry. |
+| DEPENDENCIES      | Migration journal, SQL SHA-256 provenance manifest, historical migration identity tests                                                                                                    |
+| BLOCKS_WHAT       | Database test gate and release manifest generation                                                                                                                                         |
+| PLANNED_WAVE      | Wave 5 - Housekeeping lifecycle                                                                                                                                                            |
+| RESOLUTION        | Used the repository's append-only provenance refresh script without rewrite permission, then labeled only the new entry as Operations V3 housekeeping accountability.                      |
+| VERIFICATION      | Guarded `pnpm db:test`: 25 files, 223 tests PASS.                                                                                                                                          |

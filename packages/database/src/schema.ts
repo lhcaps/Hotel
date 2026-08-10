@@ -1274,8 +1274,14 @@ export const housekeepingTasks = pgTable(
     dueAt: timestamptz('due_at').notNull(),
     reminderAt: timestamptz('reminder_at'),
     reminderSentAt: timestamptz('reminder_sent_at'),
+    assignedTo: uuid('assigned_to'),
+    assignedBy: uuid('assigned_by'),
+    assignedAt: timestamptz('assigned_at'),
     startedAt: timestamptz('started_at'),
+    startedBy: uuid('started_by'),
     completedAt: timestamptz('completed_at'),
+    completedBy: uuid('completed_by'),
+    version: integer('version').notNull().default(0),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
     updatedAt: timestamptz('updated_at').notNull().defaultNow(),
   },
@@ -1294,6 +1300,26 @@ export const housekeepingTasks = pgTable(
       name: 'housekeeping_tasks_property_booking_fk',
       columns: [table.propertyId, table.bookingId],
       foreignColumns: [bookings.propertyId, bookings.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'housekeeping_tasks_assigned_to_fk',
+      columns: [table.assignedTo],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'housekeeping_tasks_assigned_by_fk',
+      columns: [table.assignedBy],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'housekeeping_tasks_started_by_fk',
+      columns: [table.startedBy],
+      foreignColumns: [users.id],
+    }).onDelete('restrict'),
+    foreignKey({
+      name: 'housekeeping_tasks_completed_by_fk',
+      columns: [table.completedBy],
+      foreignColumns: [users.id],
     }).onDelete('restrict'),
     unique('housekeeping_tasks_property_id_uq').on(table.propertyId, table.id),
     uniqueIndex('housekeeping_tasks_booking_type_uq')
@@ -1314,6 +1340,7 @@ export const housekeepingTasks = pgTable(
       sql`(${table.status} = 'DONE' AND ${table.completedAt} IS NOT NULL)
           OR (${table.status} <> 'DONE' AND ${table.completedAt} IS NULL)`,
     ),
+    check('housekeeping_tasks_version_nonnegative_ck', sql`${table.version} >= 0`),
   ],
 );
 

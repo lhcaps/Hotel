@@ -36,6 +36,11 @@ describe('physical room catalog transactions', () => {
     const client: DatabaseClient = createDatabaseClient(database.pool);
     catalog = new CatalogService(client, new CatalogRepository(client), new AuditRepository());
     await database.pool.query(
+      `INSERT INTO users (id, name, email, role, status)
+       VALUES ($1, 'Administrator', 'admin@example.test', 'SUPER_ADMIN', 'ACTIVE')`,
+      [actor.userId],
+    );
+    await database.pool.query(
       `INSERT INTO properties (id, code, name, timezone) VALUES ('550e8400-e29b-41d4-a716-446655440010','MAIN','Main','Asia/Ho_Chi_Minh'); INSERT INTO price_tiers (id, property_id, code, name, sort_order) VALUES ('550e8400-e29b-41d4-a716-446655440020','550e8400-e29b-41d4-a716-446655440010','STANDARD','Standard',0); INSERT INTO room_types (id, property_id, price_tier_id, code, name, max_adults, max_children, max_occupancy) VALUES ('550e8400-e29b-41d4-a716-446655440030','550e8400-e29b-41d4-a716-446655440010','550e8400-e29b-41d4-a716-446655440020','DLX','Deluxe',2,0,2);`,
     );
   });
@@ -129,13 +134,20 @@ describe('physical room catalog transactions', () => {
       catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEANING' }),
     ).resolves.toMatchObject({ housekeepingStatus: 'CLEANING' });
     const startedTask = (
-      await database.pool.query<{ status: string; started_at: Date | null }>(
-        `SELECT status, started_at FROM housekeeping_tasks WHERE room_id = $1`,
+      await database.pool.query<{
+        status: string;
+        started_at: Date | null;
+        started_by: string | null;
+        version: number;
+      }>(
+        `SELECT status, started_at, started_by, version FROM housekeeping_tasks WHERE room_id = $1`,
         [room.id],
       )
     ).rows[0];
     expect(startedTask?.status).toBe('IN_PROGRESS');
     expect(startedTask?.started_at).toBeInstanceOf(Date);
+    expect(startedTask?.started_by).toBe(actor.userId);
+    expect(startedTask?.version).toBe(1);
 
     await expect(
       catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
@@ -143,13 +155,20 @@ describe('physical room catalog transactions', () => {
       housekeepingStatus: 'CLEAN',
     });
     const completedTask = (
-      await database.pool.query<{ status: string; completed_at: Date | null }>(
-        `SELECT status, completed_at FROM housekeeping_tasks WHERE room_id = $1`,
+      await database.pool.query<{
+        status: string;
+        completed_at: Date | null;
+        completed_by: string | null;
+        version: number;
+      }>(
+        `SELECT status, completed_at, completed_by, version FROM housekeeping_tasks WHERE room_id = $1`,
         [room.id],
       )
     ).rows[0];
     expect(completedTask?.status).toBe('DONE');
     expect(completedTask?.completed_at).toBeInstanceOf(Date);
+    expect(completedTask?.completed_by).toBe(actor.userId);
+    expect(completedTask?.version).toBe(2);
   });
 
   it('returns merged inventory-free windows and the active housekeeping task from PostgreSQL', async () => {

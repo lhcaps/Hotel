@@ -211,6 +211,13 @@
       "sha256": "3bb65243c761660ca23def25d416a337fb4bab32c91cf637607128fb39354b11",
       "phase": "uncategorized",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 30,
+      "fileName": "0030_good_malcolm_colcord.sql",
+      "sha256": "eb237aec46849d69aee2328974c6332c2535472aedd2696779793751f5ca7807",
+      "phase": "Operations V3 housekeeping accountability",
+      "previousIntroductionReference": null
     }
   ]
 }

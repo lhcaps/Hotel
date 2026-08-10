@@ -261,6 +261,7 @@ export interface CatalogRepositoryPort {
     propertyId: string,
     id: string,
     command: RoomHousekeepingCommand,
+    actorId: string,
   ): Promise<CatalogRoomRecord | undefined>;
   listRooms(
     propertyId: string,
@@ -826,6 +827,7 @@ export class CatalogService {
         property.id,
         id,
         command,
+        actor.userId,
       );
       if (room === undefined) throw new CatalogNotFoundError();
       await this.audit.write(transaction, {

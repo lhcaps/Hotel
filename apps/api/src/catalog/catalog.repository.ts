@@ -404,6 +404,7 @@ export class CatalogRepository implements CatalogRepositoryPort {
     propertyId: string,
     id: string,
     command: RoomHousekeepingCommand,
+    actorId: string,
   ): Promise<CatalogRoomRecord | undefined> {
     const database = asCatalogDatabase(transaction, this.database);
     const [updated] = await database
@@ -426,7 +427,11 @@ export class CatalogRepository implements CatalogRepositoryPort {
            LIMIT 1
         )
         UPDATE housekeeping_tasks
-           SET status = 'IN_PROGRESS', started_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+           SET status = 'IN_PROGRESS',
+               started_at = CURRENT_TIMESTAMP,
+               started_by = ${actorId},
+               version = version + 1,
+               updated_at = CURRENT_TIMESTAMP
          WHERE id IN (SELECT id FROM next_task)
       `);
     }
@@ -444,7 +449,11 @@ export class CatalogRepository implements CatalogRepositoryPort {
            LIMIT 1
         )
         UPDATE housekeeping_tasks
-           SET status = 'DONE', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+           SET status = 'DONE',
+               completed_at = CURRENT_TIMESTAMP,
+               completed_by = ${actorId},
+               version = version + 1,
+               updated_at = CURRENT_TIMESTAMP
          WHERE id IN (SELECT id FROM next_task)
       `);
     }
