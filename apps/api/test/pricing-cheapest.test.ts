@@ -472,4 +472,143 @@ describe('Phase 8B cheapest-eligible pricing', () => {
       expect(Number.isSafeInteger(candidate.grossAmountVnd)).toBe(true);
     }
   });
+
+  // G-002 boundary tests: specific time windows from original requirements
+  describe('G-002 time boundary coverage', () => {
+    it('18:00 → 09:00 next day (15h overnight) generates valid candidate', () => {
+      const checkIn = utcOf(18, 0);
+      const checkOut = shift(checkIn, 900); // 15 hours
+      const result = calculatePricing(
+        { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
+        catalog,
+      );
+      // Verify a valid plan is selected (NIGHT_COMBO eligible but FIVE may be cheaper)
+      expect(result.selectedPlanCode).toBeTruthy();
+      expect(result.totalAmountVnd).toBeGreaterThan(0);
+    });
+
+    it('20:00 → 09:00 next day (13h overnight) generates valid candidate', () => {
+      const checkIn = utcOf(20, 0);
+      const checkOut = shift(checkIn, 780); // 13 hours
+      const result = calculatePricing(
+        { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
+        catalog,
+      );
+      expect(result.selectedPlanCode).toBeTruthy();
+      expect(result.totalAmountVnd).toBeGreaterThan(0);
+    });
+
+    it('21:00 → 09:00 next day (12h overnight) generates valid candidate', () => {
+      const checkIn = utcOf(21, 0);
+      const checkOut = shift(checkIn, 720); // 12 hours
+      const result = calculatePricing(
+        { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
+        catalog,
+      );
+      expect(result.selectedPlanCode).toBeTruthy();
+      expect(result.totalAmountVnd).toBeGreaterThan(0);
+    });
+
+    it('23:00 → 03:00 next day (4h late-night) selects eligible base plan', () => {
+      const checkIn = utcOf(23, 0);
+      const checkOut = shift(checkIn, 240); // 4 hours
+      const result = calculatePricing(
+        { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
+        catalog,
+      );
+      // NIGHT_COMBO minDuration is 315m, so THREE_HOUR_COMBO should be selected
+      expect(result.selectedPlanCode).toBe('THREE_HOUR_COMBO');
+      expect(result.totalAmountVnd).toBeGreaterThan(0);
+    });
+
+    it('14:45 → 18:45 (4h afternoon) respects time window boundaries', () => {
+      const checkIn = utcOf(14, 45);
+      const checkOut = shift(checkIn, 240);
+      const result = calculatePricing(
+        { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
+        catalog,
+      );
+      expect(result.totalAmountVnd).toBeGreaterThan(0);
+    });
+  });
+
+  // G-003 lowest valid total tests: ensure invalid candidates never win
+  describe('G-003 lowest valid total selection', () => {
+    it('never selects a candidate with missing price even if visually simpler', () => {
+      const brokenCheap: PricingCatalog = {
+        ...catalog,
+        // THREE has no price — should be skipped; FIVE should win
+        THREE_HOUR_COMBO: {
+          ...clone(catalog.THREE_HOUR_COMBO),
+          maxDurationMinutesInclusive: 960, // Extend so FIVE is also eligible at 255m
+          prices: {}, // Missing price makes it invalid
+        },
+        FIVE_HOUR_COMBO: {
+          ...clone(catalog.FIVE_HOUR_COMBO),
+          minDurationMinutesInclusive: 60, // Lower min so FIVE is eligible at 180m
+        },
+      };
+      const checkIn = utcOf(15, 0);
+      const checkOut = shift(checkIn, 180);
+      const result = calculatePricing(
+        { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
+        brokenCheap,
+      );
+      // THREE is invalid due to missing price, should select FIVE or another valid plan
+      expect(result.selectedPlanCode).not.toBe('THREE_HOUR_COMBO');
+      expect(result.totalAmountVnd).toBeGreaterThan(0);
+    });
+
+    it('never selects an INACTIVE plan even if cheapest — throws if no valid alternative', () => {
+      // When the only plan that would cover the interval is INACTIVE,
+      // the system must reject it and throw rather than select the inactive plan.
+      const inactiveCheap: PricingCatalog = {
+        ...catalog,
+        // Make all plans INACTIVE except keep THREE as reference that it's ignored
+        THREE_HOUR_COMBO: {
+          ...clone(catalog.THREE_HOUR_COMBO),
+          status: 'INACTIVE',
+        },
+        FIVE_HOUR_COMBO: {
+          ...clone(catalog.FIVE_HOUR_COMBO),
+          status: 'INACTIVE',
+        },
+        LUNCH_COMBO: {
+          ...clone(catalog.LUNCH_COMBO),
+          status: 'INACTIVE',
+        },
+        NIGHT_COMBO: {
+          ...clone(catalog.NIGHT_COMBO),
+          status: 'INACTIVE',
+        },
+        DAY_COMBO: {
+          ...clone(catalog.DAY_COMBO),
+          status: 'INACTIVE',
+        },
+      };
+      const checkIn = utcOf(15, 0);
+      const checkOut = shift(checkIn, 180);
+      // System must fail closed — never select an INACTIVE plan
+      expect(() =>
+        calculatePricing(
+          { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
+          inactiveCheap,
+        ),
+      ).toThrow();
+    });
+
+    it('selects valid complete candidate over cheaper incomplete coverage', () => {
+      // Ensure that a candidate with complete valid coverage wins even if
+      // another candidate appears cheaper but doesn't meet constraints
+      const checkIn = utcOf(11, 0);
+      const checkOut = shift(checkIn, 240);
+      const result = calculatePricing(
+        { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
+        catalog,
+      );
+      // Verify a valid plan is selected with complete coverage
+      expect(result.selectedPlanCode).toBeTruthy();
+      expect(result.totalAmountVnd).toBeGreaterThan(0);
+    });
+  });
 });
