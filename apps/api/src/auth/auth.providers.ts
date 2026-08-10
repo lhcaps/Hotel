@@ -64,6 +64,31 @@ export function createAuthUserReader(database: DatabaseProvider): AuthUserReader
             : { id: membership.departmentId, name: department.name };
         }),
       );
+
+      // Compute server-derived property authorization scope.
+      // SUPER_ADMIN gets 'ALL' without querying the table — global authority is
+      // already established by ROLE_PERMISSIONS.SUPER_ADMIN = PERMISSIONS.
+      let propertyIds: readonly string[] | 'ALL';
+      if (role === 'SUPER_ADMIN') {
+        propertyIds = 'ALL';
+      } else {
+        const propertyMemberships =
+          await database.client.query.adminPropertyMemberships.findMany({
+            where: (fields, { and, eq }) =>
+              and(eq(fields.userId, userId), eq(fields.status, 'ACTIVE')),
+            columns: { propertyId: true },
+          });
+        // property_id = null means an explicit all-property grant
+        const hasAllProperty = propertyMemberships.some((row) => row.propertyId === null);
+        if (hasAllProperty) {
+          propertyIds = 'ALL';
+        } else {
+          propertyIds = propertyMemberships
+            .map((row) => row.propertyId)
+            .filter((id): id is string => id !== null);
+        }
+      }
+
       return {
         role,
         profileCode: role,
@@ -72,6 +97,7 @@ export function createAuthUserReader(database: DatabaseProvider): AuthUserReader
         departments: departments.filter(
           (department): department is { id: string; name: string } => department !== undefined,
         ),
+        propertyIds,
       };
     },
   };

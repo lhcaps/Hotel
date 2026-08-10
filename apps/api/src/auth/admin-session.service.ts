@@ -6,6 +6,14 @@ export interface AdminAccess {
   readonly profileLabelVi: string;
   readonly permissions: readonly Permission[];
   readonly departments: readonly { readonly id: string; readonly name: string }[];
+  /**
+   * Server-derived property authorization scope.
+   * 'ALL' means explicit all-property authority (SUPER_ADMIN role or an
+   * explicit property_id=NULL row in admin_property_memberships).
+   * An empty array means the actor has a profile but no property scope yet.
+   * Never derived from the request — always loaded from the database.
+   */
+  readonly propertyIds: readonly string[] | 'ALL';
 }
 
 import { createActorContext, type ActorContext } from './actor-context.js';
@@ -56,6 +64,7 @@ export class AdminSessionService {
       profileCode: access?.profileCode ?? null,
       profileLabelVi: access?.profileLabelVi ?? null,
       departments: access?.departments ?? [],
+      propertyIds: access?.propertyIds ?? [],
       requestId: request.id,
       ...(typeof correlation === 'string' ? { correlationId: correlation } : {}),
     });

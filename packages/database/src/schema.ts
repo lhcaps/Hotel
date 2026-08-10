@@ -2372,6 +2372,7 @@ export const databaseSchema = {
   adminDepartments,
   adminMemberships,
   adminProfiles,
+  adminPropertyMemberships,
   amenities,
   auditEvents,
   bookingContacts,
