@@ -16,6 +16,7 @@ const actor: ActorContext = {
   displayName: 'Administrator',
   role: 'ADMIN',
   permissions: ['catalog.maintenance.manage'],
+  propertyIds: ['550e8400-e29b-41d4-a716-446655440010'],
   sessionId: '550e8400-e29b-41d4-a716-446655440001',
   sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
   requestId: 'maintenance-integration',
@@ -43,7 +44,9 @@ describe('maintenance inventory ledger', () => {
       endsAt: '2027-01-01T12:00:00.000Z',
       reason: 'Repair',
     });
-    await expect(catalog.listMaintenanceBlocks({ page: 1, pageSize: 20 })).resolves.toMatchObject({
+    await expect(
+      catalog.listMaintenanceBlocks(actor, { page: 1, pageSize: 20 }),
+    ).resolves.toMatchObject({
       items: [expect.objectContaining({ id: first.id, status: 'ACTIVE' })],
     });
     await expect(

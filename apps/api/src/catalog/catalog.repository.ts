@@ -16,6 +16,9 @@ import {
   rooms,
   sql,
 } from '@room/database';
+
+import type { ActorContext } from '../auth/actor-context.js';
+import { resolveAuthorizedProperty } from './property-context.service.js';
 import type {
   AmenityCommand,
   AmenityPatch,
@@ -77,16 +80,19 @@ export class CatalogRepository implements CatalogRepositoryPort {
   public constructor(private readonly database: CatalogDatabase) {}
 
   public async getCurrentProperty(
+    actor: ActorContext,
     transaction?: unknown,
+    requestedPropertyId?: string,
   ): Promise<CatalogPropertyRecord | undefined> {
     const database = asCatalogDatabase(transaction, this.database);
-    return database.query.properties.findFirst({
+    const activeProperties = await database.query.properties.findMany({
       where: (property, operators) => operators.eq(property.status, 'ACTIVE'),
       orderBy: (property, operators) => [
         operators.asc(property.createdAt),
         operators.asc(property.id),
       ],
     });
+    return resolveAuthorizedProperty(actor, activeProperties, requestedPropertyId);
   }
 
   public async updateProperty(

@@ -22,6 +22,7 @@ const actor = {
   userId: actorId,
   requestId: 'request-operations-v3',
   correlationId: 'correlation-operations-v3',
+  propertyIds: [propertyId] as readonly string[] | 'ALL',
 };
 
 function draftAggregate(
@@ -152,7 +153,7 @@ describe('pricing policy lifecycle service', () => {
   it('previews without mutation and publishes only a validated initial release', async () => {
     const { service, repository, events } = setup();
 
-    const preview = await service.preview(policyId);
+    const preview = await service.preview(actor, policyId);
     expect(preview.publicationReady).toBe(true);
     expect(repository.publishDraft).not.toHaveBeenCalled();
     expect(events.write).not.toHaveBeenCalled();

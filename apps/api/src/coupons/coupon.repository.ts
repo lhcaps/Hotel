@@ -12,6 +12,9 @@ import { normalizeCouponCode } from '@room/booking/coupon';
 
 import type { AdminCouponCreate, CouponLifecycle } from '@room/contracts';
 
+import type { ActorContext } from '../auth/actor-context.js';
+import { resolveAuthorizedProperty } from '../catalog/property-context.service.js';
+
 import type { CouponRepositoryPort, CouponResult, DisableCouponResult } from './coupon.service.js';
 
 type CouponDatabase = Pick<DatabaseClient, 'insert' | 'query' | 'update' | 'select'>;
@@ -27,16 +30,17 @@ export interface CouponRepositoryOptions {
 export class CouponRepository implements CouponRepositoryPort {
   public constructor(private readonly database: CouponDatabase) {}
 
-  public async getCurrentProperty(): Promise<{ readonly id: string } | undefined> {
-    const row = await this.database.query.properties.findFirst({
+  public async getCurrentProperty(
+    actor: ActorContext,
+  ): Promise<{ readonly id: string } | undefined> {
+    const activeProperties = await this.database.query.properties.findMany({
       where: (property, operators) => operators.eq(property.status, 'ACTIVE'),
       orderBy: (property, operators) => [
         operators.asc(property.createdAt),
         operators.asc(property.id),
       ],
     });
-    if (row === undefined) return undefined;
-    return { id: row.id };
+    return resolveAuthorizedProperty(actor, activeProperties);
   }
 
   public async verifyRoomTypesExist(

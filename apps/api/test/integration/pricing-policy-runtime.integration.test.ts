@@ -24,6 +24,7 @@ const actor = {
   userId: ids.admin,
   requestId: 'request-pricing-policy-integration',
   correlationId: 'correlation-pricing-policy-integration',
+  propertyIds: [ids.property] as readonly string[] | 'ALL',
 };
 
 interface PolicyVersionDbRow {
@@ -149,7 +150,7 @@ describe('Operations V3 internal pricing-policy runtime', () => {
     });
     await addSimpleComponent(created.policyId, 350000n);
 
-    await expect(service.preview(created.policyId)).resolves.toMatchObject({
+    await expect(service.preview(actor, created.policyId)).resolves.toMatchObject({
       publicationReady: true,
     });
     const published = await service.publishInitial(actor, created.policyId);

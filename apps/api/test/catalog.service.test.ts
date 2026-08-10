@@ -204,7 +204,7 @@ describe('CatalogService', () => {
       },
     );
 
-    await expect(service.getProperty()).rejects.toBeInstanceOf(CatalogNotFoundError);
+    await expect(service.getProperty(actor)).rejects.toBeInstanceOf(CatalogNotFoundError);
   });
 
   it('maps only duplicate price-tier conflicts to a safe domain error', async () => {

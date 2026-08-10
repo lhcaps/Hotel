@@ -19,6 +19,8 @@ import {
   ratePlans,
 } from '@room/database';
 
+import { resolveAuthorizedProperty } from '../catalog/property-context.service.js';
+
 import type {
   DraftPricingPolicyAggregate,
   DraftPricingPolicyComponent,
@@ -32,6 +34,7 @@ import type {
   PricingPolicyJsonObject,
   PricingPolicyStatus,
 } from './pricing-policy.domain.js';
+import type { PricingPolicyActor } from './pricing-policy.service.js';
 
 type PolicyDatabase = DatabaseClient;
 
@@ -224,6 +227,7 @@ export class PricingPolicyRepository {
   public constructor(private readonly client: DatabaseClient) {}
 
   public async getCurrentProperty(
+    actor: PricingPolicyActor,
     transaction?: unknown,
   ): Promise<PricingPolicyPropertyContext | undefined> {
     const database = databaseFor(transaction, this.client);
@@ -231,9 +235,8 @@ export class PricingPolicyRepository {
       .select({ id: properties.id, timezone: properties.timezone })
       .from(properties)
       .where(eq(properties.status, 'ACTIVE'))
-      .orderBy(asc(properties.createdAt))
-      .limit(1);
-    return rows[0];
+      .orderBy(asc(properties.createdAt), asc(properties.id));
+    return resolveAuthorizedProperty(actor, rows);
   }
 
   public async lockProperty(transaction: unknown, propertyId: string): Promise<void> {

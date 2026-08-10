@@ -72,12 +72,11 @@ export function createAuthUserReader(database: DatabaseProvider): AuthUserReader
       if (role === 'SUPER_ADMIN') {
         propertyIds = 'ALL';
       } else {
-        const propertyMemberships =
-          await database.client.query.adminPropertyMemberships.findMany({
-            where: (fields, { and, eq }) =>
-              and(eq(fields.userId, userId), eq(fields.status, 'ACTIVE')),
-            columns: { propertyId: true },
-          });
+        const propertyMemberships = await database.client.query.adminPropertyMemberships.findMany({
+          where: (fields, { and, eq }) =>
+            and(eq(fields.userId, userId), eq(fields.status, 'ACTIVE')),
+          columns: { propertyId: true },
+        });
         // property_id = null means an explicit all-property grant
         const hasAllProperty = propertyMemberships.some((row) => row.propertyId === null);
         if (hasAllProperty) {

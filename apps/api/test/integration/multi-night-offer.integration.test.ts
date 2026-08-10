@@ -173,6 +173,7 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
       userId: ids.admin,
       requestId: 'b0-runtime-bootstrap-request',
       correlationId: 'b0-runtime-bootstrap-correlation',
+      propertyIds: [ids.property] as readonly string[] | 'ALL',
     };
     const bootstrapped = await policyService.bootstrapDraft(actor, {
       internalName: 'B0 runtime bootstrap',

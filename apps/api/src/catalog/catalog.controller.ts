@@ -27,8 +27,8 @@ export class CatalogController {
   @Get('property')
   @Version('1')
   @RequirePermissions('catalog.property.read')
-  public getProperty() {
-    return this.catalog.getProperty();
+  public getProperty(@Req() request: { actor: ActorContext }) {
+    return this.catalog.getProperty(request.actor);
   }
 
   @Patch('property')
@@ -41,8 +41,8 @@ export class CatalogController {
   @Get('price-tiers')
   @Version('1')
   @RequirePermissions('catalog.price_tier.read')
-  public listPriceTiers(@Query() query: unknown) {
-    return this.catalog.listPriceTiers(query);
+  public listPriceTiers(@Query() query: unknown, @Req() request: { actor: ActorContext }) {
+    return this.catalog.listPriceTiers(request.actor, query);
   }
 
   @Post('price-tiers')
@@ -84,8 +84,8 @@ export class CatalogController {
   @Get('room-types')
   @Version('1')
   @RequirePermissions('catalog.room_type.read')
-  public listRoomTypes(@Query() query: unknown) {
-    return this.catalog.listRoomTypes(query);
+  public listRoomTypes(@Query() query: unknown, @Req() request: { actor: ActorContext }) {
+    return this.catalog.listRoomTypes(request.actor, query);
   }
 
   @Post('room-types/:id/archive')
@@ -142,8 +142,8 @@ export class CatalogController {
   @Get('amenities')
   @Version('1')
   @RequirePermissions('catalog.amenity.read')
-  public listAmenities(@Query() query: unknown) {
-    return this.catalog.listAmenities(query);
+  public listAmenities(@Query() query: unknown, @Req() request: { actor: ActorContext }) {
+    return this.catalog.listAmenities(request.actor, query);
   }
 
   @Patch('amenities/:id')
@@ -171,8 +171,8 @@ export class CatalogController {
   @Get('rooms')
   @Version('1')
   @RequirePermissions('catalog.room.read')
-  public listRooms(@Query() query: unknown) {
-    return this.catalog.listRooms(query);
+  public listRooms(@Query() query: unknown, @Req() request: { actor: ActorContext }) {
+    return this.catalog.listRooms(request.actor, query);
   }
 
   @Post('rooms')
@@ -258,8 +258,8 @@ export class CatalogController {
   @Get('maintenance-blocks')
   @Version('1')
   @RequirePermissions('catalog.maintenance.read')
-  public listMaintenanceBlocks(@Query() query: unknown) {
-    return this.catalog.listMaintenanceBlocks(query);
+  public listMaintenanceBlocks(@Query() query: unknown, @Req() request: { actor: ActorContext }) {
+    return this.catalog.listMaintenanceBlocks(request.actor, query);
   }
 
   @Post('maintenance-blocks/:id/cancel')

@@ -23,8 +23,11 @@ export class AdminPaymentProviderController {
     @Inject(PaymentProviderSettingsService)
     private readonly settings: PaymentProviderSettingsService,
   ) {}
-  @Get() @Version('1') @RequirePermissions('catalog.property.manage') public list() {
-    return this.settings.listAdmin();
+  @Get()
+  @Version('1')
+  @RequirePermissions('catalog.property.manage')
+  public list(@Req() request: { actor: ActorContext }) {
+    return this.settings.listAdmin(request.actor);
   }
 
   @Patch(':provider')
@@ -38,6 +41,6 @@ export class AdminPaymentProviderController {
     if (provider !== 'MOMO' && provider !== 'VNPAY') {
       throw new PaymentProviderSettingsError('PAYMENT_PROVIDER_NOT_FOUND');
     }
-    return this.settings.update(provider, body, request.actor.userId);
+    return this.settings.update(request.actor, provider, body, request.actor.userId);
   }
 }

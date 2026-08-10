@@ -139,7 +139,11 @@ export interface CancelMaintenanceResult {
 }
 
 export interface CatalogRepositoryPort {
-  getCurrentProperty(transaction?: unknown): Promise<CatalogPropertyRecord | undefined>;
+  getCurrentProperty(
+    actor: ActorContext,
+    transaction?: unknown,
+    requestedPropertyId?: string,
+  ): Promise<CatalogPropertyRecord | undefined>;
   updateProperty(
     transaction: unknown,
     id: string,
@@ -478,8 +482,8 @@ export class CatalogService {
     private readonly audit: AuditRepositoryPort,
   ) {}
 
-  public async getProperty() {
-    const property = await this.repository.getCurrentProperty();
+  public async getProperty(actor: ActorContext) {
+    const property = await this.repository.getCurrentProperty(actor);
     if (property === undefined) throw new CatalogNotFoundError();
     return toProperty(property);
   }
@@ -487,7 +491,7 @@ export class CatalogService {
   public async updateProperty(actor: ActorContext, input: unknown) {
     const command = propertyCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const current = await this.repository.getCurrentProperty(transaction);
+      const current = await this.repository.getCurrentProperty(actor, transaction);
       if (current === undefined) throw new CatalogNotFoundError();
       const normalizedCommand = propertyCommandSchema.parse({
         ...command,
@@ -525,9 +529,9 @@ export class CatalogService {
     });
   }
 
-  public async listPriceTiers(input: unknown) {
+  public async listPriceTiers(actor: ActorContext, input: unknown) {
     const page = paginationQuerySchema.parse(input);
-    const property = await this.repository.getCurrentProperty();
+    const property = await this.repository.getCurrentProperty(actor);
     if (property === undefined) throw new CatalogNotFoundError();
     const items = await this.repository.listPriceTiers(property.id, page.page, page.pageSize);
     return { ...page, items: items.map(toPriceTier) };
@@ -537,7 +541,7 @@ export class CatalogService {
     const command = priceTierCommandSchema.parse(input);
     try {
       return await this.database.transaction(async (transaction) => {
-        const property = await this.repository.getCurrentProperty(transaction);
+        const property = await this.repository.getCurrentProperty(actor, transaction);
         if (property === undefined) throw new CatalogNotFoundError();
         const tier = await this.repository.createPriceTier(transaction, property.id, command);
         await this.audit.write(transaction, {
@@ -559,7 +563,7 @@ export class CatalogService {
   public async updatePriceTier(actor: ActorContext, id: string, input: unknown) {
     const command = priceTierCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const tier = await this.repository.updatePriceTier(transaction, property.id, id, command);
       if (tier === undefined) throw new CatalogNotFoundError();
@@ -578,7 +582,7 @@ export class CatalogService {
   public async archivePriceTier(actor: ActorContext, id: string, input: unknown) {
     archiveCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const tier = await this.repository.archivePriceTier(transaction, property.id, id);
       if (tier === undefined) throw new CatalogNotFoundError();
@@ -597,7 +601,7 @@ export class CatalogService {
   public async createRoomType(actor: ActorContext, input: unknown) {
     const command = roomTypeCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const roomType = await this.repository.createRoomType(transaction, property.id, command);
       await this.audit.write(transaction, {
@@ -611,9 +615,9 @@ export class CatalogService {
       return toRoomType(roomType);
     });
   }
-  public async listRoomTypes(input: unknown) {
+  public async listRoomTypes(actor: ActorContext, input: unknown) {
     const page = paginationQuerySchema.parse(input);
-    const property = await this.repository.getCurrentProperty();
+    const property = await this.repository.getCurrentProperty(actor);
     if (property === undefined) throw new CatalogNotFoundError();
     const items = await this.repository.listRoomTypes(property.id, page.page, page.pageSize);
     return { ...page, items: items.map(toRoomType) };
@@ -621,7 +625,7 @@ export class CatalogService {
   public async updateRoomType(actor: ActorContext, id: string, input: unknown) {
     const command = roomTypePatchSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const existing = await this.repository.findRoomType(transaction, property.id, id);
       if (existing === undefined) throw new CatalogNotFoundError();
@@ -667,7 +671,7 @@ export class CatalogService {
   }
   public async removeRoomTypeAmenity(actor: ActorContext, roomTypeId: string, amenityId: string) {
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const roomType = await this.repository.findRoomType(transaction, property.id, roomTypeId);
       if (roomType === undefined) throw new CatalogNotFoundError();
@@ -701,7 +705,7 @@ export class CatalogService {
   public async archiveRoomType(actor: ActorContext, id: string, input: unknown) {
     archiveCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       await this.repository.lockRoomType(transaction, property.id, id);
       const summary = await this.repository.summarizeRoomTypeDependencies(
@@ -732,7 +736,7 @@ export class CatalogService {
   public async createAmenity(actor: ActorContext, input: unknown) {
     const command = amenityCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const amenity = await this.repository.createAmenity(transaction, property.id, command);
       await this.audit.write(transaction, {
@@ -746,9 +750,9 @@ export class CatalogService {
       return toAmenity(amenity);
     });
   }
-  public async listAmenities(input: unknown) {
+  public async listAmenities(actor: ActorContext, input: unknown) {
     const page = paginationQuerySchema.parse(input);
-    const property = await this.repository.getCurrentProperty();
+    const property = await this.repository.getCurrentProperty(actor);
     if (property === undefined) throw new CatalogNotFoundError();
     const items = await this.repository.listAmenities(property.id, page.page, page.pageSize);
     return { ...page, items: items.map(toAmenity) };
@@ -756,7 +760,7 @@ export class CatalogService {
   public async archiveAmenity(actor: ActorContext, id: string, input: unknown) {
     archiveCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const amenity = await this.repository.archiveAmenity(transaction, property.id, id);
       if (amenity === undefined) throw new CatalogNotFoundError();
@@ -774,7 +778,7 @@ export class CatalogService {
   public async assignAmenity(actor: ActorContext, roomTypeId: string, input: unknown) {
     const command = assignAmenityCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       await this.repository.assignAmenity(transaction, property.id, roomTypeId, command.amenityId);
       await this.audit.write(transaction, {
@@ -790,7 +794,7 @@ export class CatalogService {
   public async updateAmenity(actor: ActorContext, id: string, input: unknown) {
     const command = amenityPatchSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const updated = await this.repository.updateAmenity(transaction, property.id, id, command);
       if (updated === undefined) throw new CatalogNotFoundError();
@@ -809,7 +813,7 @@ export class CatalogService {
     const command = roomCommandSchema.parse(input);
     try {
       return await this.database.transaction(async (transaction) => {
-        const property = await this.repository.getCurrentProperty(transaction);
+        const property = await this.repository.getCurrentProperty(actor, transaction);
         if (property === undefined) throw new CatalogNotFoundError();
         const room = await this.repository.createRoom(transaction, property.id, command);
         await this.audit.write(transaction, {
@@ -830,7 +834,7 @@ export class CatalogService {
   public async archiveRoom(actor: ActorContext, id: string, input: unknown) {
     archiveCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       await this.repository.lockRoom(transaction, property.id, id);
       const summary = await this.repository.summarizeRoomCommitments(transaction, property.id, id);
@@ -857,7 +861,7 @@ export class CatalogService {
   public async updateRoomHousekeeping(actor: ActorContext, id: string, input: unknown) {
     const command = roomHousekeepingCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       await this.repository.lockRoom(transaction, property.id, id);
       const existing = await this.repository.findRoom(transaction, property.id, id);
@@ -894,7 +898,7 @@ export class CatalogService {
   ): Promise<HousekeepingTaskAssignment> {
     const command = housekeepingTaskAssignmentCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       await this.repository.lockRoom(transaction, property.id, roomId);
       const assignRoomHousekeeping = this.repository.assignRoomHousekeeping;
@@ -972,7 +976,7 @@ export class CatalogService {
     eventType: 'ROOM_HOUSEKEEPING_VERIFIED' | 'ROOM_HOUSEKEEPING_REOPENED',
   ): Promise<HousekeepingTaskAction> {
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       await this.repository.lockRoom(transaction, property.id, roomId);
       const action = this.repository[operation];
@@ -1014,7 +1018,7 @@ export class CatalogService {
   public async updateRoom(actor: ActorContext, id: string, input: unknown) {
     const command = roomPatchSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const existing = await this.repository.findRoom(transaction, property.id, id);
       if (existing === undefined) throw new CatalogNotFoundError();
@@ -1074,9 +1078,9 @@ export class CatalogService {
       return toRoom(updated);
     });
   }
-  public async listRooms(input: unknown) {
+  public async listRooms(actor: ActorContext, input: unknown) {
     const page = paginationQuerySchema.parse(input);
-    const property = await this.repository.getCurrentProperty();
+    const property = await this.repository.getCurrentProperty(actor);
     if (property === undefined) throw new CatalogNotFoundError();
     const items = await this.repository.listRooms(
       property.id,
@@ -1090,7 +1094,7 @@ export class CatalogService {
     const command = maintenanceBlockCommandSchema.parse(input);
     try {
       return await this.database.transaction(async (transaction) => {
-        const property = await this.repository.getCurrentProperty(transaction);
+        const property = await this.repository.getCurrentProperty(actor, transaction);
         if (property === undefined) throw new CatalogNotFoundError();
         const block = await this.repository.createMaintenance(transaction, property.id, command);
         await this.audit.write(transaction, {
@@ -1108,9 +1112,9 @@ export class CatalogService {
       throw error;
     }
   }
-  public async listMaintenanceBlocks(input: unknown) {
+  public async listMaintenanceBlocks(actor: ActorContext, input: unknown) {
     const page = paginationQuerySchema.parse(input);
-    const property = await this.repository.getCurrentProperty();
+    const property = await this.repository.getCurrentProperty(actor);
     if (property === undefined) throw new CatalogNotFoundError();
     const items = await this.repository.listMaintenanceBlocks(
       property.id,
@@ -1121,7 +1125,7 @@ export class CatalogService {
   }
   public async cancelMaintenanceBlock(actor: ActorContext, id: string) {
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const result = await this.repository.cancelMaintenance(transaction, property.id, id);
       const { block } = result;

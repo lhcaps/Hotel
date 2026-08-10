@@ -1,5 +1,8 @@
 import { and, eq, ratePlanPrices, ratePlans, sql, type DatabaseClient } from '@room/database';
 
+import type { ActorContext } from '../auth/actor-context.js';
+import { resolveAuthorizedProperty } from '../catalog/property-context.service.js';
+
 import type {
   RatePlanCreateCommandInput,
   RatePlanRecord,
@@ -89,13 +92,21 @@ function storedRowToRecord(
 export class RatePlanRepository implements RatePlanRepositoryPort {
   public constructor(private readonly database: RatePlanDatabase) {}
 
-  public async getCurrentProperty(transaction?: unknown): Promise<{ id: string } | undefined> {
-    return databaseFor(transaction, this.database).query.properties.findFirst({
+  public async getCurrentProperty(
+    actor: ActorContext,
+    transaction?: unknown,
+  ): Promise<{ id: string } | undefined> {
+    const activeProperties = await databaseFor(
+      transaction,
+      this.database,
+    ).query.properties.findMany({
+      where: (property, operators) => operators.eq(property.status, 'ACTIVE'),
       orderBy: (property, operators) => [
         operators.asc(property.createdAt),
         operators.asc(property.id),
       ],
     });
+    return resolveAuthorizedProperty(actor, activeProperties);
   }
 
   public async lockActiveRuleSet(

@@ -50,6 +50,7 @@ describe('Operations V3 B0 production remediation bootstrap', () => {
     sessionId: randomUUID(),
     sessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
     requestId: randomUUID(),
+    propertyIds: 'ALL',
   };
 
   function configureApp(app: NestFastifyApplication): void {

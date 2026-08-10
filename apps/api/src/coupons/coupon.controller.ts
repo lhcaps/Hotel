@@ -25,8 +25,8 @@ export class CouponController {
   @Get()
   @Version('1')
   @RequirePermissions('coupon.read')
-  public listCoupons(@Query() query: unknown) {
-    return this.coupons.listCoupons(query);
+  public listCoupons(@Query() query: unknown, @Req() request: { actor: ActorContext }) {
+    return this.coupons.listCoupons(request.actor, query);
   }
 
   @Post()
@@ -39,8 +39,8 @@ export class CouponController {
   @Get(':id')
   @Version('1')
   @RequirePermissions('coupon.read')
-  public getCoupon(@Param('id') id: string) {
-    return this.coupons.getCoupon(id);
+  public getCoupon(@Param('id') id: string, @Req() request: { actor: ActorContext }) {
+    return this.coupons.getCoupon(request.actor, id);
   }
 
   @Post(':id/disable')

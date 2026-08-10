@@ -39,6 +39,7 @@ const actor: ActorContext = {
   sessionId: '550e8400-e29b-41d4-a716-446655440001',
   sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
   requestId: 'phase-3b1-integration',
+  propertyIds: [staticIds.property],
 };
 
 /**

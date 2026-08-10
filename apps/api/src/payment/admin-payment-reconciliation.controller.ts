@@ -47,9 +47,8 @@ export class AdminPaymentReconciliationController {
     @Query() query: unknown,
     @Req() request: AdminRequest,
   ): Promise<AdminPaymentListResponse> {
-    const property = await this.propertyContext.getCurrent();
+    const property = await this.propertyContext.getCurrent(request.actor);
     const parsed: AdminPaymentListQuery = adminPaymentListQuerySchema.parse(query);
-    void request;
     return this.service.listPayments(property.id, parsed);
   }
 
@@ -60,8 +59,7 @@ export class AdminPaymentReconciliationController {
     @Param('paymentId') paymentId: string,
     @Req() request: AdminRequest,
   ): Promise<AdminPaymentDetail> {
-    const property = await this.propertyContext.getCurrent();
-    void request;
+    const property = await this.propertyContext.getCurrent(request.actor);
     return this.service.getDetail(paymentId, property.id, new Date());
   }
 
@@ -73,7 +71,7 @@ export class AdminPaymentReconciliationController {
     @Body() body: unknown,
     @Req() request: AdminRequest,
   ): Promise<AdminPaymentReconcileResponse> {
-    const property = await this.propertyContext.getCurrent();
+    const property = await this.propertyContext.getCurrent(request.actor);
     return this.service.reconcile(request.actor, paymentId, property.id, body, new Date());
   }
 }

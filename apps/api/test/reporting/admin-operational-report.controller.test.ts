@@ -14,8 +14,11 @@ describe('AdminOperationalReportController', () => {
       propertyContext as unknown as PropertyContextService,
     );
     const query = { from: '2026-07-29T00:00:00.000Z', to: '2026-07-29T23:59:59.999Z' };
+    const actor = { userId: 'admin-1' };
+    const request = { actor };
 
-    await expect(controller.getReport(query)).resolves.toBe(report);
+    await expect(controller.getReport(query, request as never)).resolves.toBe(report);
+    expect(propertyContext.getCurrent).toHaveBeenCalledWith(actor);
     expect(service.getReport).toHaveBeenCalledWith('property-1', query, expect.any(Date));
   });
 });

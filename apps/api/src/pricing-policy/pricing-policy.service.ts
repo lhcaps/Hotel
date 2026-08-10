@@ -26,7 +26,7 @@ export interface PricingPolicyTransactionManager {
   transaction<T>(operation: (transaction: unknown) => Promise<T>): Promise<T>;
 }
 
-export type PricingPolicyActor = Pick<ActorContext, 'userId' | 'requestId'> & {
+export type PricingPolicyActor = Pick<ActorContext, 'userId' | 'requestId' | 'propertyIds'> & {
   readonly correlationId?: string;
 };
 
@@ -283,11 +283,11 @@ export class PricingPolicyService {
     private readonly defaultBasis: PricingPolicyApplicabilityBasis = 'STAY_START',
   ) {}
 
-  public async listReleases(): Promise<{
+  public async listReleases(actor: PricingPolicyActor): Promise<{
     readonly propertyId: string;
     readonly releases: readonly PricingPolicyHeader[];
   }> {
-    const property = await this.repository.getCurrentProperty();
+    const property = await this.repository.getCurrentProperty(actor);
     if (property === undefined) throw new PricingPolicyNotFoundError();
     return {
       propertyId: property.id,
@@ -295,8 +295,11 @@ export class PricingPolicyService {
     };
   }
 
-  public async getRelease(policyId: string): Promise<PricingPolicyReleaseAggregate> {
-    const property = await this.repository.getCurrentProperty();
+  public async getRelease(
+    actor: PricingPolicyActor,
+    policyId: string,
+  ): Promise<PricingPolicyReleaseAggregate> {
+    const property = await this.repository.getCurrentProperty(actor);
     const release = await this.repository.getReleaseAggregate(undefined, policyId);
     if (
       property === undefined ||
@@ -313,7 +316,7 @@ export class PricingPolicyService {
     input: CreateDraftPricingPolicyInput,
   ): Promise<PricingPolicyCommandResult> {
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new PricingPolicyNotFoundError();
       await this.repository.lockProperty(transaction, property.id);
       const createdAt = new Date();
@@ -365,7 +368,7 @@ export class PricingPolicyService {
         'INVALID_IDEMPOTENCY_KEY',
       );
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new PricingPolicyNotFoundError();
       if (!input.dryRun) {
         const existingId = await this.repository.findIdempotentEvent(
@@ -506,7 +509,7 @@ export class PricingPolicyService {
     input: UpdateDraftPricingPolicyInput,
   ): Promise<PricingPolicyCommandResult> {
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       const existing = await this.repository.getAggregate(transaction, policyId);
       if (
         property === undefined ||
@@ -591,7 +594,7 @@ export class PricingPolicyService {
         'INVALID_CANCELLATION_REASON',
       );
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       const header = await this.repository.getHeader(transaction, policyId);
       if (property === undefined || header === undefined || header.propertyId !== property.id)
         throw new PricingPolicyNotFoundError();
@@ -629,9 +632,12 @@ export class PricingPolicyService {
     });
   }
 
-  public async preview(policyId: string): Promise<PricingPolicyPreviewResult> {
+  public async preview(
+    actor: PricingPolicyActor,
+    policyId: string,
+  ): Promise<PricingPolicyPreviewResult> {
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       const aggregate = await this.repository.getAggregate(transaction, policyId);
       if (
         property === undefined ||
@@ -658,7 +664,7 @@ export class PricingPolicyService {
     idempotencyKey?: string,
   ): Promise<PricingPolicyCommandResult> {
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new PricingPolicyNotFoundError();
       if (idempotencyKey !== undefined) {
         const existingId = await this.repository.findIdempotentEvent(
@@ -725,7 +731,7 @@ export class PricingPolicyService {
     idempotencyKey?: string,
   ): Promise<PricingPolicyCommandResult> {
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new PricingPolicyNotFoundError();
       if (idempotencyKey !== undefined) {
         const existingId = await this.repository.findIdempotentEvent(
@@ -826,7 +832,7 @@ export class PricingPolicyService {
     policyId: string,
   ): Promise<PricingPolicyCommandResult> {
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       const header = await this.repository.getHeader(transaction, policyId);
       if (property === undefined || header === undefined || header.propertyId !== property.id)
         throw new PricingPolicyNotFoundError();

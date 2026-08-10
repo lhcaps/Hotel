@@ -27,6 +27,7 @@ const actor: ActorContext = {
   sessionId: '550e8400-e29b-41d4-a716-446655440001',
   sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
   requestId: 'coupon-admin-integration',
+  propertyIds: [ids.property],
 };
 
 async function seedCatalog(database: GuardedTestDatabase): Promise<void> {
@@ -178,7 +179,7 @@ describe('ADMIN coupon service', () => {
   });
 
   it('lists coupons deterministically with derived counts', async () => {
-    const list = await coupons.listCoupons({ page: 1, pageSize: 100 });
+    const list = await coupons.listCoupons(actor, { page: 1, pageSize: 100 });
     expect(list.page).toBe(1);
     expect(list.pageSize).toBe(100);
     const codes = list.items.map((item) => item.code);
@@ -192,11 +193,11 @@ describe('ADMIN coupon service', () => {
   });
 
   it('returns detail without leaking any customer digest', async () => {
-    const list = await coupons.listCoupons({ page: 1, pageSize: 100 });
+    const list = await coupons.listCoupons(actor, { page: 1, pageSize: 100 });
     const target = list.items.find((item) => item.code === 'FIXED-001');
     expect(target).toBeDefined();
     if (target === undefined) return;
-    const detail = await coupons.getCoupon(target.id);
+    const detail = await coupons.getCoupon(actor, target.id);
     expect(detail.code).toBe('FIXED-001');
     const serialised = JSON.stringify(detail);
     expect(serialised).not.toMatch(/customerEmailDigest/i);
@@ -205,9 +206,9 @@ describe('ADMIN coupon service', () => {
   });
 
   it('throws CouponNotFoundError when detail is unknown', async () => {
-    await expect(coupons.getCoupon('00000000-0000-0000-0000-000000000000')).rejects.toBeInstanceOf(
-      CouponNotFoundError,
-    );
+    await expect(
+      coupons.getCoupon(actor, '00000000-0000-0000-0000-000000000000'),
+    ).rejects.toBeInstanceOf(CouponNotFoundError);
   });
 
   it('disables an active coupon, audits the disable, and remains idempotent', async () => {
@@ -249,14 +250,14 @@ describe('ADMIN coupon service', () => {
       validFrom: '2024-01-01T00:00:00.000Z',
       validUntil: '2024-02-01T00:00:00.000Z',
     });
-    const detail = await coupons.getCoupon(expired.id);
+    const detail = await coupons.getCoupon(actor, expired.id);
     expect(detail.lifecycle).toBe('EXPIRED');
   });
 
   it('reports DISABLED lifecycle when a coupon is disabled', async () => {
     const created = await coupons.createCoupon(actor, fixedInput('FIXED-CYCLE'));
     await coupons.disableCoupon(actor, created.id);
-    const detail = await coupons.getCoupon(created.id);
+    const detail = await coupons.getCoupon(actor, created.id);
     expect(detail.lifecycle).toBe('DISABLED');
   });
 });

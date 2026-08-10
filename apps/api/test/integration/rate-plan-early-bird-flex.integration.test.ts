@@ -22,6 +22,7 @@ const adminActor: ActorContext = {
   sessionId: '550e8400-e29b-41d4-a716-446655440301',
   sessionExpiresAt: new Date('2028-01-01T00:00:00.000Z'),
   requestId: 'early-bird-flex-admin-creation',
+  propertyIds: ['550e8400-e29b-41d4-a716-446655440310'],
 };
 
 const customerActor: ActorContext = {

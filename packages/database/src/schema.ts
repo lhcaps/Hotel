@@ -373,7 +373,10 @@ export const adminPropertyMemberships = pgTable(
     // One active row per (user, property) including the ALL-PROPERTY (NULL) row.
     // COALESCE uses the nil UUID as a stable surrogate for NULL in the unique predicate.
     uniqueIndex('admin_property_memberships_user_property_active_uq')
-      .on(table.userId, sql`COALESCE(${table.propertyId}, '00000000-0000-0000-0000-000000000000'::uuid)`)
+      .on(
+        table.userId,
+        sql`COALESCE(${table.propertyId}, '00000000-0000-0000-0000-000000000000'::uuid)`,
+      )
       .where(sql`${table.status} = 'ACTIVE'`),
     index('admin_property_memberships_user_status_idx').on(table.userId, table.status),
     check(

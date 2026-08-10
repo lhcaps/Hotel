@@ -83,9 +83,9 @@ export class PricingPolicyAdminController {
   @Get()
   @Version('1')
   @RequirePermissions('pricing.policy.read')
-  public async list() {
+  public async list(@Req() request: AdminRequest) {
     this.assertCatalogRuntime();
-    const result = await this.service.listReleases();
+    const result = await this.service.listReleases(actorForRequest(request.actor));
     return {
       propertyId: result.propertyId,
       releases: result.releases.map(serializeHeader),
@@ -95,9 +95,9 @@ export class PricingPolicyAdminController {
   @Get(':id')
   @Version('1')
   @RequirePermissions('pricing.policy.read')
-  public async get(@Param('id') id: string) {
+  public async get(@Req() request: AdminRequest, @Param('id') id: string) {
     this.assertCatalogRuntime();
-    return serializeAggregate(await this.service.getRelease(id));
+    return serializeAggregate(await this.service.getRelease(actorForRequest(request.actor), id));
   }
 
   @Post('bootstrap')
@@ -140,9 +140,9 @@ export class PricingPolicyAdminController {
   @Post(':id/preview')
   @Version('1')
   @RequirePermissions('pricing.policy.preview')
-  public async preview(@Param('id') id: string) {
+  public async preview(@Req() request: AdminRequest, @Param('id') id: string) {
     this.assertCatalogRuntime();
-    return serializePreview(await this.service.preview(id));
+    return serializePreview(await this.service.preview(actorForRequest(request.actor), id));
   }
 
   @Post(':id/cancel')

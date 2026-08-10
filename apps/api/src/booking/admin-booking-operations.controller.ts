@@ -55,8 +55,7 @@ export class AdminBookingOperationsController {
     @Query() query: unknown,
     @Req() request: AdminRequest,
   ): Promise<AdminBookingListResponse> {
-    const property = await this.propertyContext.getCurrent();
-    void request;
+    const property = await this.propertyContext.getCurrent(request.actor);
     return this.lifecycle.listBookings(property.id, query, property.timezone);
   }
 
@@ -159,8 +158,7 @@ export class AdminBookingOperationsController {
     @Query() query: unknown,
     @Req() request: AdminRequest,
   ): Promise<AdminOperationalReviewListResponse> {
-    const property = await this.propertyContext.getCurrent();
-    void request;
+    const property = await this.propertyContext.getCurrent(request.actor);
     return this.lifecycle.listOperationalReviews(property.id, query);
   }
 

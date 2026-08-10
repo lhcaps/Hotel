@@ -41,8 +41,8 @@ Authority order used below: current schema/source > 04_RBAC_MATRIX.md >
   path or query parameter anywhere in `apps/api/src` (verified by exhaustive
   grep across every `.controller.ts`). Property is always server-resolved.
   This means today there is **no existing client-property-id attack surface to
-  retrofit** — the gap is that the server resolves the *wrong* thing (first
-  active property) rather than an *authorized* thing.
+  retrofit** — the gap is that the server resolves the _wrong_ thing (first
+  active property) rather than an _authorized_ thing.
 - Workers (`apps/worker/src/jobs/*.ts`) never call `PropertyContextService`;
   they derive `property_id` from the authoritative row they already locked
   (booking, task, credential). No change is required there.
@@ -111,6 +111,7 @@ CREATE INDEX admin_property_memberships_user_status_idx ON admin_property_member
 ```
 
 Rationale for design choices:
+
 - **Additive table, not a column on `admin_memberships`.** Department
   membership and property membership are orthogonal per
   `07_MULTI_PROPERTY_SPEC.md` ("department membership alone is NOT a
@@ -229,6 +230,7 @@ repository `getCurrentProperty()` is updated to pass
 `request.actor` through to the new resolver. Because **no route today reads a
 client-supplied `propertyId`**, F-003 for the current route surface reduces to
 two concrete changes:
+
 1. The resolver itself is actor-checked (section 5) so a multi-property actor
    can no longer silently receive property A when they intended B.
 2. Any aggregate id accepted as a route/body parameter (`bookingCode`,
@@ -240,7 +242,7 @@ two concrete changes:
    lookups, `CouponRepository`, `RatePlanRepository`,
    `PricingPolicyRepository`) add `AND property_id = $authorizedPropertyId` to
    their `WHERE` clause (most already filter by `property_id` from the
-   *unauthorized* current-property value — this changes the source of that
+   _unauthorized_ current-property value — this changes the source of that
    value, not the shape of the query). A lookup for an aggregate that exists
    but belongs to a property the actor is not authorized for returns
    `NOT_FOUND`, not `FORBIDDEN` — this avoids leaking cross-property existence
@@ -266,6 +268,7 @@ through the same resolver used by booking/payment controllers.
 ## 8. CUSTOMER / GUEST / worker / payment-callback boundaries (unchanged)
 
 Per the task's adversarial-test list and confirmed by source:
+
 - CUSTOMER authorization remains booking/customer ownership
   (`customer-bookings.controller.ts`, actor `userId` scope) — no property
   membership concept applies to customers.
@@ -293,6 +296,7 @@ two `ACTIVE` properties (A, B) and three admin fixtures: `memberA`
 `admin_property_memberships` row, `'ALL'`), plus a `zeroPropertyAdmin` (active
 `admin_memberships` row but no `admin_property_memberships` row at all).
 Cases (mirrors the task's adversarial list exactly):
+
 1. memberA read A -> allowed.
 2. memberA mutate A (where permission allows) -> allowed.
 3. memberA read B -> denied (`PROPERTY_ACCESS_DENIED`).
@@ -315,13 +319,14 @@ Cases (mirrors the task's adversarial list exactly):
 Existing `apps/api/test/integration/property-authority.integration.test.ts`
 (active-property-selection parity) is retained and extended, not replaced —
 it already proves "the newer active property wins over an older inactive
-one," which remains true for the *candidate set* step of the algorithm.
+one," which remains true for the _candidate set_ step of the algorithm.
 
 Migration tests: `packages/database/test/integration/` gains a fresh-migration
-+ upgrade-migration test for `0034`, a `properties`/`rooms` count assertion
-(23 preserved), and existing-booking/pricing/housekeeping/access-credential
-row-count preservation assertions (no destructive DDL in 0034 — additive
-table only, so these are regression guards, not expected-to-fail probes).
+
+- upgrade-migration test for `0034`, a `properties`/`rooms` count assertion
+  (23 preserved), and existing-booking/pricing/housekeeping/access-credential
+  row-count preservation assertions (no destructive DDL in 0034 — additive
+  table only, so these are regression guards, not expected-to-fail probes).
 
 ## 11. Rollout / rollback
 

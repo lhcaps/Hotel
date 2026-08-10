@@ -225,11 +225,13 @@ export function serializeBootstrap(result: BootstrapPricingPolicyResult) {
 export function actorForRequest(actor: ActorContext): {
   userId: string;
   requestId: string;
+  propertyIds: readonly string[] | 'ALL';
   correlationId?: string;
 } {
   return {
     userId: actor.userId,
     requestId: actor.requestId,
+    propertyIds: actor.propertyIds ?? [],
     ...(actor.correlationId === undefined ? {} : { correlationId: actor.correlationId }),
   };
 }

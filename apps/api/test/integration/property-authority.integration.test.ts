@@ -4,9 +4,22 @@ import {
   createPreparedGuardedTestDatabase,
   type GuardedTestDatabase,
 } from '@room/database/testing';
+import type { ActorContext } from '../../src/auth/actor-context.js';
 import { CatalogRepository } from '../../src/catalog/catalog.repository.js';
 import { AvailabilityRepository } from '../../src/pricing/availability.repository.js';
 import { PublicRoomCatalogRepository } from '../../src/public-catalog/public-room-catalog.repository.js';
+
+const superAdminActor: ActorContext = {
+  userId: '550e8400-e29b-41d4-a716-446655440099',
+  email: 'super-admin@example.test',
+  displayName: 'Super Administrator',
+  role: 'SUPER_ADMIN',
+  permissions: [],
+  propertyIds: 'ALL',
+  sessionId: '550e8400-e29b-41d4-a716-446655440098',
+  sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+  requestId: 'property-authority-integration',
+};
 
 const ids = {
   propertyA: '550e8400-e29b-41d4-a716-446655440010',
@@ -90,7 +103,7 @@ describe('active property authority parity', () => {
   afterAll(async () => database?.dispose());
 
   it('ADMIN catalog resolves the active property even when an older inactive one exists', async () => {
-    const resolved = await catalog.getCurrentProperty();
+    const resolved = await catalog.getCurrentProperty(superAdminActor);
     expect(resolved?.id).toBe(ids.propertyB);
     expect(resolved?.status).toBe('ACTIVE');
   });

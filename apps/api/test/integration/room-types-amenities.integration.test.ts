@@ -16,6 +16,7 @@ const actor: ActorContext = {
   displayName: 'Administrator',
   role: 'ADMIN',
   permissions: ['catalog.room_type.manage', 'catalog.amenity.manage'],
+  propertyIds: ['550e8400-e29b-41d4-a716-446655440010'],
   sessionId: '550e8400-e29b-41d4-a716-446655440001',
   sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
   requestId: 'integration-request',
@@ -54,10 +55,10 @@ describe('room type and amenity catalog transactions', () => {
     });
     const amenity = await catalog.createAmenity(actor, { code: 'wifi', name: 'Wi-Fi' });
     await catalog.assignAmenity(actor, roomType.id, { amenityId: amenity.id });
-    await expect(catalog.listRoomTypes({ page: 1, pageSize: 20 })).resolves.toMatchObject({
+    await expect(catalog.listRoomTypes(actor, { page: 1, pageSize: 20 })).resolves.toMatchObject({
       items: [expect.objectContaining({ id: roomType.id, code: 'DLX' })],
     });
-    await expect(catalog.listAmenities({ page: 1, pageSize: 20 })).resolves.toMatchObject({
+    await expect(catalog.listAmenities(actor, { page: 1, pageSize: 20 })).resolves.toMatchObject({
       items: [expect.objectContaining({ id: amenity.id, code: 'WIFI' })],
     });
     await catalog.archiveAmenity(actor, amenity.id, { archive: true });

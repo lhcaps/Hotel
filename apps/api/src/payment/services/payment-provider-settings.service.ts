@@ -10,6 +10,8 @@ import {
 import type { ApiEnvironment } from '@room/config';
 import { z } from '@room/contracts';
 
+import type { ActorContext } from '../../auth/actor-context.js';
+import { resolveAuthorizedProperty } from '../../catalog/property-context.service.js';
 import { PaymentProviderSettingsError } from '../payment-provider-settings.errors.js';
 
 export interface PublicPaymentProvider {
@@ -30,7 +32,7 @@ export class PaymentProviderSettingsService {
   ) {}
 
   public async listPublic(): Promise<readonly PublicPaymentProvider[]> {
-    const property = await this.getCurrentProperty();
+    const property = await this.getCurrentPublicProperty();
     const rows = await this.database.query.paymentProviderSettings.findMany({
       where: (row, operators) => operators.eq(row.propertyId, property.id),
       orderBy: [asc(paymentProviderSettings.displayOrder), asc(paymentProviderSettings.provider)],
@@ -38,8 +40,8 @@ export class PaymentProviderSettingsService {
     return rows.map((row) => this.toPublicProvider(row));
   }
 
-  public async listAdmin() {
-    const property = await this.getCurrentProperty();
+  public async listAdmin(actor: ActorContext) {
+    const property = await this.getCurrentProperty(actor);
     const rows = await this.database.query.paymentProviderSettings.findMany({
       where: (row, operators) => operators.eq(row.propertyId, property.id),
       orderBy: [asc(paymentProviderSettings.displayOrder), asc(paymentProviderSettings.provider)],
@@ -61,7 +63,12 @@ export class PaymentProviderSettingsService {
     return row !== undefined;
   }
 
-  public async update(provider: 'MOMO' | 'VNPAY', input: unknown, actorId: string) {
+  public async update(
+    actor: ActorContext,
+    provider: 'MOMO' | 'VNPAY',
+    input: unknown,
+    actorId: string,
+  ) {
     const command = z
       .object({
         enabled: z.boolean().optional(),
@@ -77,12 +84,11 @@ export class PaymentProviderSettingsService {
       throw new PaymentProviderSettingsError('PAYMENT_PROVIDER_NOT_CONFIGURED');
     }
     return this.database.transaction(async (transaction) => {
-      const property = await transaction.query.properties.findFirst({
+      const activeProperties = await transaction.query.properties.findMany({
+        where: (row, operators) => operators.eq(row.status, 'ACTIVE'),
         orderBy: (row, operators) => [operators.asc(row.createdAt), operators.asc(row.id)],
       });
-      if (property === undefined) {
-        throw new PaymentProviderSettingsError('PAYMENT_PROVIDER_PROPERTY_NOT_FOUND');
-      }
+      const property = resolveAuthorizedProperty(actor, activeProperties);
       const [updated] = await transaction
         .update(paymentProviderSettings)
         .set({ ...command, updatedAt: new Date() })
@@ -114,8 +120,17 @@ export class PaymentProviderSettingsService {
     });
   }
 
-  private async getCurrentProperty() {
+  private async getCurrentProperty(actor: ActorContext) {
+    const activeProperties = await this.database.query.properties.findMany({
+      where: (row, operators) => operators.eq(row.status, 'ACTIVE'),
+      orderBy: [asc(properties.createdAt), asc(properties.id)],
+    });
+    return resolveAuthorizedProperty(actor, activeProperties);
+  }
+
+  private async getCurrentPublicProperty() {
     const property = await this.database.query.properties.findFirst({
+      where: (row, operators) => operators.eq(row.status, 'ACTIVE'),
       orderBy: [asc(properties.createdAt), asc(properties.id)],
     });
     if (property === undefined) {

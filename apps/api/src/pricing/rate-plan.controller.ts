@@ -20,8 +20,11 @@ import { RatePlanService } from './rate-plan.service.js';
 @UseGuards(AdminPermissionGuard)
 export class RatePlanController {
   public constructor(@Inject(RatePlanService) private readonly ratePlans: RatePlanService) {}
-  @Get() @Version('1') @RequirePermissions('pricing.rate_plan.read') public list() {
-    return this.ratePlans.list();
+  @Get()
+  @Version('1')
+  @RequirePermissions('pricing.rate_plan.read')
+  public list(@Req() request: { actor: ActorContext }) {
+    return this.ratePlans.list(request.actor);
   }
   @Post() @Version('1') @RequirePermissions('pricing.rate_plan.manage') public create(
     @Req() request: { actor: ActorContext },

@@ -18,6 +18,7 @@ const actor: ActorContext = {
   sessionId: '550e8400-e29b-41d4-a716-446655440201',
   sessionExpiresAt: new Date('2028-01-01T00:00:00.000Z'),
   requestId: 'rate-plan',
+  propertyIds: ['550e8400-e29b-41d4-a716-446655440210'],
 };
 const ids = {
   property: '550e8400-e29b-41d4-a716-446655440210',

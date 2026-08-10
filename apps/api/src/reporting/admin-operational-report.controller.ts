@@ -1,6 +1,7 @@
-import { Controller, Get, Inject, Query, UseGuards, Version } from '@nestjs/common';
+import { Controller, Get, Inject, Query, Req, UseGuards, Version } from '@nestjs/common';
 import type { AdminOperationalReport } from '@room/contracts';
 
+import type { ActorContext } from '../auth/actor-context.js';
 import { AdminPermissionGuard } from '../auth/admin-permission.guard.js';
 import { RequirePermissions } from '../auth/permissions.decorator.js';
 import { PropertyContextService } from '../catalog/property-context.service.js';
@@ -19,8 +20,11 @@ export class AdminOperationalReportController {
   @Get()
   @Version('1')
   @RequirePermissions('booking.lifecycle.read')
-  public async getReport(@Query() query: unknown): Promise<AdminOperationalReport> {
-    const property = await this.propertyContext.getCurrent();
+  public async getReport(
+    @Query() query: unknown,
+    @Req() request: { actor: ActorContext },
+  ): Promise<AdminOperationalReport> {
+    const property = await this.propertyContext.getCurrent(request.actor);
     return this.service.getReport(property.id, query, new Date());
   }
 }

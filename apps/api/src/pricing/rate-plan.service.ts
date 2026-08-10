@@ -29,7 +29,10 @@ export interface RatePlanRecord {
   readonly prices: readonly { readonly priceTierId: string; readonly amountVnd: bigint | null }[];
 }
 export interface RatePlanRepositoryPort {
-  getCurrentProperty(transaction?: unknown): Promise<{ readonly id: string } | undefined>;
+  getCurrentProperty(
+    actor: ActorContext,
+    transaction?: unknown,
+  ): Promise<{ readonly id: string } | undefined>;
   /**
    * Acquire the row-level lock on every rate plan of the given property
    * before reading the tentative active rule set inside a transaction.
@@ -194,8 +197,8 @@ export class RatePlanService {
     private readonly repository: RatePlanRepositoryPort,
     private readonly audit: AuditRepositoryPort,
   ) {}
-  public async list() {
-    const property = await this.repository.getCurrentProperty();
+  public async list(actor: ActorContext) {
+    const property = await this.repository.getCurrentProperty(actor);
     if (property === undefined) throw new CatalogNotFoundError();
     const tierIds = await this.repository.requiredActiveTierIds(property.id);
     const records = await this.repository.listRatePlans(property.id);
@@ -207,7 +210,7 @@ export class RatePlanService {
     const command = ratePlanCreateCommandSchema.parse(input);
     try {
       return await this.database.transaction(async (transaction) => {
-        const property = await this.repository.getCurrentProperty(transaction);
+        const property = await this.repository.getCurrentProperty(actor, transaction);
         if (property === undefined) throw new CatalogNotFoundError();
         const created = await this.repository.createRatePlan(transaction, property.id, command);
         await this.audit.write(transaction, {
@@ -242,7 +245,7 @@ export class RatePlanService {
   ) {
     const command = ratePlanPriceCommandSchema.parse(input);
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       try {
         await this.repository.updatePrice(
@@ -270,7 +273,7 @@ export class RatePlanService {
   public async updateSelectionRule(actor: ActorContext, planId: string, input: unknown) {
     const command = ratePlanSelectionRuleCommandSchema.parse(input) as RatePlanSelectionRuleCommand;
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const locked = await this.repository.lockActiveRuleSet(transaction, property.id);
       const target = locked.find((plan) => plan.id === planId);
@@ -329,7 +332,7 @@ export class RatePlanService {
   }
   private async changeStatus(actor: ActorContext, planId: string, status: 'ACTIVE' | 'INACTIVE') {
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty(transaction);
+      const property = await this.repository.getCurrentProperty(actor, transaction);
       if (property === undefined) throw new CatalogNotFoundError();
       const locked = await this.repository.lockActiveRuleSet(transaction, property.id);
       const target = locked.find((plan) => plan.id === planId);

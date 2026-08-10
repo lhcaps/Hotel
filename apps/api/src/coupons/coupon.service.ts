@@ -49,7 +49,7 @@ export interface DisableCouponResult {
 }
 
 export interface CouponRepositoryPort {
-  getCurrentProperty(): Promise<{ readonly id: string } | undefined>;
+  getCurrentProperty(actor: ActorContext): Promise<{ readonly id: string } | undefined>;
   createCoupon(
     transaction: unknown,
     propertyId: string,
@@ -130,7 +130,7 @@ export class CouponService {
     const command = adminCouponCreateSchema.parse(input);
     try {
       return await this.database.transaction(async (transaction) => {
-        const property = await this.repository.getCurrentProperty();
+        const property = await this.repository.getCurrentProperty(actor);
         if (property === undefined) throw new CouponNotFoundError();
         const selection = command.roomTypes;
         if ('roomTypeIds' in selection) {
@@ -167,9 +167,9 @@ export class CouponService {
     }
   }
 
-  public async listCoupons(input: unknown): Promise<CouponList> {
+  public async listCoupons(actor: ActorContext, input: unknown): Promise<CouponList> {
     const page = paginationQuerySchema.parse(input);
-    const property = await this.repository.getCurrentProperty();
+    const property = await this.repository.getCurrentProperty(actor);
     if (property === undefined) throw new CouponNotFoundError();
     const items = await this.repository.listCoupons(property.id, page.page, page.pageSize);
     return couponListSchema.parse({
@@ -179,8 +179,8 @@ export class CouponService {
     });
   }
 
-  public async getCoupon(couponId: string): Promise<Coupon> {
-    const property = await this.repository.getCurrentProperty();
+  public async getCoupon(actor: ActorContext, couponId: string): Promise<Coupon> {
+    const property = await this.repository.getCurrentProperty(actor);
     if (property === undefined) throw new CouponNotFoundError();
     const coupon = await this.repository.findCoupon(undefined, property.id, couponId);
     if (coupon === undefined) throw new CouponNotFoundError();
@@ -189,7 +189,7 @@ export class CouponService {
 
   public async disableCoupon(actor: ActorContext, couponId: string): Promise<Coupon> {
     return this.database.transaction(async (transaction) => {
-      const property = await this.repository.getCurrentProperty();
+      const property = await this.repository.getCurrentProperty(actor);
       if (property === undefined) throw new CouponNotFoundError();
       const result = await this.repository.disableCoupon(transaction, property.id, couponId);
       if (result === undefined) throw new CouponNotFoundError();

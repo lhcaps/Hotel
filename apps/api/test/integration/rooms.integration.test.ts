@@ -19,6 +19,7 @@ const actor: ActorContext = {
   displayName: 'Administrator',
   role: 'ADMIN',
   permissions: ['catalog.room.manage'],
+  propertyIds: ['550e8400-e29b-41d4-a716-446655440010'],
   sessionId: '550e8400-e29b-41d4-a716-446655440001',
   sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
   requestId: 'rooms-integration',
@@ -65,7 +66,7 @@ describe('physical room catalog transactions', () => {
     await expect(catalog.archiveRoom(actor, room.id, { archive: true })).resolves.toMatchObject({
       status: 'INACTIVE',
     });
-    await expect(catalog.listRooms({ page: 1, pageSize: 20 })).resolves.toMatchObject({
+    await expect(catalog.listRooms(actor, { page: 1, pageSize: 20 })).resolves.toMatchObject({
       items: [expect.objectContaining({ roomNumber: '101', status: 'INACTIVE' })],
     });
   });
