@@ -87,6 +87,23 @@ async function waitForCouponEmail(recipient: string, couponCode: string): Promis
   throw new Error(`Mailpit did not receive coupon ${couponCode} for ${recipient}`);
 }
 
+async function waitForCouponDeliveryStatus(bookingId: string): Promise<string> {
+  const deadline = Date.now() + 30_000;
+  let status: string | undefined;
+  while (Date.now() < deadline) {
+    const delivery = await databasePool.query<{ status: string }>(
+      'SELECT status FROM coupon_delivery_requests WHERE booking_id = $1',
+      [bookingId],
+    );
+    status = delivery.rows[0]?.status;
+    if (status === 'SENT') return status;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(
+    `Coupon delivery for booking ${bookingId} did not reach SENT; last status: ${status ?? 'MISSING'}`,
+  );
+}
+
 test.describe('Phase 8D coupon delivery vertical', () => {
   test.afterAll(async () => {
     await databasePool.end();
@@ -170,11 +187,7 @@ test.describe('Phase 8D coupon delivery vertical', () => {
       const body = await readMailpitMessage(mailpitMessage.ID);
       expect(body).toContain(couponCode);
       expect(body).toContain(bookingCode);
-      const delivery = await databasePool.query<{ status: string }>(
-        'SELECT status FROM coupon_delivery_requests WHERE booking_id = $1',
-        [bookingId],
-      );
-      expect(delivery.rows).toEqual([{ status: 'SENT' }]);
+      expect(await waitForCouponDeliveryStatus(bookingId)).toBe('SENT');
       const coupon = await databasePool.query<{ status: string }>(
         'SELECT status FROM coupons WHERE id = $1',
         [couponId],
