@@ -16,7 +16,9 @@ UX -> W9 golden E2E -> W10 candidate assembly`.
 4. **W5:** add the required access credential and final-turnover housekeeping
    lifecycle as separate, backward-compatible foundations.
 5. **W6:** apply catalog simplification, property authorization, and pricing
-   optimizer closure on those foundations.
+   optimizer closure on those foundations. _(Phase F multi-property authorization
+   now complete: migration 0034, actor-aware property context resolution, full
+   repository scoping, 30 adversarial tests green.)_
 6. **W7:** operational readiness, safe observability and isolated recovery.
 7. **W8:** desktop/mobile/a11y/UX closure.
 8. **W9:** canonical non-shortcut browser golden E2E and full acceptance matrix.
