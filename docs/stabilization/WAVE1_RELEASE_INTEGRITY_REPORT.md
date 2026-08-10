@@ -2,6 +2,19 @@
 
 ## Outcome
 
+## 2026-08-10 hosted CI closure
+
+GitHub Actions run `31392757811` passed all mandatory gates for code checkpoint
+`ab263a9852c79d7a1019ebba0a92d249d4b91087`: frozen install, format, lint,
+typecheck, unit/catalog/auth/pricing/availability/quote checks, OpenAPI,
+Drizzle check/test, high-severity dependency audit, Gitleaks, build, release
+integrity, Storybook, web unit, and Playwright. The hosted E2E gate reported
+**168 primary tests passed (8.5m)** plus **1 unavailable-state test passed**.
+
+This is non-production evidence only. PR #10 remains draft and unmerged;
+there was no deployment, production migration, public enablement, or
+production reconciliation.
+
 ## 2026-08-10 local E2E and RM-504 closure update
 
 The Playwright worker previously attempted to execute the raw TypeScript export of `@room/contracts`. The test runtime now has an explicit workspace dependency and ESM boundary, covered by `tests/e2e/contracts-runtime-resolution.spec.ts`. A separate SSR hydration guard prevents the guest OTP form from performing a native submission before React owns it under full-suite load.
@@ -10,7 +23,7 @@ Fresh local evidence: frozen install, format, lint, typecheck, unit, catalog, au
 
 `RM504_STATUS=PASS`
 `LOCAL_E2E=PASS`
-`HOSTED_CI_AFTER_SECURITY_FIX=NOT_YET_RUN`
+`HOSTED_CI_AFTER_SECURITY_FIX=PASS_RUN_31392757811`
 `PRODUCTION_RECONCILIATION_EXECUTED=NO`
 `FINAL_APPROVED_RELEASE_SHA=NOT_APPROVED`
 
@@ -31,7 +44,7 @@ Wave 1 adds immutable release manifests, migration provenance, service-specific 
 | Canonical Compose    | application services require explicit image variables rather than implicit checkout builds.                                                                                                                                                                 |
 | Rehearsal            | A deploy/attest, B deploy/attest, injected mixed rejection, B-to-A governed rollback, and restored-A attestation all pass.                                                                                                                                  |
 
-Fresh `pnpm test:release-integrity` result: 22 passed, 0 failed. The rehearsal command also exited 0. Detailed evidence: [WAVE1_RELEASE_REHEARSAL.md](WAVE1_RELEASE_REHEARSAL.md).
+Fresh `pnpm test:release-integrity` result: 24 passed, 0 failed. The rehearsal command also exited 0. Detailed evidence: [WAVE1_RELEASE_REHEARSAL.md](WAVE1_RELEASE_REHEARSAL.md).
 
 ## Hosted PR CI truth
 

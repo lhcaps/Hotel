@@ -7,7 +7,15 @@ The remediation in `6cb3873` is verified by a fresh `pnpm audit --prod --audit-l
 `RM504_STATUS=PASS`
 `DEPENDENCY_AUDIT=PASS_HIGH_0_CRITICAL_0`
 
-Fresh command: `pnpm audit --prod --audit-level=high --json` on 2026-08-10. Exit code: `1`. Result: 6 HIGH findings, 0 critical, 820 production dependencies. No dependency update was made in Wave 1.
+## Historical pre-RM-504 evidence (not current release truth)
+
+The following is the retained pre-remediation snapshot. It records the six
+high findings that RM-504 addressed; it is not the result of the current
+release-candidate audit and must not override the PASS status above.
+
+Historical command: `pnpm audit --prod --audit-level=high --json` on
+2026-08-10. Exit code: `1`. Result: 6 HIGH findings, 0 critical, 820
+production dependencies. No dependency update had been made at that snapshot.
 
 | Advisory                             | Package / current     | Dependency path                                                                  | Direct     | Runtime reachability | Affected service               | Patched version | Recommended action                                                                             |
 | ------------------------------------ | --------------------- | -------------------------------------------------------------------------------- | ---------- | -------------------- | ------------------------------ | --------------- | ---------------------------------------------------------------------------------------------- |
@@ -22,4 +30,4 @@ The audit reports exploit preconditions involving cache interception, URI policy
 
 Expected blast radius is dependency-lockfile and API/web test/build behavior, not release-artifact semantics. Track remediation in a dedicated security workstream; do not intermingle it with production reconciliation.
 
-`DEPENDENCY_AUDIT=FAIL_KNOWN_SECURITY_FINDINGS`
+`HISTORICAL_DEPENDENCY_AUDIT=FAIL_KNOWN_SECURITY_FINDINGS`
