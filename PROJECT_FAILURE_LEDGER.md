@@ -33,3 +33,18 @@ rerun does not erase the original failure record.
 | PLANNED_WAVE      | Wave 7 — Operations / readiness documentation                                                                                                                                                                                                                                  |
 | RESOLUTION        | Used invocation-scoped loopback/demo environment values and the existing local PostgreSQL only through guarded disposable `room_management_test_*` databases; no `.env`, Compose topology, or persistent data was altered.                                                     |
 | VERIFICATION      | `pnpm test:catalog`: 28 files, 178 tests PASS.                                                                                                                                                                                                                                 |
+
+## FAIL-CI-FORMAT-001
+
+| Field             | Value                                                                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| DISCOVERED_AT     | 2026-08-10                                                                                                                             |
+| AREA              | Hosted CI formatting gate                                                                                                              |
+| SEVERITY          | P1 / RELEASE_BLOCKER                                                                                                                   |
+| SYMPTOM           | Hosted CI run `31380187869` stopped at `pnpm format:check`; all subsequent gates were skipped.                                         |
+| ROOT_CAUSE_STATUS | CONFIRMED - `apps/web/test/otp-panels.test.tsx`, added for `FAIL-CI-E2E-001`, was not Prettier-formatted before the Wave 2 checkpoint. |
+| DEPENDENCIES      | Wave 2 OTP component test and repository-wide Prettier gate                                                                            |
+| BLOCKS_WHAT       | Hosted E2E retry and candidate pipeline                                                                                                |
+| PLANNED_WAVE      | Wave 2 - Customer Edge / OTP / Booking                                                                                                 |
+| RESOLUTION        | Attempt 1 of 3: apply the repository formatter to the exact test file, then run the full formatter check locally before pushing.       |
+| VERIFICATION      | Pending.                                                                                                                               |

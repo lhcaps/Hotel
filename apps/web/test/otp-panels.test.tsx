@@ -162,7 +162,9 @@ describe('OtpVerifyPanel', () => {
     );
 
     expect(
-      screen.getByText('If the booking details are valid, a verification code will be sent by email.'),
+      screen.getByText(
+        'If the booking details are valid, a verification code will be sent by email.',
+      ),
     ).toBeInTheDocument();
   });
 
