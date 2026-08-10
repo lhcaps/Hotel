@@ -236,14 +236,15 @@ test.describe('public booking vertical flow', () => {
     await page.getByLabel('Email').fill(RECIPIENT_EMAIL);
 
     // 9. Request OTP.
+    const otpRequestResponsePromise = page.waitForResponse(
+      (response) => response.url().endsWith('/public/guest-access/otp/request') && response.ok(),
+    );
     await page.getByRole('button', { name: 'Gửi mã xác nhận' }).click();
     await expect(page.getByText(/Nếu thông tin đặt phòng hợp lệ/)).toBeVisible();
 
     // 10. Generic enumeration-resistant message confirmed above; verify no
     // booking-code leakage by inspecting the response body shape.
-    const otpRequestResponse = await page.waitForResponse(
-      (response) => response.url().endsWith('/public/guest-access/otp/request') && response.ok(),
-    );
+    const otpRequestResponse = await otpRequestResponsePromise;
     const otpRequestBody = (await otpRequestResponse.json()) as {
       readonly challengeRef: string;
     };
