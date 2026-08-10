@@ -395,7 +395,7 @@ export const adminApi = {
       body: JSON.stringify({ archive: true }),
     }),
   listRooms: () => request<CatalogPage<Room>>('/admin/rooms'),
-  createRoom: (body: { roomTypeId: string; roomNumber: string }) =>
+  createRoom: (body: { roomTypeId: string; roomNumber: string; notes?: string | null | undefined }) =>
     request<Room>('/admin/rooms', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -407,7 +407,10 @@ export const adminApi = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ archive: true }),
     }),
-  updateRoom: (id: string, body: { roomNumber?: string; roomTypeId?: string }) =>
+  updateRoom: (
+    id: string,
+    body: { roomNumber?: string; roomTypeId?: string; notes?: string | null },
+  ) =>
     request<Room>(`/admin/rooms/${id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },

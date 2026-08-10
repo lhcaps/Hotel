@@ -13,6 +13,7 @@ export function RoomCreator() {
   const [types, setTypes] = useState<readonly RoomType[]>([]);
   const [roomTypeId, setRoomTypeId] = useState('');
   const [roomNumber, setRoomNumber] = useState('');
+  const [notes, setNotes] = useState('');
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
   useEffect(() => {
@@ -35,9 +36,14 @@ export function RoomCreator() {
     setPending(true);
     setMessage(undefined);
     try {
-      const room = await adminApi.createRoom({ roomTypeId, roomNumber });
+      const room = await adminApi.createRoom({
+        roomTypeId,
+        roomNumber,
+        notes: notes.trim() === '' ? undefined : notes.trim(),
+      });
       setMessage(translate(locale, 'room.created', { number: room.roomNumber }));
       setRoomNumber('');
+      setNotes('');
     } catch (cause) {
       setMessage(
         cause instanceof AdminApiError
@@ -85,6 +91,15 @@ export function RoomCreator() {
             value={roomNumber}
           />
         </label>
+        <label>
+          {translate(locale, 'room.notes')}
+          <Input
+            disabled={pending}
+            onChange={(event) => setNotes(event.target.value)}
+            value={notes}
+          />
+        </label>
+        <p>{translate(locale, 'room.notesHelp')}</p>
         <Button disabled={pending || roomTypeId === ''} type="submit">
           {translate(locale, 'room.create')}
         </Button>

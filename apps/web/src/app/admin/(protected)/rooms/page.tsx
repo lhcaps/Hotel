@@ -49,6 +49,7 @@ import {
 interface RoomDraft {
   readonly roomNumber: string;
   readonly roomTypeId: string;
+  readonly notes: string;
 }
 
 export default function Rooms() {
@@ -100,7 +101,11 @@ export default function Rooms() {
           Object.fromEntries(
             roomPage.items.map((room) => [
               room.id,
-              { roomNumber: room.roomNumber, roomTypeId: room.roomTypeId },
+              {
+                roomNumber: room.roomNumber,
+                roomTypeId: room.roomTypeId,
+                notes: room.notes ?? '',
+              },
             ]),
           ),
         );
@@ -121,6 +126,7 @@ export default function Rooms() {
       const updated = await adminApi.updateRoom(roomId, {
         roomNumber: draft.roomNumber,
         roomTypeId: draft.roomTypeId,
+        notes: draft.notes.trim() === '' ? null : draft.notes.trim(),
       });
       setRooms((current) =>
         current === undefined
@@ -363,6 +369,7 @@ export default function Rooms() {
             const draft = drafts[room.id] ?? {
               roomNumber: room.roomNumber,
               roomTypeId: room.roomTypeId,
+              notes: room.notes ?? '',
             };
             const error = errors[room.id];
             return (
@@ -429,6 +436,21 @@ export default function Rooms() {
                       </SelectContent>
                     </Select>
                   </Field>
+                  <Field>
+                    <FieldLabel htmlFor="room-notes-edit">
+                      {translate(locale, 'room.notes')}
+                    </FieldLabel>
+                    <Input
+                      id="room-notes-edit"
+                      onChange={(event) =>
+                        setDrafts((current) => ({
+                          ...current,
+                          [room.id]: { ...draft, notes: event.target.value },
+                        }))
+                      }
+                      value={draft.notes}
+                    />
+                  </Field>
                   {error !== undefined && error !== '' ? (
                     <Alert variant="destructive">
                       <AlertTitle>{translate(locale, 'room.updateError')}</AlertTitle>
@@ -472,6 +494,9 @@ export default function Rooms() {
                   <tr key={room.id}>
                     <td data-label={translate(locale, 'room.number')}>
                       <strong>{room.roomNumber}</strong>
+                      {room.notes === null || room.notes === '' ? null : (
+                        <div className="admin-muted">{room.notes}</div>
+                      )}
                     </td>
                     <td data-label={translate(locale, 'admin.code')}>
                       <span className="admin-muted">{room.physicalRoomCode}</span>
