@@ -273,7 +273,6 @@ test.describe('Phase 7G ADMIN booking operations', () => {
     await page.getByLabel('Lý do không đến').fill('Guest unreachable');
     await page.getByRole('button', { name: 'Đánh dấu không đến' }).click();
     await expect(page.getByText('Không đến').first()).toBeVisible();
-    await expect(page.getByText('Không đến')).toBeVisible();
 
     // Cancel the confirmed booking to open an operational review.
     // (Need to navigate to a fresh booking that is still CONFIRMED with payment.)

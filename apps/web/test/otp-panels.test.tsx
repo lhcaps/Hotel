@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { OtpRequestPanel } from '../src/components/otp-request-panel';
@@ -42,6 +43,19 @@ describe('OtpRequestPanel', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Booking code')).toBeInTheDocument();
+  });
+
+  it('disables server-rendered request controls until React owns submission', () => {
+    const document = new DOMParser().parseFromString(
+      renderToString(<OtpRequestPanel onOtpRequested={vi.fn()} />),
+      'text/html',
+    );
+
+    expect(document.querySelector('input[name="bookingCode"]')?.hasAttribute('disabled')).toBe(
+      true,
+    );
+    expect(document.querySelector('input[name="email"]')?.hasAttribute('disabled')).toBe(true);
+    expect(document.querySelector('button[type="submit"]')?.hasAttribute('disabled')).toBe(true);
   });
 
   it('posts bookingCode/email to the otp/request route', async () => {
@@ -138,6 +152,20 @@ describe('OtpVerifyPanel', () => {
     await user.type(screen.getByLabelText('Verification code'), '12345');
     await user.click(screen.getByRole('button', { name: 'Verify' }));
     expect(await screen.findByText('Enter exactly six digits.')).toBeInTheDocument();
+  });
+
+  it('retains the generic request acknowledgement in verification state', () => {
+    render(
+      <LocaleProvider locale="en">
+        <OtpVerifyPanel challengeRef={'A'.repeat(32)} onVerified={vi.fn()} />
+      </LocaleProvider>,
+    );
+
+    expect(
+      screen.getByText(
+        'If the booking details are valid, a verification code will be sent by email.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('requires exactly six digits before submitting', async () => {

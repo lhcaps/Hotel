@@ -30,6 +30,8 @@ export interface HoldState {
 export interface SeedHoldOptions {
   readonly status?: 'HOLD' | 'EXPIRED' | 'CONFIRMED';
   readonly stale?: boolean;
+  readonly checkInOffsetMinutes?: number;
+  readonly durationMinutes?: number;
 }
 
 export async function createExpirationFixture(): Promise<ExpirationFixture> {
@@ -71,6 +73,8 @@ export async function seedHold(pool: DatabasePool, options: SeedHoldOptions = {}
   const bookingId = randomUUID();
   const status = options.status ?? 'HOLD';
   const stale = options.stale ?? true;
+  const checkInOffsetMinutes = options.checkInOffsetMinutes ?? 24 * 60;
+  const durationMinutes = options.durationMinutes ?? 3 * 60;
 
   await pool.query(
     `INSERT INTO properties (id, code, name)
@@ -101,8 +105,8 @@ export async function seedHold(pool: DatabasePool, options: SeedHoldOptions = {}
         price_snapshot, hold_expires_at, expired_at, created_at, updated_at)
      VALUES
        ($1, $2, $3, $4, $5, $6::booking_status,
-        date_trunc('hour', CURRENT_TIMESTAMP) + interval '1 day',
-        date_trunc('hour', CURRENT_TIMESTAMP) + interval '1 day 3 hours',
+        CURRENT_TIMESTAMP + ($8::int * interval '1 minute'),
+        CURRENT_TIMESTAMP + (($8::int + $9::int) * interval '1 minute'),
         1, 0, 'VND', 1000, 0, 1000,
         '{"source":"task5"}'::jsonb,
         CASE WHEN $7::boolean
@@ -111,16 +115,26 @@ export async function seedHold(pool: DatabasePool, options: SeedHoldOptions = {}
         END,
         CASE WHEN $6::text = 'EXPIRED' THEN CURRENT_TIMESTAMP - interval '30 seconds' ELSE NULL END,
         CURRENT_TIMESTAMP - interval '2 days', CURRENT_TIMESTAMP - interval '2 days')`,
-    [bookingId, propertyId, roomTypeId, roomId, `TASK5-${bookingId.slice(0, 8)}`, status, stale],
+    [
+      bookingId,
+      propertyId,
+      roomTypeId,
+      roomId,
+      `TASK5-${bookingId.slice(0, 8)}`,
+      status,
+      stale,
+      checkInOffsetMinutes,
+      durationMinutes,
+    ],
   );
   await pool.query(
     `INSERT INTO room_inventory_blocks
        (property_id, room_id, booking_id, block_type, status, starts_at, ends_at)
      VALUES
        ($1, $2, $3, 'BOOKING', 'ACTIVE',
-        date_trunc('hour', CURRENT_TIMESTAMP) + interval '1 day',
-        date_trunc('hour', CURRENT_TIMESTAMP) + interval '1 day 3 hours')`,
-    [propertyId, roomId, bookingId],
+        CURRENT_TIMESTAMP + ($4::int * interval '1 minute'),
+        CURRENT_TIMESTAMP + (($4::int + $5::int) * interval '1 minute'))`,
+    [propertyId, roomId, bookingId, checkInOffsetMinutes, durationMinutes],
   );
 
   return bookingId;

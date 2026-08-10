@@ -3,8 +3,6 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { spawn, type ChildProcess } from 'node:child_process';
 
-import { resolvePnpmInvocation } from '../../../../scripts/command-executable.mjs';
-
 const FASTIFY_PORT = 3025;
 const BASE = `http://127.0.0.1:${FASTIFY_PORT}/api/v1`;
 
@@ -13,6 +11,9 @@ let apiProc: ChildProcess | undefined;
 async function waitForApi(timeoutMs = 60_000): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
+    if (apiProc?.exitCode !== null && apiProc?.exitCode !== undefined) {
+      throw new Error(`API subprocess exited before readiness with code ${apiProc.exitCode}.`);
+    }
     try {
       const r = await fetch(`${BASE}/health/live`);
       if (r.status === 200) return true;
@@ -25,24 +26,30 @@ async function waitForApi(timeoutMs = 60_000): Promise<boolean> {
 }
 
 beforeAll(async () => {
-  const invocation = resolvePnpmInvocation([
-    '--filter',
-    '@room/api',
-    'exec',
-    'node',
-    '--env-file=../../.env',
-    '--import',
-    'tsx',
-    'src/main.ts',
-  ]);
-  apiProc = spawn(invocation.executable, invocation.args, {
-    cwd: 'D:/Study/Project/Room Management/apps/api',
+  apiProc = spawn(process.execPath, ['--import', 'tsx', 'src/main.ts'], {
+    cwd: process.cwd(),
     env: {
       ...process.env,
+      NODE_ENV: 'test',
       API_PORT: String(FASTIFY_PORT),
       LOG_LEVEL: 'warn',
+      API_HOST: '127.0.0.1',
+      WEB_ORIGIN: 'http://localhost:3000',
+      AUTH_BASE_URL: `http://127.0.0.1:${FASTIFY_PORT}`,
+      DATABASE_URL: process.env.DATABASE_URL ?? process.env.TEST_DATABASE_URL,
+      REDIS_URL: 'redis://127.0.0.1:6379',
+      MAIL_HOST: '127.0.0.1',
+      MAIL_PORT: '1025',
+      MAIL_FROM: 'no-reply@room-management.local',
+      BETTER_AUTH_SECRET: 'local-dev-only-secret-with-at-least-thirty-two-characters',
+      GUEST_OTP_SECRET: 'test-guest-otp-secret-32-chars-min-aaaaaa',
+      GUEST_CHALLENGE_REF_SECRET: 'test-challenge-ref-secret-32-chars-aaaa',
+      GUEST_SESSION_SECRET: 'test-guest-session-secret-32-chars-aaaaa',
+      BOOKING_IP_DIGEST_SECRET: 'test-ip-digest-secret-32-chars-aaaaa',
       BOOKING_ACCESS_QR_SECRET:
         process.env.BOOKING_ACCESS_QR_SECRET ?? 'local-test-booking-access-qr-secret-32-bytes',
+      MOMO_ENABLED: 'false',
+      VNPAY_ENABLED: 'false',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: false,

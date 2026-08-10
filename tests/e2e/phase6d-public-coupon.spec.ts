@@ -542,6 +542,11 @@ test.describe('Phase 6D public coupon vertical flow', () => {
       if (
         request.failure()?.errorText === 'net::ERR_ABORTED' &&
         (request.url().endsWith('/admin/me') ||
+          // Every public route mount starts the header's customer-session
+          // probe. A following navigation can abort that non-critical probe;
+          // the actual guest logout and revoked-session contracts remain
+          // asserted below.
+          request.url().endsWith('/api/auth/get-session') ||
           request.url().includes('/_next/static/chunks/') ||
           request.url().includes('/api/v1/public/bookings/'))
       ) {

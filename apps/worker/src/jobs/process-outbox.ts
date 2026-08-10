@@ -22,6 +22,7 @@ import {
 } from '../email/templates/hold-confirmation.js';
 import { renderOtpChallenge } from '../email/templates/otp-challenge.js';
 import { renderCouponDelivery } from '../email/templates/coupon-delivery.js';
+import { renderAccessCredentialDelivery } from '../email/templates/access-credential-delivery.js';
 import {
   renderBookingConfirmation,
   type BookingConfirmationContext,
@@ -212,7 +213,111 @@ export async function renderAndSend(
   if (row.eventType === 'booking.confirmed') {
     return renderAndSendBookingConfirmed(transport, row, pool, fromAddress, logger);
   }
+  if (row.eventType === 'access.credential.issued') {
+    return renderAndSendAccessCredentialDelivery(transport, row, pool, fromAddress, logger);
+  }
   return { outcome: 'skipped', skipReason: 'UNSUPPORTED_EVENT_TYPE' };
+}
+
+interface AccessCredentialDeliveryRow {
+  readonly credential_status: 'PENDING' | 'ISSUED' | 'DELIVERED' | 'REVOKED' | 'FAILED';
+  readonly booking_status: string;
+  readonly booking_code: string;
+  readonly normalized_email: string | null;
+  readonly property_name: string;
+}
+
+function extractCredentialId(row: OutboxClaimRow): string | null {
+  const payload = row.payload;
+  if (typeof payload !== 'object' || payload === null) {
+    return null;
+  }
+  const candidate = (payload as Record<string, unknown>).credentialId;
+  return typeof candidate === 'string' && candidate.length > 0 ? candidate : null;
+}
+
+async function renderAndSendAccessCredentialDelivery(
+  transport: SMTPTransport,
+  row: OutboxClaimRow,
+  pool: DatabasePool,
+  fromAddress: string,
+  logger: { info: (record: Record<string, unknown>, message: string) => void },
+): Promise<RenderAndSendOutcome> {
+  const credentialId = extractCredentialId(row);
+  const bookingId = extractBookingId(row);
+  if (credentialId === null || bookingId === null) {
+    return { outcome: 'skipped', skipReason: 'CONTEXT_MISSING' };
+  }
+
+  const lookup = await pool.query<AccessCredentialDeliveryRow>(
+    `SELECT ac.status AS credential_status,
+            b.status AS booking_status,
+            b.booking_code,
+            bc.normalized_email,
+            p.name AS property_name
+       FROM access_credentials ac
+       JOIN bookings b ON b.id = ac.booking_id
+       JOIN properties p ON p.id = ac.property_id
+       LEFT JOIN booking_contacts bc ON bc.booking_id = b.id
+      WHERE ac.id = $1
+        AND ac.booking_id = $2`,
+    [credentialId, bookingId],
+  );
+  const context = lookup.rows[0];
+  if (context === undefined || context.booking_status !== 'CONFIRMED') {
+    return { outcome: 'skipped', skipReason: 'CONTEXT_MISSING' };
+  }
+  if (context.credential_status === 'DELIVERED') {
+    return { outcome: 'skipped', skipReason: 'ALREADY_SENT' };
+  }
+  if (context.credential_status !== 'ISSUED') {
+    return { outcome: 'skipped', skipReason: 'CONTEXT_MISSING' };
+  }
+  if (context.normalized_email === null) {
+    return { outcome: 'skipped', skipReason: 'CONTACT_MISSING' };
+  }
+
+  await transport.send({
+    from: fromAddress,
+    to: context.normalized_email,
+    ...renderAccessCredentialDelivery({
+      bookingCode: context.booking_code,
+      propertyName: context.property_name,
+    }),
+    messageId: buildOutboxMessageId(row.id),
+  });
+  const delivered = await pool.query<{ id: string }>(
+    `WITH delivered AS (
+       UPDATE access_credentials
+          SET status = 'DELIVERED',
+              delivered_at = CURRENT_TIMESTAMP,
+              updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+          AND status = 'ISSUED'
+      RETURNING id, property_id, booking_id, provider
+     )
+     INSERT INTO audit_events
+       (property_id, aggregate_type, aggregate_id, event_type, actor_type, payload, occurred_at)
+     SELECT property_id, 'ACCESS_CREDENTIAL', id, 'ACCESS_CREDENTIAL_DELIVERED', 'SYSTEM',
+            jsonb_build_object(
+              'eventVersion', 1,
+              'bookingId', booking_id,
+              'provider', provider,
+              'deliveryChannel', 'EMAIL'
+            ),
+            CURRENT_TIMESTAMP
+       FROM delivered
+     RETURNING aggregate_id AS id`,
+    [credentialId],
+  );
+  if (delivered.rows[0] === undefined) {
+    return { outcome: 'skipped', skipReason: 'ALREADY_SENT' };
+  }
+  logger.info(
+    { eventId: row.id, eventType: row.eventType, messageId: buildOutboxMessageId(row.id) },
+    'Access credential delivery notification sent',
+  );
+  return { outcome: 'sent', skipReason: null };
 }
 
 interface BookingConfirmationRow {

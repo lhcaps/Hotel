@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PeaceNest immutable release manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "releaseId",
+    "sourceSha",
+    "createdAt",
+    "images",
+    "compose",
+    "caddy",
+    "migrations",
+    "envSchema"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "releaseId": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "sourceSha": { "type": "string", "pattern": "^[a-f0-9]{40,64}$" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "images": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["web", "api", "worker", "paymentDemo"],
+      "properties": {
+        "web": { "$ref": "#/$defs/image" },
+        "api": { "$ref": "#/$defs/image" },
+        "worker": { "$ref": "#/$defs/image" },
+        "paymentDemo": { "$ref": "#/$defs/image" }
+      }
+    },
+    "compose": { "$ref": "#/$defs/fileDigest" },
+    "caddy": { "$ref": "#/$defs/fileDigest" },
+    "envSchema": { "$ref": "#/$defs/fileDigest" },
+    "migrations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["latest", "aggregateSha256", "rollbackCompatibleWith"],
+      "properties": {
+        "latest": { "type": "string", "pattern": "^\\d{4}_[a-z0-9_]+\\.sql$" },
+        "aggregateSha256": { "$ref": "#/$defs/sha256" },
+        "rollbackCompatibleWith": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "fileDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256"],
+      "properties": { "sha256": { "$ref": "#/$defs/sha256" } }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "digest"],
+      "properties": {
+        "repository": { "type": "string", "minLength": 1, "not": { "pattern": ":latest$" } },
+        "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+      }
+    }
+  }
+}

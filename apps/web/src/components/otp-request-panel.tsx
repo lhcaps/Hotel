@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, useId, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
 import type { GuestAccessOtpRequestResponse } from '@room/contracts';
 
 import { bookingApi, BookingApiError } from '../lib/booking-api';
@@ -55,7 +55,12 @@ export function OtpRequestPanel({ onOtpRequested }: OtpRequestPanelProps) {
   const [submitError, setSubmitError] = useState<string | undefined>();
   const [pending, setPending] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [isHydrated, setIsHydrated] = useState(false);
   const inFlight = useRef(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const codeId = `${formId}-booking-code`;
   const emailId = `${formId}-email`;
@@ -93,7 +98,8 @@ export function OtpRequestPanel({ onOtpRequested }: OtpRequestPanelProps) {
     }
   }
 
-  const cooldownBlocked = pending || cooldownSeconds > 0;
+  const controlsDisabled = !isHydrated || pending;
+  const cooldownBlocked = controlsDisabled || cooldownSeconds > 0;
 
   return (
     <form
@@ -119,7 +125,7 @@ export function OtpRequestPanel({ onOtpRequested }: OtpRequestPanelProps) {
             autoCapitalize="characters"
             autoComplete="off"
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 font-mono tracking-wide"
-            disabled={pending}
+            disabled={controlsDisabled}
             maxLength={32}
             name="bookingCode"
             onChange={(event) => setBookingCode(event.target.value)}
@@ -144,7 +150,7 @@ export function OtpRequestPanel({ onOtpRequested }: OtpRequestPanelProps) {
             aria-invalid={errors.email !== undefined}
             autoComplete="email"
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-            disabled={pending}
+            disabled={controlsDisabled}
             inputMode="email"
             maxLength={254}
             name="email"

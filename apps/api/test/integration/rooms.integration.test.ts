@@ -24,6 +24,9 @@ const actor: ActorContext = {
   requestId: 'rooms-integration',
 };
 
+const cleanerId = '550e8400-e29b-41d4-a716-446655440002';
+const replacementCleanerId = '550e8400-e29b-41d4-a716-446655440003';
+
 describe('physical room catalog transactions', () => {
   let database: GuardedTestDatabase;
   let catalog: CatalogService;
@@ -35,6 +38,14 @@ describe('physical room catalog transactions', () => {
     );
     const client: DatabaseClient = createDatabaseClient(database.pool);
     catalog = new CatalogService(client, new CatalogRepository(client), new AuditRepository());
+    await database.pool.query(
+      `INSERT INTO users (id, name, email, role, status)
+       VALUES
+         ($1, 'Administrator', 'admin@example.test', 'SUPER_ADMIN', 'ACTIVE'),
+         ($2, 'Cleaner', 'cleaner@example.test', 'ADMIN', 'ACTIVE'),
+         ($3, 'Replacement cleaner', 'replacement-cleaner@example.test', 'ADMIN', 'ACTIVE')`,
+      [actor.userId, cleanerId, replacementCleanerId],
+    );
     await database.pool.query(
       `INSERT INTO properties (id, code, name, timezone) VALUES ('550e8400-e29b-41d4-a716-446655440010','MAIN','Main','Asia/Ho_Chi_Minh'); INSERT INTO price_tiers (id, property_id, code, name, sort_order) VALUES ('550e8400-e29b-41d4-a716-446655440020','550e8400-e29b-41d4-a716-446655440010','STANDARD','Standard',0); INSERT INTO room_types (id, property_id, price_tier_id, code, name, max_adults, max_children, max_occupancy) VALUES ('550e8400-e29b-41d4-a716-446655440030','550e8400-e29b-41d4-a716-446655440010','550e8400-e29b-41d4-a716-446655440020','DLX','Deluxe',2,0,2);`,
     );
@@ -121,6 +132,46 @@ describe('physical room catalog transactions', () => {
     );
 
     await expect(
+      catalog.assignRoomHousekeeping(actor, room.id, { assigneeId: cleanerId, expectedVersion: 0 }),
+    ).resolves.toMatchObject({ assigneeId: cleanerId, version: 1 });
+    const assignedTask = (
+      await database.pool.query<{
+        assigned_to: string | null;
+        assigned_by: string | null;
+        assigned_at: Date | null;
+        version: number;
+      }>(
+        `SELECT assigned_to, assigned_by, assigned_at, version
+           FROM housekeeping_tasks
+          WHERE room_id = $1`,
+        [room.id],
+      )
+    ).rows[0];
+    expect(assignedTask).toMatchObject({
+      assigned_to: cleanerId,
+      assigned_by: actor.userId,
+      version: 1,
+    });
+    expect(assignedTask?.assigned_at).toBeInstanceOf(Date);
+
+    await expect(
+      catalog.assignRoomHousekeeping(actor, room.id, {
+        assigneeId: replacementCleanerId,
+        expectedVersion: 1,
+      }),
+    ).resolves.toMatchObject({ assigneeId: replacementCleanerId, version: 2 });
+    const reassignedTask = (
+      await database.pool.query<{ assigned_to: string | null; version: number }>(
+        `SELECT assigned_to, version FROM housekeeping_tasks WHERE room_id = $1`,
+        [room.id],
+      )
+    ).rows[0];
+    expect(reassignedTask).toEqual({ assigned_to: replacementCleanerId, version: 2 });
+    await expect(
+      catalog.assignRoomHousekeeping(actor, room.id, { assigneeId: cleanerId, expectedVersion: 1 }),
+    ).rejects.toMatchObject({ code: 'ROOM_HOUSEKEEPING_ASSIGNMENT_CONFLICT' });
+
+    await expect(
       catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
     ).rejects.toMatchObject({
       code: 'ROOM_HOUSEKEEPING_INVALID_TRANSITION',
@@ -129,13 +180,20 @@ describe('physical room catalog transactions', () => {
       catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEANING' }),
     ).resolves.toMatchObject({ housekeepingStatus: 'CLEANING' });
     const startedTask = (
-      await database.pool.query<{ status: string; started_at: Date | null }>(
-        `SELECT status, started_at FROM housekeeping_tasks WHERE room_id = $1`,
+      await database.pool.query<{
+        status: string;
+        started_at: Date | null;
+        started_by: string | null;
+        version: number;
+      }>(
+        `SELECT status, started_at, started_by, version FROM housekeeping_tasks WHERE room_id = $1`,
         [room.id],
       )
     ).rows[0];
     expect(startedTask?.status).toBe('IN_PROGRESS');
     expect(startedTask?.started_at).toBeInstanceOf(Date);
+    expect(startedTask?.started_by).toBe(actor.userId);
+    expect(startedTask?.version).toBe(3);
 
     await expect(
       catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
@@ -143,13 +201,69 @@ describe('physical room catalog transactions', () => {
       housekeepingStatus: 'CLEAN',
     });
     const completedTask = (
-      await database.pool.query<{ status: string; completed_at: Date | null }>(
-        `SELECT status, completed_at FROM housekeeping_tasks WHERE room_id = $1`,
+      await database.pool.query<{
+        status: string;
+        completed_at: Date | null;
+        completed_by: string | null;
+        version: number;
+      }>(
+        `SELECT status, completed_at, completed_by, version FROM housekeeping_tasks WHERE room_id = $1`,
         [room.id],
       )
     ).rows[0];
     expect(completedTask?.status).toBe('DONE');
     expect(completedTask?.completed_at).toBeInstanceOf(Date);
+    expect(completedTask?.completed_by).toBe(actor.userId);
+    expect(completedTask?.version).toBe(4);
+
+    await expect(
+      catalog.verifyRoomHousekeeping(actor, room.id, { expectedVersion: 4 }),
+    ).resolves.toMatchObject({ version: 5 });
+    const verifiedTask = (
+      await database.pool.query<{
+        verified_by: string | null;
+        verified_at: Date | null;
+        version: number;
+      }>(`SELECT verified_by, verified_at, version FROM housekeeping_tasks WHERE room_id = $1`, [
+        room.id,
+      ])
+    ).rows[0];
+    expect(verifiedTask).toMatchObject({ verified_by: actor.userId, version: 5 });
+    expect(verifiedTask?.verified_at).toBeInstanceOf(Date);
+
+    await expect(
+      catalog.reopenRoomHousekeeping(actor, room.id, {
+        expectedVersion: 5,
+        reason: 'Verification found incomplete turnover.',
+      }),
+    ).resolves.toMatchObject({ version: 6 });
+    const reopened = (
+      await database.pool.query<{
+        status: string;
+        completed_at: Date | null;
+        reopened_by: string | null;
+        reopened_at: Date | null;
+        reopen_reason: string | null;
+        version: number;
+        housekeeping_status: string;
+      }>(
+        `SELECT ht.status, ht.completed_at, ht.reopened_by, ht.reopened_at, ht.reopen_reason,
+                ht.version, r.housekeeping_status
+           FROM housekeeping_tasks ht
+           JOIN rooms r ON r.id = ht.room_id
+          WHERE ht.room_id = $1`,
+        [room.id],
+      )
+    ).rows[0];
+    expect(reopened).toMatchObject({
+      status: 'DUE',
+      completed_at: null,
+      reopened_by: actor.userId,
+      reopen_reason: 'Verification found incomplete turnover.',
+      version: 6,
+      housekeeping_status: 'DIRTY',
+    });
+    expect(reopened?.reopened_at).toBeInstanceOf(Date);
   });
 
   it('returns merged inventory-free windows and the active housekeeping task from PostgreSQL', async () => {

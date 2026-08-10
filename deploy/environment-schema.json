@@ -1,0 +1,437 @@
+{
+  "schemaVersion": 1,
+  "services": {
+    "caddy": {
+      "allowedKeys": ["RELEASE_ID", "RELEASE_SHA", "PUBLIC_DOMAIN", "PAYMENT_DEMO_DOMAIN"]
+    },
+    "web": {
+      "allowedKeys": [
+        "NODE_ENV",
+        "RELEASE_ID",
+        "RELEASE_SHA",
+        "WEB_PORT",
+        "NEXT_PUBLIC_API_BASE_URL",
+        "INTERNAL_API_BASE_URL"
+      ]
+    },
+    "api": {
+      "allowedKeys": [
+        "NODE_ENV",
+        "LOG_LEVEL",
+        "RELEASE_ID",
+        "RELEASE_SHA",
+        "PUBLIC_DOMAIN",
+        "WEB_ORIGIN",
+        "AUTH_BASE_URL",
+        "API_HOST",
+        "API_PORT",
+        "TRUSTED_PROXY_CIDRS",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "BETTER_AUTH_SECRET",
+        "GUEST_OTP_SECRET",
+        "GUEST_CHALLENGE_REF_SECRET",
+        "GUEST_SESSION_SECRET",
+        "BOOKING_IP_DIGEST_SECRET",
+        "BOOKING_ACCESS_QR_SECRET",
+        "PAYMENT_DEMO_ENABLED",
+        "PAYMENT_DEMO_INTERNAL_BASE_URL",
+        "PAYMENT_DEMO_CONTROL_TOKEN",
+        "MOMO_ENABLED",
+        "MOMO_ENVIRONMENT",
+        "MOMO_PARTNER_CODE",
+        "MOMO_ACCESS_KEY",
+        "MOMO_SECRET_KEY",
+        "MOMO_API_BASE_URL",
+        "MOMO_RETURN_URL",
+        "MOMO_IPN_URL",
+        "VNPAY_ENABLED",
+        "VNPAY_ENVIRONMENT",
+        "VNPAY_TMN_CODE",
+        "VNPAY_HASH_SECRET",
+        "VNPAY_API_BASE_URL",
+        "VNPAY_RETURN_URL",
+        "VNPAY_IPN_URL",
+        "GOOGLE_AUTH_ENABLED",
+        "GOOGLE_TRANSLATION_ENABLED"
+      ]
+    },
+    "worker": {
+      "allowedKeys": [
+        "NODE_ENV",
+        "LOG_LEVEL",
+        "RELEASE_ID",
+        "RELEASE_SHA",
+        "DATABASE_URL",
+        "REDIS_URL",
+        "MAIL_HOST",
+        "MAIL_PORT",
+        "MAIL_FROM",
+        "SMTP_HOST",
+        "SMTP_PORT",
+        "SMTP_SECURE",
+        "SMTP_USER",
+        "SMTP_PASSWORD",
+        "SMTP_FROM",
+        "GUEST_OTP_SECRET",
+        "GUEST_CHALLENGE_REF_SECRET",
+        "GUEST_SESSION_SECRET",
+        "BOOKING_IP_DIGEST_SECRET",
+        "PAYMENT_DEMO_ENABLED",
+        "PAYMENT_DEMO_INTERNAL_BASE_URL",
+        "PAYMENT_DEMO_CONTROL_TOKEN",
+        "MOMO_ENABLED",
+        "MOMO_ENVIRONMENT",
+        "MOMO_PARTNER_CODE",
+        "MOMO_ACCESS_KEY",
+        "MOMO_SECRET_KEY",
+        "MOMO_API_BASE_URL",
+        "MOMO_RETURN_URL",
+        "MOMO_IPN_URL",
+        "VNPAY_ENABLED",
+        "VNPAY_ENVIRONMENT",
+        "VNPAY_TMN_CODE",
+        "VNPAY_HASH_SECRET",
+        "VNPAY_API_BASE_URL",
+        "VNPAY_RETURN_URL",
+        "VNPAY_IPN_URL"
+      ]
+    },
+    "payment-demo": {
+      "allowedKeys": [
+        "NODE_ENV",
+        "RELEASE_ID",
+        "RELEASE_SHA",
+        "PAYMENT_DEMO_HOST",
+        "PAYMENT_DEMO_PORT",
+        "PAYMENT_DEMO_PUBLIC_ORIGIN",
+        "PAYMENT_DEMO_WEB_ORIGIN",
+        "PAYMENT_DEMO_MOMO_IPN_URL",
+        "PAYMENT_DEMO_VNPAY_IPN_URL",
+        "PAYMENT_DEMO_CONTROL_TOKEN",
+        "MOMO_PARTNER_CODE",
+        "MOMO_ACCESS_KEY",
+        "MOMO_SECRET_KEY",
+        "VNPAY_TMN_CODE",
+        "VNPAY_HASH_SECRET"
+      ]
+    },
+    "postgres": {
+      "allowedKeys": [
+        "RELEASE_ID",
+        "RELEASE_SHA",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD",
+        "POSTGRES_DB"
+      ]
+    },
+    "redis": {
+      "allowedKeys": []
+    },
+    "migrate": {
+      "allowedKeys": ["NODE_ENV", "RELEASE_ID", "RELEASE_SHA", "DATABASE_URL"]
+    }
+  },
+  "keys": {
+    "NODE_ENV": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["web", "api", "worker", "payment-demo", "migrate"],
+      "requiredInRealProduction": true
+    },
+    "LOG_LEVEL": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "RELEASE_SHA": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["caddy", "web", "api", "worker", "payment-demo", "postgres", "migrate"],
+      "requiredInRealProduction": true
+    },
+    "RELEASE_ID": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["caddy", "web", "api", "worker", "payment-demo", "postgres", "migrate"],
+      "requiredInRealProduction": true
+    },
+    "PUBLIC_DOMAIN": {
+      "classification": "PUBLIC_CONFIG",
+      "consumers": ["caddy", "api"],
+      "requiredInRealProduction": true
+    },
+    "PAYMENT_DEMO_DOMAIN": {
+      "classification": "PUBLIC_CONFIG",
+      "consumers": ["caddy"],
+      "requiredInRealProduction": false
+    },
+    "WEB_ORIGIN": {
+      "classification": "PUBLIC_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": true
+    },
+    "NEXT_PUBLIC_API_BASE_URL": {
+      "classification": "PUBLIC_CONFIG",
+      "consumers": ["web"],
+      "requiredInRealProduction": true
+    },
+    "INTERNAL_API_BASE_URL": {
+      "classification": "PUBLIC_CONFIG",
+      "consumers": ["web"],
+      "requiredInRealProduction": false
+    },
+    "AUTH_BASE_URL": {
+      "classification": "PUBLIC_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "API_HOST": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "API_PORT": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "WEB_PORT": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["web"],
+      "requiredInRealProduction": false
+    },
+    "TRUSTED_PROXY_CIDRS": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "POSTGRES_USER": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["postgres"],
+      "requiredInRealProduction": true
+    },
+    "POSTGRES_PASSWORD": {
+      "classification": "SECRET",
+      "consumers": ["postgres"],
+      "requiredInRealProduction": true
+    },
+    "POSTGRES_DB": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["postgres"],
+      "requiredInRealProduction": true
+    },
+    "DATABASE_URL": {
+      "classification": "SECRET",
+      "consumers": ["api", "worker", "migrate"],
+      "requiredInRealProduction": true
+    },
+    "REDIS_URL": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": true
+    },
+    "MAIL_HOST": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["worker"],
+      "requiredInRealProduction": false
+    },
+    "MAIL_PORT": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["worker"],
+      "requiredInRealProduction": false
+    },
+    "MAIL_FROM": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["worker"],
+      "requiredInRealProduction": false
+    },
+    "SMTP_HOST": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["worker"],
+      "requiredInRealProduction": false
+    },
+    "SMTP_PORT": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["worker"],
+      "requiredInRealProduction": false
+    },
+    "SMTP_SECURE": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["worker"],
+      "requiredInRealProduction": false
+    },
+    "SMTP_USER": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["worker"],
+      "requiredInRealProduction": false
+    },
+    "SMTP_PASSWORD": {
+      "classification": "SECRET",
+      "consumers": ["worker"],
+      "requiredInRealProduction": true
+    },
+    "SMTP_FROM": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["worker"],
+      "requiredInRealProduction": false
+    },
+    "BETTER_AUTH_SECRET": {
+      "classification": "SECRET",
+      "consumers": ["api"],
+      "requiredInRealProduction": true
+    },
+    "GUEST_OTP_SECRET": {
+      "classification": "SECRET",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": true
+    },
+    "GUEST_CHALLENGE_REF_SECRET": {
+      "classification": "SECRET",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": true
+    },
+    "GUEST_SESSION_SECRET": {
+      "classification": "SECRET",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": true
+    },
+    "BOOKING_IP_DIGEST_SECRET": {
+      "classification": "SECRET",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": true
+    },
+    "BOOKING_ACCESS_QR_SECRET": {
+      "classification": "SECRET",
+      "consumers": ["api"],
+      "requiredInRealProduction": true
+    },
+    "PAYMENT_DEMO_ENABLED": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "PAYMENT_DEMO_PUBLIC_ORIGIN": {
+      "classification": "PUBLIC_CONFIG",
+      "consumers": ["payment-demo"],
+      "requiredInRealProduction": false
+    },
+    "PAYMENT_DEMO_WEB_ORIGIN": {
+      "classification": "PUBLIC_CONFIG",
+      "consumers": ["payment-demo"],
+      "requiredInRealProduction": false
+    },
+    "PAYMENT_DEMO_INTERNAL_BASE_URL": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "PAYMENT_DEMO_HOST": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["payment-demo"],
+      "requiredInRealProduction": false
+    },
+    "PAYMENT_DEMO_PORT": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["payment-demo"],
+      "requiredInRealProduction": false
+    },
+    "PAYMENT_DEMO_MOMO_IPN_URL": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["payment-demo"],
+      "requiredInRealProduction": false
+    },
+    "PAYMENT_DEMO_VNPAY_IPN_URL": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["payment-demo"],
+      "requiredInRealProduction": false
+    },
+    "PAYMENT_DEMO_CONTROL_TOKEN": {
+      "classification": "SECRET",
+      "consumers": ["api", "worker", "payment-demo"],
+      "requiredInRealProduction": true
+    },
+    "MOMO_ENABLED": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "MOMO_ENVIRONMENT": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "MOMO_PARTNER_CODE": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker", "payment-demo"],
+      "requiredInRealProduction": false
+    },
+    "MOMO_ACCESS_KEY": {
+      "classification": "SECRET",
+      "consumers": ["api", "worker", "payment-demo"],
+      "requiredInRealProduction": true
+    },
+    "MOMO_SECRET_KEY": {
+      "classification": "SECRET",
+      "consumers": ["api", "worker", "payment-demo"],
+      "requiredInRealProduction": true
+    },
+    "MOMO_API_BASE_URL": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "MOMO_RETURN_URL": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "MOMO_IPN_URL": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "VNPAY_ENABLED": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "VNPAY_ENVIRONMENT": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "VNPAY_TMN_CODE": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker", "payment-demo"],
+      "requiredInRealProduction": false
+    },
+    "VNPAY_HASH_SECRET": {
+      "classification": "SECRET",
+      "consumers": ["api", "worker", "payment-demo"],
+      "requiredInRealProduction": true
+    },
+    "VNPAY_API_BASE_URL": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "VNPAY_RETURN_URL": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "VNPAY_IPN_URL": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api", "worker"],
+      "requiredInRealProduction": false
+    },
+    "GOOGLE_AUTH_ENABLED": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "GOOGLE_TRANSLATION_ENABLED": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    }
+  }
+}

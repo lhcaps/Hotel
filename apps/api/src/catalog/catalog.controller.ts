@@ -204,6 +204,39 @@ export class CatalogController {
     return this.catalog.updateRoomHousekeeping(request.actor, id, body);
   }
 
+  @Patch('rooms/:id/housekeeping/assignment')
+  @Version('1')
+  @RequirePermissions('catalog.room.manage')
+  public assignRoomHousekeeping(
+    @Req() request: { actor: ActorContext },
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.catalog.assignRoomHousekeeping(request.actor, id, body);
+  }
+
+  @Patch('rooms/:id/housekeeping/verification')
+  @Version('1')
+  @RequirePermissions('catalog.room.manage')
+  public verifyRoomHousekeeping(
+    @Req() request: { actor: ActorContext },
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.catalog.verifyRoomHousekeeping(request.actor, id, body);
+  }
+
+  @Patch('rooms/:id/housekeeping/reopen')
+  @Version('1')
+  @RequirePermissions('catalog.room.manage')
+  public reopenRoomHousekeeping(
+    @Req() request: { actor: ActorContext },
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.catalog.reopenRoomHousekeeping(request.actor, id, body);
+  }
+
   @Patch('rooms/:id')
   @Version('1')
   @RequirePermissions('catalog.room.manage')

@@ -473,6 +473,14 @@ export class AdminBookingLifecycleService {
         ],
       );
 
+      await revokeAccessCredentials(client, {
+        propertyId: row.property_id,
+        bookingId: row.id,
+        actorId: actor.userId,
+        now,
+        reason: 'CANCELLATION',
+      });
+
       await cancelFutureArrivalPreparation(client, row.id, now);
 
       await releaseInventoryBlock(client, row.id, now);
@@ -602,6 +610,13 @@ export class AdminBookingLifecycleService {
         [row.property_id, row.room_id, row.id, now],
       );
       await releaseInventoryBlock(client, row.id, now);
+      await revokeAccessCredentials(client, {
+        propertyId: row.property_id,
+        bookingId: row.id,
+        actorId: actor.userId,
+        now,
+        reason: 'CHECKOUT',
+      });
       await appendAudit(client, {
         propertyId: row.property_id,
         bookingId: row.id,
@@ -989,6 +1004,37 @@ async function openPaidCancellationReview(
     ],
   );
   return { id };
+}
+
+async function revokeAccessCredentials(
+  client: DatabasePoolClient,
+  input: {
+    readonly propertyId: string;
+    readonly bookingId: string;
+    readonly actorId: string;
+    readonly now: Date;
+    readonly reason: 'CANCELLATION' | 'CHECKOUT';
+  },
+): Promise<void> {
+  await client.query(
+    `WITH revoked AS (
+       UPDATE access_credentials
+          SET status = 'REVOKED',
+              revoked_at = $3,
+              updated_at = $3
+        WHERE property_id = $1
+          AND booking_id = $2
+          AND status IN ('PENDING', 'ISSUED', 'DELIVERED')
+      RETURNING id, provider
+     )
+     INSERT INTO audit_events
+       (property_id, aggregate_type, aggregate_id, event_type, actor_type, actor_id, payload, occurred_at)
+     SELECT $1, 'ACCESS_CREDENTIAL', revoked.id, 'ACCESS_CREDENTIAL_REVOKED', 'ADMIN', $4,
+            jsonb_build_object('eventVersion', 1, 'bookingId', $2::uuid, 'provider', revoked.provider, 'reason', $5::text),
+            $3
+       FROM revoked`,
+    [input.propertyId, input.bookingId, input.now, input.actorId, input.reason],
+  );
 }
 
 async function appendAudit(

@@ -1,0 +1,43 @@
+PEACENEST OPERATIONS V3 ORIGINAL REQUIREMENTS AUTHORITY
+
+Authoritative exact-equivalent attachment:
+C:\Users\ADMIN\.codex\attachments\54f15835-0873-40e4-ae31-e56bd7bfd3fe\pasted-text-1.txt
+
+Normalized attachment title:
+PEACENEST OPERATIONS V3 — MASTER BASELINE, DOMAIN REDESIGN,
+HOUSEKEEPING OPERATIONS, ACCESS CONTROL, MULTI-PROPERTY,
+PRICING OPTIMIZER, RBAC, MIGRATION AND RELEASE PROGRAM
+
+SHA-256:
+ADC5A19BFFC76BE2D130EC1306972EFDE307DF50C5F8BDFB880054E1E66EA0C9
+
+Selection basis:
+The source directory does not retain the original human filename
+"Pasted text(20260806-184159).txt". This attachment is the unique 2,294-line
+master baseline with the matching Operations V3 scope; the other eight
+Operations V3 attachments are later phase-specific amendments and have
+different hashes. It is therefore the exact-equivalent authority for this
+program. The original filename's absence is recorded as provenance metadata,
+not treated as permission to substitute a phase amendment.
+
+Non-negotiable product invariants:
+- one physical room is allocated transactionally at HOLD and cannot overlap;
+- one multi-night stay remains one booking in one physical room;
+- [checkIn, checkOut) interval semantics and Asia/Ho_Chi_Minh policy remain;
+- PostgreSQL is the transactional source of truth; Redis is not;
+- money, role, permission, payment return, and browser state are not client
+  authority;
+- historical quotes and bookings remain immutable;
+- public/customer contracts minimize physical-room and customer data;
+- payment settlement remains verified-callback authoritative;
+- released migrations and migration history are immutable;
+- no production mutation, deploy, credential use, or real-money provider call
+  is authorized by this engineering program.
+
+Completion target:
+Close the original requirements through an integrated, auditable lifecycle:
+booking -> verified payment -> allocated room -> readiness -> T-30 credential
+-> check-in -> checkout -> dirty -> assigned cleaning -> verification -> ready.
+The work must also close current release-integrity defects, retain backward
+compatibility, prove required quality gates, and prepare only a release
+candidate plus an explicit production reconciliation/canary plan.

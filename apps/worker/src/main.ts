@@ -6,6 +6,7 @@ import nodemailer from 'nodemailer';
 import { Redis } from 'ioredis';
 
 import { expireStaleHolds } from './jobs/expire-stale-holds.js';
+import { issueAccessCredentials } from './jobs/issue-access-credentials.js';
 import { processHousekeepingReminders } from './jobs/process-housekeeping-reminders.js';
 import { processOutbox } from './jobs/process-outbox.js';
 import { createReconciliationJob } from './jobs/process-reconciliation.js';
@@ -88,7 +89,11 @@ async function bootstrap(): Promise<number> {
   };
   const remindersJob = {
     name: 'HOUSEKEEPING_REMINDERS' as const,
-    run: () => processHousekeepingReminders({ pool, batchSize: 50, maxBatches: 4 }),
+    run: async () => {
+      const reminders = await processHousekeepingReminders({ pool, batchSize: 50, maxBatches: 4 });
+      await issueAccessCredentials({ pool, batchSize: 50, maxBatches: 4 });
+      return reminders;
+    },
   };
 
   const reconciliationJob = createReconciliationJob({

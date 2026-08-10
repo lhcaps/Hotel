@@ -10,8 +10,8 @@
     "start": "node dist/src/main.js",
     "lint": "eslint src test",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:unit": "node ../../scripts/with-local-env.mjs vitest run --exclude dist/**",
-    "test:coverage": "node ../../scripts/with-local-env.mjs vitest run --coverage --exclude dist/**"
+    "test:unit": "node ../../scripts/with-local-env.mjs vitest run --dir test",
+    "test:coverage": "node ../../scripts/with-local-env.mjs vitest run --coverage --dir test"
   },
   "dependencies": {
     "@room/booking": "workspace:*",
