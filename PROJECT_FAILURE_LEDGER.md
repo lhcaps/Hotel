@@ -171,15 +171,15 @@ rerun does not erase the original failure record.
 
 ## FAIL-CI-E2E-005
 
-| Field | Value |
-| --- | --- |
-| DISCOVERED_AT | 2026-08-10 |
-| AREA | Phase 6D guest logout browser-quality listener |
-| SEVERITY | P1 / RELEASE_GATE_FAILURE |
-| SYMPTOM | Hosted CI run `31389723763` completed 167/168 E2E tests, then the desktop coupon vertical failed because `GET /api/auth/get-session` was reported as `net::ERR_ABORTED`. |
+| Field             | Value                                                                                                                                                                                                                                                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DISCOVERED_AT     | 2026-08-10                                                                                                                                                                                                                                                                                                             |
+| AREA              | Phase 6D guest logout browser-quality listener                                                                                                                                                                                                                                                                         |
+| SEVERITY          | P1 / RELEASE_GATE_FAILURE                                                                                                                                                                                                                                                                                              |
+| SYMPTOM           | Hosted CI run `31389723763` completed 167/168 E2E tests, then the desktop coupon vertical failed because `GET /api/auth/get-session` was reported as `net::ERR_ABORTED`.                                                                                                                                               |
 | ROOT_CAUSE_STATUS | CONFIRMED - after the successful guest-logout response, navigation mounts the public header, which starts a customer-session request that can be aborted as the navigation unmounts it. The test already proved the guest logout response succeeded and a subsequent credentialed booking-detail request returned 401. |
-| DEPENDENCIES | Public header session probe, guest booking logout, Playwright request-failure listener |
-| BLOCKS_WHAT | Hosted full E2E and release-candidate readiness |
-| PLANNED_WAVE | Wave 2 - customer edge and OTP/browser reliability |
-| RESOLUTION | Attempt 1 of 3: allow only this exact aborted session request after the explicit guest-logout action. All other failed requests remain failures; the logout response and revoked-session 401 assertions remain mandatory. |
-| VERIFICATION | Existing hosted run provided the red result. Focused local `pnpm exec playwright test tests/e2e/phase6d-public-coupon.spec.ts --grep "desktop: search"`: 1/1 PASS; targeted Prettier check and `git diff --check` PASS. Full hosted revalidation is pending after the coherent Wave 2 checkpoint is pushed. |
+| DEPENDENCIES      | Public header session probe, guest booking logout, Playwright request-failure listener                                                                                                                                                                                                                                 |
+| BLOCKS_WHAT       | Hosted full E2E and release-candidate readiness                                                                                                                                                                                                                                                                        |
+| PLANNED_WAVE      | Wave 2 - customer edge and OTP/browser reliability                                                                                                                                                                                                                                                                     |
+| RESOLUTION        | Attempt 1 of 3: allow only this exact aborted session request after the explicit guest-logout action. All other failed requests remain failures; the logout response and revoked-session 401 assertions remain mandatory.                                                                                              |
+| VERIFICATION      | Existing hosted run provided the red result. Focused local `pnpm exec playwright test tests/e2e/phase6d-public-coupon.spec.ts --grep "desktop: search"`: 1/1 PASS; targeted Prettier check and `git diff --check` PASS. Full hosted revalidation is pending after the coherent Wave 2 checkpoint is pushed.            |
