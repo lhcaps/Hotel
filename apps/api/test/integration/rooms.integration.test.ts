@@ -24,6 +24,8 @@ const actor: ActorContext = {
   requestId: 'rooms-integration',
 };
 
+const cleanerId = '550e8400-e29b-41d4-a716-446655440002';
+
 describe('physical room catalog transactions', () => {
   let database: GuardedTestDatabase;
   let catalog: CatalogService;
@@ -37,8 +39,10 @@ describe('physical room catalog transactions', () => {
     catalog = new CatalogService(client, new CatalogRepository(client), new AuditRepository());
     await database.pool.query(
       `INSERT INTO users (id, name, email, role, status)
-       VALUES ($1, 'Administrator', 'admin@example.test', 'SUPER_ADMIN', 'ACTIVE')`,
-      [actor.userId],
+       VALUES
+         ($1, 'Administrator', 'admin@example.test', 'SUPER_ADMIN', 'ACTIVE'),
+         ($2, 'Cleaner', 'cleaner@example.test', 'ADMIN', 'ACTIVE')`,
+      [actor.userId, cleanerId],
     );
     await database.pool.query(
       `INSERT INTO properties (id, code, name, timezone) VALUES ('550e8400-e29b-41d4-a716-446655440010','MAIN','Main','Asia/Ho_Chi_Minh'); INSERT INTO price_tiers (id, property_id, code, name, sort_order) VALUES ('550e8400-e29b-41d4-a716-446655440020','550e8400-e29b-41d4-a716-446655440010','STANDARD','Standard',0); INSERT INTO room_types (id, property_id, price_tier_id, code, name, max_adults, max_children, max_occupancy) VALUES ('550e8400-e29b-41d4-a716-446655440030','550e8400-e29b-41d4-a716-446655440010','550e8400-e29b-41d4-a716-446655440020','DLX','Deluxe',2,0,2);`,
@@ -126,6 +130,29 @@ describe('physical room catalog transactions', () => {
     );
 
     await expect(
+      catalog.assignRoomHousekeeping(actor, room.id, { assigneeId: cleanerId, expectedVersion: 0 }),
+    ).resolves.toMatchObject({ assigneeId: cleanerId, version: 1 });
+    const assignedTask = (
+      await database.pool.query<{
+        assigned_to: string | null;
+        assigned_by: string | null;
+        assigned_at: Date | null;
+        version: number;
+      }>(
+        `SELECT assigned_to, assigned_by, assigned_at, version
+           FROM housekeeping_tasks
+          WHERE room_id = $1`,
+        [room.id],
+      )
+    ).rows[0];
+    expect(assignedTask).toMatchObject({
+      assigned_to: cleanerId,
+      assigned_by: actor.userId,
+      version: 1,
+    });
+    expect(assignedTask?.assigned_at).toBeInstanceOf(Date);
+
+    await expect(
       catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
     ).rejects.toMatchObject({
       code: 'ROOM_HOUSEKEEPING_INVALID_TRANSITION',
@@ -147,7 +174,7 @@ describe('physical room catalog transactions', () => {
     expect(startedTask?.status).toBe('IN_PROGRESS');
     expect(startedTask?.started_at).toBeInstanceOf(Date);
     expect(startedTask?.started_by).toBe(actor.userId);
-    expect(startedTask?.version).toBe(1);
+    expect(startedTask?.version).toBe(2);
 
     await expect(
       catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
@@ -168,7 +195,7 @@ describe('physical room catalog transactions', () => {
     expect(completedTask?.status).toBe('DONE');
     expect(completedTask?.completed_at).toBeInstanceOf(Date);
     expect(completedTask?.completed_by).toBe(actor.userId);
-    expect(completedTask?.version).toBe(2);
+    expect(completedTask?.version).toBe(3);
   });
 
   it('returns merged inventory-free windows and the active housekeeping task from PostgreSQL', async () => {

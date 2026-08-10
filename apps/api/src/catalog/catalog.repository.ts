@@ -26,6 +26,7 @@ import type {
   RoomCommand,
   RoomPatch,
   RoomHousekeepingCommand,
+  HousekeepingTaskAssignmentCommand,
   MaintenanceBlockCommand,
 } from '@room/contracts';
 
@@ -38,6 +39,7 @@ import type {
   CatalogRoomTypeRecord,
   CatalogRoomRecord,
   CatalogMaintenanceRecord,
+  CatalogHousekeepingTaskAssignmentRecord,
   RoomCommitmentSummary,
   RoomTypeDependencySummary,
 } from './catalog.service.js';
@@ -458,6 +460,62 @@ export class CatalogRepository implements CatalogRepositoryPort {
       `);
     }
     return updated;
+  }
+  public async assignRoomHousekeeping(
+    transaction: unknown,
+    propertyId: string,
+    roomId: string,
+    command: HousekeepingTaskAssignmentCommand,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskAssignmentRecord | undefined> {
+    const database = asCatalogDatabase(transaction, this.database);
+    const result = await database.execute(sql`
+      WITH next_task AS (
+        SELECT id
+          FROM housekeeping_tasks
+         WHERE property_id = ${propertyId}
+           AND room_id = ${roomId}
+           AND type = 'TURNOVER'
+           AND status IN ('SCHEDULED', 'DUE')
+         ORDER BY due_at ASC, id ASC
+         FOR UPDATE SKIP LOCKED
+         LIMIT 1
+      )
+      UPDATE housekeeping_tasks
+         SET assigned_to = ${command.assigneeId},
+             assigned_by = ${actorId},
+             assigned_at = CURRENT_TIMESTAMP,
+             version = version + 1,
+             updated_at = CURRENT_TIMESTAMP
+       WHERE id IN (SELECT id FROM next_task)
+         AND version = ${command.expectedVersion}
+         AND EXISTS (
+           SELECT 1
+             FROM users
+            WHERE id = ${command.assigneeId}
+              AND status = 'ACTIVE'
+         )
+      RETURNING id, room_id, assigned_to, assigned_by, assigned_at, version
+    `);
+    const row = result.rows[0] as
+      | {
+          id: string;
+          room_id: string;
+          assigned_to: string;
+          assigned_by: string;
+          assigned_at: Date | string;
+          version: number;
+        }
+      | undefined;
+    if (row === undefined) return undefined;
+    return {
+      id: row.id,
+      roomId: row.room_id,
+      assignedTo: row.assigned_to,
+      assignedBy: row.assigned_by,
+      assignedAt: new Date(row.assigned_at),
+      version: row.version,
+    };
   }
   public async listRooms(
     propertyId: string,

@@ -8,6 +8,8 @@ import {
   type RoomCommand,
   type RoomPatch,
   type RoomHousekeepingCommand,
+  type HousekeepingTaskAssignment,
+  type HousekeepingTaskAssignmentCommand,
   type MaintenanceBlockCommand,
   amenityCommandSchema,
   amenitySchema,
@@ -25,6 +27,8 @@ import {
   roomCommandSchema,
   roomPatchSchema,
   roomHousekeepingCommandSchema,
+  housekeepingTaskAssignmentCommandSchema,
+  housekeepingTaskAssignmentSchema,
   roomSchema,
   maintenanceBlockCommandSchema,
   maintenanceBlockSchema,
@@ -106,6 +110,15 @@ export interface CatalogMaintenanceRecord {
   readonly cancelledAt: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+}
+
+export interface CatalogHousekeepingTaskAssignmentRecord {
+  readonly id: string;
+  readonly roomId: string;
+  readonly assignedTo: string;
+  readonly assignedBy: string;
+  readonly assignedAt: Date;
+  readonly version: number;
 }
 
 export interface CancelMaintenanceResult {
@@ -263,6 +276,13 @@ export interface CatalogRepositoryPort {
     command: RoomHousekeepingCommand,
     actorId: string,
   ): Promise<CatalogRoomRecord | undefined>;
+  assignRoomHousekeeping?(
+    transaction: unknown,
+    propertyId: string,
+    roomId: string,
+    command: HousekeepingTaskAssignmentCommand,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskAssignmentRecord | undefined>;
   listRooms(
     propertyId: string,
     page: number,
@@ -839,6 +859,55 @@ export class CatalogService {
         payload: { housekeepingStatus: room.housekeepingStatus },
       });
       return toRoom(room);
+    });
+  }
+  public async assignRoomHousekeeping(
+    actor: ActorContext,
+    roomId: string,
+    input: unknown,
+  ): Promise<HousekeepingTaskAssignment> {
+    const command = housekeepingTaskAssignmentCommandSchema.parse(input);
+    return this.database.transaction(async (transaction) => {
+      const property = await this.repository.getCurrentProperty(transaction);
+      if (property === undefined) throw new CatalogNotFoundError();
+      await this.repository.lockRoom(transaction, property.id, roomId);
+      const assignRoomHousekeeping = this.repository.assignRoomHousekeeping;
+      if (assignRoomHousekeeping === undefined) {
+        throw new CatalogConflictError(
+          'ROOM_HOUSEKEEPING_ASSIGNMENT_UNAVAILABLE',
+          'Housekeeping assignment is unavailable.',
+        );
+      }
+      const assignment = await assignRoomHousekeeping.call(
+        this.repository,
+        transaction,
+        property.id,
+        roomId,
+        command,
+        actor.userId,
+      );
+      if (assignment === undefined) {
+        throw new CatalogConflictError(
+          'ROOM_HOUSEKEEPING_ASSIGNMENT_CONFLICT',
+          'The turnover task is no longer available for this assignment.',
+        );
+      }
+      await this.audit.write(transaction, {
+        propertyId: property.id,
+        aggregateType: 'HOUSEKEEPING_TASK',
+        aggregateId: assignment.id,
+        eventType: 'ROOM_HOUSEKEEPING_ASSIGNED',
+        actorId: actor.userId,
+        payload: { roomId, version: assignment.version },
+      });
+      return housekeepingTaskAssignmentSchema.parse({
+        taskId: assignment.id,
+        roomId: assignment.roomId,
+        assigneeId: assignment.assignedTo,
+        assignedBy: assignment.assignedBy,
+        assignedAt: assignment.assignedAt.toISOString(),
+        version: assignment.version,
+      });
     });
   }
   public async updateRoom(actor: ActorContext, id: string, input: unknown) {

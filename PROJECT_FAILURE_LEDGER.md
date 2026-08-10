@@ -63,3 +63,18 @@ rerun does not erase the original failure record.
 | PLANNED_WAVE      | Wave 5 - Housekeeping lifecycle                                                                                                                                                            |
 | RESOLUTION        | Used the repository's append-only provenance refresh script without rewrite permission, then labeled only the new entry as Operations V3 housekeeping accountability.                      |
 | VERIFICATION      | Guarded `pnpm db:test`: 25 files, 223 tests PASS.                                                                                                                                          |
+
+## FAIL-W5-HOUSEKEEPING-ASSIGNMENT-001
+
+| Field             | Value                                                                                                                                                                   |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DISCOVERED_AT     | 2026-08-10                                                                                                                                                              |
+| AREA              | Housekeeping operations lifecycle                                                                                                                                       |
+| SEVERITY          | P0 / ORIGINAL_REQUIREMENT_GAP                                                                                                                                           |
+| SYMPTOM           | The new atomic lifecycle test could not assign a cleaner: task assignment, assignee/assigner attribution, and versioned conflict control did not exist.                 |
+| ROOT_CAUSE_STATUS | CONFIRMED - the prior model advanced a room-level status but had no accountable assignment command or task-level optimistic concurrency boundary.                       |
+| DEPENDENCIES      | Existing `housekeeping_tasks`, catalog transaction, audit writer, admin catalog permission                                                                              |
+| BLOCKS_WHAT       | Original Wave 5 assign/reassign acceptance and accountable operational audit                                                                                            |
+| PLANNED_WAVE      | Wave 5 - Housekeeping lifecycle                                                                                                                                         |
+| RESOLUTION        | Added forward migration 0030, task actor/version fields, active-user checked assignment API, transaction-scoped audit event, and compare-and-swap version precondition. |
+| VERIFICATION      | `apps/api/test/integration/rooms.integration.test.ts`: 4/4 PASS; API/contracts typecheck, API/contracts lint, OpenAPI integrity, and guarded database suite PASS.       |

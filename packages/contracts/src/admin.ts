@@ -381,6 +381,24 @@ export const roomHousekeepingCommandSchema = z
   .object({ status: roomHousekeepingStatusSchema })
   .strict();
 
+export const housekeepingTaskAssignmentCommandSchema = z
+  .object({
+    assigneeId: uuidSchema,
+    expectedVersion: z.number().int().min(0),
+  })
+  .strict();
+
+export const housekeepingTaskAssignmentSchema = z
+  .object({
+    taskId: uuidSchema,
+    roomId: uuidSchema,
+    assigneeId: uuidSchema,
+    assignedBy: uuidSchema,
+    assignedAt: instantSchema,
+    version: z.number().int().min(1),
+  })
+  .strict();
+
 export const maintenanceBlockSchema = z
   .object({
     id: uuidSchema,
@@ -437,5 +455,9 @@ export type AmenityCommand = z.infer<typeof amenityCommandSchema>;
 export type Room = z.infer<typeof roomSchema>;
 export type RoomCommand = z.infer<typeof roomCommandSchema>;
 export type RoomHousekeepingCommand = z.infer<typeof roomHousekeepingCommandSchema>;
+export type HousekeepingTaskAssignmentCommand = z.infer<
+  typeof housekeepingTaskAssignmentCommandSchema
+>;
+export type HousekeepingTaskAssignment = z.infer<typeof housekeepingTaskAssignmentSchema>;
 export type MaintenanceBlock = z.infer<typeof maintenanceBlockSchema>;
 export type MaintenanceBlockCommand = z.infer<typeof maintenanceBlockCommandSchema>;

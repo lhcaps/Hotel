@@ -204,6 +204,17 @@ export class CatalogController {
     return this.catalog.updateRoomHousekeeping(request.actor, id, body);
   }
 
+  @Patch('rooms/:id/housekeeping/assignment')
+  @Version('1')
+  @RequirePermissions('catalog.room.manage')
+  public assignRoomHousekeeping(
+    @Req() request: { actor: ActorContext },
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.catalog.assignRoomHousekeeping(request.actor, id, body);
+  }
+
   @Patch('rooms/:id')
   @Version('1')
   @RequirePermissions('catalog.room.manage')
