@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: read
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -82,6 +86,8 @@ jobs:
           TEST_DATABASE_URL: postgresql://room:room@127.0.0.1:5432/room_management_test_base
       - run: pnpm audit:deps
       - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: pnpm build
       - run: pnpm check:release-integrity
       - run: pnpm storybook:build
