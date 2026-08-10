@@ -388,6 +388,7 @@ async function runOtpAndDetailFlow(
   recipientEmail: string,
   bookingCode: string,
   couponCode: string,
+  onGuestLogoutInitiated?: () => void,
 ): Promise<void> {
   // 12. Navigate to booking management and enter booking code + email.
   await page.goto('/booking/manage');
@@ -476,6 +477,7 @@ async function runOtpAndDetailFlow(
       response.url().endsWith('/public/guest-access/logout') &&
       response.request().method() === 'POST',
   );
+  onGuestLogoutInitiated?.();
   await page.getByTestId('guest-booking-detail').getByRole('button', { name: 'Đăng xuất' }).click();
   const logoutResponse = await logoutResponsePromise;
   expect(logoutResponse.ok(), `logout failed: ${logoutResponse.status()}`).toBe(true);
@@ -519,6 +521,7 @@ test.describe('Phase 6D public coupon vertical flow', () => {
     const consoleErrors: string[] = [];
     const pageErrors: string[] = [];
     const requestFailures: string[] = [];
+    let guestLogoutInitiated = false;
     page.on('console', (message) => {
       if (message.type() === 'error') {
         // Chromium logs a v-flag regex parsing warning for `[A-Za-z0-9-]`
@@ -542,6 +545,11 @@ test.describe('Phase 6D public coupon vertical flow', () => {
       if (
         request.failure()?.errorText === 'net::ERR_ABORTED' &&
         (request.url().endsWith('/admin/me') ||
+          // The public header starts an account-session request when the
+          // logout navigation mounts it. That navigation can unmount the
+          // header before the request completes. The actual guest-logout
+          // response and revoked-session 401 remain asserted below.
+          (guestLogoutInitiated && request.url().endsWith('/api/auth/get-session')) ||
           request.url().includes('/_next/static/chunks/') ||
           request.url().includes('/api/v1/public/bookings/'))
       ) {
@@ -571,7 +579,9 @@ test.describe('Phase 6D public coupon vertical flow', () => {
       bookingDates: { checkIn: '2027-03-10T11:00', checkOut: '2027-03-10T14:00' },
     });
 
-    await runOtpAndDetailFlow(page, context, recipientEmail, bookingCode, desktopCouponCode);
+    await runOtpAndDetailFlow(page, context, recipientEmail, bookingCode, desktopCouponCode, () => {
+      guestLogoutInitiated = true;
+    });
 
     expect(consoleErrors, consoleErrors.join('\n')).toHaveLength(0);
     expect(pageErrors, pageErrors.join('\n')).toHaveLength(0);
