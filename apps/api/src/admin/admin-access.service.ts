@@ -140,7 +140,9 @@ export class AdminAccessService {
         role === 'SUPER_ADMIN' || role === 'ROOM_STATUS_VIEWER'
           ? role
           : role === null
-            ? target.role === 'ADMIN' || target.role === 'SUPER_ADMIN' || target.role === 'ROOM_STATUS_VIEWER'
+            ? target.role === 'ADMIN' ||
+              target.role === 'SUPER_ADMIN' ||
+              target.role === 'ROOM_STATUS_VIEWER'
               ? target.role
               : 'ADMIN'
             : 'ADMIN';

@@ -45,20 +45,13 @@ export default async function AdminProtectedLayout({
   }
 
   const pathname = headerStore.get(PATHNAME_HEADER) ?? '';
-  const restrictedProfileNavigation: Record<
-    string,
-    ReadonlySet<string> | undefined
-  > = {
+  const restrictedProfileNavigation: Record<string, ReadonlySet<string> | undefined> = {
     ROOM_STATUS_VIEWER: new Set(['/admin/room-operations', '/admin/profile']),
     HOUSEKEEPING_STAFF: new Set(['/admin/room-operations', '/admin/profile']),
   };
-  
+
   const allowedPaths = restrictedProfileNavigation[resolution.session.profileCode ?? ''];
-  if (
-    allowedPaths &&
-    pathname !== '' &&
-    !allowedPaths.has(pathname)
-  ) {
+  if (allowedPaths && pathname !== '' && !allowedPaths.has(pathname)) {
     redirect('/admin/room-operations');
   }
 
