@@ -59,7 +59,6 @@ describe('STAFF_MANAGER authorization', () => {
       [ids.staffManager, ids.targetStaff, ids.superAdmin, ids.operationsManager],
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     service = new AdminAccessService(db);
   });
 
@@ -119,7 +118,6 @@ describe('STAFF_MANAGER authorization', () => {
 
   describe('delegation constraints', () => {
     test('ALLOW: STAFF_MANAGER can assign allowed operational profile', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       await service.updateAccount(staffManagerActor, ids.targetStaff, {
         role: 'HOUSEKEEPING_MANAGER',
         departmentIds: [ids.department],
@@ -133,7 +131,6 @@ describe('STAFF_MANAGER authorization', () => {
 
     test('DENY: STAFF_MANAGER cannot grant SUPER_ADMIN', async () => {
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         service.updateAccount(staffManagerActor, ids.targetStaff, {
           role: 'SUPER_ADMIN',
           departmentIds: [ids.department],
@@ -145,7 +142,6 @@ describe('STAFF_MANAGER authorization', () => {
 
     test('DENY: STAFF_MANAGER cannot target existing SUPER_ADMIN', async () => {
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         service.updateAccount(staffManagerActor, ids.superAdmin, {
           role: 'HOUSEKEEPING_STAFF',
           departmentIds: [ids.department],
@@ -157,7 +153,6 @@ describe('STAFF_MANAGER authorization', () => {
 
     test('DENY: STAFF_MANAGER cannot grant STAFF_MANAGER', async () => {
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         service.updateAccount(staffManagerActor, ids.targetStaff, {
           role: 'STAFF_MANAGER',
           departmentIds: [ids.department],
@@ -169,7 +164,6 @@ describe('STAFF_MANAGER authorization', () => {
 
     test('DENY: STAFF_MANAGER cannot grant OPERATIONS_MANAGER', async () => {
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         service.updateAccount(staffManagerActor, ids.targetStaff, {
           role: 'OPERATIONS_MANAGER',
           departmentIds: [ids.department],
@@ -181,7 +175,6 @@ describe('STAFF_MANAGER authorization', () => {
 
     test('DENY: STAFF_MANAGER cannot modify profile stronger than allowed set', async () => {
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         service.updateAccount(staffManagerActor, ids.operationsManager, {
           departmentIds: [ids.department],
         }),
@@ -194,7 +187,6 @@ describe('STAFF_MANAGER authorization', () => {
   describe('self-escalation prevention', () => {
     test('DENY: STAFF_MANAGER cannot change own profile', async () => {
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         service.updateAccount(staffManagerActor, ids.staffManager, {
           role: 'OPERATIONS_MANAGER',
           departmentIds: [ids.department],
@@ -206,7 +198,6 @@ describe('STAFF_MANAGER authorization', () => {
 
     test('DENY: STAFF_MANAGER cannot change own membership', async () => {
       await expect(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         service.updateAccount(staffManagerActor, ids.staffManager, {
           departmentIds: [ids.department],
         }),
@@ -227,7 +218,6 @@ describe('STAFF_MANAGER authorization', () => {
     ] as const;
 
     test.each(allowedProfiles)('ALLOW: STAFF_MANAGER can grant %s', async (profileCode) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       await service.updateAccount(staffManagerActor, ids.targetStaff, {
         role: profileCode,
         departmentIds: [ids.department],
@@ -245,7 +235,6 @@ describe('STAFF_MANAGER authorization', () => {
       const beforeCount = await db.query.auditEvents.findMany();
       const initialCount = beforeCount.length;
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       await service.updateAccount(staffManagerActor, ids.targetStaff, {
         role: 'HOUSEKEEPING_STAFF',
         departmentIds: [ids.department],
@@ -260,6 +249,74 @@ describe('STAFF_MANAGER authorization', () => {
       }
       expect(latest.actorId).toBe(ids.staffManager);
       expect(latest.eventType).toContain('ADMIN_ACCOUNT');
+    });
+  });
+
+  describe('property-scoped delegation', () => {
+    test('ALLOW: STAFF_MANAGER can manage staff in same property', async () => {
+      // Both manager and target have property membership
+      await service.updateAccount(staffManagerActor, ids.targetStaff, {
+        role: 'HOUSEKEEPING_MANAGER',
+        departmentIds: [ids.department],
+      });
+
+      const membership = await db.query.adminMemberships.findFirst({
+        where: (memberships, { eq }) => eq(memberships.userId, ids.targetStaff),
+      });
+      expect(membership?.role).toBe('HOUSEKEEPING_MANAGER');
+    });
+
+    test('DENY: STAFF_MANAGER cannot manage staff in different property', async () => {
+      // Create staff member with different property membership
+      const otherStaffId = '770e8400-e29b-41d4-a716-446655440399';
+      await guarded.pool.query(
+        `INSERT INTO users (id, email, name, role) VALUES ($1, 'other-staff@test.local', 'Other Staff', 'ADMIN')`,
+        [otherStaffId],
+      );
+      await db.insert(adminProfiles).values({ userId: otherStaffId });
+      await db.insert(adminMemberships).values({
+        userId: otherStaffId,
+        departmentId: ids.department,
+        role: 'HOUSEKEEPING_STAFF',
+      });
+      await db.insert(adminPropertyMemberships).values({
+        userId: otherStaffId,
+        propertyId: ids.otherProperty,
+      });
+
+      await expect(
+        service.updateAccount(staffManagerActor, otherStaffId, {
+          role: 'HOUSEKEEPING_MANAGER',
+          departmentIds: [ids.department],
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' },
+      });
+    });
+
+    test('ALLOW: STAFF_MANAGER can manage staff with no property membership', async () => {
+      // Create staff member without property membership
+      const noPropertyStaffId = '770e8400-e29b-41d4-a716-446655440398';
+      await guarded.pool.query(
+        `INSERT INTO users (id, email, name, role) VALUES ($1, 'no-prop-staff@test.local', 'No Property Staff', 'ADMIN')`,
+        [noPropertyStaffId],
+      );
+      await db.insert(adminProfiles).values({ userId: noPropertyStaffId });
+      await db.insert(adminMemberships).values({
+        userId: noPropertyStaffId,
+        departmentId: ids.department,
+        role: 'PAYMENT_STAFF',
+      });
+
+      await service.updateAccount(staffManagerActor, noPropertyStaffId, {
+        role: 'HOUSEKEEPING_STAFF',
+        departmentIds: [ids.department],
+      });
+
+      const membership = await db.query.adminMemberships.findFirst({
+        where: (memberships, { eq }) => eq(memberships.userId, noPropertyStaffId),
+      });
+      expect(membership?.role).toBe('HOUSEKEEPING_STAFF');
     });
   });
 });

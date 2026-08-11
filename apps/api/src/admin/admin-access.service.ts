@@ -178,6 +178,32 @@ export class AdminAccessService {
           throw new BadRequestException({ code: 'STAFF_MANAGER_PROFILE_NOT_DELEGABLE' });
         }
       }
+
+      // Property scope enforcement: STAFF_MANAGER can only manage staff within their authorized properties
+      const targetPropertyMemberships = await this.database.query.adminPropertyMemberships.findMany(
+        {
+          where: (fields, { eq }) => eq(fields.userId, id),
+          columns: { propertyId: true },
+        },
+      );
+      const targetPropertyIds = new Set(
+        targetPropertyMemberships.map((membership) => membership.propertyId),
+      );
+
+      // If target has property memberships, verify STAFF_MANAGER has access to at least one
+      if (targetPropertyIds.size > 0) {
+        // STAFF_MANAGER must have explicit property list (not "ALL")
+        if (actor.propertyIds === 'ALL' || actor.propertyIds === undefined) {
+          // This should not happen in practice, but fail closed
+          throw new BadRequestException({ code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' });
+        }
+        const hasOverlap = actor.propertyIds.some((propertyId) =>
+          targetPropertyIds.has(propertyId),
+        );
+        if (!hasOverlap) {
+          throw new BadRequestException({ code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' });
+        }
+      }
     }
 
     const role = patch.role ?? (isAdminProfile(target.role) ? target.role : null);
