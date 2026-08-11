@@ -107,6 +107,24 @@ export const pricingRuleVersionSchema = z.union([
   z.literal('phase-8b-cheapest-eligible-pricing-v1'),
 ]);
 
+// ORIG-G-004 explanation contract: why a plan was selected, and the totals
+// of the other valid candidates that were considered. Additive/optional so
+// historical quote snapshots (issued before this field existed) remain
+// readable without a migration.
+export const pricingSelectionReasonSchema = z.enum([
+  'LOWEST_GROSS',
+  'PRIORITY_TIE_BREAK',
+  'EXTRA_UNITS_TIE_BREAK',
+  'STABLE_PLAN_TIE_BREAK',
+]);
+
+export const pricingAlternativeSchema = z
+  .object({
+    planCode: basePlanCodeSchema,
+    totalAmountVnd: amountVndSchema,
+  })
+  .strict();
+
 export const pricingBreakdownSchema = z
   .object({
     ruleVersion: pricingRuleVersionSchema,
@@ -118,6 +136,8 @@ export const pricingBreakdownSchema = z
     extraAmountVnd: amountVndSchema,
     totalAmountVnd: amountVndSchema,
     lineItems: z.array(pricingLineItemSchema).min(1).max(2),
+    selectionReason: pricingSelectionReasonSchema.optional(),
+    alternatives: z.array(pricingAlternativeSchema).max(16).optional(),
   })
   .strict()
   .superRefine((value, context) => {

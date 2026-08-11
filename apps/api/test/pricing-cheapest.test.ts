@@ -12,6 +12,10 @@ import {
   calculatePricingWithStrategy,
   evaluatePricingCandidates,
   selectCheapestEligibleCandidate,
+  ruleSetValidationFromCatalog,
+  PricingRuleNotFoundError,
+  PricingRuleAmbiguousError,
+  PricingPriceMissingError,
   RULE_VERSION_PHASE_8B,
   type PricingCatalog,
 } from '../src/pricing/pricing-engine.js';
@@ -473,62 +477,79 @@ describe('Phase 8B cheapest-eligible pricing', () => {
     }
   });
 
-  // G-002 boundary tests: specific time windows from original requirements
+  // G-002 boundary tests: specific time windows from original requirements.
+  // Each case asserts the exact winning plan and total (not merely "truthy")
+  // so a regression that silently swaps the cheapest candidate is caught.
   describe('G-002 time boundary coverage', () => {
-    it('18:00 → 09:00 next day (15h overnight) generates valid candidate', () => {
+    it('18:00 → 09:00 next day (15h overnight) selects FIVE_HOUR_COMBO over the pricier NIGHT_COMBO', () => {
       const checkIn = utcOf(18, 0);
       const checkOut = shift(checkIn, 900); // 15 hours
       const result = calculatePricing(
         { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
         catalog,
       );
-      // Verify a valid plan is selected (NIGHT_COMBO eligible but FIVE may be cheaper)
-      expect(result.selectedPlanCode).toBeTruthy();
-      expect(result.totalAmountVnd).toBeGreaterThan(0);
+      // NIGHT_COMBO (1,600,000) and FIVE_HOUR_COMBO (1,100,000) are both
+      // eligible at 18:00 for 900 minutes; FIVE_HOUR_COMBO is cheaper and
+      // must win under CHEAPEST_ELIGIBLE_THEN_PRIORITY.
+      expect(result.selectedPlanCode).toBe('FIVE_HOUR_COMBO');
+      expect(result.extraUnits).toBe(10);
+      expect(result.totalAmountVnd).toBe(1_100_000);
     });
 
-    it('20:00 → 09:00 next day (13h overnight) generates valid candidate', () => {
+    it('20:00 → 09:00 next day (13h overnight) selects FIVE_HOUR_COMBO over the pricier NIGHT_COMBO', () => {
       const checkIn = utcOf(20, 0);
       const checkOut = shift(checkIn, 780); // 13 hours
       const result = calculatePricing(
         { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
         catalog,
       );
-      expect(result.selectedPlanCode).toBeTruthy();
-      expect(result.totalAmountVnd).toBeGreaterThan(0);
+      // NIGHT_COMBO (1,400,000) and FIVE_HOUR_COMBO (900,000) are both
+      // eligible at 20:00 for 780 minutes; FIVE_HOUR_COMBO wins on price.
+      expect(result.selectedPlanCode).toBe('FIVE_HOUR_COMBO');
+      expect(result.extraUnits).toBe(8);
+      expect(result.totalAmountVnd).toBe(900_000);
     });
 
-    it('21:00 → 09:00 next day (12h overnight) generates valid candidate', () => {
+    it('21:00 → 09:00 next day (12h overnight) selects FIVE_HOUR_COMBO over the pricier NIGHT_COMBO', () => {
       const checkIn = utcOf(21, 0);
       const checkOut = shift(checkIn, 720); // 12 hours
       const result = calculatePricing(
         { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
         catalog,
       );
-      expect(result.selectedPlanCode).toBeTruthy();
-      expect(result.totalAmountVnd).toBeGreaterThan(0);
+      // NIGHT_COMBO (1,300,000) and FIVE_HOUR_COMBO (800,000) are both
+      // eligible at 21:00 for 720 minutes; FIVE_HOUR_COMBO wins on price.
+      expect(result.selectedPlanCode).toBe('FIVE_HOUR_COMBO');
+      expect(result.extraUnits).toBe(7);
+      expect(result.totalAmountVnd).toBe(800_000);
     });
 
-    it('23:00 → 03:00 next day (4h late-night) selects eligible base plan', () => {
+    it('23:00 → 03:00 next day (4h late-night) selects the only eligible base plan, THREE_HOUR_COMBO', () => {
       const checkIn = utcOf(23, 0);
       const checkOut = shift(checkIn, 240); // 4 hours
       const result = calculatePricing(
         { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
         catalog,
       );
-      // NIGHT_COMBO minDuration is 315m, so THREE_HOUR_COMBO should be selected
+      // At 23:00 for 240 minutes: NIGHT_COMBO's minDuration (315m) excludes
+      // it and FIVE_HOUR_COMBO's minDuration (255m) also excludes it, so
+      // THREE_HOUR_COMBO (60..240m, no check-in restriction) is the only
+      // eligible candidate — proving the window is gap-free, not merely
+      // "some plan won". 240m = 180 base + 1 extra unit (60m).
       expect(result.selectedPlanCode).toBe('THREE_HOUR_COMBO');
-      expect(result.totalAmountVnd).toBeGreaterThan(0);
+      expect(result.extraUnits).toBe(1);
+      expect(result.totalAmountVnd).toBe(200_000);
     });
 
-    it('14:45 → 18:45 (4h afternoon) respects time window boundaries', () => {
+    it('14:45 → 18:45 (4h afternoon) selects THREE_HOUR_COMBO across the quarter-hour boundary', () => {
       const checkIn = utcOf(14, 45);
       const checkOut = shift(checkIn, 240);
       const result = calculatePricing(
         { checkIn, checkOut, priceTierCode: 'TIER_1', timezone: 'Asia/Ho_Chi_Minh' },
         catalog,
       );
-      expect(result.totalAmountVnd).toBeGreaterThan(0);
+      expect(result.selectedPlanCode).toBe('THREE_HOUR_COMBO');
+      expect(result.totalAmountVnd).toBe(200_000);
     });
   });
 
@@ -609,6 +630,65 @@ describe('Phase 8B cheapest-eligible pricing', () => {
       // Verify a valid plan is selected with complete coverage
       expect(result.selectedPlanCode).toBeTruthy();
       expect(result.totalAmountVnd).toBeGreaterThan(0);
+    });
+  });
+
+  // G-002 publish-time validation: the base catalog above is exhaustively
+  // gap-free and collision-free across every 15-minute check-in and
+  // duration slot. These tests exercise ruleSetValidationFromCatalog
+  // directly (the admin activation-time validator) to prove both the
+  // acceptance path and each rejection path it is responsible for.
+  describe('ruleSetValidationFromCatalog activation-time validation', () => {
+    it('accepts the reference catalog as gap-free across every check-in/duration slot', () => {
+      expect(() =>
+        ruleSetValidationFromCatalog(catalog, ['TIER_1', 'TIER_2', 'TIER_3']),
+      ).not.toThrow();
+    });
+
+    it('rejects a catalog with a coverage gap (no active base plan matches some slot)', () => {
+      const gappy: PricingCatalog = {
+        ...catalog,
+        // Narrow THREE_HOUR_COMBO so early-morning check-ins under an hour
+        // of duration have no eligible base plan (FIVE/LUNCH/NIGHT/DAY all
+        // require >= 255m and THREE now only accepts >= 90m).
+        THREE_HOUR_COMBO: {
+          ...clone(catalog.THREE_HOUR_COMBO),
+          minDurationMinutesInclusive: 90,
+        },
+      };
+      expect(() => ruleSetValidationFromCatalog(gappy, ['TIER_1'])).toThrow(
+        PricingRuleNotFoundError,
+      );
+    });
+
+    it('rejects a catalog with an ambiguous priority collision in an overlapping window', () => {
+      const colliding: PricingCatalog = {
+        ...catalog,
+        // Give FIVE_HOUR_COMBO the same priority as LUNCH_COMBO. Both are
+        // eligible during the lunch check-in window at overlapping
+        // durations, so this creates an unresolved tie the validator must
+        // reject rather than silently pick a winner.
+        FIVE_HOUR_COMBO: {
+          ...clone(catalog.FIVE_HOUR_COMBO),
+          priority: 80, // matches LUNCH_COMBO's priority (see catalog fixture above)
+        },
+      };
+      expect(() => ruleSetValidationFromCatalog(colliding, ['TIER_1'])).toThrow(
+        PricingRuleAmbiguousError,
+      );
+    });
+
+    it('rejects a catalog missing a required tier price for a covered slot', () => {
+      const missingTierPrice: PricingCatalog = {
+        ...catalog,
+        THREE_HOUR_COMBO: {
+          ...clone(catalog.THREE_HOUR_COMBO),
+          prices: { TIER_1: 100_000 }, // TIER_2 missing
+        },
+      };
+      expect(() => ruleSetValidationFromCatalog(missingTierPrice, ['TIER_1', 'TIER_2'])).toThrow(
+        PricingPriceMissingError,
+      );
     });
   });
 });

@@ -311,6 +311,14 @@ export function calculateCheapestPricing(
           },
         ]),
   ];
+  // ORIG-G-004: the non-selected valid candidates, each carrying its own
+  // total, so the explanation contract can show what else was eligible.
+  const alternatives = result.candidates
+    .filter((candidate) => candidate.planCode !== selected.planCode)
+    .map((candidate) => ({
+      planCode: candidate.planCode,
+      totalAmountVnd: candidate.grossAmountVnd,
+    }));
   return Object.freeze({
     ruleVersion: RULE_VERSION_PHASE_8B,
     selectedPlanCode: selected.planCode,
@@ -321,6 +329,8 @@ export function calculateCheapestPricing(
     extraAmountVnd: selected.extraAmountVnd,
     totalAmountVnd: selected.grossAmountVnd,
     lineItems: Object.freeze(lineItems),
+    selectionReason: result.tieReason,
+    alternatives: Object.freeze(alternatives),
   });
 }
 

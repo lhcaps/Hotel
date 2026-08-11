@@ -64,6 +64,14 @@ export interface PricingCatalog {
   readonly [code: string]: CatalogEntry;
 }
 
+export type PricingSelectionReason =
+  'LOWEST_GROSS' | 'PRIORITY_TIE_BREAK' | 'EXTRA_UNITS_TIE_BREAK' | 'STABLE_PLAN_TIE_BREAK';
+
+export interface PricingAlternative {
+  readonly planCode: BasePlanCode;
+  readonly totalAmountVnd: number;
+}
+
 export interface PricingBreakdown {
   readonly ruleVersion: PricingRuleVersion;
   readonly selectedPlanCode: BasePlanCode;
@@ -78,6 +86,13 @@ export interface PricingBreakdown {
     readonly amountVnd: number;
     readonly units: number;
   }[];
+  // ORIG-G-004 explanation contract. Optional so the legacy (Phase 4/7B)
+  // priority-first selectors, which have no tie-break concept, remain
+  // valid producers of this same interface. The explicit `| undefined`
+  // matches zod's inferred optional-field type under
+  // exactOptionalPropertyTypes.
+  readonly selectionReason?: PricingSelectionReason | undefined;
+  readonly alternatives?: readonly PricingAlternative[] | undefined;
 }
 
 export const TIMEZONE_ASIA_HO_CHI_MINH = 'Asia/Ho_Chi_Minh';
