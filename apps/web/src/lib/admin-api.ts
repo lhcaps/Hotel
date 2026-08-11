@@ -426,6 +426,24 @@ export const adminApi = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ status }),
     }),
+  assignRoomHousekeeping: (id: string, assigneeUserId: string) =>
+    request<Room>(`/admin/rooms/${id}/housekeeping/assignment`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ assigneeUserId }),
+    }),
+  verifyRoomHousekeeping: (id: string, verified: boolean) =>
+    request<Room>(`/admin/rooms/${id}/housekeeping/verification`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ verified }),
+    }),
+  reopenRoomHousekeeping: (id: string) =>
+    request<Room>(`/admin/rooms/${id}/housekeeping/reopen`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    }),
   listMaintenanceBlocks: () => request<CatalogPage<MaintenanceBlock>>('/admin/maintenance-blocks'),
   createMaintenanceBlock: (body: {
     roomId: string;
