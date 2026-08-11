@@ -195,7 +195,7 @@ export class CatalogController {
 
   @Patch('rooms/:id/housekeeping')
   @Version('1')
-  @RequirePermissions('catalog.room.manage')
+  @RequirePermissions('housekeeping.task.update')
   public updateRoomHousekeeping(
     @Req() request: { actor: ActorContext },
     @Param('id') id: string,
@@ -206,7 +206,7 @@ export class CatalogController {
 
   @Patch('rooms/:id/housekeeping/assignment')
   @Version('1')
-  @RequirePermissions('catalog.room.manage')
+  @RequirePermissions('housekeeping.task.manage')
   public assignRoomHousekeeping(
     @Req() request: { actor: ActorContext },
     @Param('id') id: string,
@@ -217,7 +217,7 @@ export class CatalogController {
 
   @Patch('rooms/:id/housekeeping/verification')
   @Version('1')
-  @RequirePermissions('catalog.room.manage')
+  @RequirePermissions('housekeeping.task.manage')
   public verifyRoomHousekeeping(
     @Req() request: { actor: ActorContext },
     @Param('id') id: string,
@@ -228,7 +228,7 @@ export class CatalogController {
 
   @Patch('rooms/:id/housekeeping/reopen')
   @Version('1')
-  @RequirePermissions('catalog.room.manage')
+  @RequirePermissions('housekeeping.task.manage')
   public reopenRoomHousekeeping(
     @Req() request: { actor: ActorContext },
     @Param('id') id: string,

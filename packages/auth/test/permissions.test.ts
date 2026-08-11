@@ -92,6 +92,8 @@ describe('V3 RBAC operational profiles — least-privilege separation', () => {
     expect(perms).toContain('bookings.manage');
     expect(perms).toContain('room_operations.manage');
     expect(perms).toContain('catalog.room.manage');
+    expect(perms).toContain('housekeeping.task.read');
+    expect(perms).toContain('housekeeping.task.manage');
     // Must NOT have financial or account management
     expect(perms).not.toContain('payments.refund');
     expect(perms).not.toContain('admin.account.manage');
@@ -103,6 +105,8 @@ describe('V3 RBAC operational profiles — least-privilege separation', () => {
     expect(perms).toContain('room_operations.manage');
     expect(perms).toContain('rooms.read');
     expect(perms).toContain('catalog.room.status.read');
+    expect(perms).toContain('housekeeping.task.read');
+    expect(perms).toContain('housekeeping.task.manage');
     // Must NOT have financial, booking mutation, or account access
     expect(perms).not.toContain('bookings.manage');
     expect(perms).not.toContain('payments.read');
@@ -115,12 +119,15 @@ describe('V3 RBAC operational profiles — least-privilege separation', () => {
     expect(perms).toContain('rooms.read');
     expect(perms).toContain('room_operations.read');
     expect(perms).toContain('catalog.room.status.read');
-    // Must NOT have any mutation permission
+    expect(perms).toContain('housekeeping.task.read');
+    expect(perms).toContain('housekeeping.task.update');
+    // Must NOT have any mutation permission beyond their own assigned task updates
     expect(perms).not.toContain('room_operations.manage');
     expect(perms).not.toContain('catalog.room.manage');
     expect(perms).not.toContain('bookings.manage');
     expect(perms).not.toContain('payments.read');
     expect(perms).not.toContain('admin.account.read');
+    expect(perms).not.toContain('housekeeping.task.manage');
   });
 
   it('PAYMENT_STAFF has payment reconciliation but not booking mutation or catalog access', () => {
