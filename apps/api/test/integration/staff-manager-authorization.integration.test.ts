@@ -1,87 +1,107 @@
-import { beforeEach, describe, expect, test } from 'vitest';
-import { db } from '@room/database';
-import { adminMemberships, adminProfiles, adminPropertyMemberships } from '@room/database/schema';
-import { eq } from 'drizzle-orm';
-import { AdminAccessService } from '../../src/admin/admin-access.service';
-import type { ActorContext } from '../../src/admin/admin-access.service';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import {
+  createDatabaseClient,
+  migrateDatabase,
+  type DatabaseClient,
+  adminMemberships,
+  adminProfiles,
+  adminPropertyMemberships,
+} from '@room/database';
+import {
+  createPreparedGuardedTestDatabase,
+  type GuardedTestDatabase,
+} from '@room/database/testing';
+import { AdminAccessService } from '../../src/admin/admin-access.service.js';
+import type { ActorContext } from '../../src/auth/actor-context.js';
+
+const ids = {
+  property: '770e8400-e29b-41d4-a716-446655440101',
+  otherProperty: '770e8400-e29b-41d4-a716-446655440102',
+  department: '770e8400-e29b-41d4-a716-446655440201',
+  staffManager: '770e8400-e29b-41d4-a716-446655440301',
+  targetStaff: '770e8400-e29b-41d4-a716-446655440302',
+  superAdmin: '770e8400-e29b-41d4-a716-446655440303',
+  operationsManager: '770e8400-e29b-41d4-a716-446655440304',
+};
 
 describe('STAFF_MANAGER authorization', () => {
+  let guarded: GuardedTestDatabase;
+  let db: DatabaseClient;
   let service: AdminAccessService;
-  let staffManagerId: string;
-  let targetStaffId: string;
-  let superAdminId: string;
-  let operationsManagerId: string;
-  let propertyId: string;
-  let otherPropertyId: string;
-  let departmentId: string;
+
+  beforeAll(async () => {
+    const url = process.env.TEST_DATABASE_URL;
+    if (url === undefined) {
+      throw new Error('TEST_DATABASE_URL is required for STAFF_MANAGER integration tests');
+    }
+    guarded = await createPreparedGuardedTestDatabase(url, async (prepared) => {
+      await migrateDatabase(prepared.databaseUrl);
+    });
+    db = createDatabaseClient(guarded.pool);
+
+    // Insert fixture data once using raw SQL
+    await guarded.pool.query(
+      `INSERT INTO properties (id, code, name) VALUES ($1, 'TEST_PROP', 'Test Property'), ($2, 'OTHER_PROP', 'Other Property')`,
+      [ids.property, ids.otherProperty],
+    );
+
+    await guarded.pool.query(
+      `INSERT INTO admin_departments (id, code, name) VALUES ($1, 'OPS', 'Operations')`,
+      [ids.department],
+    );
+
+    await guarded.pool.query(
+      `INSERT INTO users (id, email, name, role) VALUES 
+        ($1, 'staff-manager@test.local', 'Staff Manager', 'ADMIN'),
+        ($2, 'target-staff@test.local', 'Target Staff', 'ADMIN'),
+        ($3, 'super-admin@test.local', 'Super Admin', 'ADMIN'),
+        ($4, 'operations-manager@test.local', 'Operations Manager', 'ADMIN')`,
+      [ids.staffManager, ids.targetStaff, ids.superAdmin, ids.operationsManager],
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    service = new AdminAccessService(db);
+  });
+
+  afterAll(async () => {
+    await guarded.dispose();
+  });
 
   beforeEach(async () => {
-    service = new AdminAccessService(db);
+    // Clean only admin-specific tables that we'll re-populate
+    await db.delete(adminPropertyMemberships);
+    await db.delete(adminMemberships);
+    await db.delete(adminProfiles);
 
-    const property = await db.query.properties.findFirst({
-      where: (properties, { eq }) => eq(properties.name, 'Playwright'),
-    });
-    if (!property) throw new Error('Playwright property not found');
-    propertyId = property.id;
+    // Re-insert admin profiles (no 'role' field in adminProfiles table)
+    await db
+      .insert(adminProfiles)
+      .values([
+        { userId: ids.staffManager },
+        { userId: ids.targetStaff },
+        { userId: ids.superAdmin },
+        { userId: ids.operationsManager },
+      ]);
 
-    const otherProperty = await db.query.properties.findFirst({
-      where: (properties, { ne }) => ne(properties.id, propertyId),
-    });
-    if (!otherProperty) throw new Error('Second property not found');
-    otherPropertyId = otherProperty.id;
+    await db.insert(adminMemberships).values([
+      { userId: ids.staffManager, departmentId: ids.department, role: 'STAFF_MANAGER' },
+      { userId: ids.targetStaff, departmentId: ids.department, role: 'HOUSEKEEPING_STAFF' },
+      { userId: ids.superAdmin, departmentId: ids.department, role: 'SUPER_ADMIN' },
+      { userId: ids.operationsManager, departmentId: ids.department, role: 'OPERATIONS_MANAGER' },
+    ]);
 
-    const department = await db.query.adminDepartments.findFirst({
-      where: (departments, { eq }) => eq(departments.name, 'Operations'),
-    });
-    if (!department) throw new Error('Operations department not found');
-    departmentId = department.id;
-
-    const staffManagerUser = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.email, 'staff-manager@test.local'),
-    });
-    if (!staffManagerUser) throw new Error('STAFF_MANAGER user not found');
-    staffManagerId = staffManagerUser.id;
-
-    const targetStaffUser = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.email, 'housekeeping-staff@test.local'),
-    });
-    if (!targetStaffUser) throw new Error('Target staff user not found');
-    targetStaffId = targetStaffUser.id;
-
-    const superAdminUser = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.email, 'super-admin@test.local'),
-    });
-    if (!superAdminUser) throw new Error('SUPER_ADMIN user not found');
-    superAdminId = superAdminUser.id;
-
-    const opsManagerUser = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.email, 'operations-manager@test.local'),
-    });
-    if (!opsManagerUser) throw new Error('OPERATIONS_MANAGER user not found');
-    operationsManagerId = opsManagerUser.id;
-
-    await db.delete(adminPropertyMemberships).where(eq(adminPropertyMemberships.userId, staffManagerId));
-    await db.delete(adminMemberships).where(eq(adminMemberships.userId, staffManagerId));
-    await db.delete(adminProfiles).where(eq(adminProfiles.userId, staffManagerId));
-
-    await db.insert(adminProfiles).values({
-      userId: staffManagerId,
-      role: 'STAFF_MANAGER',
-    });
-    await db.insert(adminMemberships).values({
-      userId: staffManagerId,
-      departmentId,
-    });
-    await db.insert(adminPropertyMemberships).values({
-      userId: staffManagerId,
-      propertyId,
-    });
+    await db.insert(adminPropertyMemberships).values([
+      { userId: ids.staffManager, propertyId: ids.property },
+      { userId: ids.targetStaff, propertyId: ids.property },
+    ]);
   });
 
   const staffManagerActor: ActorContext = {
-    userId: '',
+    userId: ids.staffManager,
+    email: 'staff-manager@test.local',
+    displayName: 'Staff Manager',
+    role: 'ADMIN',
     profileCode: 'STAFF_MANAGER',
-    propertyIds: [],
     permissions: [
       'dashboard.read',
       'admin.account.read',
@@ -91,130 +111,108 @@ describe('STAFF_MANAGER authorization', () => {
       'admin.audit.read',
       'catalog.property.read',
     ],
+    propertyIds: [ids.property],
+    sessionId: 'test-session-id',
+    sessionExpiresAt: new Date(Date.now() + 3600000),
+    requestId: 'test-request-id',
   };
 
   describe('delegation constraints', () => {
     test('ALLOW: STAFF_MANAGER can assign allowed operational profile', async () => {
-      const actor = {
-        ...staffManagerActor,
-        userId: staffManagerId,
-        propertyIds: [propertyId],
-      };
-
-      await service.updateAccount(actor, targetStaffId, {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      await service.updateAccount(staffManagerActor, ids.targetStaff, {
         role: 'HOUSEKEEPING_MANAGER',
-        departmentIds: [departmentId],
+        departmentIds: [ids.department],
       });
 
-      const profile = await db.query.adminProfiles.findFirst({
-        where: (profiles, { eq }) => eq(profiles.userId, targetStaffId),
+      const membership = await db.query.adminMemberships.findFirst({
+        where: (memberships, { eq }) => eq(memberships.userId, ids.targetStaff),
       });
-      expect(profile?.role).toBe('HOUSEKEEPING_MANAGER');
+      expect(membership?.role).toBe('HOUSEKEEPING_MANAGER');
     });
 
     test('DENY: STAFF_MANAGER cannot grant SUPER_ADMIN', async () => {
-      const actor = {
-        ...staffManagerActor,
-        userId: staffManagerId,
-        propertyIds: [propertyId],
-      };
-
       await expect(
-        service.updateAccount(actor, targetStaffId, {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        service.updateAccount(staffManagerActor, ids.targetStaff, {
           role: 'SUPER_ADMIN',
-          departmentIds: [departmentId],
+          departmentIds: [ids.department],
         }),
-      ).rejects.toThrow('STAFF_MANAGER_SUPER_ADMIN_FORBIDDEN');
+      ).rejects.toMatchObject({
+        response: { code: 'STAFF_MANAGER_SUPER_ADMIN_FORBIDDEN' },
+      });
     });
 
     test('DENY: STAFF_MANAGER cannot target existing SUPER_ADMIN', async () => {
-      const actor = {
-        ...staffManagerActor,
-        userId: staffManagerId,
-        propertyIds: [propertyId],
-      };
-
       await expect(
-        service.updateAccount(actor, superAdminId, {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        service.updateAccount(staffManagerActor, ids.superAdmin, {
           role: 'HOUSEKEEPING_STAFF',
-          departmentIds: [departmentId],
+          departmentIds: [ids.department],
         }),
-      ).rejects.toThrow('STAFF_MANAGER_SUPER_ADMIN_FORBIDDEN');
+      ).rejects.toMatchObject({
+        response: { code: 'STAFF_MANAGER_SUPER_ADMIN_FORBIDDEN' },
+      });
     });
 
     test('DENY: STAFF_MANAGER cannot grant STAFF_MANAGER', async () => {
-      const actor = {
-        ...staffManagerActor,
-        userId: staffManagerId,
-        propertyIds: [propertyId],
-      };
-
       await expect(
-        service.updateAccount(actor, targetStaffId, {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        service.updateAccount(staffManagerActor, ids.targetStaff, {
           role: 'STAFF_MANAGER',
-          departmentIds: [departmentId],
+          departmentIds: [ids.department],
         }),
-      ).rejects.toThrow('STAFF_MANAGER_GRANT_SELF_FORBIDDEN');
+      ).rejects.toMatchObject({
+        response: { code: 'STAFF_MANAGER_GRANT_SELF_FORBIDDEN' },
+      });
     });
 
     test('DENY: STAFF_MANAGER cannot grant OPERATIONS_MANAGER', async () => {
-      const actor = {
-        ...staffManagerActor,
-        userId: staffManagerId,
-        propertyIds: [propertyId],
-      };
-
       await expect(
-        service.updateAccount(actor, targetStaffId, {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        service.updateAccount(staffManagerActor, ids.targetStaff, {
           role: 'OPERATIONS_MANAGER',
-          departmentIds: [departmentId],
+          departmentIds: [ids.department],
         }),
-      ).rejects.toThrow('STAFF_MANAGER_ESCALATION_FORBIDDEN');
+      ).rejects.toMatchObject({
+        response: { code: 'STAFF_MANAGER_ESCALATION_FORBIDDEN' },
+      });
     });
 
     test('DENY: STAFF_MANAGER cannot modify profile stronger than allowed set', async () => {
-      const actor = {
-        ...staffManagerActor,
-        userId: staffManagerId,
-        propertyIds: [propertyId],
-      };
-
       await expect(
-        service.updateAccount(actor, operationsManagerId, {
-          departmentIds: [departmentId],
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        service.updateAccount(staffManagerActor, ids.operationsManager, {
+          departmentIds: [ids.department],
         }),
-      ).rejects.toThrow('STAFF_MANAGER_PROFILE_NOT_DELEGABLE');
+      ).rejects.toMatchObject({
+        response: { code: 'STAFF_MANAGER_PROFILE_NOT_DELEGABLE' },
+      });
     });
   });
 
   describe('self-escalation prevention', () => {
     test('DENY: STAFF_MANAGER cannot change own profile', async () => {
-      const actor = {
-        ...staffManagerActor,
-        userId: staffManagerId,
-        propertyIds: [propertyId],
-      };
-
       await expect(
-        service.updateAccount(actor, staffManagerId, {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        service.updateAccount(staffManagerActor, ids.staffManager, {
           role: 'OPERATIONS_MANAGER',
-          departmentIds: [departmentId],
+          departmentIds: [ids.department],
         }),
-      ).rejects.toThrow('STAFF_MANAGER_ESCALATION_FORBIDDEN');
+      ).rejects.toMatchObject({
+        response: { code: 'SELF_PROFILE_CHANGE_FORBIDDEN' },
+      });
     });
 
     test('DENY: STAFF_MANAGER cannot change own membership', async () => {
-      const actor = {
-        ...staffManagerActor,
-        userId: staffManagerId,
-        propertyIds: [propertyId],
-      };
-
       await expect(
-        service.updateAccount(actor, staffManagerId, {
-          departmentIds: [departmentId],
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        service.updateAccount(staffManagerActor, ids.staffManager, {
+          departmentIds: [ids.department],
         }),
-      ).rejects.toThrow('SELF_MEMBERSHIP_CHANGE_FORBIDDEN');
+      ).rejects.toMatchObject({
+        response: { code: 'SELF_MEMBERSHIP_CHANGE_FORBIDDEN' },
+      });
     });
   });
 
@@ -229,47 +227,39 @@ describe('STAFF_MANAGER authorization', () => {
     ] as const;
 
     test.each(allowedProfiles)('ALLOW: STAFF_MANAGER can grant %s', async (profileCode) => {
-      const actor = {
-        ...staffManagerActor,
-        userId: staffManagerId,
-        propertyIds: [propertyId],
-      };
-
-      await service.updateAccount(actor, targetStaffId, {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      await service.updateAccount(staffManagerActor, ids.targetStaff, {
         role: profileCode,
-        departmentIds: [departmentId],
+        departmentIds: [ids.department],
       });
 
-      const profile = await db.query.adminProfiles.findFirst({
-        where: (profiles, { eq }) => eq(profiles.userId, targetStaffId),
+      const membership = await db.query.adminMemberships.findFirst({
+        where: (memberships, { eq }) => eq(memberships.userId, ids.targetStaff),
       });
-      expect(profile?.role).toBe(profileCode);
+      expect(membership?.role).toBe(profileCode);
     });
   });
 
   describe('audit trail', () => {
     test('staff mutation appends audit event', async () => {
-      const actor = {
-        ...staffManagerActor,
-        userId: staffManagerId,
-        propertyIds: [propertyId],
-      };
-
       const beforeCount = await db.query.auditEvents.findMany();
       const initialCount = beforeCount.length;
 
-      await service.updateAccount(actor, targetStaffId, {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      await service.updateAccount(staffManagerActor, ids.targetStaff, {
         role: 'HOUSEKEEPING_STAFF',
-        departmentIds: [departmentId],
+        departmentIds: [ids.department],
       });
 
       const afterCount = await db.query.auditEvents.findMany();
       expect(afterCount.length).toBeGreaterThan(initialCount);
 
       const latest = afterCount[afterCount.length - 1];
-      expect(latest.actorId).toBe(staffManagerId);
-      expect(latest.action).toContain('admin.account');
+      if (latest === undefined) {
+        throw new Error('Expected at least one audit event');
+      }
+      expect(latest.actorId).toBe(ids.staffManager);
+      expect(latest.eventType).toContain('ADMIN_ACCOUNT');
     });
   });
 });
-

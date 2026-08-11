@@ -128,9 +128,58 @@ export class AdminAccessService {
     if (target === undefined || !isAdminRole(target.role)) {
       throw new NotFoundException({ code: 'ADMIN_ACCOUNT_NOT_FOUND' });
     }
+
+    // Get target's current profile from adminMemberships
+    const targetMemberships = await this.database.query.adminMemberships.findMany({
+      where: (fields, { and, eq }) => and(eq(fields.userId, id), eq(fields.status, 'ACTIVE')),
+    });
+    const targetProfileCode =
+      targetMemberships
+        .map((membership) => membership.role)
+        .filter((role): role is AdminProfileCode => isAdminProfile(role))
+        .sort((left, right) => ADMIN_PROFILE_RANK[right] - ADMIN_PROFILE_RANK[left])[0] ?? null;
+
     if (target.role === 'SUPER_ADMIN' && actor.profileCode !== 'SUPER_ADMIN') {
       throw new BadRequestException({ code: 'SUPER_ADMIN_TARGET_FORBIDDEN' });
     }
+
+    // STAFF_MANAGER constraints (check early before other validations)
+    if (actor.profileCode === 'STAFF_MANAGER') {
+      // Prevent self-modification
+      if (id === actor.userId) {
+        throw new BadRequestException({ code: 'SELF_MEMBERSHIP_CHANGE_FORBIDDEN' });
+      }
+      if (patch.role === 'SUPER_ADMIN' || targetProfileCode === 'SUPER_ADMIN') {
+        throw new BadRequestException({ code: 'STAFF_MANAGER_SUPER_ADMIN_FORBIDDEN' });
+      }
+
+      const allowedProfiles: ReadonlySet<AdminProfileCode> = new Set([
+        'ROOM_STATUS_VIEWER',
+        'HOUSEKEEPING_MANAGER',
+        'HOUSEKEEPING_STAFF',
+        'PAYMENT_STAFF',
+        'MAINTENANCE_MANAGER',
+        'MAINTENANCE_STAFF',
+      ]);
+
+      if (patch.role !== undefined) {
+        if (patch.role === 'STAFF_MANAGER') {
+          throw new BadRequestException({ code: 'STAFF_MANAGER_GRANT_SELF_FORBIDDEN' });
+        }
+        if (patch.role === 'OPERATIONS_MANAGER') {
+          throw new BadRequestException({ code: 'STAFF_MANAGER_ESCALATION_FORBIDDEN' });
+        }
+        if (!allowedProfiles.has(patch.role as AdminProfileCode)) {
+          throw new BadRequestException({ code: 'STAFF_MANAGER_PROFILE_NOT_DELEGABLE' });
+        }
+      } else {
+        // When not changing role, check if target's current profile is manageable
+        if (targetProfileCode && !allowedProfiles.has(targetProfileCode)) {
+          throw new BadRequestException({ code: 'STAFF_MANAGER_PROFILE_NOT_DELEGABLE' });
+        }
+      }
+    }
+
     const role = patch.role ?? (isAdminProfile(target.role) ? target.role : null);
     if (patch.role === undefined && target.role === 'ADMIN' && patch.departmentIds !== undefined) {
       throw new BadRequestException({ code: 'ADMIN_PROFILE_REQUIRED' });
@@ -148,32 +197,6 @@ export class AdminAccessService {
     }
     if (patch.departmentIds?.some((departmentId) => departmentId.trim() === '')) {
       throw new BadRequestException({ code: 'INVALID_DEPARTMENT_ID' });
-    }
-
-    // STAFF_MANAGER constraints
-    if (actor.profileCode === 'STAFF_MANAGER') {
-      if (patch.role === 'SUPER_ADMIN' || target.role === 'SUPER_ADMIN') {
-        throw new BadRequestException({ code: 'STAFF_MANAGER_SUPER_ADMIN_FORBIDDEN' });
-      }
-      if (patch.role !== undefined) {
-        if (patch.role === 'STAFF_MANAGER') {
-          throw new BadRequestException({ code: 'STAFF_MANAGER_GRANT_SELF_FORBIDDEN' });
-        }
-        if (patch.role === 'OPERATIONS_MANAGER') {
-          throw new BadRequestException({ code: 'STAFF_MANAGER_ESCALATION_FORBIDDEN' });
-        }
-        const allowedProfiles: ReadonlySet<AdminProfileCode> = new Set([
-          'ROOM_STATUS_VIEWER',
-          'HOUSEKEEPING_MANAGER',
-          'HOUSEKEEPING_STAFF',
-          'PAYMENT_STAFF',
-          'MAINTENANCE_MANAGER',
-          'MAINTENANCE_STAFF',
-        ]);
-        if (!allowedProfiles.has(patch.role as AdminProfileCode)) {
-          throw new BadRequestException({ code: 'STAFF_MANAGER_PROFILE_NOT_DELEGABLE' });
-        }
-      }
     }
     await this.database.transaction(async (transaction) => {
       // users.role only supports base auth roles. Profile-specific codes live in adminMemberships.
