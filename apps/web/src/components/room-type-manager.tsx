@@ -25,38 +25,34 @@ import {
 interface RoomTypeEditDraft {
   readonly name: string;
   readonly description: string;
-  readonly maxAdults: number;
-  readonly maxChildren: number;
-  readonly maxOccupancy: number;
+  readonly capacity: 2 | 4; // Simplified: 2 or 4 guests
   readonly priceTierId: string;
 }
 
 const emptyDraft: RoomTypeEditDraft = {
   name: '',
   description: '',
-  maxAdults: 2,
-  maxChildren: 0,
-  maxOccupancy: 2,
+  capacity: 2,
   priceTierId: '',
 };
 
 function draftFromRoomType(roomType: RoomType, fallbackTierId: string): RoomTypeEditDraft {
+  // Map existing maxOccupancy to simplified 2 or 4 capacity model
+  const capacity = roomType.maxOccupancy <= 2 ? 2 : 4;
   return {
     name: roomType.name,
     description: roomType.description ?? '',
-    maxAdults: roomType.maxAdults,
-    maxChildren: roomType.maxChildren,
-    maxOccupancy: roomType.maxOccupancy,
+    capacity: capacity as 2 | 4,
     priceTierId: roomType.priceTierId ?? fallbackTierId,
   };
 }
 
-function isCapacityValid(draft: RoomTypeEditDraft) {
-  return (
-    draft.maxOccupancy >= draft.maxAdults &&
-    draft.maxOccupancy >= draft.maxChildren &&
-    draft.maxOccupancy <= draft.maxAdults + draft.maxChildren
-  );
+// Convert simplified capacity to backend fields for compatibility
+function capacityToBackendFields(capacity: 2 | 4) {
+  if (capacity === 2) {
+    return { maxAdults: 2, maxChildren: 0, maxOccupancy: 2 };
+  }
+  return { maxAdults: 4, maxChildren: 0, maxOccupancy: 4 };
 }
 
 function roomTypeStatusLabel(locale: 'vi' | 'en', status: RoomType['status']): string {
@@ -79,9 +75,7 @@ export function RoomTypeManager() {
   const [priceTierId, setPriceTierId] = useState('');
   const [amenityId, setAmenityId] = useState('');
   const [amenityRoomTypeId, setAmenityRoomTypeId] = useState('');
-  const [createMaxAdults, setCreateMaxAdults] = useState(2);
-  const [createMaxChildren, setCreateMaxChildren] = useState(0);
-  const [createMaxOccupancy, setCreateMaxOccupancy] = useState(2);
+  const [createCapacity, setCreateCapacity] = useState<2 | 4>(2);
   const [drafts, setDrafts] = useState<Record<string, RoomTypeEditDraft>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createOpen, setCreateOpen] = useState(false);
@@ -127,13 +121,12 @@ export function RoomTypeManager() {
     setPending(true);
     setMessage(undefined);
     try {
+      const backendFields = capacityToBackendFields(createCapacity);
       const roomType = await adminApi.createRoomType({
         priceTierId,
         code,
         name,
-        maxAdults: createMaxAdults,
-        maxChildren: createMaxChildren,
-        maxOccupancy: createMaxOccupancy,
+        ...backendFields,
       });
       setTypes((current) =>
         current === undefined ? current : { ...current, items: [...current.items, roomType] },
@@ -212,20 +205,15 @@ export function RoomTypeManager() {
   async function saveDraft(id: string): Promise<boolean> {
     const draft = drafts[id];
     if (draft === undefined) return false;
-    if (!isCapacityValid(draft)) {
-      setErrors((current) => ({ ...current, [id]: translate(locale, 'roomType.invalidCapacity') }));
-      return false;
-    }
     setPending(true);
     setMessage(undefined);
     setErrors((current) => ({ ...current, [id]: '' }));
     try {
+      const backendFields = capacityToBackendFields(draft.capacity);
       const updated = await adminApi.updateRoomType(id, {
         name: draft.name,
         description: draft.description === '' ? null : draft.description,
-        maxAdults: draft.maxAdults,
-        maxChildren: draft.maxChildren,
-        maxOccupancy: draft.maxOccupancy,
+        ...backendFields,
         priceTierId: draft.priceTierId,
       });
       setTypes((current) =>
@@ -310,46 +298,23 @@ export function RoomTypeManager() {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="room-type-max-adults">
-                {translate(locale, 'roomType.maxAdults')}
+              <FieldLabel htmlFor="room-type-capacity">
+                {translate(locale, 'roomType.capacity')}
               </FieldLabel>
-              <Input
+              <Select
                 disabled={pending}
-                id="room-type-max-adults"
-                min={1}
-                onChange={(event) => setCreateMaxAdults(Number(event.target.value))}
+                onValueChange={(value) => setCreateCapacity(Number(value) as 2 | 4)}
                 required
-                type="number"
-                value={createMaxAdults}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="room-type-max-children">
-                {translate(locale, 'roomType.maxChildren')}
-              </FieldLabel>
-              <Input
-                disabled={pending}
-                id="room-type-max-children"
-                min={0}
-                onChange={(event) => setCreateMaxChildren(Number(event.target.value))}
-                required
-                type="number"
-                value={createMaxChildren}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="room-type-max-occupancy">
-                {translate(locale, 'roomType.maxOccupancy')}
-              </FieldLabel>
-              <Input
-                disabled={pending}
-                id="room-type-max-occupancy"
-                min={1}
-                onChange={(event) => setCreateMaxOccupancy(Number(event.target.value))}
-                required
-                type="number"
-                value={createMaxOccupancy}
-              />
+                value={String(createCapacity)}
+              >
+                <SelectTrigger id="room-type-capacity">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">2 {translate(locale, 'roomType.guests')}</SelectItem>
+                  <SelectItem value="4">4 {translate(locale, 'roomType.guests')}</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <Button disabled={pending || priceTierId === ''} type="submit">
               {translate(locale, 'roomType.create')}
@@ -373,7 +338,7 @@ export function RoomTypeManager() {
                 description={roomType.code}
                 footer={
                   <Button
-                    disabled={pending || !isCapacityValid(draft)}
+                    disabled={pending}
                     onClick={() =>
                       void saveDraft(roomType.id).then((saved) => {
                         if (saved) setEditId(undefined);
@@ -431,46 +396,23 @@ export function RoomTypeManager() {
                     </Select>
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="room-type-edit-adults">
-                      {translate(locale, 'roomType.maxAdults')}
+                    <FieldLabel htmlFor="room-type-edit-capacity">
+                      {translate(locale, 'roomType.capacity')}
                     </FieldLabel>
-                    <Input
-                      id="room-type-edit-adults"
-                      min={1}
-                      onChange={(event) =>
-                        updateDraft(roomType.id, { maxAdults: Number(event.target.value) })
-                      }
-                      type="number"
-                      value={draft.maxAdults}
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="room-type-edit-children">
-                      {translate(locale, 'roomType.maxChildren')}
-                    </FieldLabel>
-                    <Input
-                      id="room-type-edit-children"
-                      min={0}
-                      onChange={(event) =>
-                        updateDraft(roomType.id, { maxChildren: Number(event.target.value) })
-                      }
-                      type="number"
-                      value={draft.maxChildren}
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="room-type-edit-occupancy">
-                      {translate(locale, 'roomType.maxOccupancy')}
-                    </FieldLabel>
-                    <Input
-                      id="room-type-edit-occupancy"
-                      min={1}
-                      onChange={(event) =>
-                        updateDraft(roomType.id, { maxOccupancy: Number(event.target.value) })
-                      }
-                      type="number"
-                      value={draft.maxOccupancy}
-                    />
+                    <Select
+                      value={String(draft.capacity)}
+                      onValueChange={(value) => {
+                        updateDraft(roomType.id, { capacity: Number(value) as 2 | 4 });
+                      }}
+                    >
+                      <SelectTrigger id="room-type-edit-capacity" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="2">2 {translate(locale, 'roomType.guests')}</SelectItem>
+                        <SelectItem value="4">4 {translate(locale, 'roomType.guests')}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </Field>
                   {error !== undefined && error !== '' ? (
                     <Alert variant="destructive">
@@ -533,7 +475,7 @@ export function RoomTypeManager() {
                       }
                     </td>
                     <td data-label={translate(locale, 'roomType.capacity')}>
-                      {roomType.maxAdults}/{roomType.maxChildren}/{roomType.maxOccupancy}
+                      {roomType.maxOccupancy <= 2 ? 2 : 4} {translate(locale, 'roomType.guests')}
                     </td>
                     <td data-label={translate(locale, 'admin.publication')}>
                       <AdminStatusBadge tone={roomType.status === 'ACTIVE' ? 'success' : 'neutral'}>
