@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import { issueAccessCredentials } from '../src/jobs/issue-access-credentials.js';
 import {
@@ -55,7 +54,7 @@ describe('issueAccessCredentials - T-30 timing semantics', () => {
     });
 
     const credentialCount = await pool.query<{ count: number }>(
-      'SELECT count(*)::int AS count FROM access_credentials WHERE status = \'ISSUED\'',
+      "SELECT count(*)::int AS count FROM access_credentials WHERE status = 'ISSUED'",
     );
     expect(credentialCount.rows[0]?.count).toBe(1);
   });
@@ -72,7 +71,7 @@ describe('issueAccessCredentials - T-30 timing semantics', () => {
     await issueAccessCredentials({ pool, batchSize: 10, maxBatches: 2 });
 
     const credentialCount = await pool.query<{ count: number }>(
-      'SELECT count(*)::int AS count FROM access_credentials WHERE status IN (\'ISSUED\', \'DELIVERED\')',
+      "SELECT count(*)::int AS count FROM access_credentials WHERE status IN ('ISSUED', 'DELIVERED')",
     );
     expect(credentialCount.rows[0]?.count).toBe(1);
   });
@@ -101,7 +100,7 @@ describe('issueAccessCredentials - T-30 timing semantics', () => {
     });
 
     await pool.query(
-      'UPDATE rooms SET status = \'INACTIVE\' WHERE id = (SELECT room_id FROM bookings WHERE id = $1)',
+      "UPDATE rooms SET status = 'INACTIVE' WHERE id = (SELECT room_id FROM bookings WHERE id = $1)",
       [bookingId],
     );
 
@@ -121,7 +120,7 @@ describe('issueAccessCredentials - T-30 timing semantics', () => {
     });
 
     await pool.query(
-      'UPDATE rooms SET housekeeping_status = \'DIRTY\' WHERE id = (SELECT room_id FROM bookings WHERE id = $1)',
+      "UPDATE rooms SET housekeeping_status = 'DIRTY' WHERE id = (SELECT room_id FROM bookings WHERE id = $1)",
       [bookingId],
     );
 
@@ -140,10 +139,12 @@ describe('issueAccessCredentials - T-30 timing semantics', () => {
       durationMinutes: 4 * 60,
     });
 
-    const booking = await pool.query<{ property_id: string; room_id: string; check_in: Date; check_out: Date }>(
-      'SELECT property_id, room_id, check_in, check_out FROM bookings WHERE id = $1',
-      [bookingId],
-    );
+    const booking = await pool.query<{
+      property_id: string;
+      room_id: string;
+      check_in: Date;
+      check_out: Date;
+    }>('SELECT property_id, room_id, check_in, check_out FROM bookings WHERE id = $1', [bookingId]);
     const row = booking.rows[0];
     if (!row) throw new Error('Booking not found');
 
@@ -177,15 +178,15 @@ describe('issueAccessCredentials - T-30 timing semantics', () => {
     const fullReference = credential.rows[0]?.provider_credential_reference;
     expect(fullReference).toBeTruthy();
 
-    const audit = await pool.query<{ payload: any }>(
-      'SELECT payload FROM audit_events WHERE event_type = \'ACCESS_CREDENTIAL_ISSUED\' ORDER BY occurred_at DESC LIMIT 1',
+    const audit = await pool.query<{ payload: Record<string, unknown> }>(
+      "SELECT payload FROM audit_events WHERE event_type = 'ACCESS_CREDENTIAL_ISSUED' ORDER BY occurred_at DESC LIMIT 1",
     );
     const payload = audit.rows[0]?.payload;
     expect(payload).toBeTruthy();
-    expect(payload.referenceMasked).toBeTruthy();
-    expect(payload.referenceMasked).not.toBe(fullReference);
-    expect(payload.referenceMasked).toMatch(/^…/);
-    expect(fullReference).toContain(payload.referenceMasked.slice(1));
+    expect(payload?.referenceMasked).toBeTruthy();
+    expect(payload?.referenceMasked).not.toBe(fullReference);
+    expect(String(payload?.referenceMasked)).toMatch(/^…/);
+    expect(fullReference).toContain(String(payload?.referenceMasked).slice(1));
   });
 
   it('outbox contains no plaintext credential', async () => {
@@ -205,8 +206,8 @@ describe('issueAccessCredentials - T-30 timing semantics', () => {
     const fullReference = credential.rows[0]?.provider_credential_reference;
     expect(fullReference).toBeTruthy();
 
-    const outbox = await pool.query<{ payload: any }>(
-      'SELECT payload FROM outbox_events WHERE event_type = \'access.credential.issued\' ORDER BY created_at DESC LIMIT 1',
+    const outbox = await pool.query<{ payload: Record<string, unknown> }>(
+      "SELECT payload FROM outbox_events WHERE event_type = 'access.credential.issued' ORDER BY created_at DESC LIMIT 1",
     );
     const payload = outbox.rows[0]?.payload;
     expect(payload).toBeTruthy();

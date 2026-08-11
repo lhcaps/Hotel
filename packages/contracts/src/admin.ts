@@ -19,6 +19,9 @@ export const adminProfileCodeSchema = z.enum([
   'HOUSEKEEPING_MANAGER',
   'HOUSEKEEPING_STAFF',
   'PAYMENT_STAFF',
+  'MAINTENANCE_MANAGER',
+  'MAINTENANCE_STAFF',
+  'STAFF_MANAGER',
 ]);
 export const roomHousekeepingStatusSchema = z.enum(['CLEAN', 'DIRTY', 'CLEANING']);
 const instantSchema = z.string().datetime({ offset: true });

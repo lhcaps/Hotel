@@ -46,7 +46,10 @@ type AdminProfileCode =
   | 'OPERATIONS_MANAGER'
   | 'HOUSEKEEPING_MANAGER'
   | 'HOUSEKEEPING_STAFF'
-  | 'PAYMENT_STAFF';
+  | 'PAYMENT_STAFF'
+  | 'MAINTENANCE_MANAGER'
+  | 'MAINTENANCE_STAFF'
+  | 'STAFF_MANAGER';
 const profileOptions: readonly { readonly value: AdminProfileCode; readonly label: MessageKey }[] =
   [
     { value: 'SUPER_ADMIN', label: 'admin.roleSuperAdmin' },
@@ -55,6 +58,9 @@ const profileOptions: readonly { readonly value: AdminProfileCode; readonly labe
     { value: 'HOUSEKEEPING_MANAGER', label: 'admin.roleHousekeepingManager' },
     { value: 'HOUSEKEEPING_STAFF', label: 'admin.roleHousekeepingStaff' },
     { value: 'PAYMENT_STAFF', label: 'admin.rolePaymentStaff' },
+    { value: 'MAINTENANCE_MANAGER', label: 'admin.roleMaintenanceManager' },
+    { value: 'MAINTENANCE_STAFF', label: 'admin.roleMaintenanceStaff' },
+    { value: 'STAFF_MANAGER', label: 'admin.roleStaffManager' },
   ];
 type AccountDraft = { readonly role: AdminProfileCode; readonly departmentIds: readonly string[] };
 

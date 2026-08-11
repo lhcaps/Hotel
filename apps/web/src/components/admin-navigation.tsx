@@ -99,7 +99,10 @@ export function AdminNavigation({
     | 'OPERATIONS_MANAGER'
     | 'HOUSEKEEPING_MANAGER'
     | 'HOUSEKEEPING_STAFF'
-    | 'PAYMENT_STAFF';
+    | 'PAYMENT_STAFF'
+    | 'MAINTENANCE_MANAGER'
+    | 'MAINTENANCE_STAFF'
+    | 'STAFF_MANAGER';
 }>) {
   const pathname = usePathname();
   const visibleGroups = groups

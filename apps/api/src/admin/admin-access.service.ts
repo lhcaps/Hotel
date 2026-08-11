@@ -149,28 +149,30 @@ export class AdminAccessService {
     if (patch.departmentIds?.some((departmentId) => departmentId.trim() === '')) {
       throw new BadRequestException({ code: 'INVALID_DEPARTMENT_ID' });
     }
-    
+
     // STAFF_MANAGER constraints
     if (actor.profileCode === 'STAFF_MANAGER') {
       if (patch.role === 'SUPER_ADMIN' || target.role === 'SUPER_ADMIN') {
         throw new BadRequestException({ code: 'STAFF_MANAGER_SUPER_ADMIN_FORBIDDEN' });
       }
-      if (patch.role === 'STAFF_MANAGER') {
-        throw new BadRequestException({ code: 'STAFF_MANAGER_GRANT_SELF_FORBIDDEN' });
-      }
-      if (patch.role === 'OPERATIONS_MANAGER') {
-        throw new BadRequestException({ code: 'STAFF_MANAGER_ESCALATION_FORBIDDEN' });
-      }
-      const allowedProfiles: ReadonlySet<AdminProfileCode> = new Set([
-        'ROOM_STATUS_VIEWER',
-        'HOUSEKEEPING_MANAGER',
-        'HOUSEKEEPING_STAFF',
-        'PAYMENT_STAFF',
-        'MAINTENANCE_MANAGER',
-        'MAINTENANCE_STAFF',
-      ]);
-      if (patch.role !== undefined && !allowedProfiles.has(patch.role as AdminProfileCode)) {
-        throw new BadRequestException({ code: 'STAFF_MANAGER_PROFILE_NOT_DELEGABLE' });
+      if (patch.role !== undefined) {
+        if (patch.role === 'STAFF_MANAGER') {
+          throw new BadRequestException({ code: 'STAFF_MANAGER_GRANT_SELF_FORBIDDEN' });
+        }
+        if (patch.role === 'OPERATIONS_MANAGER') {
+          throw new BadRequestException({ code: 'STAFF_MANAGER_ESCALATION_FORBIDDEN' });
+        }
+        const allowedProfiles: ReadonlySet<AdminProfileCode> = new Set([
+          'ROOM_STATUS_VIEWER',
+          'HOUSEKEEPING_MANAGER',
+          'HOUSEKEEPING_STAFF',
+          'PAYMENT_STAFF',
+          'MAINTENANCE_MANAGER',
+          'MAINTENANCE_STAFF',
+        ]);
+        if (!allowedProfiles.has(patch.role as AdminProfileCode)) {
+          throw new BadRequestException({ code: 'STAFF_MANAGER_PROFILE_NOT_DELEGABLE' });
+        }
       }
     }
     await this.database.transaction(async (transaction) => {
