@@ -1970,7 +1970,17 @@
           "emailMasked": { "type": "string", "minLength": 3, "maxLength": 320 },
           "displayName": { "type": "string", "minLength": 1, "maxLength": 160 },
           "role": { "type": "string", "enum": ["ADMIN", "SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
-          "profileCode": { "type": "string", "enum": ["SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
+          "profileCode": {
+            "type": "string",
+            "enum": [
+              "SUPER_ADMIN",
+              "ROOM_STATUS_VIEWER",
+              "OPERATIONS_MANAGER",
+              "HOUSEKEEPING_MANAGER",
+              "HOUSEKEEPING_STAFF",
+              "PAYMENT_STAFF"
+            ]
+          },
           "profileLabelVi": { "type": "string", "minLength": 1, "maxLength": 160 },
           "accountStatus": { "type": "string", "enum": ["ACTIVE", "DISABLED"] },
           "department": {
@@ -2660,6 +2670,9 @@
           },
           "roomNumber": { "type": "string", "minLength": 1, "maxLength": 64 },
           "physicalRoomCode": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "notes": {
+            "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2000 }, { "type": "null" }]
+          },
           "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "MAINTENANCE"] },
           "housekeepingStatus": { "type": "string", "enum": ["CLEAN", "DIRTY", "CLEANING"] },
           "createdAt": {
@@ -2679,6 +2692,7 @@
           "roomTypeId",
           "roomNumber",
           "physicalRoomCode",
+          "notes",
           "status",
           "housekeepingStatus",
           "createdAt",
@@ -2697,6 +2711,9 @@
           },
           "roomNumber": { "type": "string", "minLength": 1, "maxLength": 64 },
           "physicalRoomCode": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "notes": {
+            "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2000 }, { "type": "null" }]
+          },
           "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "MAINTENANCE"] }
         },
         "required": ["roomTypeId", "roomNumber"],
@@ -2718,6 +2735,9 @@
             "type": "string",
             "format": "uuid",
             "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "notes": {
+            "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 2000 }, { "type": "null" }]
           }
         },
         "additionalProperties": false
@@ -3425,7 +3445,17 @@
           "role": { "type": "string", "enum": ["ADMIN", "SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
           "profileCode": {
             "anyOf": [
-              { "type": "string", "enum": ["SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
+              {
+                "type": "string",
+                "enum": [
+                  "SUPER_ADMIN",
+                  "ROOM_STATUS_VIEWER",
+                  "OPERATIONS_MANAGER",
+                  "HOUSEKEEPING_MANAGER",
+                  "HOUSEKEEPING_STAFF",
+                  "PAYMENT_STAFF"
+                ]
+              },
               { "type": "null" }
             ]
           },
@@ -3474,7 +3504,17 @@
         "type": "object",
         "properties": {
           "status": { "type": "string", "enum": ["ACTIVE", "DISABLED"] },
-          "role": { "type": "string", "enum": ["SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SUPER_ADMIN",
+              "ROOM_STATUS_VIEWER",
+              "OPERATIONS_MANAGER",
+              "HOUSEKEEPING_MANAGER",
+              "HOUSEKEEPING_STAFF",
+              "PAYMENT_STAFF"
+            ]
+          },
           "departmentIds": {
             "minItems": 1,
             "maxItems": 20,
@@ -3499,7 +3539,17 @@
             "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
           "password": { "type": "string", "minLength": 8, "maxLength": 128 },
-          "role": { "type": "string", "enum": ["SUPER_ADMIN", "ROOM_STATUS_VIEWER"] },
+          "role": {
+            "type": "string",
+            "enum": [
+              "SUPER_ADMIN",
+              "ROOM_STATUS_VIEWER",
+              "OPERATIONS_MANAGER",
+              "HOUSEKEEPING_MANAGER",
+              "HOUSEKEEPING_STAFF",
+              "PAYMENT_STAFF"
+            ]
+          },
           "departmentIds": {
             "minItems": 1,
             "maxItems": 20,
