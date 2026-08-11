@@ -21,6 +21,7 @@ describe('Phase 3 permissions', () => {
       'PAYMENT_STAFF',
       'MAINTENANCE_MANAGER',
       'MAINTENANCE_STAFF',
+      'STAFF_MANAGER',
     ]);
     expect(ADMIN_PROFILE_LABELS_VI).toEqual({
       SUPER_ADMIN: 'Tổng quản trị',
@@ -31,6 +32,7 @@ describe('Phase 3 permissions', () => {
       PAYMENT_STAFF: 'Nhân viên thanh toán',
       MAINTENANCE_MANAGER: 'Quản lý bảo trì',
       MAINTENANCE_STAFF: 'Nhân viên bảo trì',
+      STAFF_MANAGER: 'Quản lý nhân sự',
     });
     expect(ROLE_PERMISSIONS.ADMIN).toEqual([]);
     expect(ROLE_PERMISSIONS.SUPER_ADMIN).toEqual(PERMISSIONS);
@@ -167,6 +169,22 @@ describe('V3 RBAC operational profiles — least-privilege separation', () => {
     expect(perms).not.toContain('admin.account.read');
   });
 
+  it('STAFF_MANAGER has constrained staff management but not operational or financial access', () => {
+    const perms = PROFILE_PERMISSIONS.STAFF_MANAGER;
+    expect(perms).toContain('admin.account.read');
+    expect(perms).toContain('admin.account.manage');
+    expect(perms).toContain('admin.department.read');
+    expect(perms).toContain('admin.department.manage');
+    expect(perms).toContain('admin.audit.read');
+    // Must NOT have booking, financial, or operational mutation
+    expect(perms).not.toContain('bookings.read');
+    expect(perms).not.toContain('bookings.manage');
+    expect(perms).not.toContain('payments.read');
+    expect(perms).not.toContain('room_operations.manage');
+    expect(perms).not.toContain('catalog.room.manage');
+    expect(perms).not.toContain('pricing.policy.publish');
+  });
+
   it('getProfilePermissions returns correct permissions for each profile', () => {
     expect(getProfilePermissions('SUPER_ADMIN')).toEqual(PERMISSIONS);
     expect(getProfilePermissions('ROOM_STATUS_VIEWER')).toEqual(
@@ -188,13 +206,16 @@ describe('V3 RBAC operational profiles — least-privilege separation', () => {
     expect(getProfilePermissions('MAINTENANCE_STAFF')).toEqual(
       PROFILE_PERMISSIONS.MAINTENANCE_STAFF,
     );
+    expect(getProfilePermissions('STAFF_MANAGER')).toEqual(PROFILE_PERMISSIONS.STAFF_MANAGER);
   });
 
-  it('no profile other than SUPER_ADMIN grants admin.account.manage', () => {
+  it('no profile other than SUPER_ADMIN and STAFF_MANAGER grants admin.account.manage', () => {
     for (const code of ADMIN_PROFILE_CODES) {
-      if (code === 'SUPER_ADMIN') continue;
+      if (code === 'SUPER_ADMIN' || code === 'STAFF_MANAGER') continue;
       expect(PROFILE_PERMISSIONS[code]).not.toContain('admin.account.manage');
     }
+    // STAFF_MANAGER has constrained admin.account.manage
+    expect(PROFILE_PERMISSIONS.STAFF_MANAGER).toContain('admin.account.manage');
   });
 
   it('no profile other than SUPER_ADMIN grants pricing.policy.publish', () => {
