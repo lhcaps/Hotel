@@ -44,14 +44,18 @@ const ADMIN_ROLES = [
   'HOUSEKEEPING_MANAGER',
   'HOUSEKEEPING_STAFF',
   'PAYMENT_STAFF',
+  'MAINTENANCE_MANAGER',
+  'MAINTENANCE_STAFF',
 ] as const;
 const ADMIN_PROFILE_RANK: Readonly<Record<AdminProfileCode, number>> = {
   ROOM_STATUS_VIEWER: 1,
   HOUSEKEEPING_STAFF: 2,
-  PAYMENT_STAFF: 3,
-  HOUSEKEEPING_MANAGER: 4,
-  OPERATIONS_MANAGER: 5,
-  SUPER_ADMIN: 6,
+  MAINTENANCE_STAFF: 3,
+  PAYMENT_STAFF: 4,
+  HOUSEKEEPING_MANAGER: 5,
+  MAINTENANCE_MANAGER: 6,
+  OPERATIONS_MANAGER: 7,
+  SUPER_ADMIN: 8,
 };
 
 function isAdminRole(value: string): value is (typeof ADMIN_ROLES)[number] {
@@ -65,7 +69,9 @@ function isAdminProfile(value: string): value is AdminProfileCode {
     value === 'OPERATIONS_MANAGER' ||
     value === 'HOUSEKEEPING_MANAGER' ||
     value === 'HOUSEKEEPING_STAFF' ||
-    value === 'PAYMENT_STAFF'
+    value === 'PAYMENT_STAFF' ||
+    value === 'MAINTENANCE_MANAGER' ||
+    value === 'MAINTENANCE_STAFF'
   );
 }
 

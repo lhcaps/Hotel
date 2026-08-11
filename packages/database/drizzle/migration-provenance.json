@@ -260,6 +260,13 @@
       "sha256": "f55a25c17f276c649d001b17edea74daaa1eae930fd61712ba54473e00d4a39f",
       "phase": "Operations V3 catalog simplification physical room notes",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 37,
+      "fileName": "0037_maintenance_profiles.sql",
+      "sha256": "f4e8b0c37483ccf0c4a7e55e3de153eb68bd569490e2d4c52164f995f5d375f6",
+      "phase": "Operations V3 maintenance RBAC profiles",
+      "previousIntroductionReference": null
     }
   ]
 }

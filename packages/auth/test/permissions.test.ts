@@ -19,6 +19,8 @@ describe('Phase 3 permissions', () => {
       'HOUSEKEEPING_MANAGER',
       'HOUSEKEEPING_STAFF',
       'PAYMENT_STAFF',
+      'MAINTENANCE_MANAGER',
+      'MAINTENANCE_STAFF',
     ]);
     expect(ADMIN_PROFILE_LABELS_VI).toEqual({
       SUPER_ADMIN: 'Tổng quản trị',
@@ -27,6 +29,8 @@ describe('Phase 3 permissions', () => {
       HOUSEKEEPING_MANAGER: 'Quản lý buồng phòng',
       HOUSEKEEPING_STAFF: 'Nhân viên buồng phòng',
       PAYMENT_STAFF: 'Nhân viên thanh toán',
+      MAINTENANCE_MANAGER: 'Quản lý bảo trì',
+      MAINTENANCE_STAFF: 'Nhân viên bảo trì',
     });
     expect(ROLE_PERMISSIONS.ADMIN).toEqual([]);
     expect(ROLE_PERMISSIONS.SUPER_ADMIN).toEqual(PERMISSIONS);
@@ -130,6 +134,32 @@ describe('V3 RBAC operational profiles — least-privilege separation', () => {
     expect(perms).not.toContain('admin.account.manage');
   });
 
+  it('MAINTENANCE_MANAGER has maintenance management but not booking mutation or financial access', () => {
+    const perms = PROFILE_PERMISSIONS.MAINTENANCE_MANAGER;
+    expect(perms).toContain('maintenance.read');
+    expect(perms).toContain('maintenance.manage');
+    expect(perms).toContain('catalog.maintenance.manage');
+    expect(perms).toContain('room_operations.read');
+    // Must NOT have booking, financial, or account access
+    expect(perms).not.toContain('bookings.manage');
+    expect(perms).not.toContain('payments.read');
+    expect(perms).not.toContain('admin.account.read');
+    expect(perms).not.toContain('room_operations.manage');
+  });
+
+  it('MAINTENANCE_STAFF has only read access to maintenance and rooms — cannot mutate catalog or bookings', () => {
+    const perms = PROFILE_PERMISSIONS.MAINTENANCE_STAFF;
+    expect(perms).toContain('maintenance.read');
+    expect(perms).toContain('catalog.maintenance.read');
+    expect(perms).toContain('rooms.read');
+    // Must NOT have any mutation permission
+    expect(perms).not.toContain('maintenance.manage');
+    expect(perms).not.toContain('catalog.maintenance.manage');
+    expect(perms).not.toContain('bookings.manage');
+    expect(perms).not.toContain('payments.read');
+    expect(perms).not.toContain('admin.account.read');
+  });
+
   it('getProfilePermissions returns correct permissions for each profile', () => {
     expect(getProfilePermissions('SUPER_ADMIN')).toEqual(PERMISSIONS);
     expect(getProfilePermissions('ROOM_STATUS_VIEWER')).toEqual(
@@ -145,6 +175,12 @@ describe('V3 RBAC operational profiles — least-privilege separation', () => {
       PROFILE_PERMISSIONS.HOUSEKEEPING_STAFF,
     );
     expect(getProfilePermissions('PAYMENT_STAFF')).toEqual(PROFILE_PERMISSIONS.PAYMENT_STAFF);
+    expect(getProfilePermissions('MAINTENANCE_MANAGER')).toEqual(
+      PROFILE_PERMISSIONS.MAINTENANCE_MANAGER,
+    );
+    expect(getProfilePermissions('MAINTENANCE_STAFF')).toEqual(
+      PROFILE_PERMISSIONS.MAINTENANCE_STAFF,
+    );
   });
 
   it('no profile other than SUPER_ADMIN grants admin.account.manage', () => {

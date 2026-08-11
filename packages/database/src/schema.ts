@@ -75,6 +75,8 @@ export const adminRole = pgEnum('admin_role', [
   'HOUSEKEEPING_MANAGER',
   'HOUSEKEEPING_STAFF',
   'PAYMENT_STAFF',
+  'MAINTENANCE_MANAGER',
+  'MAINTENANCE_STAFF',
 ]);
 export const adminMembershipStatus = pgEnum('admin_membership_status', ['ACTIVE', 'REVOKED']);
 export const userStatus = pgEnum('user_status', ['ACTIVE', 'DISABLED']);
@@ -498,6 +500,11 @@ export const rooms = pgTable(
     ),
     check('rooms_number_nonempty_ck', sql`btrim(${table.roomNumber}) <> ''`),
     check('rooms_physical_room_code_nonempty_ck', sql`btrim(${table.physicalRoomCode}) <> ''`),
+    check(
+      'rooms_notes_trimmed_ck',
+      sql`${table.notes} IS NULL OR btrim(${table.notes}) = ${table.notes}`,
+    ),
+    check('rooms_notes_length_ck', sql`${table.notes} IS NULL OR length(${table.notes}) <= 2000`),
   ],
 );
 
