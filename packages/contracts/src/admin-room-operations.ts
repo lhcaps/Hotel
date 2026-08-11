@@ -55,6 +55,16 @@ export const adminRoomOperationBookingWindowSchema = z
   .object({ checkIn: instantSchema, checkOut: instantSchema })
   .strict();
 
+export const roomDisplayGroupSchema = z.enum([
+  'occupied',
+  'checkout',
+  'arrival',
+  'cleaning',
+  'ready',
+  'maintenance',
+  'inactive',
+]);
+
 export const adminRoomOperationRowSchema = z
   .object({
     roomId: z.uuid(),
@@ -67,6 +77,7 @@ export const adminRoomOperationRowSchema = z
     housekeepingStatus: z.enum(['CLEAN', 'DIRTY', 'CLEANING']),
     maintenanceState: z.enum(['ACTIVE', 'NONE']),
     currentOccupancy: z.enum(['OCCUPIED', 'VACANT']),
+    displayGroup: roomDisplayGroupSchema,
     nextBookingWindow: adminRoomOperationBookingWindowSchema.nullable(),
     bookings: z.array(adminRoomOperationBookingSchema).readonly(),
     freeWindows: z.array(adminRoomOperationWindowSchema).readonly(),

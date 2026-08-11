@@ -4611,6 +4611,18 @@
                 "housekeepingStatus": { "type": "string", "enum": ["CLEAN", "DIRTY", "CLEANING"] },
                 "maintenanceState": { "type": "string", "enum": ["ACTIVE", "NONE"] },
                 "currentOccupancy": { "type": "string", "enum": ["OCCUPIED", "VACANT"] },
+                "displayGroup": {
+                  "type": "string",
+                  "enum": [
+                    "occupied",
+                    "checkout",
+                    "arrival",
+                    "cleaning",
+                    "ready",
+                    "maintenance",
+                    "inactive"
+                  ]
+                },
                 "nextBookingWindow": {
                   "anyOf": [
                     {
@@ -4722,6 +4734,7 @@
                 "housekeepingStatus",
                 "maintenanceState",
                 "currentOccupancy",
+                "displayGroup",
                 "nextBookingWindow",
                 "bookings",
                 "freeWindows",

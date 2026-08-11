@@ -16,8 +16,7 @@ import { AdminStatusBadge } from './admin/admin-ui';
 
 type RoomOperation = AdminRoomOperationsResponse['items'][number];
 type RoomStatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
-type RoomGroup =
-  'occupied' | 'checkout' | 'arrival' | 'cleaning' | 'ready' | 'maintenance' | 'inactive';
+type RoomGroup = RoomOperation['displayGroup'];
 
 const roomStatusLabels = {
   ACTIVE: 'admin.roomStatusActive',
@@ -68,32 +67,6 @@ function dateRange(value: string): { from: string; to: string } {
 
 function formatTime(value: string, locale: string): string {
   return new Date(value).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-}
-
-function isWithinNextDay(value: string, now: number): boolean {
-  const timestamp = new Date(value).getTime();
-  return timestamp >= now && timestamp <= now + 24 * 60 * 60 * 1000;
-}
-
-function groupForRoom(room: RoomOperation, now: number): RoomGroup {
-  if (room.roomStatus === 'INACTIVE') return 'inactive';
-  if (room.roomStatus === 'MAINTENANCE' || room.maintenanceState === 'ACTIVE') {
-    return 'maintenance';
-  }
-  if (
-    room.currentOccupancy === 'OCCUPIED' &&
-    room.bookings.some((booking) => isWithinNextDay(booking.checkOut, now))
-  ) {
-    return 'checkout';
-  }
-  if (room.currentOccupancy === 'OCCUPIED') return 'occupied';
-  if (room.nextBookingWindow !== null && isWithinNextDay(room.nextBookingWindow.checkIn, now)) {
-    return 'arrival';
-  }
-  if (room.housekeepingStatus !== 'CLEAN' || room.activeHousekeepingTask !== null) {
-    return 'cleaning';
-  }
-  return 'ready';
 }
 
 function groupStatusTone(group: RoomGroup): 'neutral' | 'success' | 'warning' | 'danger' {
@@ -152,10 +125,9 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
   }, [data?.items, locale, query, statusFilter]);
 
   const groups = useMemo(() => {
-    const now = Date.now();
     const grouped = new Map<RoomGroup, RoomOperation[]>();
     for (const room of visibleItems) {
-      const group = groupForRoom(room, now);
+      const group = room.displayGroup;
       const current = grouped.get(group) ?? [];
       current.push(room);
       grouped.set(group, current);

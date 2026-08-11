@@ -1,7 +1,108 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { RoomOperationsService } from '../../src/booking/services/room-operations.service.js';
-import { computeFreeWindows } from '../../src/booking/services/room-operations.service.js';
+import {
+  RoomOperationsService,
+  computeFreeWindows,
+  deriveRoomDisplayGroup,
+} from '../../src/booking/services/room-operations.service.js';
+
+const NOW = new Date('2026-08-01T10:00:00.000Z');
+const nowMs = NOW.getTime();
+
+function booking(checkIn: string, checkOut: string) {
+  return {
+    bookingCode: 'BK',
+    status: 'CONFIRMED' as const,
+    checkIn: new Date(checkIn),
+    checkOut: new Date(checkOut),
+  };
+}
+
+function baseRoom() {
+  return {
+    roomStatus: 'ACTIVE' as const,
+    maintenanceState: 'NONE' as const,
+    housekeepingStatus: 'CLEAN' as const,
+    currentOccupancy: 'VACANT' as const,
+    nextBookingCheckIn: null as Date | null,
+    activeHousekeepingTask: null,
+    bookings: [] as ReturnType<typeof booking>[],
+  };
+}
+
+describe('deriveRoomDisplayGroup (ORIG-C-005)', () => {
+  it('returns inactive when roomStatus is INACTIVE regardless of other axes', () => {
+    expect(deriveRoomDisplayGroup({ ...baseRoom(), roomStatus: 'INACTIVE' }, NOW)).toBe('inactive');
+  });
+
+  it('returns maintenance when roomStatus is MAINTENANCE', () => {
+    expect(deriveRoomDisplayGroup({ ...baseRoom(), roomStatus: 'MAINTENANCE' }, NOW)).toBe(
+      'maintenance',
+    );
+  });
+
+  it('returns maintenance when maintenanceState is ACTIVE even if roomStatus is ACTIVE', () => {
+    expect(deriveRoomDisplayGroup({ ...baseRoom(), maintenanceState: 'ACTIVE' }, NOW)).toBe(
+      'maintenance',
+    );
+  });
+
+  it('returns checkout when occupied and checkout is within next 24h', () => {
+    const checkOut = new Date(nowMs + 2 * 60 * 60 * 1000); // +2h
+    const room = {
+      ...baseRoom(),
+      currentOccupancy: 'OCCUPIED' as const,
+      bookings: [
+        booking(new Date(nowMs - 3 * 60 * 60 * 1000).toISOString(), checkOut.toISOString()),
+      ],
+    };
+    expect(deriveRoomDisplayGroup(room, NOW)).toBe('checkout');
+  });
+
+  it('returns occupied when occupied and checkout is beyond next 24h', () => {
+    const room = {
+      ...baseRoom(),
+      currentOccupancy: 'OCCUPIED' as const,
+      bookings: [
+        booking(
+          new Date(nowMs - 1 * 60 * 60 * 1000).toISOString(),
+          new Date(nowMs + 25 * 60 * 60 * 1000).toISOString(),
+        ),
+      ],
+    };
+    expect(deriveRoomDisplayGroup(room, NOW)).toBe('occupied');
+  });
+
+  it('returns arrival when vacant and next booking check-in is within next 24h', () => {
+    const room = {
+      ...baseRoom(),
+      nextBookingCheckIn: new Date(nowMs + 4 * 60 * 60 * 1000),
+    };
+    expect(deriveRoomDisplayGroup(room, NOW)).toBe('arrival');
+  });
+
+  it('returns cleaning when housekeepingStatus is DIRTY', () => {
+    expect(deriveRoomDisplayGroup({ ...baseRoom(), housekeepingStatus: 'DIRTY' }, NOW)).toBe(
+      'cleaning',
+    );
+  });
+
+  it('returns cleaning when housekeepingStatus is CLEAN but there is an active task', () => {
+    const room = {
+      ...baseRoom(),
+      activeHousekeepingTask: {
+        type: 'TURNOVER' as const,
+        status: 'IN_PROGRESS' as const,
+        dueAt: NOW,
+      },
+    };
+    expect(deriveRoomDisplayGroup(room, NOW)).toBe('cleaning');
+  });
+
+  it('returns ready when clean, vacant, no upcoming booking, no active task', () => {
+    expect(deriveRoomDisplayGroup(baseRoom(), NOW)).toBe('ready');
+  });
+});
 
 describe('computeFreeWindows', () => {
   it('clamps, merges adjacent occupied intervals, and returns the exact free complement', () => {

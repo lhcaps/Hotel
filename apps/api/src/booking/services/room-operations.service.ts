@@ -46,6 +46,54 @@ export interface RoomOperationsRepositoryPort {
   ): Promise<readonly RoomOperationRow[]>;
 }
 
+export type RoomDisplayGroup =
+  'occupied' | 'checkout' | 'arrival' | 'cleaning' | 'ready' | 'maintenance' | 'inactive';
+
+const NEXT_DAY_MS = 24 * 60 * 60 * 1000;
+
+function isWithinNextDay(value: Date, nowMs: number): boolean {
+  const timestamp = value.getTime();
+  return timestamp >= nowMs && timestamp <= nowMs + NEXT_DAY_MS;
+}
+
+/**
+ * Authoritative, deterministic room display group derivation (ORIG-C-005).
+ * This is the single source of truth for room operational status priority
+ * across the four axes (room status, maintenance, occupancy, housekeeping).
+ * The admin UI must consume `displayGroup` from the API rather than
+ * re-deriving it client-side.
+ */
+export function deriveRoomDisplayGroup(
+  room: Pick<
+    RoomOperationRow,
+    'roomStatus' | 'maintenanceState' | 'housekeepingStatus' | 'bookings' | 'activeHousekeepingTask'
+  > & {
+    readonly currentOccupancy: 'OCCUPIED' | 'VACANT';
+    readonly nextBookingCheckIn: Date | null;
+  },
+  now: Date,
+): RoomDisplayGroup {
+  const nowMs = now.getTime();
+  if (room.roomStatus === 'INACTIVE') return 'inactive';
+  if (room.roomStatus === 'MAINTENANCE' || room.maintenanceState === 'ACTIVE') {
+    return 'maintenance';
+  }
+  if (
+    room.currentOccupancy === 'OCCUPIED' &&
+    room.bookings.some((booking) => isWithinNextDay(booking.checkOut, nowMs))
+  ) {
+    return 'checkout';
+  }
+  if (room.currentOccupancy === 'OCCUPIED') return 'occupied';
+  if (room.nextBookingCheckIn !== null && isWithinNextDay(room.nextBookingCheckIn, nowMs)) {
+    return 'arrival';
+  }
+  if (room.housekeepingStatus !== 'CLEAN' || room.activeHousekeepingTask !== null) {
+    return 'cleaning';
+  }
+  return 'ready';
+}
+
 export class RoomOperationsService {
   public constructor(private readonly repository: RoomOperationsRepositoryPort) {}
 
@@ -69,14 +117,24 @@ export class RoomOperationsService {
           (booking) =>
             booking.checkIn.getTime() <= currentTime && booking.checkOut.getTime() > currentTime,
         )
-          ? 'OCCUPIED'
-          : 'VACANT';
+          ? ('OCCUPIED' as const)
+          : ('VACANT' as const);
         const nextBooking = room.bookings.find(
           (booking) => booking.checkIn.getTime() > currentTime,
+        );
+        const displayGroup = deriveRoomDisplayGroup(
+          {
+            ...room,
+            currentOccupancy,
+            activeHousekeepingTask,
+            nextBookingCheckIn: nextBooking?.checkIn ?? null,
+          },
+          now,
         );
         return {
           ...room,
           currentOccupancy,
+          displayGroup,
           nextBookingWindow:
             nextBooking === undefined
               ? null

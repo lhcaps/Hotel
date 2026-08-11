@@ -693,6 +693,8 @@ export interface AdminRoomOperationsResponse {
     readonly housekeepingStatus: 'CLEAN' | 'DIRTY' | 'CLEANING';
     readonly maintenanceState: 'ACTIVE' | 'NONE';
     readonly currentOccupancy: 'OCCUPIED' | 'VACANT';
+    readonly displayGroup:
+      'occupied' | 'checkout' | 'arrival' | 'cleaning' | 'ready' | 'maintenance' | 'inactive';
     readonly nextBookingWindow: { readonly checkIn: string; readonly checkOut: string } | null;
     readonly freeWindows: readonly { readonly startsAt: string; readonly endsAt: string }[];
     readonly activeHousekeepingTask: {

@@ -26,6 +26,7 @@ describe('RoomOperationsBoard', () => {
           housekeepingStatus: 'DIRTY',
           maintenanceState: 'NONE',
           currentOccupancy: 'VACANT',
+          displayGroup: 'cleaning',
           nextBookingWindow: null,
           freeWindows: [],
           activeHousekeepingTask: null,

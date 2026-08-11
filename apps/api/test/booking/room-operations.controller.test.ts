@@ -19,6 +19,7 @@ const response = {
       housekeepingStatus: 'CLEAN' as const,
       maintenanceState: 'ACTIVE' as const,
       currentOccupancy: 'OCCUPIED' as const,
+      displayGroup: 'maintenance' as const,
       nextBookingWindow: {
         checkIn: '2026-08-04T10:00:00.000Z',
         checkOut: '2026-08-04T12:00:00.000Z',
