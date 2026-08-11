@@ -545,9 +545,11 @@ test.describe('Phase 6D public coupon vertical flow', () => {
           // Every public route mount starts the header's customer-session
           // probe. A following navigation can abort that non-critical probe;
           // the actual guest logout and revoked-session contracts remain
-          // asserted below.
+          // asserted below. Next.js dev's font proxy is likewise aborted by
+          // rapid navigation.
           request.url().endsWith('/api/auth/get-session') ||
           request.url().includes('/_next/static/chunks/') ||
+          request.url().includes('/__nextjs_font/') ||
           request.url().includes('/api/v1/public/bookings/'))
       ) {
         return;

@@ -92,13 +92,15 @@ function attachListeners(page: import('@playwright/test').Page): TrackingListene
     const url = request.url();
     if (
       errorText === 'net::ERR_ABORTED' &&
-      (url.includes('/_next/static/chunks/') || url.includes('/api/v1/public/bookings/'))
+      (url.includes('/_next/static/chunks/') ||
+        url.includes('/__nextjs_font/') ||
+        url.includes('/api/v1/public/bookings/'))
     ) {
       // Guest detail/payment/access-pass fetches are re-issued by multiple
       // panels on the confirmed booking view; the browser aborts the earlier
-      // in-flight request when a later one supersedes it. Not a backend
-      // failure — see the identical exemption in
-      // public-booking-vertical-flow.spec.ts.
+      // in-flight request when a later one supersedes it. Next.js dev's font
+      // proxy is likewise aborted by rapid navigation. Not a backend failure
+      // — see the identical exemption in public-booking-vertical-flow.spec.ts.
       return;
     }
     requestFailures.push(`${request.method()} ${url} ${errorText ?? ''}`);

@@ -164,12 +164,15 @@ test.describe('public booking vertical flow', () => {
       if (
         errorText === 'net::ERR_ABORTED' &&
         (url.includes('/_next/static/chunks/') ||
+          url.includes('/__nextjs_font/') ||
           url.includes('/api/v1/public/bookings/') ||
           url.endsWith('/api/auth/get-session'))
       ) {
         // Logout refreshes the guest shell while its detail/session fetches
         // are still in flight. Those fetches are intentionally aborted by
-        // the navigation and are not failed backend requests.
+        // the navigation and are not failed backend requests. Next.js dev's
+        // font proxy is likewise aborted by rapid navigation, not a backend
+        // failure.
         return;
       }
       requestFailures.push(`${request.method()} ${url} ${errorText}`);
