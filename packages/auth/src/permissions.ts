@@ -7,6 +7,7 @@ export const ADMIN_PROFILE_CODES = [
   'PAYMENT_STAFF',
   'MAINTENANCE_MANAGER',
   'MAINTENANCE_STAFF',
+  'STAFF_MANAGER',
 ] as const;
 export type AdminProfileCode = (typeof ADMIN_PROFILE_CODES)[number];
 
@@ -19,6 +20,7 @@ export const ADMIN_PROFILE_LABELS_VI: Readonly<Record<AdminProfileCode, string>>
   PAYMENT_STAFF: 'Nhân viên thanh toán',
   MAINTENANCE_MANAGER: 'Quản lý bảo trì',
   MAINTENANCE_STAFF: 'Nhân viên bảo trì',
+  STAFF_MANAGER: 'Quản lý nhân sự',
 };
 
 export const PERMISSIONS = [
@@ -198,6 +200,15 @@ export const PROFILE_PERMISSIONS: Readonly<Record<AdminProfileCode, readonly Per
     'catalog.room.read',
     'catalog.room.status.read',
     'catalog.maintenance.read',
+  ],
+  STAFF_MANAGER: [
+    'dashboard.read',
+    'admin.account.read',
+    'admin.account.manage',
+    'admin.department.read',
+    'admin.department.manage',
+    'admin.audit.read',
+    'catalog.property.read',
   ],
 };
 

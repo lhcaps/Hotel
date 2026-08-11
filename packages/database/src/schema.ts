@@ -77,6 +77,7 @@ export const adminRole = pgEnum('admin_role', [
   'PAYMENT_STAFF',
   'MAINTENANCE_MANAGER',
   'MAINTENANCE_STAFF',
+  'STAFF_MANAGER',
 ]);
 export const adminMembershipStatus = pgEnum('admin_membership_status', ['ACTIVE', 'REVOKED']);
 export const userStatus = pgEnum('user_status', ['ACTIVE', 'DISABLED']);

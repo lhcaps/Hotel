@@ -46,6 +46,7 @@ const ADMIN_ROLES = [
   'PAYMENT_STAFF',
   'MAINTENANCE_MANAGER',
   'MAINTENANCE_STAFF',
+  'STAFF_MANAGER',
 ] as const;
 const ADMIN_PROFILE_RANK: Readonly<Record<AdminProfileCode, number>> = {
   ROOM_STATUS_VIEWER: 1,
@@ -54,8 +55,9 @@ const ADMIN_PROFILE_RANK: Readonly<Record<AdminProfileCode, number>> = {
   PAYMENT_STAFF: 4,
   HOUSEKEEPING_MANAGER: 5,
   MAINTENANCE_MANAGER: 6,
-  OPERATIONS_MANAGER: 7,
-  SUPER_ADMIN: 8,
+  STAFF_MANAGER: 7,
+  OPERATIONS_MANAGER: 8,
+  SUPER_ADMIN: 9,
 };
 
 function isAdminRole(value: string): value is (typeof ADMIN_ROLES)[number] {
@@ -71,7 +73,8 @@ function isAdminProfile(value: string): value is AdminProfileCode {
     value === 'HOUSEKEEPING_STAFF' ||
     value === 'PAYMENT_STAFF' ||
     value === 'MAINTENANCE_MANAGER' ||
-    value === 'MAINTENANCE_STAFF'
+    value === 'MAINTENANCE_STAFF' ||
+    value === 'STAFF_MANAGER'
   );
 }
 
@@ -116,11 +119,17 @@ export class AdminAccessService {
     if (actor.userId === id && patch.role !== undefined) {
       throw new BadRequestException({ code: 'SELF_PROFILE_CHANGE_FORBIDDEN' });
     }
+    if (actor.userId === id && patch.departmentIds !== undefined) {
+      throw new BadRequestException({ code: 'SELF_MEMBERSHIP_CHANGE_FORBIDDEN' });
+    }
     const target = await this.database.query.users.findFirst({
       where: (fields, { eq }) => eq(fields.id, id),
     });
     if (target === undefined || !isAdminRole(target.role)) {
       throw new NotFoundException({ code: 'ADMIN_ACCOUNT_NOT_FOUND' });
+    }
+    if (target.role === 'SUPER_ADMIN' && actor.profileCode !== 'SUPER_ADMIN') {
+      throw new BadRequestException({ code: 'SUPER_ADMIN_TARGET_FORBIDDEN' });
     }
     const role = patch.role ?? (isAdminProfile(target.role) ? target.role : null);
     if (patch.role === undefined && target.role === 'ADMIN' && patch.departmentIds !== undefined) {
@@ -139,6 +148,30 @@ export class AdminAccessService {
     }
     if (patch.departmentIds?.some((departmentId) => departmentId.trim() === '')) {
       throw new BadRequestException({ code: 'INVALID_DEPARTMENT_ID' });
+    }
+    
+    // STAFF_MANAGER constraints
+    if (actor.profileCode === 'STAFF_MANAGER') {
+      if (patch.role === 'SUPER_ADMIN' || target.role === 'SUPER_ADMIN') {
+        throw new BadRequestException({ code: 'STAFF_MANAGER_SUPER_ADMIN_FORBIDDEN' });
+      }
+      if (patch.role === 'STAFF_MANAGER') {
+        throw new BadRequestException({ code: 'STAFF_MANAGER_GRANT_SELF_FORBIDDEN' });
+      }
+      if (patch.role === 'OPERATIONS_MANAGER') {
+        throw new BadRequestException({ code: 'STAFF_MANAGER_ESCALATION_FORBIDDEN' });
+      }
+      const allowedProfiles: ReadonlySet<AdminProfileCode> = new Set([
+        'ROOM_STATUS_VIEWER',
+        'HOUSEKEEPING_MANAGER',
+        'HOUSEKEEPING_STAFF',
+        'PAYMENT_STAFF',
+        'MAINTENANCE_MANAGER',
+        'MAINTENANCE_STAFF',
+      ]);
+      if (patch.role !== undefined && !allowedProfiles.has(patch.role as AdminProfileCode)) {
+        throw new BadRequestException({ code: 'STAFF_MANAGER_PROFILE_NOT_DELEGABLE' });
+      }
     }
     await this.database.transaction(async (transaction) => {
       // users.role only supports base auth roles. Profile-specific codes live in adminMemberships.
