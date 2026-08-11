@@ -38,6 +38,9 @@ const databasePool = new Pool({
   application_name: 'room-management-playwright-room-viewer',
 });
 
+// Matches the property seeded by playwright-global-setup.ts (seedPlaywrightCatalog).
+const PLAYWRIGHT_PROPERTY_ID = '10000000-0000-4000-8000-000000000001';
+
 async function setViewerRole(role: 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER'): Promise<void> {
   await databasePool.query(`UPDATE users SET role = $1 WHERE lower(email) = lower($2)`, [
     role,
@@ -50,6 +53,17 @@ async function setViewerRole(role: 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER'): Promis
         AND status = 'ACTIVE'`,
     [role, playwrightAdminEmail],
   );
+  if (role === 'ROOM_STATUS_VIEWER') {
+    // Non-SUPER_ADMIN roles require an explicit property membership row —
+    // the bootstrap admin user is created after migration 0034's backfill
+    // runs, so it has none by default.
+    await databasePool.query(
+      `INSERT INTO admin_property_memberships (user_id, property_id, status)
+       SELECT id, $1::uuid, 'ACTIVE' FROM users WHERE lower(email) = lower($2)
+       ON CONFLICT DO NOTHING`,
+      [PLAYWRIGHT_PROPERTY_ID, playwrightAdminEmail],
+    );
+  }
   await databasePool.query(
     `DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE lower(email) = lower($1))`,
     [playwrightAdminEmail],

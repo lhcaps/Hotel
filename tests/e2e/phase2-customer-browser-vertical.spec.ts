@@ -88,15 +88,20 @@ function attachListeners(page: import('@playwright/test').Page): TrackingListene
   });
   page.on('pageerror', (error) => pageErrors.push(error.message));
   page.on('requestfailed', (request) => {
+    const errorText = request.failure()?.errorText;
+    const url = request.url();
     if (
-      request.failure()?.errorText === 'net::ERR_ABORTED' &&
-      request.url().includes('/_next/static/chunks/')
+      errorText === 'net::ERR_ABORTED' &&
+      (url.includes('/_next/static/chunks/') || url.includes('/api/v1/public/bookings/'))
     ) {
+      // Guest detail/payment/access-pass fetches are re-issued by multiple
+      // panels on the confirmed booking view; the browser aborts the earlier
+      // in-flight request when a later one supersedes it. Not a backend
+      // failure — see the identical exemption in
+      // public-booking-vertical-flow.spec.ts.
       return;
     }
-    requestFailures.push(
-      `${request.method()} ${request.url()} ${request.failure()?.errorText ?? ''}`,
-    );
+    requestFailures.push(`${request.method()} ${url} ${errorText ?? ''}`);
   });
   page.on('response', (response) => {
     if (response.status() >= 500) {
