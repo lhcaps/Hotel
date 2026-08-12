@@ -21,7 +21,7 @@ test('bootstrap-created ADMIN signs in and receives a server session', async ({ 
   expect(result.status, result.body).toBe(200);
 
   await page.getByRole('button', { name: 'Mở hồ sơ quản trị' }).click();
-  await page.getByRole('button', { name: 'Đăng xuất' }).click();
+  await page.getByRole('menuitem', { name: 'Đăng xuất' }).click();
   await expect(page).toHaveURL(/\/admin\/login$/);
   const afterLogout = await page.evaluate(async () => {
     const response = await fetch('http://127.0.0.1:3101/api/v1/admin/me', {

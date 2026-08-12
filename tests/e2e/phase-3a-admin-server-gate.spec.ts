@@ -111,8 +111,11 @@ test.describe('Phase 3A — ADMIN server-side authority gate', () => {
     }
 
     // Logout via the dedicated ADMIN button.
-    await page.getByRole('button', { name: 'Mở hồ sơ quản trị' }).click();
-    await page.getByRole('button', { name: 'Đăng xuất' }).click();
+    const profileTrigger = page.getByRole('button', { name: 'Mở hồ sơ quản trị' });
+    const profileMenu = page.locator('.admin-profile-menu');
+    await profileTrigger.click();
+    await expect(profileMenu).toBeVisible();
+    await profileMenu.getByRole('menuitem', { name: 'Đăng xuất' }).click();
     await page.waitForURL(/\/admin\/login$/);
 
     // Reload a protected route — the server must redirect again.
