@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -114,6 +115,40 @@ test('service environment rendering keeps database and SMTP secrets out of web a
     ]);
   } finally {
     rmSync(destinationDirectory, { recursive: true, force: true });
+  }
+});
+
+test('service-environment CLI reports only key counts when production values include sentinels', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'room-release-env-cli-'));
+  const sentinel = 'SENTINEL_SECRET_MUST_NOT_APPEAR_5f3a59c4';
+  try {
+    const environmentFile = join(directory, 'production.env');
+    writeFileSync(
+      environmentFile,
+      `${Object.entries({ ...validValues(), BETTER_AUTH_SECRET: sentinel })
+        .map(([key, value]) => `${key}=${value}`)
+        .join('\n')}\n`,
+      'utf8',
+    );
+    const result = spawnSync(
+      process.execPath,
+      [
+        'scripts/release/render-service-environments.mjs',
+        '--environment-file',
+        environmentFile,
+        '--destination-directory',
+        join(directory, 'services'),
+        '--deployment-class',
+        'real-production',
+      ],
+      { cwd: process.cwd(), encoding: 'utf8' },
+    );
+    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    assert.equal(result.status, 0, output);
+    assert.match(output, /SERVICE_ENVIRONMENTS=PASS/u);
+    assert.doesNotMatch(output, new RegExp(sentinel, 'u'));
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
   }
 });
 
