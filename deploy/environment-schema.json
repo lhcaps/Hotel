@@ -60,7 +60,11 @@
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
         "GOOGLE_REDIRECT_URI",
-        "GOOGLE_TRANSLATION_ENABLED"
+        "GOOGLE_TRANSLATION_ENABLED",
+        "OPERATIONS_V3_PRICING_CATALOG_RUNTIME_ENABLED",
+        "OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED",
+        "OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED",
+        "OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED"
       ]
     },
     "worker": {
@@ -476,6 +480,26 @@
       "requiredInRealProduction": false
     },
     "GOOGLE_TRANSLATION_ENABLED": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "OPERATIONS_V3_PRICING_CATALOG_RUNTIME_ENABLED": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "OPERATIONS_V3_MULTI_NIGHT_PRICING_ENABLED": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "OPERATIONS_V3_MULTI_NIGHT_PUBLIC_ENABLED": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "OPERATIONS_V3_B0_PRODUCTION_REMEDIATION_ENABLED": {
       "classification": "NON_SECRET_SERVICE_CONFIG",
       "consumers": ["api"],
       "requiredInRealProduction": false
