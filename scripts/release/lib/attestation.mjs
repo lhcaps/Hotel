@@ -2,7 +2,7 @@ const SERVICES = ['caddy', 'web', 'payment-demo', 'api', 'worker', 'postgres', '
 const APP_IMAGES = { web: 'web', api: 'api', worker: 'worker', 'payment-demo': 'paymentDemo' };
 
 export function attestRelease({ manifest, runtimeSnapshot }) {
-  const expectedDirectory = `/opt/room-management/releases/${manifest.releaseId}`;
+  const expectedDirectory = `/opt/room-management/releases/${manifest.releaseId.replace(':', '-')}`;
   const services = {};
   const failures = [];
   for (const service of SERVICES) {

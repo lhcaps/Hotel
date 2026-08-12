@@ -27,7 +27,7 @@ const manifest = createManifest({
 });
 
 function snapshot() {
-  const releaseDirectory = `/opt/room-management/releases/${manifest.releaseId}`;
+  const releaseDirectory = `/opt/room-management/releases/${manifest.releaseId.replace(':', '-')}`;
   return {
     currentPointer: releaseDirectory,
     sharedReleaseId: manifest.releaseId,
