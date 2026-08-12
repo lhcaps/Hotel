@@ -314,7 +314,7 @@ function waitForCandidateHealth(inputs) {
   return false;
 }
 
-function recoveryBaselineMatchesRuntime({ baseline, targetRoot }) {
+function recoveryBaselineMatchesRuntime({ baseline, targetRoot, requireRestartCounts = true }) {
   try {
     if (!recoverySnapshotValid(baseline)) return false;
     if (readProductionCurrentPointer(targetRoot) !== baseline.currentPointer) return false;
@@ -353,7 +353,7 @@ function recoveryBaselineMatchesRuntime({ baseline, targetRoot }) {
         actual.Image === expected.imageId &&
         (expected.revision === null ||
           actual.Config?.Labels?.['org.opencontainers.image.revision'] === expected.revision) &&
-        Number(actual.RestartCount ?? -1) === expected.restartCount
+        (!requireRestartCounts || Number(actual.RestartCount ?? -1) === expected.restartCount)
       );
     });
   } catch {
@@ -523,7 +523,11 @@ try {
                 },
                 { noBuild: true },
               );
-              return recoveryBaselineMatchesRuntime({ baseline: recoveryBaseline, targetRoot });
+              return recoveryBaselineMatchesRuntime({
+                baseline: recoveryBaseline,
+                targetRoot,
+                requireRestartCounts: false,
+              });
             })(),
         })
       : (() => {
