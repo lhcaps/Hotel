@@ -39,9 +39,22 @@ const response = {
         },
       ],
       activeHousekeepingTask: {
+        taskId: '10000000-0000-4000-8000-000000000202',
         type: 'TURNOVER' as const,
         status: 'DUE' as const,
         dueAt: '2026-08-04T10:00:00.000Z',
+        assigneeId: null,
+        version: 0,
+        verifiedAt: null,
+      },
+      latestTurnoverTask: {
+        taskId: '10000000-0000-4000-8000-000000000202',
+        type: 'TURNOVER' as const,
+        status: 'DUE' as const,
+        dueAt: '2026-08-04T10:00:00.000Z',
+        assigneeId: null,
+        version: 0,
+        verifiedAt: null,
       },
     },
   ],
@@ -73,6 +86,7 @@ describe('RoomOperationsController', () => {
       bookings: [],
       freeWindows: [],
       activeHousekeepingTask: null,
+      latestTurnoverTask: null,
     });
     expect(JSON.stringify(result)).not.toContain('PN-SECRET');
   });

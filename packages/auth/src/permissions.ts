@@ -206,8 +206,6 @@ export const PROFILE_PERMISSIONS: Readonly<Record<AdminProfileCode, readonly Per
     'admin.account.read',
     'admin.account.manage',
     'admin.department.read',
-    'admin.department.manage',
-    'admin.audit.read',
     'catalog.property.read',
   ],
 };

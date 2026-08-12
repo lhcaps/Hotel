@@ -18,9 +18,13 @@ export interface RoomOperationInterval {
 }
 
 export interface RoomOperationHousekeepingTask {
+  readonly taskId: string;
   readonly type: 'ARRIVAL_PREP' | 'TURNOVER';
   readonly status: 'SCHEDULED' | 'DUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
   readonly dueAt: Date;
+  readonly assigneeId: string | null;
+  readonly version: number;
+  readonly verifiedAt: Date | null;
 }
 
 export interface RoomOperationRow {
@@ -36,6 +40,7 @@ export interface RoomOperationRow {
   bookings: readonly RoomOperationBookingRow[];
   blockedIntervals: readonly RoomOperationInterval[];
   activeHousekeepingTask: RoomOperationHousekeepingTask | null;
+  latestTurnoverTask: RoomOperationHousekeepingTask | null;
 }
 
 export interface RoomOperationsRepositoryPort {
@@ -80,7 +85,12 @@ export function deriveRoomDisplayGroup(
   }
   if (
     room.currentOccupancy === 'OCCUPIED' &&
-    room.bookings.some((booking) => isWithinNextDay(booking.checkOut, nowMs))
+    room.bookings.some(
+      (booking) =>
+        booking.status !== 'CHECKED_OUT' &&
+        booking.status !== 'NO_SHOW' &&
+        isWithinNextDay(booking.checkOut, nowMs),
+    )
   ) {
     return 'checkout';
   }
@@ -106,63 +116,73 @@ export class RoomOperationsService {
     const parsed = adminRoomOperationsQuerySchema.parse(query);
     const items = await this.repository.list(propertyId, parsed, propertyCode);
     return adminRoomOperationsResponseSchema.parse({
-      items: items.map(({ blockedIntervals, activeHousekeepingTask, ...room }) => {
-        const bookings = room.bookings.map((booking) => ({
-          ...booking,
-          checkIn: booking.checkIn.toISOString(),
-          checkOut: booking.checkOut.toISOString(),
-        }));
-        const currentTime = now.getTime();
-        const currentOccupancy = room.bookings.some(
-          (booking) =>
-            booking.checkIn.getTime() <= currentTime && booking.checkOut.getTime() > currentTime,
-        )
-          ? ('OCCUPIED' as const)
-          : ('VACANT' as const);
-        const nextBooking = room.bookings.find(
-          (booking) => booking.checkIn.getTime() > currentTime,
-        );
-        const displayGroup = deriveRoomDisplayGroup(
-          {
+      items: items.map(
+        ({ blockedIntervals, activeHousekeepingTask, latestTurnoverTask, ...room }) => {
+          const bookings = room.bookings.map((booking) => ({
+            ...booking,
+            checkIn: booking.checkIn.toISOString(),
+            checkOut: booking.checkOut.toISOString(),
+          }));
+          const currentTime = now.getTime();
+          const currentOccupancy = room.bookings.some(
+            (booking) =>
+              booking.status !== 'CHECKED_OUT' &&
+              booking.status !== 'NO_SHOW' &&
+              booking.checkIn.getTime() <= currentTime &&
+              booking.checkOut.getTime() > currentTime,
+          )
+            ? ('OCCUPIED' as const)
+            : ('VACANT' as const);
+          const nextBooking = room.bookings.find(
+            (booking) => booking.checkIn.getTime() > currentTime,
+          );
+          const displayGroup = deriveRoomDisplayGroup(
+            {
+              ...room,
+              currentOccupancy,
+              activeHousekeepingTask,
+              nextBookingCheckIn: nextBooking?.checkIn ?? null,
+            },
+            now,
+          );
+          return {
             ...room,
             currentOccupancy,
-            activeHousekeepingTask,
-            nextBookingCheckIn: nextBooking?.checkIn ?? null,
-          },
-          now,
-        );
-        return {
-          ...room,
-          currentOccupancy,
-          displayGroup,
-          nextBookingWindow:
-            nextBooking === undefined
-              ? null
-              : {
-                  checkIn: nextBooking.checkIn.toISOString(),
-                  checkOut: nextBooking.checkOut.toISOString(),
-                },
-          bookings,
-          freeWindows: computeFreeWindows(
-            new Date(parsed.from),
-            new Date(parsed.to),
-            blockedIntervals,
-          ).map((window) => ({
-            startsAt: window.startsAt.toISOString(),
-            endsAt: window.endsAt.toISOString(),
-          })),
-          activeHousekeepingTask:
-            activeHousekeepingTask === null
-              ? null
-              : {
-                  ...activeHousekeepingTask,
-                  dueAt: activeHousekeepingTask.dueAt.toISOString(),
-                },
-        };
-      }),
+            displayGroup,
+            nextBookingWindow:
+              nextBooking === undefined
+                ? null
+                : {
+                    checkIn: nextBooking.checkIn.toISOString(),
+                    checkOut: nextBooking.checkOut.toISOString(),
+                  },
+            bookings,
+            freeWindows: computeFreeWindows(
+              new Date(parsed.from),
+              new Date(parsed.to),
+              blockedIntervals,
+            ).map((window) => ({
+              startsAt: window.startsAt.toISOString(),
+              endsAt: window.endsAt.toISOString(),
+            })),
+            activeHousekeepingTask: toTaskResponse(activeHousekeepingTask),
+            latestTurnoverTask: toTaskResponse(latestTurnoverTask),
+          };
+        },
+      ),
       generatedAt: now.toISOString(),
     });
   }
+}
+
+function toTaskResponse(task: RoomOperationHousekeepingTask | null | undefined) {
+  return task === null || task === undefined
+    ? null
+    : {
+        ...task,
+        dueAt: task.dueAt.toISOString(),
+        verifiedAt: task.verifiedAt?.toISOString() ?? null,
+      };
 }
 
 export function computeFreeWindows(

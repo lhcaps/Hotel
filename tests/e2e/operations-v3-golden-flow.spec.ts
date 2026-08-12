@@ -1,463 +1,879 @@
+import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { test, expect } from '@playwright/test';
-import { getGlobalDatabasePool, withDatabaseClient } from '@room/database/src/client.js';
-import {
-  bookings,
-  rooms,
-  accessCredentials,
-  housekeepingTasks,
-  roomInventoryBlocks,
-} from '@room/database/src/schema.js';
-import { eq, sql } from 'drizzle-orm';
-import { createHash } from 'node:crypto';
+
+import { setSimulatorMode } from './_fixtures/payment-test-helpers.mjs';
+import { playwrightAdminEmail, playwrightAdminPassword } from './admin-credentials.js';
 
 test.describe.configure({ mode: 'serial' });
 
-function createContactDigest(email: string, phone: string): string {
-  const normalized = `${email.toLowerCase().trim()}:${phone.replace(/\D/g, '')}`;
-  return createHash('sha256').update(normalized, 'utf8').digest('hex');
+function resolveDatabaseUrl(): string {
+  try {
+    const url = readFileSync(join(tmpdir(), 'playwright-test-database-url.txt'), 'utf8').trim();
+    if (url.length > 0) return url;
+  } catch {
+    // Fall through to env vars.
+  }
+  return (
+    process.env.PLAYWRIGHT_TEST_DATABASE_URL ??
+    process.env.TEST_DATABASE_URL ??
+    'postgresql://room:room@127.0.0.1:5432/room_management_test_base'
+  );
+}
+
+const DATABASE_URL = resolveDatabaseUrl();
+
+interface TestDatabasePool {
+  query<T extends Record<string, unknown>>(
+    text: string,
+    values?: readonly unknown[],
+  ): Promise<{ readonly rows: readonly T[] }>;
+  end(): Promise<void>;
+}
+
+const databaseRequire = createRequire(join(process.cwd(), 'packages', 'database', 'package.json'));
+const { Pool } = databaseRequire('pg') as {
+  readonly Pool: new (config: Record<string, unknown>) => TestDatabasePool;
+};
+const databasePool = new Pool({
+  connectionString: DATABASE_URL,
+  max: 1,
+  application_name: 'room-management-playwright-golden-flow',
+});
+
+// The golden flow adds an isolated catalog fixture so every operational state
+// transition can run through the application boundary. The generic fixture is
+// deliberately not part of the curated public presentation catalog, so retire
+// it after each run (including a failed run) before later public browser specs
+// select their first available room type.
+const goldenFixtureRoomTypeIds: string[] = [];
+const goldenFixtureRoomIds: string[] = [];
+
+test.afterEach(async () => {
+  const roomIds = goldenFixtureRoomIds.splice(0);
+  const roomTypeIds = goldenFixtureRoomTypeIds.splice(0);
+  if (roomIds.length > 0) {
+    await databasePool.query(`UPDATE rooms SET status = 'INACTIVE' WHERE id = ANY($1::uuid[])`, [
+      roomIds,
+    ]);
+  }
+  if (roomTypeIds.length > 0) {
+    await databasePool.query(
+      `UPDATE room_types SET status = 'INACTIVE' WHERE id = ANY($1::uuid[])`,
+      [roomTypeIds],
+    );
+  }
+});
+
+const MAILPIT_API = process.env.MAILPIT_API ?? 'http://127.0.0.1:8025';
+const API_BASE = 'http://127.0.0.1:3101/api/v1';
+const WEB_BASE = 'http://127.0.0.1:3100';
+const SIMULATOR_BASE = 'http://127.0.0.1:3090';
+
+const PROPERTY_ID = '10000000-0000-4000-8000-000000000001';
+const PRICE_TIER_ID = '10000000-0000-4000-8000-000000000101';
+const HOUSEKEEPING_STAFF_EMAIL = 'housekeeping.staff.playwright@example.test';
+
+async function dbQuerySingleValue(sql: string, values?: readonly unknown[]): Promise<string> {
+  const result = await databasePool.query<{ value: string }>(sql, values);
+  return result.rows[0]?.value ?? '';
+}
+
+async function waitForDatabaseValue(
+  sql: string,
+  expected: string,
+  values?: readonly unknown[],
+): Promise<void> {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    if ((await dbQuerySingleValue(sql, values)) === expected) return;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`Timed out waiting for database value ${expected}`);
+}
+
+async function currentGoldenPricingWindowStart(now: Date): Promise<Date> {
+  const startMinute = Number(
+    await dbQuerySingleValue(
+      `SELECT component.local_start_minute_inclusive::text AS value
+         FROM pricing_policy_components component
+         JOIN pricing_policy_versions policy ON policy.id = component.policy_version_id
+        WHERE policy.property_id = $1
+          AND policy.status = 'PUBLISHED'
+          AND component.component_code = 'B0_FINAL_NIGHT'
+        ORDER BY policy.published_at DESC NULLS LAST
+        LIMIT 1`,
+      [PROPERTY_ID],
+    ),
+  );
+  if (!Number.isInteger(startMinute) || startMinute < 0 || startMinute >= 1_440) {
+    throw new Error(`Golden flow pricing window is invalid: ${String(startMinute)}`);
+  }
+  // The isolated Playwright property has the fixed Asia/Ho_Chi_Minh UTC+07:00
+  // timezone. Convert its current local calendar day and policy minute back to
+  // an instant without coupling the test to the host timezone.
+  const propertyLocal = new Date(now.getTime() + 7 * 60 * 60_000);
+  let candidate = new Date(
+    Date.UTC(
+      propertyLocal.getUTCFullYear(),
+      propertyLocal.getUTCMonth(),
+      propertyLocal.getUTCDate(),
+      0,
+      startMinute,
+    ) -
+      7 * 60 * 60_000,
+  );
+  if (candidate.getTime() <= now.getTime()) {
+    candidate = new Date(candidate.getTime() + 24 * 60 * 60_000);
+  }
+  return candidate;
+}
+
+interface MailpitMessage {
+  readonly ID: string;
+  readonly To: readonly { readonly Address: string }[];
+  readonly Subject: string;
+}
+
+async function listMailpitMessages(): Promise<readonly MailpitMessage[]> {
+  const response = await fetch(`${MAILPIT_API}/api/v1/messages`);
+  if (!response.ok) {
+    throw new Error(`Mailpit messages request failed: ${response.status}`);
+  }
+  const body = (await response.json()) as { messages?: readonly MailpitMessage[] };
+  return body.messages ?? [];
+}
+
+async function fetchMailpitMessage(id: string): Promise<string> {
+  const response = await fetch(`${MAILPIT_API}/api/v1/message/${id}`);
+  if (!response.ok) {
+    throw new Error(`Mailpit message fetch failed: ${response.status}`);
+  }
+  const body = (await response.json()) as {
+    readonly Text?: string;
+    readonly HTML?: string;
+  };
+  return body.Text ?? body.HTML ?? '';
+}
+
+async function waitForOtpEmail(recipientEmail: string): Promise<string> {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    const messages = await listMailpitMessages();
+    const otpMessage = messages.find(
+      (message) =>
+        message.To.some((recipient) => recipient.Address === recipientEmail) &&
+        /verification/i.test(message.Subject),
+    );
+    if (otpMessage !== undefined) {
+      const body = await fetchMailpitMessage(otpMessage.ID);
+      const match = body.match(/(?:^|\s|\D)(\d{6})(?:\s|$|\D)/);
+      if (match?.[1] !== undefined) {
+        return match[1];
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`Mailpit did not receive OTP email for ${recipientEmail}`);
 }
 
 /**
  * ORIG-H-001: Full booking-to-next-booking connected lifecycle
- * 
+ *
  * This is the canonical golden flow that proves the entire Operations V3
  * release candidate meets the original authority requirements for a
  * production-shaped multi-night stay lifecycle.
+ *
+ * CRITICAL: This test uses ONLY real API boundaries. NO direct database
+ * fabrication of lifecycle states (CONFIRMED, CHECKED_IN, CHECKED_OUT).
  */
 test('GOLDEN FLOW: quote → HOLD → payment → CONFIRMED → T-30 credential → check-in → stay → checkout → housekeeping → READY → next booking', async ({
   page,
   context,
 }) => {
-  const TEST_PROPERTY_CODE = 'PLAYWRIGHT';
-  const OVERNIGHT_DURATION_HOURS = 16;
-  
-  // ===========================================
-  // 1. SEARCH / BROWSE ROOM TYPE
-  // ===========================================
-  await page.goto('/');
-  await expect(page.locator('h1')).toContainText(/peacenest|phòng/i);
+  test.setTimeout(300_000);
 
-  await page.getByRole('button', { name: /ngày|date/i }).first().click();
-  
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(14, 0, 0, 0);
-  
-  const dayAfter = new Date(tomorrow);
-  dayAfter.setDate(dayAfter.getDate() + 1);
-  dayAfter.setHours(6, 0, 0, 0);
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  const requestFailures: string[] = [];
 
-  const tomorrowDay = tomorrow.getDate();
-  const dayAfterDay = dayAfter.getDate();
-
-  await page.getByRole('button', { name: String(tomorrowDay), exact: true }).first().click();
-  await page.getByRole('button', { name: String(dayAfterDay), exact: true }).first().click();
-
-  await page.getByRole('button', { name: /tìm|search/i }).click();
-  await expect(page.locator('text=/deluxe|standard/i')).toBeVisible({ timeout: 10000 });
-
-  // ===========================================
-  // 2. REQUEST QUOTE
-  // ===========================================
-  const roomTypeCard = page.locator('[data-testid="room-type-card"]').first();
-  await roomTypeCard.getByRole('button', { name: /đặt|book/i }).click();
-
-  await expect(page.locator('text=/giữ phòng|hold/i')).toBeVisible({ timeout: 10000 });
-
-  // Verify pricing explanation contract (G-004)
-  const pricingSection = page.locator('[data-testid="pricing-breakdown"]');
-  await expect(pricingSection).toBeVisible();
-
-  // ===========================================
-  // 3. CREATE HOLD
-  // ===========================================
-  const testEmail = `golden-flow-${Date.now()}@test.local`;
-  const testPhone = '0987654321';
-
-  await page.getByLabel(/email/i).fill(testEmail);
-  await page.getByLabel(/phone|điện thoại/i).fill(testPhone);
-  
-  const continueButton = page.getByRole('button', { name: /tiếp|continue/i });
-  await continueButton.click();
-
-  // OTP challenge
-  await expect(page.locator('text=/mã xác nhận|verification code/i')).toBeVisible({ timeout: 10000 });
-
-  const contactDigest = createContactDigest(testEmail, testPhone);
-  const pool = getGlobalDatabasePool();
-  
-  const otpRow = await withDatabaseClient(pool, async (client) => {
-    const result = await client.query.guestOtpChallenges.findFirst({
-      where: (fields, { eq, and }) =>
-        and(
-          eq(fields.contactDigest, contactDigest),
-          eq(fields.status, 'ACTIVE'),
-        ),
-      orderBy: (fields, { desc }) => desc(fields.createdAt),
-    });
-    return result;
+  page.on('console', (message) => {
+    if (
+      message.type() === 'error' &&
+      !/Failed to load resource: the server responded with a status of 401/.test(message.text())
+    ) {
+      consoleErrors.push(message.text());
+    }
   });
-  
-  expect(otpRow).toBeTruthy();
-  const derivedOtp = otpRow!.challengeHash.slice(-6);
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('requestfailed', (request) => {
+    const errorText = request.failure()?.errorText;
+    const url = request.url();
+    if (
+      errorText === 'net::ERR_ABORTED' &&
+      (url.includes('/_next/static/chunks/') ||
+        url.includes('/__nextjs_font/') ||
+        url.endsWith('/api/auth/get-session'))
+    ) {
+      return;
+    }
+    requestFailures.push(`${request.method()} ${url} ${errorText}`);
+  });
+  page.on('response', (response) => {
+    if (response.status() >= 500) {
+      requestFailures.push(`${response.status()} ${response.request().method()} ${response.url()}`);
+    }
+  });
 
-  for (let i = 0; i < 6; i++) {
-    await page.locator(`[data-index="${i}"]`).fill(derivedOtp[i]!);
+  // Isolated catalog fixture creation is permitted. Lifecycle state changes
+  // below are exclusively through the application APIs.
+  const roomTypeId = randomUUID();
+  const roomId = randomUUID();
+  const fixtureCode = `GOLDEN_${roomTypeId.replaceAll('-', '').slice(0, 12).toUpperCase()}`;
+  goldenFixtureRoomTypeIds.push(roomTypeId);
+  goldenFixtureRoomIds.push(roomId);
+  await databasePool.query(
+    `INSERT INTO room_types
+       (id, property_id, price_tier_id, code, name, max_adults, max_children, max_occupancy)
+     VALUES ($1, $2, $3, $4, 'Golden lifecycle room type', 2, 0, 2)`,
+    [roomTypeId, PROPERTY_ID, PRICE_TIER_ID, fixtureCode],
+  );
+  await databasePool.query(
+    `INSERT INTO rooms (id, property_id, room_type_id, room_number)
+     VALUES ($1, $2, $3, $4)`,
+    [roomId, PROPERTY_ID, roomTypeId, `G-${fixtureCode.slice(-6)}`],
+  );
+
+  // ===========================================
+  // PREREQUISITE: Admin session for check-in/check-out/housekeeping operations
+  // ===========================================
+  await page.goto(`${WEB_BASE}/admin/login`);
+  await page.getByLabel('Email').fill(playwrightAdminEmail);
+  await page.getByLabel('Mật khẩu').fill(playwrightAdminPassword);
+  await page.getByRole('button', { name: 'Đăng nhập' }).click();
+
+  // Wait for redirect to admin dashboard
+  await expect(page).toHaveURL(/\/admin$/, { timeout: 10000 });
+
+  // Verify admin session is established by checking a protected page
+  await page.goto(`${WEB_BASE}/admin/room-operations`);
+  await page.waitForLoadState('networkidle');
+  await expect(page.locator('h1', { hasText: 'Tình trạng phòng' })).toBeVisible();
+
+  // ===========================================
+  // PREREQUISITE: Pricing policy is seeded by playwright-global-setup.ts
+  // via seedPlaywrightB0Policy() which creates a complete bootstrapped policy
+  // with proper overnight window, rate plan mappings, and published status.
+  // ===========================================
+
+  // ===========================================
+  // 1. CREATE QUOTE VIA API
+  // ===========================================
+  // Request a real multi-night stay shortly before check-in. The test policy
+  // retains B0's complete-coverage shape but has a fixture clock window far
+  // enough ahead for its leading boundary component to cover this interval.
+  const now = new Date();
+  const checkInDate = new Date(Math.ceil((now.getTime() + 45 * 1_000) / 1_000) * 1_000);
+  const firstPricingWindowStart = await currentGoldenPricingWindowStart(now);
+  expect(firstPricingWindowStart.getTime()).toBeGreaterThan(checkInDate.getTime());
+  const checkOutDate = new Date(firstPricingWindowStart.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+  const checkInISO = checkInDate.toISOString();
+  const checkOutISO = checkOutDate.toISOString();
+
+  const quoteResponse = await fetch(`${API_BASE}/quotes`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      roomTypeId,
+      checkIn: checkInISO,
+      checkOut: checkOutISO,
+      adults: 2,
+      children: 0,
+      mode: 'multi_night',
+    }),
+  });
+
+  if (!quoteResponse.ok) {
+    throw new Error(
+      `Quote creation failed for ${checkInISO} -> ${checkOutISO}: ${quoteResponse.status} ${await quoteResponse.text()}`,
+    );
   }
 
-  await page.getByRole('button', { name: /xác nhận|verify/i }).click();
+  const quote = (await quoteResponse.json()) as {
+    id: string;
+    propertyId: string;
+    pricing: { finalAmountVnd: number; selectionReason?: string; alternatives?: unknown[] };
+  };
 
-  // Wait for HOLD creation
-  await expect(page.locator('text=/giữ thành công|hold confirmed/i')).toBeVisible({ timeout: 10000 });
+  // INVARIANT: ONE_QUOTE
+  expect(quote.id).toBeTruthy();
 
-  const bookingCodeMatch = await page.textContent('body');
-  const codeMatch = bookingCodeMatch?.match(/([A-Z0-9]{6,8})/);
-  expect(codeMatch).toBeTruthy();
-  const bookingCode = codeMatch![0]!;
-
-  // Verify ONE HOLD created
-  const holdBooking = await withDatabaseClient(pool, async (client) => {
-    return await client.query.bookings.findFirst({
-      where: (fields, { eq }) => eq(fields.bookingCode, bookingCode),
-    });
-  });
-  expect(holdBooking).toBeTruthy();
-  expect(holdBooking!.status).toBe('HOLD');
-
-  // Verify exactly ONE physical room allocated
-  expect(holdBooking!.roomId).toBeTruthy();
-  const allocatedRoomId = holdBooking!.roomId!;
+  // INVARIANT: G-004 pricing explanation contract
+  expect(quote.propertyId).toBe(PROPERTY_ID);
+  expect(quote.pricing.finalAmountVnd).toBeGreaterThan(0);
+  expect(quote.pricing.selectionReason).toBeTruthy();
+  expect(quote.pricing.alternatives).toEqual(expect.any(Array));
 
   // ===========================================
-  // 4. ESTABLISH GUEST SESSION
+  // 2. CREATE HOLD VIA API
   // ===========================================
-  const guestSession = await withDatabaseClient(pool, async (client) => {
-    return await client.query.guestSessions.findFirst({
-      where: (fields, { eq }) => eq(fields.contactDigest, contactDigest),
-      orderBy: (fields, { desc }) => desc(fields.createdAt),
-    });
-  });
-  expect(guestSession).toBeTruthy();
+  const testEmail = `golden-flow-${Date.now()}-${randomUUID().slice(0, 8)}@test.local`;
+  const testPhone = '+84909123456';
 
-  // ===========================================
-  // 5. START DEMO PAYMENT
-  // ===========================================
-  await page.getByRole('button', { name: /thanh toán|pay/i }).click();
-  await expect(page.locator('text=/demo/i')).toBeVisible({ timeout: 10000 });
-
-  const demoButton = page.getByRole('button', { name: /demo/i });
-  await demoButton.click();
-
-  // Browser return (non-authoritative)
-  await expect(page.locator('text=/đang xử lý|processing/i')).toBeVisible({ timeout: 10000 });
-
-  // ===========================================
-  // 6. SIGNED DEMO SETTLEMENT CALLBACK
-  // ===========================================
-  const payment = await withDatabaseClient(pool, async (client) => {
-    return await client.query.payments.findFirst({
-      where: (fields, { eq }) => eq(fields.bookingId, holdBooking!.id),
-    });
-  });
-  expect(payment).toBeTruthy();
-
-  // Simulate signed callback
-  await withDatabaseClient(pool, async (client) => {
-    await client.execute(sql`
-      UPDATE payments 
-      SET status = 'SUCCEEDED', 
-          settled_at = CURRENT_TIMESTAMP,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${payment!.id}
-    `);
-
-    await client.execute(sql`
-      UPDATE bookings
-      SET status = 'CONFIRMED',
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${holdBooking!.id}
-    `);
+  const holdResponse = await fetch(`${API_BASE}/public/quotes/${quote.id}/bookings`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      contact: {
+        fullName: 'Golden Flow Test',
+        email: testEmail,
+        phone: testPhone,
+      },
+    }),
   });
 
-  // Reload page to reflect CONFIRMED state
-  await page.reload();
-  await expect(page.locator('text=/confirmed|đã xác nhận/i')).toBeVisible({ timeout: 10000 });
+  if (!holdResponse.ok) {
+    throw new Error(`HOLD creation failed: ${holdResponse.status} ${await holdResponse.text()}`);
+  }
 
-  // Verify same physical room remains
-  const confirmedBooking = await withDatabaseClient(pool, async (client) => {
-    return await client.query.bookings.findFirst({
-      where: (fields, { eq }) => eq(fields.id, holdBooking!.id),
-    });
-  });
-  expect(confirmedBooking!.roomId).toBe(allocatedRoomId);
-  expect(confirmedBooking!.status).toBe('CONFIRMED');
+  const holdResult = (await holdResponse.json()) as { bookingCode: string };
+  const bookingCode = holdResult.bookingCode;
 
-  // ===========================================
-  // 7. ESTABLISH READINESS PREREQUISITES
-  // ===========================================
-  await withDatabaseClient(pool, async (client) => {
-    await client
-      .update(rooms)
-      .set({ status: 'ACTIVE', housekeepingStatus: 'CLEAN' })
-      .where(eq(rooms.id, allocatedRoomId));
-  });
+  // INVARIANT: ONE_HOLD, ONE_BOOKING
+  expect(bookingCode).toMatch(/^[A-Z0-9-]{6,32}$/);
 
-  // ===========================================
-  // 8. T-31 DOES NOT ISSUE
-  // ===========================================
-  await withDatabaseClient(pool, async (client) => {
-    await client.execute(sql`
-      UPDATE bookings
-      SET check_in = CURRENT_TIMESTAMP + interval '31 minutes'
-      WHERE id = ${holdBooking!.id}
-    `);
-  });
+  // Verify ONE physical room allocated via database read (allowed for verification)
+  const allocatedRoomId = await dbQuerySingleValue(
+    `SELECT room_id::text AS value FROM bookings WHERE booking_code = $1`,
+    [bookingCode],
+  );
+  expect(allocatedRoomId).toBeTruthy();
 
-  const { issueAccessCredentials } = await import('../../apps/worker/src/jobs/issue-access-credentials.js');
-
-  let credentialResult = await issueAccessCredentials({ pool, batchSize: 10, maxBatches: 2 });
-  expect(credentialResult.processed).toBe(0);
+  // INVARIANT: ONE_PHYSICAL_ROOM_FOR_WHOLE_STAY
+  const bookingId = await dbQuerySingleValue(
+    `SELECT id::text AS value FROM bookings WHERE booking_code = $1`,
+    [bookingCode],
+  );
 
   // ===========================================
-  // 9. T-30 EXACT ISSUES ONE CREDENTIAL
+  // 3. ESTABLISH GUEST SESSION VIA OTP
   // ===========================================
-  await withDatabaseClient(pool, async (client) => {
-    await client.execute(sql`
-      UPDATE bookings
-      SET check_in = CURRENT_TIMESTAMP + interval '30 minutes'
-      WHERE id = ${holdBooking!.id}
-    `);
+  const otpRequestResponse = await fetch(`${API_BASE}/public/guest-access/otp/request`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ bookingCode, email: testEmail }),
   });
 
-  credentialResult = await issueAccessCredentials({ pool, batchSize: 10, maxBatches: 2 });
-  expect(credentialResult.processed).toBe(1);
+  if (!otpRequestResponse.ok) {
+    throw new Error(`OTP request failed: ${otpRequestResponse.status}`);
+  }
 
-  const issuedCredential = await withDatabaseClient(pool, async (client) => {
-    return await client.query.accessCredentials.findFirst({
-      where: (fields, { eq }) => eq(fields.bookingId, holdBooking!.id),
-    });
+  const otpRequest = (await otpRequestResponse.json()) as { challengeRef: string };
+  const otp = await waitForOtpEmail(testEmail);
+
+  const otpVerifyResponse = await fetch(`${API_BASE}/public/guest-access/otp/verify`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ challengeRef: otpRequest.challengeRef, otp }),
   });
-  expect(issuedCredential).toBeTruthy();
-  expect(issuedCredential!.status).toBe('ISSUED');
-  expect(issuedCredential!.provider).toBe('DEMO');
 
-  // Verify idempotency
-  credentialResult = await issueAccessCredentials({ pool, batchSize: 10, maxBatches: 2 });
-  expect(credentialResult.processed).toBe(0);
+  if (!otpVerifyResponse.ok) {
+    throw new Error(`OTP verify failed: ${otpVerifyResponse.status}`);
+  }
 
-  const credentialCount = await withDatabaseClient(pool, async (client) => {
-    return await client
-      .select({ count: sql<number>`count(*)::int` })
-      .from(accessCredentials)
-      .where(eq(accessCredentials.bookingId, holdBooking!.id));
-  });
-  expect(credentialCount[0]?.count).toBe(1);
+  const setCookie = otpVerifyResponse.headers.get('set-cookie');
+  expect(setCookie).toContain('rm_guest_session_v1=');
+  const sessionCookie = setCookie?.split(';')[0]?.split('=')[1]?.trim();
+  expect(sessionCookie).toBeTruthy();
 
   // ===========================================
-  // 10. CHECK IN
+  // 4. INITIATE MOMO PAYMENT VIA API (using simulator in verify mode)
   // ===========================================
-  await withDatabaseClient(pool, async (client) => {
-    await client.execute(sql`
-      UPDATE bookings
-      SET status = 'CHECKED_IN',
-          check_in = CURRENT_TIMESTAMP,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${holdBooking!.id}
-    `);
+  // Set simulator to verify mode for auto-settlement
+  const simulatorResponse = await fetch(`${SIMULATOR_BASE}/__control/momo`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ mode: 'verify', redirectDelayMs: 0, duplicateIpns: true }),
   });
+  expect(simulatorResponse.ok).toBe(true);
 
-  // ===========================================
-  // 11. MULTI-NIGHT STAY (SAME ROOM)
-  // ===========================================
-  const stayBooking = await withDatabaseClient(pool, async (client) => {
-    return await client.query.bookings.findFirst({
-      where: (fields, { eq }) => eq(fields.id, holdBooking!.id),
-    });
-  });
-  expect(stayBooking!.roomId).toBe(allocatedRoomId);
-  expect(stayBooking!.status).toBe('CHECKED_IN');
+  const paymentAttemptResponse = await fetch(
+    `${API_BASE}/public/bookings/${bookingCode}/payments/momo/attempts`,
+    {
+      method: 'POST',
+      headers: {
+        cookie: `rm_guest_session_v1=${sessionCookie}`,
+        'idempotency-key': `golden-${Date.now()}-${randomUUID()}`,
+        accept: 'application/json',
+      },
+    },
+  );
 
-  // ===========================================
-  // 12. FINAL CHECKOUT
-  // ===========================================
-  await withDatabaseClient(pool, async (client) => {
-    await client.execute(sql`
-      UPDATE bookings
-      SET status = 'CHECKED_OUT',
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${holdBooking!.id}
-    `);
+  if (!paymentAttemptResponse.ok) {
+    throw new Error(
+      `Payment initiation failed: ${paymentAttemptResponse.status} ${await paymentAttemptResponse.text()}`,
+    );
+  }
 
-    await client
-      .update(rooms)
-      .set({ housekeepingStatus: 'DIRTY' })
-      .where(eq(rooms.id, allocatedRoomId));
-  });
+  const paymentAttempt = (await paymentAttemptResponse.json()) as { redirectUrl: string };
+  expect(paymentAttempt.redirectUrl).toContain('momo');
 
-  // Create ONE turnover task
-  const taskResult = await withDatabaseClient(pool, async (client) => {
-    return await client
-      .insert(housekeepingTasks)
-      .values({
-        propertyId: holdBooking!.propertyId,
-        roomId: allocatedRoomId,
-        bookingId: holdBooking!.id,
-        type: 'TURNOVER',
-        status: 'DUE',
-        dueAt: new Date(),
-      })
-      .returning();
-  });
+  // INVARIANT: browser navigation is not itself payment authority.
+  expect(
+    await dbQuerySingleValue(`SELECT status::text AS value FROM bookings WHERE id = $1`, [
+      bookingId,
+    ]),
+  ).toBe('HOLD');
 
-  expect(taskResult).toHaveLength(1);
+  // Visit the payment simulator URL to trigger the IPN callback
+  await page.goto(paymentAttempt.redirectUrl, { waitUntil: 'domcontentloaded' });
 
-  // ===========================================
-  // 13. REVOKE ACCESS CREDENTIAL
-  // ===========================================
-  await withDatabaseClient(pool, async (client) => {
-    await client
-      .update(accessCredentials)
-      .set({ status: 'REVOKED' })
-      .where(eq(accessCredentials.bookingId, holdBooking!.id));
-  });
+  // INVARIANT: ONE_PAYMENT
+  // Wait for Momo simulator callback to settle payment and redirect
+  await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
 
-  const revokedCredential = await withDatabaseClient(pool, async (client) => {
-    return await client.query.accessCredentials.findFirst({
-      where: (fields, { eq }) => eq(fields.bookingId, holdBooking!.id),
-    });
-  });
-  expect(revokedCredential!.status).toBe('REVOKED');
+  // Verify payment and booking status
+  const paymentStatus = await dbQuerySingleValue(
+    `SELECT status::text AS value FROM payments WHERE booking_id = $1`,
+    [bookingId],
+  );
+  const bookingStatus = await dbQuerySingleValue(
+    `SELECT status::text AS value FROM bookings WHERE id = $1`,
+    [bookingId],
+  );
 
-  // ===========================================
-  // 14. HOUSEKEEPING WORKFLOW
-  // ===========================================
-  const task = taskResult[0]!;
+  // INVARIANT: SIGNED_CALLBACK_IS_AUTHORITY
+  expect(paymentStatus).toBe('SUCCEEDED');
+  expect(bookingStatus).toBe('CONFIRMED');
+  expect(
+    await dbQuerySingleValue(
+      `SELECT count(*)::text AS value FROM payments WHERE booking_id = $1 AND status = 'SUCCEEDED'`,
+      [bookingId],
+    ),
+  ).toBe('1');
 
-  // Manager assigns cleaner
-  await withDatabaseClient(pool, async (client) => {
-    await client.execute(sql`
-      UPDATE housekeeping_tasks
-      SET assignee_user_id = (SELECT id FROM users WHERE role = 'ADMIN' LIMIT 1),
-          assigner_user_id = (SELECT id FROM users WHERE role = 'ADMIN' LIMIT 1),
-          assignment_version = 1,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${task.id}
-    `);
-  });
-
-  // Staff starts cleaning
-  await withDatabaseClient(pool, async (client) => {
-    await client.execute(sql`
-      UPDATE housekeeping_tasks
-      SET status = 'IN_PROGRESS',
-          started_at = CURRENT_TIMESTAMP,
-          starter_user_id = assignee_user_id,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${task.id}
-    `);
-  });
-
-  // Staff completes
-  await withDatabaseClient(pool, async (client) => {
-    await client.execute(sql`
-      UPDATE housekeeping_tasks
-      SET status = 'DONE',
-          completed_at = CURRENT_TIMESTAMP,
-          completer_user_id = assignee_user_id,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${task.id}
-    `);
-
-    await client
-      .update(rooms)
-      .set({ housekeepingStatus: 'CLEAN' })
-      .where(eq(rooms.id, allocatedRoomId));
-  });
-
-  // Manager verifies
-  await withDatabaseClient(pool, async (client) => {
-    await client.execute(sql`
-      UPDATE housekeeping_tasks
-      SET verified_at = CURRENT_TIMESTAMP,
-          verifier_user_id = assigner_user_id,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${task.id}
-    `);
-  });
+  // Verify same physical room remains after payment confirmation
+  const confirmedRoomId = await dbQuerySingleValue(
+    `SELECT room_id::text AS value FROM bookings WHERE id = $1`,
+    [bookingId],
+  );
+  expect(confirmedRoomId).toBe(allocatedRoomId);
+  expect(
+    await dbQuerySingleValue(`SELECT property_id::text AS value FROM bookings WHERE id = $1`, [
+      bookingId,
+    ]),
+  ).toBe(PROPERTY_ID);
 
   // ===========================================
-  // 15. SERVER-DERIVED READY STATUS
+  // 5. ENSURE ROOM READINESS FOR CREDENTIAL ISSUANCE
   // ===========================================
-  const readyRoom = await withDatabaseClient(pool, async (client) => {
-    return await client.query.rooms.findFirst({
-      where: (fields, { eq }) => eq(fields.id, allocatedRoomId),
-    });
-  });
-  expect(readyRoom!.status).toBe('ACTIVE');
-  expect(readyRoom!.housekeepingStatus).toBe('CLEAN');
+  // The isolated fixture room is created ACTIVE and CLEAN.
 
   // ===========================================
-  // 16. RELEASE INVENTORY FOR NEXT BOOKING
+  // 6. T-30 CREDENTIAL TIMING THROUGH THE CONTINUOUS WORKER
   // ===========================================
-  await withDatabaseClient(pool, async (client) => {
-    await client
-      .update(roomInventoryBlocks)
-      .set({ status: 'RELEASED' })
-      .where(eq(roomInventoryBlocks.bookingId, holdBooking!.id));
-  });
-
-  // Verify no active overlapping blocks
-  const activeBlocks = await withDatabaseClient(pool, async (client) => {
-    return await client.query.roomInventoryBlocks.findMany({
-      where: (fields, { and, eq }) =>
-        and(
-          eq(fields.roomId, allocatedRoomId),
-          eq(fields.status, 'ACTIVE'),
-        ),
-    });
-  });
-  expect(activeBlocks).toHaveLength(0);
+  // The worker is part of the live Playwright stack.
+  // It must issue an eligible credential at T-30 without creating a duplicate.
+  // The post-payment polling below proves issuance and duplicate-worker safety.
+  // Checkout later verifies revocation of this same issued credential.
+  await waitForDatabaseValue(
+    `SELECT count(*)::text AS value
+       FROM access_credentials
+      WHERE booking_id = $1 AND status IN ('ISSUED', 'DELIVERED')`,
+    '1',
+    [bookingId],
+  );
+  expect(
+    await dbQuerySingleValue(
+      `SELECT count(*)::text AS value FROM access_credentials WHERE booking_id = $1`,
+      [bookingId],
+    ),
+  ).toBe('1');
+  await page.waitForTimeout(1_000);
+  expect(
+    await dbQuerySingleValue(
+      `SELECT count(*)::text AS value FROM access_credentials WHERE booking_id = $1`,
+      [bookingId],
+    ),
+  ).toBe('1');
 
   // ===========================================
-  // GOLDEN FLOW INVARIANTS
+  // 7. ADMIN CHECK-IN VIA API
   // ===========================================
-  
-  // ONE_QUOTE, ONE_HOLD, ONE_BOOKING, ONE_PAYMENT
-  const bookingCount = await withDatabaseClient(pool, async (client) => {
-    return await client
-      .select({ count: sql<number>`count(*)::int` })
-      .from(bookings)
-      .where(eq(bookings.bookingCode, bookingCode));
+  // Wait until check-in time is reached.
+  // Calculate remaining wait time to ensure now >= checkIn
+  const nowBeforeCheckIn = new Date();
+  const msUntilCheckIn = checkInDate.getTime() - nowBeforeCheckIn.getTime();
+  if (msUntilCheckIn > 0) {
+    await page.waitForTimeout(msUntilCheckIn + 1000); // +1s buffer
+  }
+
+  // Use page.request API which properly handles browser context cookies.
+  // No body/content-type: matches the admin-api client (empty POST, no JSON payload).
+  const checkInResponse = await page.request.post(
+    `${API_BASE}/admin/bookings/${bookingCode}/check-in`,
+  );
+
+  if (!checkInResponse.ok()) {
+    throw new Error(`Check-in failed: ${checkInResponse.status()} ${await checkInResponse.text()}`);
+  }
+
+  const checkInResult = (await checkInResponse.json()) as { status: string };
+  expect(checkInResult.status).toBe('CHECKED_IN');
+
+  // ===========================================
+  // 8. MULTI-NIGHT STAY (SAME ROOM)
+  // ===========================================
+  // Verify room remains the same throughout stay
+  const stayRoomId = await dbQuerySingleValue(
+    `SELECT room_id::text AS value FROM bookings WHERE id = $1`,
+    [bookingId],
+  );
+  expect(stayRoomId).toBe(allocatedRoomId);
+
+  const stayStatus = await dbQuerySingleValue(
+    `SELECT status::text AS value FROM bookings WHERE id = $1`,
+    [bookingId],
+  );
+  expect(stayStatus).toBe('CHECKED_IN');
+
+  // ===========================================
+  // 9. ADMIN CHECK-OUT VIA API
+  // ===========================================
+  const checkOutResponse = await page.request.post(
+    `${API_BASE}/admin/bookings/${bookingCode}/check-out`,
+  );
+
+  if (!checkOutResponse.ok()) {
+    throw new Error(
+      `Check-out failed: ${checkOutResponse.status()} ${await checkOutResponse.text()}`,
+    );
+  }
+
+  const checkOutResult = (await checkOutResponse.json()) as { status: string };
+
+  // INVARIANT: FINAL_CHECKOUT_ONLY
+  expect(checkOutResult.status).toBe('CHECKED_OUT');
+
+  // ===========================================
+  // 10. ACCESS CREDENTIAL REVOKED
+  // ===========================================
+  // The same T-30 credential must be revoked by this checkout.
+
+  // ===========================================
+  expect(
+    await dbQuerySingleValue(
+      `SELECT count(*)::text AS value
+         FROM access_credentials
+        WHERE booking_id = $1 AND status = 'REVOKED'`,
+      [bookingId],
+    ),
+  ).toBe('1');
+
+  // 11. ROOM BECOMES DIRTY
+  // ===========================================
+  const roomHousekeepingStatus = await dbQuerySingleValue(
+    `SELECT housekeeping_status::text AS value FROM rooms WHERE id = $1`,
+    [allocatedRoomId],
+  );
+  expect(roomHousekeepingStatus).toBe('DIRTY');
+
+  // ===========================================
+  // 12. ONE TURNOVER TASK CREATED
+  // ===========================================
+  const taskCount = await dbQuerySingleValue(
+    `SELECT count(*)::text AS value
+       FROM housekeeping_tasks
+      WHERE booking_id = $1 AND type = 'TURNOVER'`,
+    [bookingId],
+  );
+
+  // INVARIANT: ONE_TURNOVER_TASK
+  expect(parseInt(taskCount, 10)).toBe(1);
+
+  const taskId = await dbQuerySingleValue(
+    `SELECT id::text AS value
+       FROM housekeeping_tasks
+      WHERE booking_id = $1 AND type = 'TURNOVER'`,
+    [bookingId],
+  );
+  expect(taskId).toBeTruthy();
+
+  const taskVersion = await dbQuerySingleValue(
+    `SELECT version::text AS value FROM housekeeping_tasks WHERE id = $1`,
+    [taskId],
+  );
+
+  // ===========================================
+  // 13. MANAGER ASSIGNS TASK VIA API
+  // ===========================================
+  // Get the seeded HOUSEKEEPING_STAFF user for assignment.
+  const staffUserId = await dbQuerySingleValue(
+    `SELECT u.id::text AS value
+       FROM users u
+       JOIN admin_memberships am ON am.user_id = u.id
+      WHERE u.email = $1
+        AND am.role = 'HOUSEKEEPING_STAFF'
+        AND am.status = 'ACTIVE'
+      LIMIT 1`,
+    [HOUSEKEEPING_STAFF_EMAIL],
+  );
+
+  if (!staffUserId) {
+    throw new Error('No HOUSEKEEPING_STAFF user found for assignment');
+  }
+
+  const assignResponse = await page.request.patch(
+    `${API_BASE}/admin/rooms/${allocatedRoomId}/housekeeping/assignment`,
+    {
+      headers: {
+        'content-type': 'application/json',
+      },
+      data: { assigneeId: staffUserId, expectedVersion: parseInt(taskVersion, 10) },
+    },
+  );
+
+  if (!assignResponse.ok()) {
+    throw new Error(
+      `Task assignment failed: ${assignResponse.status()} ${await assignResponse.text()}`,
+    );
+  }
+  const assignment = (await assignResponse.json()) as { version: number };
+
+  // INVARIANT: ASSIGNMENT_AUDITED (verify via audit log)
+  const assignmentAudit = await dbQuerySingleValue(
+    `SELECT count(*)::text AS value
+       FROM audit_events
+      WHERE aggregate_type = 'HOUSEKEEPING_TASK'
+        AND aggregate_id = $1
+        AND event_type = 'ROOM_HOUSEKEEPING_ASSIGNED'`,
+    [taskId],
+  );
+  expect(parseInt(assignmentAudit, 10)).toBeGreaterThan(0);
+
+  // ===========================================
+  // 14. STAFF STARTS CLEANING VIA API (room housekeeping status: DIRTY -> CLEANING)
+  // ===========================================
+  const browser = context.browser();
+  if (browser === null)
+    throw new Error('Playwright browser is unavailable for staff authentication');
+  const staffContext = await browser.newContext();
+  const staffPage = await staffContext.newPage();
+  await staffPage.goto(`${WEB_BASE}/admin/login`);
+  await staffPage.getByLabel('Email').fill(HOUSEKEEPING_STAFF_EMAIL);
+  await staffPage.getByLabel('Mật khẩu').fill(playwrightAdminPassword);
+  await staffPage.getByRole('button', { name: 'Đăng nhập' }).click();
+  await expect(staffPage).toHaveURL(/\/admin$/, { timeout: 10_000 });
+
+  const startResponse = await staffPage.request.patch(
+    `${API_BASE}/admin/rooms/${allocatedRoomId}/housekeeping`,
+    {
+      headers: {
+        'content-type': 'application/json',
+      },
+      data: { status: 'CLEANING', expectedVersion: assignment.version },
+    },
+  );
+
+  if (!startResponse.ok()) {
+    throw new Error(`Task start failed: ${startResponse.status()} ${await startResponse.text()}`);
+  }
+
+  // INVARIANT: START_AUDITED (task transitions to IN_PROGRESS as a side effect of the room status update)
+  const startTaskStatus = await dbQuerySingleValue(
+    `SELECT status::text AS value FROM housekeeping_tasks WHERE id = $1`,
+    [taskId],
+  );
+  expect(startTaskStatus).toBe('IN_PROGRESS');
+
+  const startTaskVersion = await dbQuerySingleValue(
+    `SELECT version::text AS value FROM housekeeping_tasks WHERE id = $1`,
+    [taskId],
+  );
+
+  const startAudit = await dbQuerySingleValue(
+    `SELECT count(*)::text AS value
+       FROM audit_events
+      WHERE aggregate_type = 'ROOM'
+        AND aggregate_id = $1
+        AND event_type = 'ROOM_HOUSEKEEPING_UPDATED'`,
+    [allocatedRoomId],
+  );
+  expect(parseInt(startAudit, 10)).toBeGreaterThan(0);
+
+  // ===========================================
+  // 15. STAFF COMPLETES CLEANING VIA API (room housekeeping status: CLEANING -> CLEAN)
+  // ===========================================
+  const completeResponse = await staffPage.request.patch(
+    `${API_BASE}/admin/rooms/${allocatedRoomId}/housekeeping`,
+    {
+      headers: {
+        'content-type': 'application/json',
+      },
+      data: { status: 'CLEAN', expectedVersion: parseInt(startTaskVersion, 10) },
+    },
+  );
+
+  if (!completeResponse.ok()) {
+    throw new Error(
+      `Task complete failed: ${completeResponse.status()} ${await completeResponse.text()}`,
+    );
+  }
+
+  // INVARIANT: COMPLETE_AUDITED (task transitions to DONE as a side effect of the room status update)
+  const completeTaskStatus = await dbQuerySingleValue(
+    `SELECT status::text AS value FROM housekeeping_tasks WHERE id = $1`,
+    [taskId],
+  );
+  expect(completeTaskStatus).toBe('DONE');
+
+  const completeTaskVersion = await dbQuerySingleValue(
+    `SELECT version::text AS value FROM housekeeping_tasks WHERE id = $1`,
+    [taskId],
+  );
+  await staffContext.close();
+
+  // ===========================================
+  // 16. MANAGER VERIFIES VIA API
+  // ===========================================
+  const verifyResponse = await page.request.patch(
+    `${API_BASE}/admin/rooms/${allocatedRoomId}/housekeeping/verification`,
+    {
+      headers: {
+        'content-type': 'application/json',
+      },
+      data: { expectedVersion: parseInt(completeTaskVersion, 10) },
+    },
+  );
+
+  if (!verifyResponse.ok()) {
+    throw new Error(
+      `Task verification failed: ${verifyResponse.status()} ${await verifyResponse.text()}`,
+    );
+  }
+
+  // INVARIANT: VERIFY_AUDITED
+  const verifyAudit = await dbQuerySingleValue(
+    `SELECT count(*)::text AS value
+       FROM audit_events
+      WHERE aggregate_type = 'HOUSEKEEPING_TASK'
+        AND aggregate_id = $1
+        AND event_type = 'ROOM_HOUSEKEEPING_VERIFIED'`,
+    [taskId],
+  );
+  expect(parseInt(verifyAudit, 10)).toBeGreaterThan(0);
+
+  // ===========================================
+  // 17. SERVER-DERIVED READY STATUS
+  // ===========================================
+  const roomOpsFrom = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const roomOpsTo = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const roomOperationsResponse = await page.request.get(`${API_BASE}/admin/room-operations`, {
+    headers: {
+      accept: 'application/json',
+    },
+    params: {
+      from: roomOpsFrom,
+      to: roomOpsTo,
+    },
   });
-  expect(bookingCount[0]?.count).toBe(1);
 
-  // ONE_PHYSICAL_ROOM_FOR_WHOLE_STAY
-  const roomHistory = await withDatabaseClient(pool, async (client) => {
-    return await client.query.bookings.findFirst({
-      where: (fields, { eq }) => eq(fields.id, holdBooking!.id),
-    });
+  if (!roomOperationsResponse.ok()) {
+    throw new Error(`Room operations fetch failed: ${roomOperationsResponse.status()}`);
+  }
+
+  const roomOperations = (await roomOperationsResponse.json()) as {
+    items: readonly { roomId: string; displayGroup: string; housekeepingStatus: string }[];
+  };
+
+  const goldenRoom = roomOperations.items.find((room) => room.roomId === allocatedRoomId);
+  expect(goldenRoom).toBeTruthy();
+
+  // INVARIANT: READY_DERIVED_SERVER_SIDE
+  expect(goldenRoom!.displayGroup).toBe('ready');
+  expect(goldenRoom!.housekeepingStatus).toBe('CLEAN');
+
+  // ===========================================
+  // 18. NEXT BOOKING CAN USE SAME ROOM
+  // ===========================================
+  // Create another HOLD for a non-overlapping interval after the original
+  // scheduled stay. The isolated room type has only one physical room.
+  const nextCheckInDate = new Date(checkOutDate.getTime() + 30 * 60 * 1000);
+  const nextCheckOutDate = new Date(nextCheckInDate.getTime() + 3 * 60 * 60 * 1000);
+
+  const nextCheckInISO = nextCheckInDate.toISOString();
+  const nextCheckOutISO = nextCheckOutDate.toISOString();
+
+  const nextQuoteResponse = await fetch(`${API_BASE}/quotes`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      roomTypeId,
+      checkIn: nextCheckInISO,
+      checkOut: nextCheckOutISO,
+      adults: 2,
+      children: 0,
+      mode: 'hourly',
+    }),
   });
-  expect(roomHistory!.roomId).toBe(allocatedRoomId);
 
-  // T30_EXACT_BOUNDARY, T30_IDEMPOTENT
-  // Already verified above
+  if (!nextQuoteResponse.ok) {
+    throw new Error(
+      `Next quote creation failed: ${nextQuoteResponse.status} ${await nextQuoteResponse.text()}`,
+    );
+  }
 
-  // ONE_TURNOVER_TASK
-  const taskCount = await withDatabaseClient(pool, async (client) => {
-    return await client
-      .select({ count: sql<number>`count(*)::int` })
-      .from(housekeepingTasks)
-      .where(eq(housekeepingTasks.bookingId, holdBooking!.id));
+  const nextQuote = (await nextQuoteResponse.json()) as { id: string };
+
+  // INVARIANT: NEXT_BOOKING_NO_OVERLAP
+  expect(nextQuote.id).toBeTruthy();
+  const nextHoldResponse = await fetch(`${API_BASE}/public/quotes/${nextQuote.id}/bookings`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      contact: {
+        fullName: 'Golden Flow Next Guest',
+        email: `golden-next-${Date.now()}-${randomUUID().slice(0, 8)}@test.local`,
+        phone: '+84909123457',
+      },
+    }),
   });
-  expect(taskCount[0]?.count).toBe(1);
+  if (!nextHoldResponse.ok) {
+    throw new Error(
+      `Next HOLD creation failed: ${nextHoldResponse.status} ${await nextHoldResponse.text()}`,
+    );
+  }
+  const nextHold = (await nextHoldResponse.json()) as { bookingCode: string };
+  const nextAllocatedRoomId = await dbQuerySingleValue(
+    `SELECT room_id::text AS value FROM bookings WHERE booking_code = $1`,
+    [nextHold.bookingCode],
+  );
+  expect(nextAllocatedRoomId).toBe(allocatedRoomId);
 
-  // ACCESS_REVOKED_AT_END
-  const finalCredential = await withDatabaseClient(pool, async (client) => {
-    return await client.query.accessCredentials.findFirst({
-      where: (fields, { eq }) => eq(fields.bookingId, holdBooking!.id),
-    });
-  });
-  expect(finalCredential!.status).toBe('REVOKED');
+  // Verify inventory blocks are released for the original booking
+  const activeBlockCount = await dbQuerySingleValue(
+    `SELECT count(*)::text AS value
+       FROM room_inventory_blocks
+      WHERE booking_id = $1 AND status = 'ACTIVE'`,
+    [bookingId],
+  );
+  expect(parseInt(activeBlockCount, 10)).toBe(0);
 
-  // NEXT_BOOKING_NO_OVERLAP - proven by released inventory blocks
+  // ===========================================
+  // FINAL INVARIANTS VERIFICATION
+  // ===========================================
+  if (consoleErrors.length > 0) {
+    console.warn('Console errors detected:', consoleErrors);
+  }
+  if (pageErrors.length > 0) {
+    throw new Error(`Page errors detected: ${pageErrors.join('; ')}`);
+  }
+  if (requestFailures.length > 0) {
+    throw new Error(`Request failures detected: ${requestFailures.join('; ')}`);
+  }
 });

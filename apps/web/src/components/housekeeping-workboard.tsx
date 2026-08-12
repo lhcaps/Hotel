@@ -47,6 +47,11 @@ export function HousekeepingWorkboard() {
   const locale = useLocale();
   const [date, setDate] = useState(() => localDate(new Date()));
   const [data, setData] = useState<AdminRoomOperationsResponse>();
+  const [me, setMe] = useState<Awaited<ReturnType<typeof adminApi.me>>>();
+  const [assignees, setAssignees] = useState<
+    Awaited<ReturnType<typeof adminApi.listHousekeepingAssignees>>
+  >([]);
+  const [assignmentDrafts, setAssignmentDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState<string>();
   const [actionError, setActionError] = useState<Record<string, string>>({});
   const [pending, setPending] = useState<Record<string, boolean>>({});
@@ -57,9 +62,19 @@ export function HousekeepingWorkboard() {
   const refresh = useCallback(() => {
     setError(undefined);
     setStale(false);
-    return adminApi
-      .getRoomOperations({ ...dateRange(date), includeInactive: false })
-      .then(setData)
+    return Promise.all([
+      adminApi.getRoomOperations({ ...dateRange(date), includeInactive: false }),
+      adminApi.me(),
+    ])
+      .then(async ([operations, actor]) => {
+        setData(operations);
+        setMe(actor);
+        if (actor.permissions.includes('housekeeping.task.manage')) {
+          setAssignees(await adminApi.listHousekeepingAssignees());
+        } else {
+          setAssignees([]);
+        }
+      })
       .catch((cause: unknown) => {
         setError(
           cause instanceof AdminApiError
@@ -81,9 +96,9 @@ export function HousekeepingWorkboard() {
   const roomsWithTasks = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase(locale);
     return [...(data?.items ?? [])]
-      .filter((room) => room.activeHousekeepingTask !== null)
+      .filter((room) => room.activeHousekeepingTask !== null || room.latestTurnoverTask !== null)
       .filter((room) => {
-        const task = room.activeHousekeepingTask;
+        const task = room.activeHousekeepingTask ?? room.latestTurnoverTask;
         if (!task) return false;
         return statusFilter === 'ALL' || task.status === statusFilter;
       })
@@ -104,11 +119,62 @@ export function HousekeepingWorkboard() {
   };
 
   const handleTaskAction = useCallback(
-    async (roomId: string, action: 'start' | 'complete') => {
+    async (roomId: string, action: 'start' | 'complete', expectedVersion: number) => {
       setPending((current) => ({ ...current, [roomId]: true }));
       setActionError((current) => ({ ...current, [roomId]: '' }));
       try {
-        await adminApi.updateRoomHousekeeping(roomId, action === 'start' ? 'CLEANING' : 'CLEAN');
+        await adminApi.updateRoomHousekeeping(roomId, {
+          status: action === 'start' ? 'CLEANING' : 'CLEAN',
+          expectedVersion,
+        });
+        await refresh();
+      } catch (cause: unknown) {
+        setActionError((current) => ({
+          ...current,
+          [roomId]:
+            cause instanceof AdminApiError ? cause.message : translate(locale, 'admin.actionError'),
+        }));
+      } finally {
+        setPending((current) => ({ ...current, [roomId]: false }));
+      }
+    },
+    [locale, refresh],
+  );
+
+  const handleAssignment = useCallback(
+    async (roomId: string, expectedVersion: number) => {
+      const assigneeId = assignmentDrafts[roomId];
+      if (assigneeId === undefined || assigneeId === '') return;
+      setPending((current) => ({ ...current, [roomId]: true }));
+      setActionError((current) => ({ ...current, [roomId]: '' }));
+      try {
+        await adminApi.assignRoomHousekeeping(roomId, { assigneeId, expectedVersion });
+        await refresh();
+      } catch (cause: unknown) {
+        setActionError((current) => ({
+          ...current,
+          [roomId]:
+            cause instanceof AdminApiError ? cause.message : translate(locale, 'admin.actionError'),
+        }));
+      } finally {
+        setPending((current) => ({ ...current, [roomId]: false }));
+      }
+    },
+    [assignmentDrafts, locale, refresh],
+  );
+
+  const handleManagerAction = useCallback(
+    async (roomId: string, action: 'verify' | 'reopen', expectedVersion: number) => {
+      setPending((current) => ({ ...current, [roomId]: true }));
+      setActionError((current) => ({ ...current, [roomId]: '' }));
+      try {
+        if (action === 'verify') {
+          await adminApi.verifyRoomHousekeeping(roomId, { expectedVersion });
+        } else {
+          const reason = window.prompt(translate(locale, 'admin.reopenTaskReason'));
+          if (reason === null || reason.trim() === '') return;
+          await adminApi.reopenRoomHousekeeping(roomId, { expectedVersion, reason: reason.trim() });
+        }
         await refresh();
       } catch (cause: unknown) {
         setActionError((current) => ({
@@ -221,10 +287,28 @@ export function HousekeepingWorkboard() {
                 </TableHeader>
                 <TableBody>
                   {roomsWithTasks.map((room) => {
-                    const task = room.activeHousekeepingTask;
+                    const task = room.activeHousekeepingTask ?? room.latestTurnoverTask;
                     if (!task) return null;
-                    const canStart = task.status === 'DUE' || task.status === 'SCHEDULED';
-                    const canComplete = task.status === 'IN_PROGRESS';
+                    const isAssignedStaff =
+                      me?.profileCode === 'HOUSEKEEPING_STAFF' && task.assigneeId === me.id;
+                    const canStart =
+                      task.type === 'TURNOVER' &&
+                      isAssignedStaff &&
+                      (task.status === 'DUE' || task.status === 'SCHEDULED');
+                    const canComplete =
+                      task.type === 'TURNOVER' && isAssignedStaff && task.status === 'IN_PROGRESS';
+                    const canManage = me?.permissions.includes('housekeeping.task.manage') === true;
+                    const canAssign =
+                      canManage &&
+                      task.type === 'TURNOVER' &&
+                      (task.status === 'DUE' || task.status === 'SCHEDULED');
+                    const canVerify =
+                      canManage &&
+                      task.type === 'TURNOVER' &&
+                      task.status === 'DONE' &&
+                      task.verifiedAt === null;
+                    const canReopen =
+                      canManage && task.type === 'TURNOVER' && task.status === 'DONE';
                     const actionErr = actionError[room.roomId];
                     return (
                       <TableRow key={room.roomId}>
@@ -252,11 +336,54 @@ export function HousekeepingWorkboard() {
                           {formatTime(task.dueAt, locale)}
                         </TableCell>
                         <TableCell data-label={translate(locale, 'admin.action')}>
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
+                            {canAssign ? (
+                              <>
+                                <Select
+                                  value={
+                                    assignmentDrafts[room.roomId] ?? task.assigneeId ?? undefined
+                                  }
+                                  onValueChange={(value) => {
+                                    if (value !== null)
+                                      setAssignmentDrafts((current) => ({
+                                        ...current,
+                                        [room.roomId]: value,
+                                      }));
+                                  }}
+                                >
+                                  <SelectTrigger aria-label={translate(locale, 'admin.assignee')}>
+                                    <SelectValue
+                                      placeholder={translate(locale, 'admin.assignee')}
+                                    />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {assignees.map((assignee) => (
+                                      <SelectItem key={assignee.id} value={assignee.id}>
+                                        {assignee.displayName}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => void handleAssignment(room.roomId, task.version)}
+                                  disabled={
+                                    pending[room.roomId] === true ||
+                                    (assignmentDrafts[room.roomId] ?? task.assigneeId) === null ||
+                                    (assignmentDrafts[room.roomId] ?? task.assigneeId) === undefined
+                                  }
+                                >
+                                  {translate(locale, 'admin.assignTask')}
+                                </Button>
+                              </>
+                            ) : null}
                             {canStart ? (
                               <Button
                                 size="sm"
-                                onClick={() => void handleTaskAction(room.roomId, 'start')}
+                                onClick={() =>
+                                  void handleTaskAction(room.roomId, 'start', task.version)
+                                }
                                 disabled={pending[room.roomId] === true}
                               >
                                 {translate(locale, 'admin.startTask')}
@@ -265,13 +392,39 @@ export function HousekeepingWorkboard() {
                             {canComplete ? (
                               <Button
                                 size="sm"
-                                onClick={() => void handleTaskAction(room.roomId, 'complete')}
+                                onClick={() =>
+                                  void handleTaskAction(room.roomId, 'complete', task.version)
+                                }
                                 disabled={pending[room.roomId] === true}
                               >
                                 {translate(locale, 'admin.completeTask')}
                               </Button>
                             ) : null}
-                            {!canStart && !canComplete ? (
+                            {canVerify ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  void handleManagerAction(room.roomId, 'verify', task.version)
+                                }
+                                disabled={pending[room.roomId] === true}
+                              >
+                                {translate(locale, 'admin.verifyTask')}
+                              </Button>
+                            ) : null}
+                            {canReopen ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  void handleManagerAction(room.roomId, 'reopen', task.version)
+                                }
+                                disabled={pending[room.roomId] === true}
+                              >
+                                {translate(locale, 'admin.reopenTask')}
+                              </Button>
+                            ) : null}
+                            {!canAssign && !canStart && !canComplete && !canVerify && !canReopen ? (
                               <span className="admin-muted">
                                 {translate(locale, 'admin.noAction')}
                               </span>

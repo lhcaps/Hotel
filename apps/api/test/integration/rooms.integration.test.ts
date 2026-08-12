@@ -27,6 +27,21 @@ const actor: ActorContext = {
 
 const cleanerId = '550e8400-e29b-41d4-a716-446655440002';
 const replacementCleanerId = '550e8400-e29b-41d4-a716-446655440003';
+const crossPropertyCleanerId = '550e8400-e29b-41d4-a716-446655440004';
+const cleanerActor: ActorContext = {
+  ...actor,
+  userId: cleanerId,
+  email: 'cleaner@example.test',
+  displayName: 'Cleaner',
+  profileCode: 'HOUSEKEEPING_STAFF',
+  permissions: ['housekeeping.task.update'],
+};
+const replacementCleanerActor: ActorContext = {
+  ...cleanerActor,
+  userId: replacementCleanerId,
+  email: 'replacement.cleaner@example.test',
+  displayName: 'Replacement cleaner',
+};
 
 describe('physical room catalog transactions', () => {
   let database: GuardedTestDatabase;
@@ -48,7 +63,16 @@ describe('physical room catalog transactions', () => {
       [actor.userId, cleanerId, replacementCleanerId],
     );
     await database.pool.query(
-      `INSERT INTO properties (id, code, name, timezone) VALUES ('550e8400-e29b-41d4-a716-446655440010','MAIN','Main','Asia/Ho_Chi_Minh'); INSERT INTO price_tiers (id, property_id, code, name, sort_order) VALUES ('550e8400-e29b-41d4-a716-446655440020','550e8400-e29b-41d4-a716-446655440010','STANDARD','Standard',0); INSERT INTO room_types (id, property_id, price_tier_id, code, name, max_adults, max_children, max_occupancy) VALUES ('550e8400-e29b-41d4-a716-446655440030','550e8400-e29b-41d4-a716-446655440010','550e8400-e29b-41d4-a716-446655440020','DLX','Deluxe',2,0,2);`,
+      `INSERT INTO properties (id, code, name, timezone) VALUES ('550e8400-e29b-41d4-a716-446655440010','MAIN','Main','Asia/Ho_Chi_Minh');
+       INSERT INTO price_tiers (id, property_id, code, name, sort_order) VALUES ('550e8400-e29b-41d4-a716-446655440020','550e8400-e29b-41d4-a716-446655440010','STANDARD','Standard',0);
+       INSERT INTO room_types (id, property_id, price_tier_id, code, name, max_adults, max_children, max_occupancy) VALUES ('550e8400-e29b-41d4-a716-446655440030','550e8400-e29b-41d4-a716-446655440010','550e8400-e29b-41d4-a716-446655440020','DLX','Deluxe',2,0,2);
+       INSERT INTO admin_departments (id, code, name) VALUES ('550e8400-e29b-41d4-a716-446655440040','HOUSEKEEPING','Housekeeping');
+       INSERT INTO admin_memberships (user_id, department_id, role, status) VALUES
+         ('550e8400-e29b-41d4-a716-446655440002','550e8400-e29b-41d4-a716-446655440040','HOUSEKEEPING_STAFF','ACTIVE'),
+         ('550e8400-e29b-41d4-a716-446655440003','550e8400-e29b-41d4-a716-446655440040','HOUSEKEEPING_STAFF','ACTIVE');
+       INSERT INTO admin_property_memberships (user_id, property_id, status) VALUES
+         ('550e8400-e29b-41d4-a716-446655440002','550e8400-e29b-41d4-a716-446655440010','ACTIVE'),
+         ('550e8400-e29b-41d4-a716-446655440003','550e8400-e29b-41d4-a716-446655440010','ACTIVE');`,
     );
   });
   afterAll(async () => database?.dispose());
@@ -173,12 +197,21 @@ describe('physical room catalog transactions', () => {
     ).rejects.toMatchObject({ code: 'ROOM_HOUSEKEEPING_ASSIGNMENT_CONFLICT' });
 
     await expect(
-      catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
+      catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN', expectedVersion: 2 }),
     ).rejects.toMatchObject({
       code: 'ROOM_HOUSEKEEPING_INVALID_TRANSITION',
     });
     await expect(
-      catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEANING' }),
+      catalog.updateRoomHousekeeping(cleanerActor, room.id, {
+        status: 'CLEANING',
+        expectedVersion: 2,
+      }),
+    ).rejects.toMatchObject({ code: 'ROOM_HOUSEKEEPING_VERSION_CONFLICT' });
+    await expect(
+      catalog.updateRoomHousekeeping(replacementCleanerActor, room.id, {
+        status: 'CLEANING',
+        expectedVersion: 2,
+      }),
     ).resolves.toMatchObject({ housekeepingStatus: 'CLEANING' });
     const startedTask = (
       await database.pool.query<{
@@ -193,11 +226,14 @@ describe('physical room catalog transactions', () => {
     ).rows[0];
     expect(startedTask?.status).toBe('IN_PROGRESS');
     expect(startedTask?.started_at).toBeInstanceOf(Date);
-    expect(startedTask?.started_by).toBe(actor.userId);
+    expect(startedTask?.started_by).toBe(replacementCleanerActor.userId);
     expect(startedTask?.version).toBe(3);
 
     await expect(
-      catalog.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
+      catalog.updateRoomHousekeeping(replacementCleanerActor, room.id, {
+        status: 'CLEAN',
+        expectedVersion: 3,
+      }),
     ).resolves.toMatchObject({
       housekeepingStatus: 'CLEAN',
     });
@@ -214,7 +250,7 @@ describe('physical room catalog transactions', () => {
     ).rows[0];
     expect(completedTask?.status).toBe('DONE');
     expect(completedTask?.completed_at).toBeInstanceOf(Date);
-    expect(completedTask?.completed_by).toBe(actor.userId);
+    expect(completedTask?.completed_by).toBe(replacementCleanerActor.userId);
     expect(completedTask?.version).toBe(4);
 
     await expect(
@@ -265,6 +301,81 @@ describe('physical room catalog transactions', () => {
       housekeeping_status: 'DIRTY',
     });
     expect(reopened?.reopened_at).toBeInstanceOf(Date);
+  });
+
+  it('denies a turnover assignment to a staff member outside the room property', async () => {
+    const room = await catalog.createRoom(actor, {
+      roomTypeId: '550e8400-e29b-41d4-a716-446655440030',
+      roomNumber: '104',
+    });
+    await database.pool.query(
+      `INSERT INTO properties (id, code, name, timezone)
+         VALUES ('550e8400-e29b-41d4-a716-446655440050', 'OTHER', 'Other', 'Asia/Ho_Chi_Minh')`,
+    );
+    await database.pool.query(
+      `INSERT INTO users (id, name, email, role, status)
+         VALUES ($1, 'Other property cleaner', 'other.cleaner@example.test', 'ADMIN', 'ACTIVE')`,
+      [crossPropertyCleanerId],
+    );
+    await database.pool.query(
+      `INSERT INTO admin_memberships (user_id, department_id, role, status)
+         VALUES ($1, '550e8400-e29b-41d4-a716-446655440040', 'HOUSEKEEPING_STAFF', 'ACTIVE')`,
+      [crossPropertyCleanerId],
+    );
+    await database.pool.query(
+      `INSERT INTO admin_property_memberships (user_id, property_id, status)
+         VALUES ($1, '550e8400-e29b-41d4-a716-446655440050', 'ACTIVE')`,
+      [crossPropertyCleanerId],
+    );
+    await database.pool.query(`UPDATE rooms SET housekeeping_status = 'DIRTY' WHERE id = $1`, [
+      room.id,
+    ]);
+    await database.pool.query(
+      `INSERT INTO housekeeping_tasks (property_id, room_id, type, status, due_at)
+         VALUES ($1, $2, 'TURNOVER', 'DUE', CURRENT_TIMESTAMP)`,
+      [room.propertyId, room.id],
+    );
+
+    await expect(
+      catalog.assignRoomHousekeeping(actor, room.id, {
+        assigneeId: crossPropertyCleanerId,
+        expectedVersion: 0,
+      }),
+    ).rejects.toMatchObject({ code: 'ROOM_HOUSEKEEPING_ASSIGNMENT_CONFLICT' });
+    await expect(
+      database.pool.query<{ assigned_to: string | null; version: number }>(
+        `SELECT assigned_to, version FROM housekeeping_tasks WHERE room_id = $1`,
+        [room.id],
+      ),
+    ).resolves.toMatchObject({ rows: [{ assigned_to: null, version: 0 }] });
+  });
+
+  it('does not render a future scheduled task as active cleaning work', async () => {
+    const room = await catalog.createRoom(actor, {
+      roomTypeId: '550e8400-e29b-41d4-a716-446655440030',
+      roomNumber: '105',
+    });
+    await database.pool.query(
+      `INSERT INTO housekeeping_tasks (property_id, room_id, type, status, due_at)
+       VALUES ($1, $2, 'ARRIVAL_PREP', 'SCHEDULED', CURRENT_TIMESTAMP + interval '1 day')`,
+      [room.propertyId, room.id],
+    );
+    const now = new Date();
+    const response = await new RoomOperationsService(
+      new RoomOperationsRepository(database.pool),
+    ).list(
+      room.propertyId,
+      {
+        from: now.toISOString(),
+        to: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1_000).toISOString(),
+      },
+      now,
+    );
+
+    expect(response.items.find((item) => item.roomId === room.id)).toMatchObject({
+      activeHousekeepingTask: null,
+      displayGroup: 'ready',
+    });
   });
 
   it('returns merged inventory-free windows and the active housekeeping task from PostgreSQL', async () => {

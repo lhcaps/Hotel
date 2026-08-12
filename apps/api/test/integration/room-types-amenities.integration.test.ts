@@ -50,8 +50,8 @@ describe('room type and amenity catalog transactions', () => {
       code: 'dlx',
       name: 'Deluxe',
       maxAdults: 2,
-      maxChildren: 1,
-      maxOccupancy: 3,
+      maxChildren: 2,
+      maxOccupancy: 4,
     });
     const amenity = await catalog.createAmenity(actor, { code: 'wifi', name: 'Wi-Fi' });
     await catalog.assignAmenity(actor, roomType.id, { amenityId: amenity.id });

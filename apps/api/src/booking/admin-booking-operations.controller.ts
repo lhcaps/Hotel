@@ -66,8 +66,8 @@ export class AdminBookingOperationsController {
     @Param('bookingCode') bookingCode: string,
     @Req() request: AdminRequest,
   ): Promise<AdminBookingDetail> {
-    void request;
-    return this.lifecycle.getDetail(bookingCode, new Date());
+    const property = await this.propertyContext.getCurrent(request.actor);
+    return this.lifecycle.getDetail(bookingCode, new Date(), property.id);
   }
 
   @Post('booking-access-passes/scan')
@@ -77,21 +77,28 @@ export class AdminBookingOperationsController {
     @Body() body: unknown,
     @Req() request: AdminRequest,
   ): Promise<AdminBookingAccessPassScanResponse> {
-    void request;
     const command = adminBookingAccessPassScanRequestSchema.parse(body);
-    return this.accessPasses.scan(command.value, new Date());
+    const property = await this.propertyContext.getCurrent(request.actor);
+    return this.accessPasses.scan(command.value, new Date(), property.id);
   }
 
   @Post('bookings/:bookingCode/send-coupons')
   @Version('1')
   @RequirePermissions('booking.lifecycle.manage', 'coupon.manage')
-  public sendCoupons(
+  public async sendCoupons(
     @Param('bookingCode') bookingCode: string,
     @Body() body: unknown,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Req() request: AdminRequest,
   ) {
-    return this.couponDelivery.request(request.actor, bookingCode, body, idempotencyKey ?? '');
+    const property = await this.propertyContext.getCurrent(request.actor);
+    return this.couponDelivery.request(
+      request.actor,
+      bookingCode,
+      body,
+      idempotencyKey ?? '',
+      property.id,
+    );
   }
 
   @Post('bookings/:bookingCode/cancel')
@@ -106,7 +113,15 @@ export class AdminBookingOperationsController {
     if (idempotencyKey === undefined || idempotencyKey.trim() === '') {
       throw new BadRequestException({ code: 'IDEMPOTENCY_KEY_REQUIRED' });
     }
-    return this.lifecycle.cancel(request.actor, bookingCode, body, new Date(), idempotencyKey);
+    const property = await this.propertyContext.getCurrent(request.actor);
+    return this.lifecycle.cancel(
+      request.actor,
+      bookingCode,
+      body,
+      new Date(),
+      idempotencyKey,
+      property.id,
+    );
   }
 
   @Post('bookings/:bookingCode/cancellation-preview')
@@ -116,8 +131,8 @@ export class AdminBookingOperationsController {
     @Param('bookingCode') bookingCode: string,
     @Req() request: AdminRequest,
   ) {
-    void request;
-    return this.lifecycle.cancellationPreview(bookingCode, new Date());
+    const property = await this.propertyContext.getCurrent(request.actor);
+    return this.lifecycle.cancellationPreview(bookingCode, new Date(), property.id);
   }
 
   @Post('bookings/:bookingCode/check-in')
@@ -127,7 +142,8 @@ export class AdminBookingOperationsController {
     @Param('bookingCode') bookingCode: string,
     @Req() request: AdminRequest,
   ): Promise<AdminBookingDetail> {
-    return this.lifecycle.checkIn(request.actor, bookingCode, new Date());
+    const property = await this.propertyContext.getCurrent(request.actor);
+    return this.lifecycle.checkIn(request.actor, bookingCode, new Date(), property.id);
   }
 
   @Post('bookings/:bookingCode/check-out')
@@ -137,7 +153,8 @@ export class AdminBookingOperationsController {
     @Param('bookingCode') bookingCode: string,
     @Req() request: AdminRequest,
   ): Promise<AdminBookingDetail> {
-    return this.lifecycle.checkOut(request.actor, bookingCode, new Date());
+    const property = await this.propertyContext.getCurrent(request.actor);
+    return this.lifecycle.checkOut(request.actor, bookingCode, new Date(), property.id);
   }
 
   @Post('bookings/:bookingCode/no-show')
@@ -148,7 +165,8 @@ export class AdminBookingOperationsController {
     @Body() body: unknown,
     @Req() request: AdminRequest,
   ): Promise<AdminBookingDetail> {
-    return this.lifecycle.markNoShow(request.actor, bookingCode, body, new Date());
+    const property = await this.propertyContext.getCurrent(request.actor);
+    return this.lifecycle.markNoShow(request.actor, bookingCode, body, new Date(), property.id);
   }
 
   @Get('operational-reviews')
@@ -167,8 +185,10 @@ export class AdminBookingOperationsController {
   @RequirePermissions('booking.review.read')
   public async getOperationalReview(
     @Param('reviewId') reviewId: string,
+    @Req() request: AdminRequest,
   ): Promise<AdminOperationalReviewDetail> {
-    return this.lifecycle.getOperationalReviewDetail(reviewId, new Date());
+    const property = await this.propertyContext.getCurrent(request.actor);
+    return this.lifecycle.getOperationalReviewDetail(reviewId, new Date(), property.id);
   }
 
   @Post('operational-reviews/:reviewId/resolve')
@@ -179,6 +199,13 @@ export class AdminBookingOperationsController {
     @Body() body: unknown,
     @Req() request: AdminRequest,
   ): Promise<AdminOperationalReviewDetail> {
-    return this.lifecycle.resolveOperationalReview(request.actor, reviewId, body, new Date());
+    const property = await this.propertyContext.getCurrent(request.actor);
+    return this.lifecycle.resolveOperationalReview(
+      request.actor,
+      reviewId,
+      body,
+      new Date(),
+      property.id,
+    );
   }
 }

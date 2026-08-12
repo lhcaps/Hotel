@@ -11,6 +11,7 @@ import {
   type HousekeepingTaskAssignment,
   type HousekeepingTaskAssignmentCommand,
   type HousekeepingTaskAction,
+  type HousekeepingAssignee,
   type HousekeepingTaskReopenCommand,
   type HousekeepingTaskVersionCommand,
   type MaintenanceBlockCommand,
@@ -33,6 +34,7 @@ import {
   housekeepingTaskAssignmentCommandSchema,
   housekeepingTaskAssignmentSchema,
   housekeepingTaskActionSchema,
+  housekeepingAssigneeListSchema,
   housekeepingTaskReopenCommandSchema,
   housekeepingTaskVersionCommandSchema,
   roomSchema,
@@ -132,6 +134,11 @@ export interface CatalogHousekeepingTaskActionRecord {
   readonly id: string;
   readonly roomId: string;
   readonly version: number;
+}
+
+export interface CatalogHousekeepingAssigneeRecord {
+  readonly id: string;
+  readonly displayName: string;
 }
 
 export interface CancelMaintenanceResult {
@@ -314,6 +321,9 @@ export interface CatalogRepositoryPort {
     command: HousekeepingTaskReopenCommand,
     actorId: string,
   ): Promise<CatalogHousekeepingTaskActionRecord | undefined>;
+  listHousekeepingAssignees?(
+    propertyId: string,
+  ): Promise<readonly CatalogHousekeepingAssigneeRecord[]>;
   listRooms(
     propertyId: string,
     page: number,
@@ -880,7 +890,12 @@ export class CatalogService {
         command,
         actor.userId,
       );
-      if (room === undefined) throw new CatalogNotFoundError();
+      if (room === undefined) {
+        throw new CatalogConflictError(
+          'ROOM_HOUSEKEEPING_VERSION_CONFLICT',
+          'The assigned turnover task changed before this update could be applied.',
+        );
+      }
       await this.audit.write(transaction, {
         propertyId: property.id,
         aggregateType: 'ROOM',
@@ -954,6 +969,22 @@ export class CatalogService {
       'verifyRoomHousekeeping',
       'ROOM_HOUSEKEEPING_VERIFIED',
     );
+  }
+  public async listHousekeepingAssignees(
+    actor: ActorContext,
+  ): Promise<readonly HousekeepingAssignee[]> {
+    const property = await this.repository.getCurrentProperty(actor);
+    if (property === undefined) throw new CatalogNotFoundError();
+    const list = this.repository.listHousekeepingAssignees;
+    if (list === undefined) {
+      throw new CatalogConflictError(
+        'ROOM_HOUSEKEEPING_ASSIGNMENT_UNAVAILABLE',
+        'Housekeeping assignment is unavailable.',
+      );
+    }
+    return housekeepingAssigneeListSchema.parse({
+      items: await list.call(this.repository, property.id),
+    }).items;
   }
   public async reopenRoomHousekeeping(
     actor: ActorContext,
@@ -1149,7 +1180,6 @@ function isAllowedHousekeepingTransition(
   current: CatalogRoomRecord['housekeepingStatus'],
   next: CatalogRoomRecord['housekeepingStatus'],
 ): boolean {
-  if (current === next) return true;
   return (
     (current === 'CLEAN' && next === 'DIRTY') ||
     (current === 'DIRTY' && next === 'CLEANING') ||

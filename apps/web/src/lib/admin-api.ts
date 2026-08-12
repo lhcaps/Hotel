@@ -32,6 +32,9 @@ import type {
   RatePlanSelectionRuleCommand,
   AvailabilityOfferResponse,
   AvailabilitySearchResponse,
+  HousekeepingTaskAction,
+  HousekeepingTaskAssignment,
+  HousekeepingAssignee,
   NearbyAvailabilityRequest,
   NearbyAvailabilityResponse,
 } from '@room/contracts';
@@ -139,6 +142,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const adminApi = {
   listAdminAccounts: () => request<readonly AdminAccount[]>('/admin/accounts'),
+  listAccountProperties: () => request<readonly Property[]>('/admin/account-properties'),
   createAdminAccount: (body: unknown) =>
     request<AdminAccount>('/admin/accounts', {
       method: 'POST',
@@ -189,6 +193,8 @@ export const adminApi = {
         ...(query.includeInactive === true ? { includeInactive: 'true' } : {}),
       }).toString()}`,
     ),
+  listHousekeepingAssignees: () =>
+    request<readonly HousekeepingAssignee[]>('/admin/housekeeping/assignees'),
   getOperationalReport: (query: {
     readonly from: string;
     readonly to: string;
@@ -420,29 +426,38 @@ export const adminApi = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     }),
-  updateRoomHousekeeping: (id: string, status: 'CLEAN' | 'DIRTY' | 'CLEANING') =>
+  updateRoomHousekeeping: (
+    id: string,
+    body: { readonly status: 'CLEAN' | 'DIRTY' | 'CLEANING'; readonly expectedVersion: number },
+  ) =>
     request<Room>(`/admin/rooms/${id}/housekeeping`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(body),
     }),
-  assignRoomHousekeeping: (id: string, assigneeUserId: string) =>
-    request<Room>(`/admin/rooms/${id}/housekeeping/assignment`, {
+  assignRoomHousekeeping: (
+    id: string,
+    body: { readonly assigneeId: string; readonly expectedVersion: number },
+  ) =>
+    request<HousekeepingTaskAssignment>(`/admin/rooms/${id}/housekeeping/assignment`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ assigneeUserId }),
+      body: JSON.stringify(body),
     }),
-  verifyRoomHousekeeping: (id: string, verified: boolean) =>
-    request<Room>(`/admin/rooms/${id}/housekeeping/verification`, {
+  verifyRoomHousekeeping: (id: string, body: { readonly expectedVersion: number }) =>
+    request<HousekeepingTaskAction>(`/admin/rooms/${id}/housekeeping/verification`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ verified }),
+      body: JSON.stringify(body),
     }),
-  reopenRoomHousekeeping: (id: string) =>
-    request<Room>(`/admin/rooms/${id}/housekeeping/reopen`, {
+  reopenRoomHousekeeping: (
+    id: string,
+    body: { readonly expectedVersion: number; readonly reason: string },
+  ) =>
+    request<HousekeepingTaskAction>(`/admin/rooms/${id}/housekeeping/reopen`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({}),
+      body: JSON.stringify(body),
     }),
   listMaintenanceBlocks: () => request<CatalogPage<MaintenanceBlock>>('/admin/maintenance-blocks'),
   createMaintenanceBlock: (body: {
@@ -716,9 +731,22 @@ export interface AdminRoomOperationsResponse {
     readonly nextBookingWindow: { readonly checkIn: string; readonly checkOut: string } | null;
     readonly freeWindows: readonly { readonly startsAt: string; readonly endsAt: string }[];
     readonly activeHousekeepingTask: {
+      readonly taskId: string;
       readonly type: 'ARRIVAL_PREP' | 'TURNOVER';
-      readonly status: 'SCHEDULED' | 'DUE' | 'IN_PROGRESS';
+      readonly status: 'SCHEDULED' | 'DUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
       readonly dueAt: string;
+      readonly assigneeId: string | null;
+      readonly version: number;
+      readonly verifiedAt: string | null;
+    } | null;
+    readonly latestTurnoverTask: {
+      readonly taskId: string;
+      readonly type: 'ARRIVAL_PREP' | 'TURNOVER';
+      readonly status: 'SCHEDULED' | 'DUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+      readonly dueAt: string;
+      readonly assigneeId: string | null;
+      readonly version: number;
+      readonly verifiedAt: string | null;
     } | null;
     readonly bookings: readonly {
       readonly bookingCode: string;

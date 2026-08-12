@@ -56,6 +56,7 @@ const actor: ActorContext = {
     'booking.review.read',
     'booking.review.manage',
   ],
+  propertyIds: [ids.property],
   sessionId: '660e8400-e29b-41d4-a716-446655440002',
   sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
   requestId: 'phase-7g-integration',
@@ -554,6 +555,35 @@ describe('Phase 7G admin booking lifecycle', () => {
       expect(blocks.rows[0]?.status).toBe('ACTIVE');
     });
 
+    it('completes a SCHEDULED ARRIVAL_PREP task when check-in succeeds', async () => {
+      const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {
+        withPayment: true,
+      });
+      await confirmBooking(fixture.database, bookingId);
+      await fixture.database.pool.query(
+        `INSERT INTO housekeeping_tasks (property_id, room_id, booking_id, type, status, due_at, reminder_at)
+         SELECT property_id, room_id, id, 'ARRIVAL_PREP', 'SCHEDULED', check_in, check_in - interval '1 hour'
+           FROM bookings WHERE id = $1`,
+        [bookingId],
+      );
+
+      await fixture.service.checkIn(actor, bookingCode, new Date('2027-02-10T04:00:00.000Z'));
+
+      const task = await fixture.database.pool.query<{
+        status: string;
+        completed_at: Date | null;
+        completed_by: string | null;
+      }>(
+        `SELECT status, completed_at, completed_by
+           FROM housekeeping_tasks
+          WHERE booking_id = $1 AND type = 'ARRIVAL_PREP'`,
+        [bookingId],
+      );
+      expect(task.rows[0]?.status).toBe('DONE');
+      expect(task.rows[0]?.completed_at).toBeInstanceOf(Date);
+      expect(task.rows[0]?.completed_by).toBe(ids.admin);
+    });
+
     it('9. check-out releases inventory', async () => {
       const { bookingCode, bookingId } = await insertHoldBooking(fixture.database, {
         withPayment: true,
@@ -941,26 +971,33 @@ describe('Phase 7G admin booking lifecycle', () => {
 
     it('reports not-found errors cleanly', async () => {
       await expect(
-        fixture.service.getOperationalReviewDetail(randomUUID(), new Date()),
+        fixture.service.getOperationalReviewDetail(randomUUID(), new Date(), ids.property),
       ).rejects.toBeInstanceOf(OperationalReviewNotFoundError);
     });
   });
 
   describe('Read / contact integrity', () => {
+    it('does not disclose an existing booking through a different property scope', async () => {
+      const { bookingCode } = await insertHoldBooking(fixture.database, {});
+      await expect(
+        fixture.service.getDetail(bookingCode, new Date(), '660e8400-e29b-41d4-a716-446655440199'),
+      ).rejects.toBeInstanceOf(BookingNotFoundError);
+    });
+
     it('20. historical bookings remain readable with null timestamps', async () => {
       const { bookingCode } = await insertHoldBooking(fixture.database, {
         bookingId: randomUUID(),
       });
-      const detail = await fixture.service.getDetail(bookingCode, new Date());
+      const detail = await fixture.service.getDetail(bookingCode, new Date(), ids.property);
       expect(detail.bookingCode).toBe(bookingCode);
     });
 
     it('21. contact snapshots remain immutable after a transition', async () => {
       const { bookingCode } = await insertHoldBooking(fixture.database, {});
-      const detail = await fixture.service.getDetail(bookingCode, new Date());
+      const detail = await fixture.service.getDetail(bookingCode, new Date(), ids.property);
       const originalEmail = detail.contact.emailMasked;
       await fixture.service.cancel(actor, bookingCode, { reason: 'irrelevant' }, new Date());
-      const reread = await fixture.service.getDetail(bookingCode, new Date());
+      const reread = await fixture.service.getDetail(bookingCode, new Date(), ids.property);
       expect(reread.contact.emailMasked).toBe(originalEmail);
       expect(reread.status).toBe('CANCELLED');
     });

@@ -1,4 +1,10 @@
-import { ADMIN_PROFILE_LABELS_VI, createRoomAuth, ROLE_PERMISSIONS } from '@room/auth';
+import {
+  ADMIN_PROFILE_CODES,
+  ADMIN_PROFILE_LABELS_VI,
+  createRoomAuth,
+  PROFILE_PERMISSIONS,
+  type AdminProfileCode,
+} from '@room/auth';
 import { fromNodeHeaders } from 'better-auth/node';
 
 import {
@@ -40,15 +46,22 @@ export function createAuthUserReader(database: DatabaseProvider): AuthUserReader
         where: (fields, { and, eq }) => and(eq(fields.userId, userId), eq(fields.status, 'ACTIVE')),
       });
       const scopedMemberships = memberships.filter(
-        (
-          membership,
-        ): membership is typeof membership & {
-          role: 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER';
-        } => membership.role === 'SUPER_ADMIN' || membership.role === 'ROOM_STATUS_VIEWER',
+        (membership): membership is typeof membership & { role: AdminProfileCode } =>
+          (ADMIN_PROFILE_CODES as readonly string[]).includes(membership.role),
       );
       if (scopedMemberships.length === 0) return null;
-      const rank = { ROOM_STATUS_VIEWER: 1, SUPER_ADMIN: 2 } as const;
-      const role = scopedMemberships.reduce<'ROOM_STATUS_VIEWER' | 'SUPER_ADMIN'>(
+      const rank: Readonly<Record<AdminProfileCode, number>> = {
+        ROOM_STATUS_VIEWER: 1,
+        HOUSEKEEPING_STAFF: 2,
+        MAINTENANCE_STAFF: 3,
+        PAYMENT_STAFF: 4,
+        HOUSEKEEPING_MANAGER: 5,
+        MAINTENANCE_MANAGER: 6,
+        STAFF_MANAGER: 7,
+        OPERATIONS_MANAGER: 8,
+        SUPER_ADMIN: 9,
+      };
+      const role = scopedMemberships.reduce<AdminProfileCode>(
         (current, membership) =>
           rank[membership.role] > rank[current] ? membership.role : current,
         'ROOM_STATUS_VIEWER',
@@ -89,10 +102,15 @@ export function createAuthUserReader(database: DatabaseProvider): AuthUserReader
       }
 
       return {
-        role,
+        role:
+          role === 'SUPER_ADMIN'
+            ? 'SUPER_ADMIN'
+            : role === 'ROOM_STATUS_VIEWER'
+              ? 'ROOM_STATUS_VIEWER'
+              : 'ADMIN',
         profileCode: role,
         profileLabelVi: ADMIN_PROFILE_LABELS_VI[role],
-        permissions: ROLE_PERMISSIONS[role],
+        permissions: PROFILE_PERMISSIONS[role],
         departments: departments.filter(
           (department): department is { id: string; name: string } => department !== undefined,
         ),

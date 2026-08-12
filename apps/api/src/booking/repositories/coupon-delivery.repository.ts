@@ -16,8 +16,9 @@ export class CouponDeliveryRepository implements CouponDeliveryRepositoryPort {
       await client.query('BEGIN');
       const booking = await client.query<{ id: string; property_id: string }>(
         `SELECT b.id, b.property_id FROM bookings b JOIN booking_contacts bc ON bc.booking_id = b.id
-          WHERE b.booking_code = $1`,
-        [command.bookingCode],
+          WHERE b.property_id = $1
+            AND b.booking_code = $2`,
+        [command.propertyId, command.bookingCode],
       );
       const row = booking.rows[0];
       if (row === undefined) throw new CouponDeliveryError('COUPON_DELIVERY_BOOKING_NOT_FOUND');

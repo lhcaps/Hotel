@@ -6,7 +6,11 @@ import {
   type AvailabilityState,
   type CreateQuoteRequest,
 } from '@room/contracts';
-import type { MultiNightPricingCandidate } from '../pricing-policy/pricing-policy.composer.js';
+import type {
+  MultiNightPricingCandidate,
+  MultiNightPricingResult,
+  MultiNightPricingSelectionReason,
+} from '../pricing-policy/pricing-policy.composer.js';
 import type { MultiNightOfferService } from './multi-night-offer.service.js';
 import {
   calculatePricing,
@@ -196,7 +200,7 @@ export class QuoteService {
         if (source === undefined) throw new QuoteNoValidPricingError();
         throw new QuoteUnavailableError();
       }
-      const pricing = source.pricing.selected;
+      const pricing = withMultiNightSelection(source.pricing);
       let provisionalEvaluation: ProvisionalCouponEvaluation | undefined;
       if (request.couponCode !== undefined && this.options.couponRepository !== undefined) {
         provisionalEvaluation = await this.options.couponRepository.evaluateForQuote({
@@ -313,6 +317,37 @@ export class QuoteService {
     }
     return undefined;
   }
+}
+
+function withMultiNightSelection(result: MultiNightPricingResult): MultiNightPricingCandidate {
+  const selected = result.selected;
+  const next = result.candidates.find(
+    (candidate) => candidate.stableCandidateId !== selected.stableCandidateId,
+  );
+  const selectionReason: MultiNightPricingSelectionReason =
+    next === undefined || selected.finalAmountVnd !== next.finalAmountVnd
+      ? 'LOWEST_VALID_CUSTOMER_TOTAL'
+      : selected.componentCount !== next.componentCount
+        ? 'FEWER_COMPONENTS_TIE_BREAK'
+        : selected.conditionComplexity !== next.conditionComplexity
+          ? 'LOWER_CONDITION_COMPLEXITY_TIE_BREAK'
+          : selected.restrictionRank !== next.restrictionRank
+            ? 'LOWER_RESTRICTION_RANK_TIE_BREAK'
+            : 'STABLE_CANDIDATE_TIE_BREAK';
+  return {
+    ...selected,
+    selectionReason,
+    alternatives: result.candidates
+      .filter((candidate) => candidate.stableCandidateId !== selected.stableCandidateId)
+      .map((candidate) => ({
+        stableCandidateId: candidate.stableCandidateId,
+        finalAmountVnd: candidate.finalAmountVnd,
+        componentCount: candidate.componentCount,
+        conditionComplexity: candidate.conditionComplexity,
+        restrictionRank: candidate.restrictionRank,
+        rationale: candidate.rationale,
+      })),
+  };
 }
 
 function isRawMultiNightRequest(input: unknown): input is Record<string, unknown> {

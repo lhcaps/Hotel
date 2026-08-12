@@ -48,8 +48,13 @@ describe('admin catalog contracts', () => {
   });
 
   it('allows only explicit housekeeping values', () => {
-    expect(roomHousekeepingCommandSchema.parse({ status: 'DIRTY' })).toEqual({ status: 'DIRTY' });
-    expect(() => roomHousekeepingCommandSchema.parse({ status: 'UNKNOWN' })).toThrow();
+    expect(roomHousekeepingCommandSchema.parse({ status: 'DIRTY', expectedVersion: 0 })).toEqual({
+      status: 'DIRTY',
+      expectedVersion: 0,
+    });
+    expect(() =>
+      roomHousekeepingCommandSchema.parse({ status: 'UNKNOWN', expectedVersion: 0 }),
+    ).toThrow();
   });
 
   it('bounds pagination and normalizes catalog codes', () => {
@@ -66,10 +71,43 @@ describe('admin catalog contracts', () => {
         name: 'Deluxe',
         priceTierId: '550e8400-e29b-41d4-a716-446655440000',
         maxAdults: 2,
-        maxChildren: 1,
-        maxOccupancy: 3,
+        maxChildren: 2,
+        maxOccupancy: 4,
       }).code,
     ).toBe('DLX-01');
+  });
+
+  it('accepts only the customer-facing capacity choices of two or four guests', () => {
+    const twoGuestCommand = {
+      code: 'DLX-01',
+      name: 'Deluxe',
+      priceTierId: '550e8400-e29b-41d4-a716-446655440000',
+      maxAdults: 2,
+      maxChildren: 0,
+    };
+
+    expect(roomTypeCommandSchema.safeParse({ ...twoGuestCommand, maxOccupancy: 2 }).success).toBe(
+      true,
+    );
+    expect(
+      roomTypeCommandSchema.safeParse({
+        ...twoGuestCommand,
+        maxAdults: 2,
+        maxChildren: 2,
+        maxOccupancy: 4,
+      }).success,
+    ).toBe(true);
+    expect(
+      roomTypeCommandSchema.safeParse({ ...twoGuestCommand, maxChildren: 1, maxOccupancy: 3 })
+        .success,
+    ).toBe(false);
+  });
+
+  it('requires an optimistic-lock version for every staff task status transition', () => {
+    expect(roomHousekeepingCommandSchema.safeParse({ status: 'CLEANING' }).success).toBe(false);
+    expect(
+      roomHousekeepingCommandSchema.safeParse({ status: 'CLEANING', expectedVersion: 0 }).success,
+    ).toBe(true);
   });
 
   it('rejects invalid capacity, archive payloads, and maintenance intervals', () => {

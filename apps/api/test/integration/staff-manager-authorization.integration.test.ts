@@ -106,8 +106,6 @@ describe('STAFF_MANAGER authorization', () => {
       'admin.account.read',
       'admin.account.manage',
       'admin.department.read',
-      'admin.department.manage',
-      'admin.audit.read',
       'catalog.property.read',
     ],
     propertyIds: [ids.property],
@@ -294,7 +292,7 @@ describe('STAFF_MANAGER authorization', () => {
       });
     });
 
-    test('ALLOW: STAFF_MANAGER can manage staff with no property membership', async () => {
+    test('DENY: STAFF_MANAGER cannot manage unscoped legacy staff', async () => {
       // Create staff member without property membership
       const noPropertyStaffId = '770e8400-e29b-41d4-a716-446655440398';
       await guarded.pool.query(
@@ -308,15 +306,67 @@ describe('STAFF_MANAGER authorization', () => {
         role: 'PAYMENT_STAFF',
       });
 
-      await service.updateAccount(staffManagerActor, noPropertyStaffId, {
-        role: 'HOUSEKEEPING_STAFF',
-        departmentIds: [ids.department],
+      await expect(
+        service.updateAccount(staffManagerActor, noPropertyStaffId, {
+          role: 'HOUSEKEEPING_STAFF',
+          departmentIds: [ids.department],
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' },
+      });
+    });
+
+    test('DENY: STAFF_MANAGER cannot change a shared staff profile outside its full scope', async () => {
+      await db.insert(adminPropertyMemberships).values({
+        userId: ids.targetStaff,
+        propertyId: ids.otherProperty,
       });
 
-      const membership = await db.query.adminMemberships.findFirst({
-        where: (memberships, { eq }) => eq(memberships.userId, noPropertyStaffId),
+      await expect(
+        service.updateAccount(staffManagerActor, ids.targetStaff, {
+          role: 'HOUSEKEEPING_MANAGER',
+          departmentIds: [ids.department],
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' },
       });
-      expect(membership?.role).toBe('HOUSEKEEPING_STAFF');
+    });
+
+    test('DENY: STAFF_MANAGER cannot rely on a revoked historical property membership', async () => {
+      await db.delete(adminPropertyMemberships);
+      await db.insert(adminPropertyMemberships).values([
+        { userId: ids.staffManager, propertyId: ids.property },
+        {
+          userId: ids.targetStaff,
+          propertyId: ids.property,
+          status: 'REVOKED',
+          revokedAt: new Date(),
+        },
+        { userId: ids.targetStaff, propertyId: ids.otherProperty },
+      ]);
+
+      await expect(
+        service.updateAccount(staffManagerActor, ids.targetStaff, {
+          role: 'HOUSEKEEPING_MANAGER',
+          departmentIds: [ids.department],
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' },
+      });
+    });
+
+    test('DENY: STAFF_MANAGER cannot revoke an out-of-scope staff session', async () => {
+      await db.delete(adminPropertyMemberships);
+      await db.insert(adminPropertyMemberships).values([
+        { userId: ids.staffManager, propertyId: ids.property },
+        { userId: ids.targetStaff, propertyId: ids.otherProperty },
+      ]);
+
+      await expect(
+        service.revokeSessions(staffManagerActor, ids.targetStaff),
+      ).rejects.toMatchObject({
+        response: { code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' },
+      });
     });
   });
 });

@@ -19,6 +19,7 @@ interface DbRow {
   bookings: unknown;
   blocked_intervals: unknown;
   active_housekeeping_task: unknown;
+  latest_turnover_task: unknown;
 }
 
 const APPROVED_PEACE_HOME_PHYSICAL_ROOM_CODES = CLIENT_ROOM_MANIFEST.rooms.map(
@@ -70,13 +71,39 @@ export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
                   ) span
               ), '[]'::jsonb) AS blocked_intervals,
               (
-                SELECT jsonb_build_object('type', ht.type, 'status', ht.status, 'dueAt', ht.due_at)
+                SELECT jsonb_build_object(
+                  'taskId', ht.id,
+                  'type', ht.type,
+                  'status', ht.status,
+                  'dueAt', ht.due_at,
+                  'assigneeId', ht.assigned_to,
+                  'version', ht.version,
+                  'verifiedAt', ht.verified_at
+                )
                   FROM housekeeping_tasks ht
                  WHERE ht.property_id = r.property_id AND ht.room_id = r.id
                    AND ht.status IN ('SCHEDULED', 'DUE', 'IN_PROGRESS')
+                   AND (ht.status IN ('DUE', 'IN_PROGRESS') OR ht.due_at <= CURRENT_TIMESTAMP)
                  ORDER BY ht.due_at ASC, ht.id ASC
                  LIMIT 1
               ) AS active_housekeeping_task,
+              (
+                SELECT jsonb_build_object(
+                  'taskId', ht.id,
+                  'type', ht.type,
+                  'status', ht.status,
+                  'dueAt', ht.due_at,
+                  'assigneeId', ht.assigned_to,
+                  'version', ht.version,
+                  'verifiedAt', ht.verified_at
+                )
+                  FROM housekeeping_tasks ht
+                 WHERE ht.property_id = r.property_id
+                   AND ht.room_id = r.id
+                   AND ht.type = 'TURNOVER'
+                 ORDER BY ht.due_at DESC, ht.id DESC
+                 LIMIT 1
+              ) AS latest_turnover_task,
               COALESCE(jsonb_agg(jsonb_build_object(
                 'bookingCode', b.booking_code, 'status', b.status,
                 'checkIn', b.check_in, 'checkOut', b.check_out
@@ -130,17 +157,30 @@ export class RoomOperationsRepository implements RoomOperationsRepositoryPort {
           endsAt: new Date(interval.endsAt),
         }),
       ),
-      activeHousekeepingTask:
-        row.active_housekeeping_task === null
-          ? null
-          : (() => {
-              const task = row.active_housekeeping_task as {
-                type: 'ARRIVAL_PREP' | 'TURNOVER';
-                status: 'SCHEDULED' | 'DUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
-                dueAt: string;
-              };
-              return { type: task.type, status: task.status, dueAt: new Date(task.dueAt) };
-            })(),
+      activeHousekeepingTask: toHousekeepingTask(row.active_housekeeping_task),
+      latestTurnoverTask: toHousekeepingTask(row.latest_turnover_task),
     }));
   }
+}
+
+function toHousekeepingTask(value: unknown): RoomOperationRow['activeHousekeepingTask'] {
+  if (value === null) return null;
+  const task = value as {
+    taskId: string;
+    type: 'ARRIVAL_PREP' | 'TURNOVER';
+    status: 'SCHEDULED' | 'DUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+    dueAt: string;
+    assigneeId: string | null;
+    version: number;
+    verifiedAt: string | null;
+  };
+  return {
+    taskId: task.taskId,
+    type: task.type,
+    status: task.status,
+    dueAt: new Date(task.dueAt),
+    assigneeId: task.assigneeId,
+    version: task.version,
+    verifiedAt: task.verifiedAt === null ? null : new Date(task.verifiedAt),
+  };
 }

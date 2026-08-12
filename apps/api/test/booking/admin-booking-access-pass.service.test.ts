@@ -11,6 +11,7 @@ const booking: BookingAccessPassRecord = {
   accessPassVersion: 2,
   accessPassRevokedAt: null,
 };
+const propertyId = '00000000-0000-4000-8000-000000000101';
 
 describe('AdminBookingAccessPassService', () => {
   function subject(
@@ -44,7 +45,11 @@ describe('AdminBookingAccessPassService', () => {
 
   it('verifies a signed current pass and returns an ADMIN-only booking preview without the token', async () => {
     const { service, passes } = subject();
-    const result = await service.scan('signed-pass', new Date('2027-01-01T00:00:00.000Z'));
+    const result = await service.scan(
+      'signed-pass',
+      new Date('2027-01-01T00:00:00.000Z'),
+      propertyId,
+    );
 
     expect(result).toEqual({
       bookingCode: booking.bookingCode,
@@ -60,7 +65,7 @@ describe('AdminBookingAccessPassService', () => {
     const { service } = subject({
       payload: { bookingId: booking.bookingId, version: 1, expiresAt: 1_800_000_000 },
     });
-    await expect(service.scan('old-pass', new Date())).rejects.toBeInstanceOf(
+    await expect(service.scan('old-pass', new Date(), propertyId)).rejects.toBeInstanceOf(
       BookingAccessPassError,
     );
   });
@@ -69,12 +74,12 @@ describe('AdminBookingAccessPassService', () => {
     const { service: revoked } = subject({
       record: { ...booking, accessPassRevokedAt: new Date('2027-01-01T00:00:00.000Z') },
     });
-    await expect(revoked.scan('revoked-pass', new Date())).rejects.toBeInstanceOf(
+    await expect(revoked.scan('revoked-pass', new Date(), propertyId)).rejects.toBeInstanceOf(
       BookingAccessPassError,
     );
 
     const { service: cancelled } = subject({ record: { ...booking, status: 'CANCELLED' } });
-    await expect(cancelled.scan('cancelled-pass', new Date())).rejects.toBeInstanceOf(
+    await expect(cancelled.scan('cancelled-pass', new Date(), propertyId)).rejects.toBeInstanceOf(
       BookingAccessPassError,
     );
   });

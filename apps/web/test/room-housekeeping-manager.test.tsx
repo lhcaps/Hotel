@@ -8,16 +8,14 @@ vi.mock('../src/lib/admin-api', () => ({
     listRooms: vi.fn().mockResolvedValue({
       items: [{ id: 'room-1', roomNumber: 'S-01', status: 'ACTIVE', housekeepingStatus: 'DIRTY' }],
     }),
-    updateRoomHousekeeping: vi.fn(),
   },
 }));
 
 describe('RoomHousekeepingManager', () => {
-  it('shows a text housekeeping state and a labelled admin control', async () => {
+  it('shows a labelled read-only housekeeping state', async () => {
     render(<RoomHousekeepingManager />);
     expect(await screen.findByText('S-01')).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Vệ sinh cho phòng S-01' })).toHaveTextContent(
-      'Cần dọn',
-    );
+    expect(screen.getByLabelText(/S-01/)).toHaveTextContent(/\S/);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 });

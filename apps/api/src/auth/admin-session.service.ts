@@ -1,7 +1,7 @@
 import type { AdminProfileCode, HumanRole, Permission } from '@room/auth';
 
 export interface AdminAccess {
-  readonly role: Extract<HumanRole, 'SUPER_ADMIN' | 'ROOM_STATUS_VIEWER'>;
+  readonly role: HumanRole;
   readonly profileCode: AdminProfileCode;
   readonly profileLabelVi: string;
   readonly permissions: readonly Permission[];

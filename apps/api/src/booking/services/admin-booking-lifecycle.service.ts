@@ -85,6 +85,22 @@ function toBigIntAmount(value: string | number | bigint | null | undefined): big
   return typeof value === 'bigint' ? value : BigInt(value);
 }
 
+function resolveActorPropertyId(actor: ActorContext, requestedPropertyId?: string): string {
+  if (requestedPropertyId !== undefined) {
+    if (
+      actor.propertyIds === 'ALL' ||
+      (Array.isArray(actor.propertyIds) && actor.propertyIds.includes(requestedPropertyId))
+    ) {
+      return requestedPropertyId;
+    }
+    throw new BookingNotFoundError();
+  }
+  if (Array.isArray(actor.propertyIds) && actor.propertyIds.length === 1) {
+    return actor.propertyIds[0] as string;
+  }
+  throw new BookingNotFoundError();
+}
+
 function toAdminBookingSummary(
   row: Awaited<ReturnType<AdminBookingRepository['listBookings']>>['items'][number],
 ): AdminBookingSummary {
@@ -318,8 +334,13 @@ export class AdminBookingLifecycleService {
     });
   }
 
-  public async getDetail(bookingCode: string, now: Date): Promise<AdminBookingDetail> {
-    const detail = await this.repository.findDetailByBookingCode(bookingCode);
+  public async getDetail(
+    bookingCode: string,
+    now: Date,
+    propertyId?: string,
+  ): Promise<AdminBookingDetail> {
+    if (propertyId === undefined) throw new BookingNotFoundError();
+    const detail = await this.repository.findDetailByBookingCode(propertyId, bookingCode);
     if (detail === null) {
       throw new BookingNotFoundError();
     }
@@ -330,7 +351,9 @@ export class AdminBookingLifecycleService {
   public async cancellationPreview(
     bookingCode: string,
     now: Date,
+    propertyId?: string,
   ): Promise<AdminBookingCancellationPreview> {
+    if (propertyId === undefined) throw new BookingNotFoundError();
     const result = await this.pool.query<{
       booking_code: string;
       status: AdminBookingStatus;
@@ -349,9 +372,10 @@ export class AdminBookingLifecycleService {
          JOIN properties p ON p.id = b.property_id
          LEFT JOIN payments pay
            ON pay.booking_id = b.id AND pay.status = 'SUCCEEDED'
-        WHERE b.booking_code = $1
+        WHERE b.property_id = $1
+          AND b.booking_code = $2
         LIMIT 1`,
-      [bookingCode],
+      [propertyId, bookingCode],
     );
     const row = result.rows[0];
     if (row === undefined) throw new BookingNotFoundError();
@@ -416,12 +440,14 @@ export class AdminBookingLifecycleService {
     input: unknown,
     now: Date,
     idempotencyKey?: string,
+    propertyId?: string,
   ): Promise<AdminBookingDetail> {
+    const scopedPropertyId = resolveActorPropertyId(actor, propertyId);
     const command = adminBookingCancelRequestSchema.parse(input);
     const cancellationKey = normalizeCancellationKey(
       idempotencyKey ?? `legacy-admin:${actor.userId}:${bookingCode}:${now.getTime()}`,
     );
-    return this.runTransition(actor, bookingCode, now, async (client, row) => {
+    return this.runTransition(actor, scopedPropertyId, bookingCode, now, async (client, row) => {
       if (row.status === 'CANCELLED') {
         if (row.cancellation_idempotency_key === cancellationKey) return;
         throw new BookingTransitionError('Booking is already cancelled.');
@@ -542,96 +568,111 @@ export class AdminBookingLifecycleService {
     actor: ActorContext,
     bookingCode: string,
     now: Date,
+    propertyId?: string,
   ): Promise<AdminBookingDetail> {
-    return this.runTransition(actor, bookingCode, now, async (client, row) => {
-      if (row.status !== 'CONFIRMED') {
-        throw new BookingTransitionError(`Cannot check in a booking in status ${row.status}.`);
-      }
-      await assertCheckInReadiness(client, row, now);
-      await client.query(
-        `UPDATE bookings
+    return this.runTransition(
+      actor,
+      resolveActorPropertyId(actor, propertyId),
+      bookingCode,
+      now,
+      async (client, row) => {
+        if (row.status !== 'CONFIRMED') {
+          throw new BookingTransitionError(`Cannot check in a booking in status ${row.status}.`);
+        }
+        await assertCheckInReadiness(client, row, now);
+        await client.query(
+          `UPDATE bookings
             SET status = 'CHECKED_IN',
                 checked_in_at = $2,
                 updated_at = $2
           WHERE id = $1`,
-        [row.id, now],
-      );
-      await appendAudit(client, {
-        propertyId: row.property_id,
-        bookingId: row.id,
-        bookingCode: row.booking_code,
-        actor,
-        eventType: 'BOOKING_CHECKED_IN',
-        payload: { bookingCode: row.booking_code },
-      });
-      await enqueueBookingOutbox(client, {
-        propertyId: row.property_id,
-        bookingId: row.id,
-        eventType: 'booking.checked_in',
-        payload: { eventVersion: 1, bookingId: row.id },
-      });
-    });
+          [row.id, now],
+        );
+        await completeArrivalPreparation(client, row.id, actor.userId, now);
+        await appendAudit(client, {
+          propertyId: row.property_id,
+          bookingId: row.id,
+          bookingCode: row.booking_code,
+          actor,
+          eventType: 'BOOKING_CHECKED_IN',
+          payload: { bookingCode: row.booking_code },
+        });
+        await enqueueBookingOutbox(client, {
+          propertyId: row.property_id,
+          bookingId: row.id,
+          eventType: 'booking.checked_in',
+          payload: { eventVersion: 1, bookingId: row.id },
+        });
+      },
+    );
   }
 
   public async checkOut(
     actor: ActorContext,
     bookingCode: string,
     now: Date,
+    propertyId?: string,
   ): Promise<AdminBookingDetail> {
-    return this.runTransition(actor, bookingCode, now, async (client, row) => {
-      if (row.status !== 'CHECKED_IN') {
-        throw new BookingTransitionError(`Cannot check out a booking in status ${row.status}.`);
-      }
-      await lockAssignedRoom(client, row.property_id, row.room_id);
-      await client.query(
-        `UPDATE bookings
+    return this.runTransition(
+      actor,
+      resolveActorPropertyId(actor, propertyId),
+      bookingCode,
+      now,
+      async (client, row) => {
+        if (row.status !== 'CHECKED_IN') {
+          throw new BookingTransitionError(`Cannot check out a booking in status ${row.status}.`);
+        }
+        await lockAssignedRoom(client, row.property_id, row.room_id);
+        await client.query(
+          `UPDATE bookings
             SET status = 'CHECKED_OUT',
                 checked_out_at = $2,
                 updated_at = $2
           WHERE id = $1`,
-        [row.id, now],
-      );
-      await client.query(
-        `UPDATE rooms
+          [row.id, now],
+        );
+        await client.query(
+          `UPDATE rooms
             SET housekeeping_status = 'DIRTY',
                 updated_at = $2
           WHERE id = $1
             AND property_id = $3`,
-        [row.room_id, now, row.property_id],
-      );
-      await client.query(
-        `INSERT INTO housekeeping_tasks (
+          [row.room_id, now, row.property_id],
+        );
+        await client.query(
+          `INSERT INTO housekeeping_tasks (
             property_id, room_id, booking_id, type, status, due_at
          )
          VALUES ($1, $2, $3, 'TURNOVER', 'DUE', $4)
          ON CONFLICT (booking_id, type)
          WHERE booking_id IS NOT NULL
          DO NOTHING`,
-        [row.property_id, row.room_id, row.id, now],
-      );
-      await releaseInventoryBlock(client, row.id, now);
-      await revokeAccessCredentials(client, {
-        propertyId: row.property_id,
-        bookingId: row.id,
-        actorId: actor.userId,
-        now,
-        reason: 'CHECKOUT',
-      });
-      await appendAudit(client, {
-        propertyId: row.property_id,
-        bookingId: row.id,
-        bookingCode: row.booking_code,
-        actor,
-        eventType: 'BOOKING_CHECKED_OUT',
-        payload: { bookingCode: row.booking_code },
-      });
-      await enqueueBookingOutbox(client, {
-        propertyId: row.property_id,
-        bookingId: row.id,
-        eventType: 'booking.checked_out',
-        payload: { eventVersion: 1, bookingId: row.id },
-      });
-    });
+          [row.property_id, row.room_id, row.id, now],
+        );
+        await releaseInventoryBlock(client, row.id, now);
+        await revokeAccessCredentials(client, {
+          propertyId: row.property_id,
+          bookingId: row.id,
+          actorId: actor.userId,
+          now,
+          reason: 'CHECKOUT',
+        });
+        await appendAudit(client, {
+          propertyId: row.property_id,
+          bookingId: row.id,
+          bookingCode: row.booking_code,
+          actor,
+          eventType: 'BOOKING_CHECKED_OUT',
+          payload: { bookingCode: row.booking_code },
+        });
+        await enqueueBookingOutbox(client, {
+          propertyId: row.property_id,
+          bookingId: row.id,
+          eventType: 'booking.checked_out',
+          payload: { eventVersion: 1, bookingId: row.id },
+        });
+      },
+    );
   }
 
   public async markNoShow(
@@ -639,49 +680,56 @@ export class AdminBookingLifecycleService {
     bookingCode: string,
     input: unknown,
     now: Date,
+    propertyId?: string,
   ): Promise<AdminBookingDetail> {
     const command = adminBookingNoShowRequestSchema.parse(input);
-    return this.runTransition(actor, bookingCode, now, async (client, row) => {
-      if (row.status !== 'CONFIRMED') {
-        throw new BookingTransitionError(
-          `Cannot mark no-show for a booking in status ${row.status}.`,
-        );
-      }
-      const checkIn = asDate(row.check_in, 'check_in');
-      if (now.getTime() < checkIn.getTime()) {
-        throw new NoShowBeforeCheckInError();
-      }
-      const lateBySeconds = Math.max(0, Math.round((now.getTime() - checkIn.getTime()) / 1000));
-      await client.query(
-        `UPDATE bookings
+    return this.runTransition(
+      actor,
+      resolveActorPropertyId(actor, propertyId),
+      bookingCode,
+      now,
+      async (client, row) => {
+        if (row.status !== 'CONFIRMED') {
+          throw new BookingTransitionError(
+            `Cannot mark no-show for a booking in status ${row.status}.`,
+          );
+        }
+        const checkIn = asDate(row.check_in, 'check_in');
+        if (now.getTime() < checkIn.getTime()) {
+          throw new NoShowBeforeCheckInError();
+        }
+        const lateBySeconds = Math.max(0, Math.round((now.getTime() - checkIn.getTime()) / 1000));
+        await client.query(
+          `UPDATE bookings
             SET status = 'NO_SHOW',
                 no_show_at = $2,
                 cancellation_reason = $3,
                 updated_at = $2
           WHERE id = $1`,
-        [row.id, now, command.reason],
-      );
-      await cancelFutureArrivalPreparation(client, row.id, now);
-      await releaseInventoryBlock(client, row.id, now);
-      await appendAudit(client, {
-        propertyId: row.property_id,
-        bookingId: row.id,
-        bookingCode: row.booking_code,
-        actor,
-        eventType: 'BOOKING_NO_SHOW',
-        payload: {
+          [row.id, now, command.reason],
+        );
+        await cancelFutureArrivalPreparation(client, row.id, now);
+        await releaseInventoryBlock(client, row.id, now);
+        await appendAudit(client, {
+          propertyId: row.property_id,
+          bookingId: row.id,
           bookingCode: row.booking_code,
-          reason: command.reason,
-          lateBySeconds,
-        },
-      });
-      await enqueueBookingOutbox(client, {
-        propertyId: row.property_id,
-        bookingId: row.id,
-        eventType: 'booking.no_show',
-        payload: { eventVersion: 1, bookingId: row.id, lateBySeconds },
-      });
-    });
+          actor,
+          eventType: 'BOOKING_NO_SHOW',
+          payload: {
+            bookingCode: row.booking_code,
+            reason: command.reason,
+            lateBySeconds,
+          },
+        });
+        await enqueueBookingOutbox(client, {
+          propertyId: row.property_id,
+          bookingId: row.id,
+          eventType: 'booking.no_show',
+          payload: { eventVersion: 1, bookingId: row.id, lateBySeconds },
+        });
+      },
+    );
   }
 
   public async listOperationalReviews(
@@ -701,8 +749,10 @@ export class AdminBookingLifecycleService {
   public async getOperationalReviewDetail(
     reviewId: string,
     now: Date,
+    propertyId?: string,
   ): Promise<AdminOperationalReviewDetail> {
-    const detail = await this.repository.findOperationalReviewById(reviewId);
+    if (propertyId === undefined) throw new OperationalReviewNotFoundError();
+    const detail = await this.repository.findOperationalReviewById(propertyId, reviewId);
     if (detail === null) {
       throw new OperationalReviewNotFoundError();
     }
@@ -715,14 +765,16 @@ export class AdminBookingLifecycleService {
     reviewId: string,
     input: unknown,
     now: Date,
+    propertyId?: string,
   ): Promise<AdminOperationalReviewDetail> {
+    const scopedPropertyId = resolveActorPropertyId(actor, propertyId);
     const command = adminOperationalReviewResolveRequestSchema.parse(input);
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
       const lockResult = await client.query<{ status: 'OPEN' | 'RESOLVED' }>(
-        `SELECT status FROM operational_reviews WHERE id = $1 FOR UPDATE`,
-        [reviewId],
+        `SELECT status FROM operational_reviews WHERE property_id = $1 AND id = $2 FOR UPDATE`,
+        [scopedPropertyId, reviewId],
       );
       const current = lockResult.rows[0];
       if (current === undefined) {
@@ -734,8 +786,10 @@ export class AdminBookingLifecycleService {
         throw new OperationalReviewAlreadyResolvedError();
       }
       const reviewRowResult = await client.query<{ booking_id: string; property_id: string }>(
-        `SELECT booking_id, property_id FROM operational_reviews WHERE id = $1`,
-        [reviewId],
+        `SELECT booking_id, property_id
+           FROM operational_reviews
+          WHERE property_id = $1 AND id = $2`,
+        [scopedPropertyId, reviewId],
       );
       const reviewRow = reviewRowResult.rows[0];
       if (reviewRow === undefined) {
@@ -745,12 +799,12 @@ export class AdminBookingLifecycleService {
       await client.query(
         `UPDATE operational_reviews
             SET status = 'RESOLVED',
-                resolved_at = $2,
-                resolver_id = $3,
-                resolved_note = $4,
-                updated_at = $2
-          WHERE id = $1`,
-        [reviewId, now, actor.userId, command.note],
+                resolved_at = $3,
+                resolver_id = $4,
+                resolved_note = $5,
+                updated_at = $3
+          WHERE property_id = $1 AND id = $2`,
+        [scopedPropertyId, reviewId, now, actor.userId, command.note],
       );
       await appendAudit(client, {
         propertyId: reviewRow.property_id,
@@ -767,7 +821,7 @@ export class AdminBookingLifecycleService {
     } finally {
       client.release();
     }
-    const detail = await this.repository.findOperationalReviewById(reviewId);
+    const detail = await this.repository.findOperationalReviewById(scopedPropertyId, reviewId);
     if (detail === null) {
       throw new OperationalReviewNotFoundError();
     }
@@ -777,6 +831,7 @@ export class AdminBookingLifecycleService {
 
   private async runTransition(
     actor: ActorContext,
+    propertyId: string,
     bookingCode: string,
     now: Date,
     operation: (client: DatabasePoolClient, row: BookingLifecycleRow) => Promise<void>,
@@ -793,9 +848,10 @@ export class AdminBookingLifecycleService {
                 checked_out_at, no_show_at, cancellation_reason, hold_expires_at
            FROM bookings b
            JOIN properties p ON p.id = b.property_id
-          WHERE b.booking_code = $1
+          WHERE b.property_id = $1
+            AND b.booking_code = $2
           FOR UPDATE`,
-        [bookingCode],
+        [propertyId, bookingCode],
       );
       const row = lockResult.rows[0];
       if (row === undefined) {
@@ -810,7 +866,7 @@ export class AdminBookingLifecycleService {
     } finally {
       client.release();
     }
-    return this.getDetail(bookingCode, now);
+    return this.getDetail(bookingCode, now, propertyId);
   }
 }
 
@@ -935,6 +991,28 @@ async function cancelFutureArrivalPreparation(
         AND status IN ('SCHEDULED', 'DUE')
         AND due_at > $2`,
     [bookingId, now],
+  );
+}
+
+async function completeArrivalPreparation(
+  client: DatabasePoolClient,
+  bookingId: string,
+  actorId: string,
+  now: Date,
+): Promise<void> {
+  await client.query(
+    `UPDATE housekeeping_tasks
+        SET status = 'DONE',
+            started_at = COALESCE(started_at, $2),
+            started_by = COALESCE(started_by, $3),
+            completed_at = $2,
+            completed_by = $3,
+            version = version + 1,
+            updated_at = $2
+      WHERE booking_id = $1
+        AND type = 'ARRIVAL_PREP'
+        AND status IN ('SCHEDULED', 'DUE', 'IN_PROGRESS')`,
+    [bookingId, now, actorId],
   );
 }
 

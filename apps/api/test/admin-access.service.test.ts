@@ -55,6 +55,30 @@ describe('AdminAccessService', () => {
     ).rejects.toMatchObject({ response: { code: 'SUPER_ADMIN_REQUIRED' } });
   });
 
+  it('does not expose customer-account mutations to STAFF_MANAGER', async () => {
+    const service = new AdminAccessService({} as never);
+    const actor = {
+      userId: 'staff-manager-id',
+      email: 'staff-manager@example.test',
+      displayName: 'Staff Manager',
+      role: 'ADMIN' as const,
+      profileCode: 'STAFF_MANAGER' as const,
+      permissions: [],
+      departments: [],
+      propertyIds: ['550e8400-e29b-41d4-a716-446655440001'],
+      sessionId: 'session-id',
+      sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+      requestId: 'request-id',
+    };
+
+    await expect(service.listCustomerAccounts(actor)).rejects.toMatchObject({
+      response: { code: 'SUPER_ADMIN_REQUIRED' },
+    });
+    await expect(service.revokeCustomerSessions(actor, 'customer-id')).rejects.toMatchObject({
+      response: { code: 'SUPER_ADMIN_REQUIRED' },
+    });
+  });
+
   it('requires a department when assigning a V2 profile to a legacy ADMIN', async () => {
     const database = {
       query: {
@@ -62,6 +86,12 @@ describe('AdminAccessService', () => {
           findFirst: vi
             .fn()
             .mockResolvedValue({ id: 'legacy-id', role: 'ADMIN', status: 'ACTIVE' }),
+        },
+        adminMemberships: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        adminPropertyMemberships: {
+          findMany: vi.fn().mockResolvedValue([]),
         },
       },
     };
@@ -84,5 +114,80 @@ describe('AdminAccessService', () => {
     ).rejects.toMatchObject({
       response: { code: 'DEPARTMENT_REQUIRED' },
     });
+  });
+  it('persists active property membership when creating an operational account', async () => {
+    const propertyId = '550e8400-e29b-41d4-a716-446655440010';
+    const departmentId = '550e8400-e29b-41d4-a716-446655440011';
+    const createdId = '550e8400-e29b-41d4-a716-446655440012';
+    const inserted: unknown[] = [];
+    const createdUser = {
+      id: createdId,
+      name: 'Housekeeping staff',
+      email: 'housekeeping@example.test',
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      createdAt: new Date('2027-01-01T00:00:00.000Z'),
+    };
+    const database = {
+      query: {
+        adminDepartments: {
+          findMany: vi.fn().mockResolvedValue([{ id: departmentId }]),
+          findFirst: vi.fn().mockResolvedValue({ name: 'Housekeeping' }),
+        },
+        properties: { findMany: vi.fn().mockResolvedValue([{ id: propertyId }]) },
+        users: { findFirst: vi.fn().mockResolvedValue(createdUser) },
+        adminMemberships: {
+          findMany: vi
+            .fn()
+            .mockResolvedValue([{ departmentId, role: 'HOUSEKEEPING_STAFF', status: 'ACTIVE' }]),
+        },
+        adminPropertyMemberships: {
+          findMany: vi.fn().mockResolvedValue([{ propertyId, status: 'ACTIVE' }]),
+        },
+        sessions: { findMany: vi.fn().mockResolvedValue([]) },
+      },
+      transaction: async (operation: (transaction: unknown) => Promise<unknown>) =>
+        operation({
+          insert: vi.fn(() => ({
+            values: (value: unknown) => {
+              inserted.push(value);
+              return Promise.resolve();
+            },
+          })),
+        }),
+    };
+    const service = new AdminAccessService(
+      database as never,
+      {
+        api: {
+          createUser: vi.fn().mockResolvedValue({ user: { id: createdId } }),
+        },
+      } as never,
+    );
+    const actor = {
+      userId: 'super-admin-id',
+      email: 'admin@example.test',
+      displayName: 'Super Admin',
+      role: 'SUPER_ADMIN' as const,
+      profileCode: 'SUPER_ADMIN' as const,
+      permissions: [],
+      departments: [],
+      propertyIds: 'ALL' as const,
+      sessionId: 'session-id',
+      sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+      requestId: 'request-id',
+    };
+
+    await expect(
+      service.createAccount(actor, {
+        displayName: 'Housekeeping staff',
+        email: 'housekeeping@example.test',
+        password: 'Aa1-strong-password',
+        role: 'HOUSEKEEPING_STAFF',
+        departmentIds: [departmentId],
+        propertyIds: [propertyId],
+      }),
+    ).resolves.toMatchObject({ id: createdId, propertyIds: [propertyId] });
+    expect(inserted).toContainEqual([{ userId: createdId, propertyId, status: 'ACTIVE' }]);
   });
 });

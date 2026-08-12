@@ -12,9 +12,14 @@ export class AdminBookingAccessPassService {
     private readonly bookings: BookingDetailRepository,
   ) {}
 
-  public async scan(value: string, now: Date): Promise<AdminBookingAccessPassScanResponse> {
+  public async scan(
+    value: string,
+    now: Date,
+    propertyId?: string,
+  ): Promise<AdminBookingAccessPassScanResponse> {
+    if (propertyId === undefined) throw new BookingAccessPassError();
     const payload = this.passes.verify(value, now);
-    const booking = await this.bookings.findAccessPassRecord(payload.bookingId);
+    const booking = await this.bookings.findAccessPassRecord(propertyId, payload.bookingId);
     if (
       booking === null ||
       booking.accessPassRevokedAt !== null ||

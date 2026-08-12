@@ -38,6 +38,12 @@ import {
   couponListSchema,
   couponDeliveryQueueResultSchema,
   couponSchema,
+  housekeepingAssigneeSchema,
+  housekeepingTaskActionSchema,
+  housekeepingTaskAssignmentCommandSchema,
+  housekeepingTaskAssignmentSchema,
+  housekeepingTaskReopenCommandSchema,
+  housekeepingTaskVersionCommandSchema,
   maintenanceBlockCommandSchema,
   maintenanceBlockSchema,
   priceTierCommandSchema,
@@ -334,6 +340,25 @@ const document = {
               'application/json': { schema: { $ref: '#/components/schemas/AdminMe' } },
             },
           },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+        },
+      },
+    },
+    '/api/v1/admin/account-properties': {
+      get: {
+        operationId: 'listAssignableAdminProperties',
+        summary: 'List active properties available when provisioning an administrator.',
+        responses: {
+          '200': {
+            description: 'Active properties available to the SUPER_ADMIN actor.',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { $ref: '#/components/schemas/Property' } },
+              },
+            },
+          },
+          '400': { $ref: '#/components/responses/ValidationError' },
           '401': { $ref: '#/components/responses/AuthenticationRequired' },
           '403': { $ref: '#/components/responses/PermissionDenied' },
         },
@@ -992,6 +1017,118 @@ const document = {
         },
       },
     },
+    '/api/v1/admin/rooms/{id}/housekeeping/assignment': {
+      patch: {
+        operationId: 'assignRoomHousekeepingTask',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/HousekeepingTaskAssignmentCommand' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Assigned the current turnover task using its expected version.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/HousekeepingTaskAssignment' },
+              },
+            },
+          },
+          '400': { $ref: '#/components/responses/ValidationError' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { $ref: '#/components/responses/CatalogConflict' },
+        },
+      },
+    },
+    '/api/v1/admin/housekeeping/assignees': {
+      get: {
+        operationId: 'listHousekeepingAssignees',
+        summary: 'List active housekeeping staff scoped to the current property.',
+        responses: {
+          '200': {
+            description: 'Assignable housekeeping staff in the active property.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/HousekeepingAssignee' },
+                },
+              },
+            },
+          },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { $ref: '#/components/responses/CatalogConflict' },
+        },
+      },
+    },
+    '/api/v1/admin/rooms/{id}/housekeeping/verification': {
+      patch: {
+        operationId: 'verifyRoomHousekeepingTask',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/HousekeepingTaskVersionCommand' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Verified the completed turnover task using its expected version.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/HousekeepingTaskAction' },
+              },
+            },
+          },
+          '400': { $ref: '#/components/responses/ValidationError' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { $ref: '#/components/responses/CatalogConflict' },
+        },
+      },
+    },
+    '/api/v1/admin/rooms/{id}/housekeeping/reopen': {
+      patch: {
+        operationId: 'reopenRoomHousekeepingTask',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/HousekeepingTaskReopenCommand' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Reopened a verified turnover task using its expected version.',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/HousekeepingTaskAction' },
+              },
+            },
+          },
+          '400': { $ref: '#/components/responses/ValidationError' },
+          '401': { $ref: '#/components/responses/AuthenticationRequired' },
+          '403': { $ref: '#/components/responses/PermissionDenied' },
+          '409': { $ref: '#/components/responses/CatalogConflict' },
+        },
+      },
+    },
     '/api/v1/admin/maintenance-blocks': {
       get: {
         operationId: 'listMaintenanceBlocks',
@@ -1601,6 +1738,12 @@ const document = {
       Room: jsonSchema(roomSchema),
       RoomCommand: jsonSchema(roomCommandSchema),
       RoomHousekeepingCommand: jsonSchema(roomHousekeepingCommandSchema),
+      HousekeepingAssignee: jsonSchema(housekeepingAssigneeSchema),
+      HousekeepingTaskAction: jsonSchema(housekeepingTaskActionSchema),
+      HousekeepingTaskAssignment: jsonSchema(housekeepingTaskAssignmentSchema),
+      HousekeepingTaskAssignmentCommand: jsonSchema(housekeepingTaskAssignmentCommandSchema),
+      HousekeepingTaskReopenCommand: jsonSchema(housekeepingTaskReopenCommandSchema),
+      HousekeepingTaskVersionCommand: jsonSchema(housekeepingTaskVersionCommandSchema),
       RoomPatch: jsonSchema(roomPatchSchema),
       RoomType: jsonSchema(roomTypeSchema),
       RoomTypeCommand: jsonSchema(roomTypeCommandSchema),

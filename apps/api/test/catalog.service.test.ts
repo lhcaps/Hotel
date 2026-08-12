@@ -61,7 +61,7 @@ describe('CatalogService', () => {
     );
 
     await expect(
-      service.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN' }),
+      service.updateRoomHousekeeping(actor, room.id, { status: 'CLEAN', expectedVersion: 0 }),
     ).rejects.toMatchObject({
       code: 'ROOM_HOUSEKEEPING_INVALID_TRANSITION',
     });

@@ -7,11 +7,14 @@ import {
   adminCustomerAccountSchema,
   adminDepartmentCommandSchema,
   adminDepartmentSchema,
+  propertySchema,
 } from '@room/contracts';
 import {
   accounts,
+  and,
   adminDepartments,
   adminMemberships,
+  adminPropertyMemberships,
   auditEvents,
   bookings,
   eq,
@@ -97,7 +100,7 @@ export class AdminAccessService {
     private readonly auth?: ReturnType<typeof createRoomAuth>,
   ) {}
 
-  public async listAccounts() {
+  public async listAccounts(actor: ActorContext) {
     const rows = await this.database.query.users.findMany({
       where: (fields, { or, eq }) =>
         or(
@@ -108,7 +111,26 @@ export class AdminAccessService {
       orderBy: (fields, { asc }) => [asc(fields.email), asc(fields.id)],
     });
     const items = await Promise.all(rows.map((row) => this.account(row)));
-    return items.map((item) => adminAccountSchema.parse(item));
+    return items
+      .filter((item) => this.canReadAccount(actor, item))
+      .map((item) => adminAccountSchema.parse(item));
+  }
+
+  public async listAssignableProperties(actor: ActorContext) {
+    if (actor.profileCode !== 'SUPER_ADMIN') {
+      throw new BadRequestException({ code: 'SUPER_ADMIN_REQUIRED' });
+    }
+    const rows = await this.database.query.properties.findMany({
+      where: (fields, { eq }) => eq(fields.status, 'ACTIVE'),
+      orderBy: (fields, { asc }) => [asc(fields.name), asc(fields.id)],
+    });
+    return rows.map((row) =>
+      propertySchema.parse({
+        ...row,
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+      }),
+    );
   }
 
   public async updateAccount(actor: ActorContext, id: string, input: unknown) {
@@ -121,6 +143,9 @@ export class AdminAccessService {
     }
     if (actor.userId === id && patch.departmentIds !== undefined) {
       throw new BadRequestException({ code: 'SELF_MEMBERSHIP_CHANGE_FORBIDDEN' });
+    }
+    if (actor.userId === id && patch.propertyIds !== undefined) {
+      throw new BadRequestException({ code: 'SELF_PROPERTY_SCOPE_CHANGE_FORBIDDEN' });
     }
     const target = await this.database.query.users.findFirst({
       where: (fields, { eq }) => eq(fields.id, id),
@@ -178,35 +203,46 @@ export class AdminAccessService {
           throw new BadRequestException({ code: 'STAFF_MANAGER_PROFILE_NOT_DELEGABLE' });
         }
       }
+      if (patch.propertyIds !== undefined) {
+        throw new BadRequestException({ code: 'STAFF_MANAGER_PROPERTY_GRANT_FORBIDDEN' });
+      }
 
       // Property scope enforcement: STAFF_MANAGER can only manage staff within their authorized properties
       const targetPropertyMemberships = await this.database.query.adminPropertyMemberships.findMany(
         {
-          where: (fields, { eq }) => eq(fields.userId, id),
+          where: (fields, { and, eq }) => and(eq(fields.userId, id), eq(fields.status, 'ACTIVE')),
           columns: { propertyId: true },
         },
       );
       const targetPropertyIds = new Set(
-        targetPropertyMemberships.map((membership) => membership.propertyId),
+        targetPropertyMemberships
+          .map((membership) => membership.propertyId)
+          .filter((propertyId): propertyId is string => propertyId !== null),
       );
+      const actorPropertyIds = actor.propertyIds;
 
-      // If target has property memberships, verify STAFF_MANAGER has access to at least one
-      if (targetPropertyIds.size > 0) {
-        // STAFF_MANAGER must have explicit property list (not "ALL")
-        if (actor.propertyIds === 'ALL' || actor.propertyIds === undefined) {
-          // This should not happen in practice, but fail closed
-          throw new BadRequestException({ code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' });
-        }
-        const hasOverlap = actor.propertyIds.some((propertyId) =>
-          targetPropertyIds.has(propertyId),
-        );
-        if (!hasOverlap) {
-          throw new BadRequestException({ code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' });
-        }
+      // A global profile/status/session mutation must not affect a staff member
+      // who remains active in a property outside the manager's scope. Historical
+      // REVOKED rows are deliberately excluded above.
+      if (
+        actorPropertyIds === 'ALL' ||
+        actorPropertyIds === undefined ||
+        targetPropertyIds.size === 0 ||
+        [...targetPropertyIds].some((propertyId) => !actorPropertyIds.includes(propertyId))
+      ) {
+        throw new BadRequestException({ code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' });
       }
     }
 
-    const role = patch.role ?? (isAdminProfile(target.role) ? target.role : null);
+    const role =
+      patch.role ?? targetProfileCode ?? (isAdminProfile(target.role) ? target.role : null);
+    await this.assertSuperAdminRemainsActive(target, targetProfileCode, patch);
+    if (patch.propertyIds !== undefined && role === 'SUPER_ADMIN') {
+      throw new BadRequestException({ code: 'SUPER_ADMIN_PROPERTY_SCOPE_IMPLICIT' });
+    }
+    if (patch.propertyIds !== undefined) {
+      await this.assertActivePropertyIds(patch.propertyIds);
+    }
     if (patch.role === undefined && target.role === 'ADMIN' && patch.departmentIds !== undefined) {
       throw new BadRequestException({ code: 'ADMIN_PROFILE_REQUIRED' });
     }
@@ -261,16 +297,36 @@ export class AdminAccessService {
           .set({ role: patch.role as AdminProfileCode, updatedAt: new Date() })
           .where(eq(adminMemberships.userId, id));
       }
+      if (patch.propertyIds !== undefined) {
+        await transaction
+          .update(adminPropertyMemberships)
+          .set({ status: 'REVOKED', revokedAt: new Date(), updatedAt: new Date() })
+          .where(
+            and(
+              eq(adminPropertyMemberships.userId, id),
+              eq(adminPropertyMemberships.status, 'ACTIVE'),
+            ),
+          );
+        await transaction.insert(adminPropertyMemberships).values(
+          patch.propertyIds.map((propertyId) => ({
+            userId: id,
+            propertyId,
+            status: 'ACTIVE' as const,
+          })),
+        );
+      }
       await this.writeAudit(transaction, actor, id, 'ADMIN_ACCOUNT_UPDATED', {
         status: patch.status ?? target.status,
         role: role ?? target.role,
         departmentIds: patch.departmentIds ?? null,
+        propertyIds: patch.propertyIds ?? null,
       });
     });
     return this.accountById(id);
   }
 
-  public async listCustomerAccounts() {
+  public async listCustomerAccounts(actor: ActorContext) {
+    this.requireSuperAdmin(actor);
     const rows = await this.database
       .select({
         id: users.id,
@@ -326,6 +382,15 @@ export class AdminAccessService {
         throw new BadRequestException({ code: 'DEPARTMENT_NOT_FOUND' });
       }
     }
+    if (command.role !== 'SUPER_ADMIN' && command.propertyIds === undefined) {
+      throw new BadRequestException({ code: 'PROPERTY_SCOPE_REQUIRED' });
+    }
+    if (command.role === 'SUPER_ADMIN' && command.propertyIds !== undefined) {
+      throw new BadRequestException({ code: 'SUPER_ADMIN_PROPERTY_SCOPE_IMPLICIT' });
+    }
+    if (command.propertyIds !== undefined) {
+      await this.assertActivePropertyIds(command.propertyIds);
+    }
     const created = await createAuthAdminUser(this.auth, {
       email: command.email,
       name: command.displayName,
@@ -346,15 +411,26 @@ export class AdminAccessService {
           })),
         );
       }
+      if (command.propertyIds !== undefined) {
+        await transaction.insert(adminPropertyMemberships).values(
+          command.propertyIds.map((propertyId) => ({
+            userId: created.id,
+            propertyId,
+            status: 'ACTIVE' as const,
+          })),
+        );
+      }
       await this.writeAudit(transaction, actor, created.id, 'ADMIN_ACCOUNT_CREATED', {
         role: command.role,
         departmentIds: command.departmentIds,
+        propertyIds: command.propertyIds ?? [],
       });
     });
     return this.accountById(created.id);
   }
 
   public async updateCustomerAccount(actor: ActorContext, id: string, input: unknown) {
+    this.requireSuperAdmin(actor);
     const patch = adminCustomerAccountPatchSchema.parse(input);
     const target = await this.database.query.users.findFirst({
       where: (fields, { eq }) => eq(fields.id, id),
@@ -370,12 +446,13 @@ export class AdminAccessService {
     await this.writeAudit(this.database, actor, id, 'CUSTOMER_ACCOUNT_UPDATED', {
       status: patch.status,
     });
-    const updated = (await this.listCustomerAccounts()).find((item) => item.id === id);
+    const updated = (await this.listCustomerAccounts(actor)).find((item) => item.id === id);
     if (updated === undefined) throw new NotFoundException({ code: 'CUSTOMER_ACCOUNT_NOT_FOUND' });
     return updated;
   }
 
   public async revokeCustomerSessions(actor: ActorContext, id: string) {
+    this.requireSuperAdmin(actor);
     const target = await this.database.query.users.findFirst({
       where: (fields, { eq }) => eq(fields.id, id),
       columns: { id: true, role: true },
@@ -392,9 +469,12 @@ export class AdminAccessService {
   public async revokeSessions(actor: ActorContext, id: string) {
     const target = await this.database.query.users.findFirst({
       where: (fields, { eq }) => eq(fields.id, id),
-      columns: { id: true },
+      columns: { id: true, role: true },
     });
-    if (target === undefined) throw new NotFoundException({ code: 'ADMIN_ACCOUNT_NOT_FOUND' });
+    if (target === undefined || !isAdminRole(target.role)) {
+      throw new NotFoundException({ code: 'ADMIN_ACCOUNT_NOT_FOUND' });
+    }
+    await this.assertAdminTargetInScope(actor, id);
     const deleted = await this.database.delete(sessions).where(eq(sessions.userId, id));
     const revoked = deleted.rowCount ?? 0;
     await this.writeAudit(this.database, actor, id, 'ADMIN_SESSIONS_REVOKED', { revoked });
@@ -426,6 +506,7 @@ export class AdminAccessService {
   }
 
   public async createDepartment(actor: ActorContext, input: unknown) {
+    this.requireSuperAdmin(actor);
     const command = adminDepartmentCommandSchema.parse(input);
     const code = command.code.toUpperCase();
     try {
@@ -453,7 +534,8 @@ export class AdminAccessService {
     }
   }
 
-  public async listAudit() {
+  public async listAudit(actor: ActorContext) {
+    this.requireSuperAdmin(actor);
     const rows = await this.database
       .select({
         id: auditEvents.id,
@@ -487,10 +569,125 @@ export class AdminAccessService {
     return adminAccountSchema.parse(await this.account(row));
   }
 
+  private canReadAccount(
+    actor: ActorContext,
+    account: {
+      readonly id: string;
+      readonly profileCode: AdminProfileCode | null;
+      readonly propertyIds: readonly string[];
+    },
+  ): boolean {
+    if (actor.profileCode === 'SUPER_ADMIN') return true;
+    if (actor.profileCode !== 'STAFF_MANAGER') return false;
+    if (!this.isStaffManagerDelegableProfile(account.profileCode))
+      return account.id === actor.userId;
+    return this.areAllPropertiesInActorScope(actor, account.propertyIds);
+  }
+
+  private async assertAdminTargetInScope(actor: ActorContext, id: string): Promise<void> {
+    if (actor.profileCode === 'SUPER_ADMIN') return;
+    if (actor.profileCode !== 'STAFF_MANAGER' || id === actor.userId) {
+      throw new BadRequestException({ code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' });
+    }
+    const [memberships, propertyMemberships] = await Promise.all([
+      this.database.query.adminMemberships.findMany({
+        where: (fields, { and, eq }) => and(eq(fields.userId, id), eq(fields.status, 'ACTIVE')),
+        columns: { role: true },
+      }),
+      this.database.query.adminPropertyMemberships.findMany({
+        where: (fields, { and, eq }) => and(eq(fields.userId, id), eq(fields.status, 'ACTIVE')),
+        columns: { propertyId: true },
+      }),
+    ]);
+    const targetProfile =
+      memberships
+        .map((membership) => membership.role)
+        .filter((role): role is AdminProfileCode => isAdminProfile(role))
+        .sort((left, right) => ADMIN_PROFILE_RANK[right] - ADMIN_PROFILE_RANK[left])[0] ?? null;
+    if (!this.isStaffManagerDelegableProfile(targetProfile)) {
+      throw new BadRequestException({ code: 'STAFF_MANAGER_PROFILE_NOT_DELEGABLE' });
+    }
+    if (
+      !this.areAllPropertiesInActorScope(
+        actor,
+        propertyMemberships
+          .map((membership) => membership.propertyId)
+          .filter((propertyId): propertyId is string => propertyId !== null),
+      )
+    ) {
+      throw new BadRequestException({ code: 'STAFF_MANAGER_PROPERTY_SCOPE_VIOLATION' });
+    }
+  }
+
+  private areAllPropertiesInActorScope(
+    actor: ActorContext,
+    propertyIds: readonly string[],
+  ): boolean {
+    const actorPropertyIds = actor.propertyIds;
+    return (
+      actorPropertyIds !== 'ALL' &&
+      actorPropertyIds !== undefined &&
+      propertyIds.length > 0 &&
+      propertyIds.every((propertyId) => actorPropertyIds.includes(propertyId))
+    );
+  }
+
+  private isStaffManagerDelegableProfile(
+    profileCode: AdminProfileCode | null,
+  ): profileCode is Exclude<
+    AdminProfileCode,
+    'SUPER_ADMIN' | 'STAFF_MANAGER' | 'OPERATIONS_MANAGER'
+  > {
+    return (
+      profileCode === 'ROOM_STATUS_VIEWER' ||
+      profileCode === 'HOUSEKEEPING_MANAGER' ||
+      profileCode === 'HOUSEKEEPING_STAFF' ||
+      profileCode === 'PAYMENT_STAFF' ||
+      profileCode === 'MAINTENANCE_MANAGER' ||
+      profileCode === 'MAINTENANCE_STAFF'
+    );
+  }
+
+  private requireSuperAdmin(actor: ActorContext): void {
+    if (actor.profileCode !== 'SUPER_ADMIN') {
+      throw new BadRequestException({ code: 'SUPER_ADMIN_REQUIRED' });
+    }
+  }
+
+  private async assertSuperAdminRemainsActive(
+    target: { readonly role: string; readonly status: string },
+    targetProfileCode: AdminProfileCode | null,
+    patch: {
+      readonly status?: 'ACTIVE' | 'DISABLED' | undefined;
+      readonly role?: string | undefined;
+      readonly departmentIds?: readonly string[] | undefined;
+    },
+  ): Promise<void> {
+    const targetIsSuperAdmin = target.role === 'SUPER_ADMIN' || targetProfileCode === 'SUPER_ADMIN';
+    const removesFinalAccess =
+      patch.status === 'DISABLED' ||
+      (patch.role !== undefined && patch.role !== 'SUPER_ADMIN') ||
+      patch.departmentIds?.length === 0;
+    if (!targetIsSuperAdmin || !removesFinalAccess) return;
+
+    const activeSuperAdmins = await this.database.query.users.findMany({
+      where: (fields, { and, eq }) =>
+        and(eq(fields.role, 'SUPER_ADMIN'), eq(fields.status, 'ACTIVE')),
+      columns: { id: true },
+    });
+    if (activeSuperAdmins.length <= 1) {
+      throw new ConflictException({ code: 'LAST_SUPER_ADMIN_FORBIDDEN' });
+    }
+  }
+
   private async account(row: typeof users.$inferSelect) {
-    const [memberships, activeSessions] = await Promise.all([
+    const [memberships, propertyMemberships, activeSessions] = await Promise.all([
       this.database.query.adminMemberships.findMany({
         where: (fields, { and, eq }) => and(eq(fields.userId, row.id), eq(fields.status, 'ACTIVE')),
+      }),
+      this.database.query.adminPropertyMemberships.findMany({
+        where: (fields, { and, eq }) => and(eq(fields.userId, row.id), eq(fields.status, 'ACTIVE')),
+        columns: { propertyId: true },
       }),
       this.database.query.sessions.findMany({
         where: (fields, { and, eq, gt }) =>
@@ -521,6 +718,9 @@ export class AdminAccessService {
       profileCode,
       profileLabelVi: profileCode === null ? null : ADMIN_PROFILE_LABELS_VI[profileCode],
       departments: departments.filter((name): name is string => name !== undefined),
+      propertyIds: propertyMemberships
+        .map((membership) => membership.propertyId)
+        .filter((propertyId): propertyId is string => propertyId !== null),
       activeSessionCount: activeSessions.length,
       lastActivityAt:
         activeSessions
@@ -529,6 +729,17 @@ export class AdminAccessService {
           ?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
     };
+  }
+
+  private async assertActivePropertyIds(propertyIds: readonly string[]): Promise<void> {
+    const activeProperties = await this.database.query.properties.findMany({
+      where: (fields, { and, eq }) =>
+        and(eq(fields.status, 'ACTIVE'), inArray(fields.id, [...propertyIds])),
+      columns: { id: true },
+    });
+    if (activeProperties.length !== propertyIds.length) {
+      throw new BadRequestException({ code: 'PROPERTY_NOT_FOUND' });
+    }
   }
 
   private async writeAudit(

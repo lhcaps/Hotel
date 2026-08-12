@@ -7,6 +7,7 @@ import {
   BedDouble,
   Building2,
   CalendarDays,
+  ClipboardCheck,
   CreditCard,
   GitBranch,
   LayoutDashboard,
@@ -48,6 +49,12 @@ const groups = [
     label: 'admin.navOperations',
     links: [
       ['admin.roomOperations', '/admin/room-operations', 'room_operations.read', PanelsTopLeft],
+      [
+        'admin.housekeepingWorkboard',
+        '/admin/housekeeping',
+        'housekeeping.task.read',
+        ClipboardCheck,
+      ],
       ['admin.rooms', '/admin/rooms', 'catalog.room.read', BedDouble],
       ['admin.maintenance', '/admin/maintenance', 'catalog.maintenance.read', Wrench],
       ['admin.roomTypes', '/admin/room-types', 'catalog.room_type.read', Building2],
@@ -84,7 +91,8 @@ function isCurrent(pathname: string, href: string) {
 }
 
 const ROOM_STATUS_VIEWER_NAVIGATION = new Set(['/admin/room-operations']);
-const HOUSEKEEPING_STAFF_NAVIGATION = new Set(['/admin/room-operations']);
+const HOUSEKEEPING_STAFF_NAVIGATION = new Set(['/admin/room-operations', '/admin/housekeeping']);
+const HOUSEKEEPING_MANAGER_NAVIGATION = new Set(['/admin/room-operations', '/admin/housekeeping']);
 
 export function AdminNavigation({
   locale,
@@ -113,6 +121,9 @@ export function AdminNavigation({
           return false;
         }
         if (profileCode === 'HOUSEKEEPING_STAFF' && !HOUSEKEEPING_STAFF_NAVIGATION.has(href)) {
+          return false;
+        }
+        if (profileCode === 'HOUSEKEEPING_MANAGER' && !HOUSEKEEPING_MANAGER_NAVIGATION.has(href)) {
           return false;
         }
         return permissions?.includes(required) ?? false;

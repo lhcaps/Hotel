@@ -267,6 +267,13 @@
       "sha256": "f4e8b0c37483ccf0c4a7e55e3de153eb68bd569490e2d4c52164f995f5d375f6",
       "phase": "Operations V3 maintenance RBAC profiles",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 38,
+      "fileName": "0038_young_rachel_grey.sql",
+      "sha256": "3dd59f3fd86ffe6a77f048b300661091940c01a203f4262235eee3d6dd661d1a",
+      "phase": "Operations V3 STAFF_MANAGER RBAC profile",
+      "previousIntroductionReference": null
     }
   ]
 }

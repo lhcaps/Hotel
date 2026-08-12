@@ -43,6 +43,7 @@ export const stayIntentSchema = z.enum(['hourly', 'overnight', 'multi_night']);
 
 const publicIntervalSchema = z
   .object({
+    propertyId: uuidSchema.optional(),
     checkIn: instantSchema,
     checkOut: instantSchema,
     mode: stayModeSchema.optional(),
@@ -66,6 +67,7 @@ const publicIntervalSchema = z
  */
 export const multiNightIntentSchema = z
   .object({
+    propertyId: uuidSchema.optional(),
     checkIn: instantSchema,
     checkOut: instantSchema,
     mode: z.literal('multi_night'),
@@ -219,6 +221,8 @@ export const availabilityPolicySchema = z
 
 export const availabilityRoomTypeSchema = z
   .object({
+    propertyId: uuidSchema.optional(),
+    propertyName: z.string().trim().min(1).max(160).optional(),
     roomTypeId: uuidSchema,
     roomTypeName: z.string().trim().min(1).max(160),
     maxAdults: z.number().int().min(1),
@@ -379,6 +383,30 @@ export const multiNightPricingSchema = z
     restrictionRank: z.number().int().min(0).max(64_000),
     stableCandidateId: z.string().regex(/^[a-f0-9]{64}$/),
     rationale: z.string().trim().min(1).max(1_000),
+    selectionReason: z
+      .enum([
+        'LOWEST_VALID_CUSTOMER_TOTAL',
+        'FEWER_COMPONENTS_TIE_BREAK',
+        'LOWER_CONDITION_COMPLEXITY_TIE_BREAK',
+        'LOWER_RESTRICTION_RANK_TIE_BREAK',
+        'STABLE_CANDIDATE_TIE_BREAK',
+      ])
+      .optional(),
+    alternatives: z
+      .array(
+        z
+          .object({
+            stableCandidateId: z.string().regex(/^[a-f0-9]{64}$/),
+            finalAmountVnd: amountVndSchema,
+            componentCount: z.number().int().min(1).max(64),
+            conditionComplexity: z.number().int().min(0).max(64_000),
+            restrictionRank: z.number().int().min(0).max(64_000),
+            rationale: z.string().trim().min(1).max(1_000),
+          })
+          .strict(),
+      )
+      .max(23)
+      .optional(),
   })
   .strict()
   .superRefine((value, context) => {
@@ -426,6 +454,7 @@ export const cancellationPolicySchema = z
 export const quoteSchema = z
   .object({
     id: uuidSchema,
+    propertyId: uuidSchema.optional(),
     roomTypeId: uuidSchema,
     roomTypeName: z.string().trim().min(1).max(160),
     checkIn: instantSchema,

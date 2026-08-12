@@ -35,6 +35,7 @@ export class RoomOperationsController {
         bookings: [],
         freeWindows: [],
         activeHousekeepingTask: null,
+        latestTurnoverTask: null,
       })),
     });
   }

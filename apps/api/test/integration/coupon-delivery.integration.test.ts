@@ -88,6 +88,7 @@ describe('coupon delivery repository', () => {
     const repository = new CouponDeliveryRepository(pool);
     const command = {
       actorId: '8d0e8400-e29b-41d4-a716-446655440199',
+      propertyId: ids.property,
       bookingCode,
       couponCodes: ['WELCOME10', 'STAY20'],
       idempotencyKey: 'coupon-delivery-request-0001',
@@ -123,6 +124,7 @@ describe('coupon delivery repository', () => {
     await expect(
       repository.queue({
         actorId: '8d0e8400-e29b-41d4-a716-446655440199',
+        propertyId: ids.property,
         bookingCode,
         couponCodes: ['UNKNOWN10'],
         idempotencyKey: 'coupon-delivery-request-0002',

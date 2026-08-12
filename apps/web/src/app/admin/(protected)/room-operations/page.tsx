@@ -12,7 +12,7 @@ export default async function RoomOperationsPage() {
         title={translate(locale, 'admin.roomOperations')}
         description={translate(locale, 'admin.roomOperationsHelp')}
       />
-      <RoomOperationsBoard viewerMode />
+      <RoomOperationsBoard />
     </div>
   );
 }

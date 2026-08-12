@@ -58,19 +58,20 @@ export class QuoteRepository implements QuoteRepositoryPort {
   public constructor(private readonly database: Database) {}
 
   private async roomContextFor(input: CreateQuoteRequest) {
-    const property = await this.database.query.properties.findFirst({
-      where: (item, operators) => operators.eq(item.status, 'ACTIVE'),
-      orderBy: (item, operators) => [operators.asc(item.createdAt), operators.asc(item.id)],
+    const roomType = await this.database.query.roomTypes.findFirst({
+      where: (row, op) => op.and(op.eq(row.id, input.roomTypeId), op.eq(row.status, 'ACTIVE')),
     });
-    const roomType =
-      property === undefined
+    const property =
+      roomType === undefined
         ? undefined
-        : await this.database.query.roomTypes.findFirst({
-            where: (row, op) =>
-              op.and(
-                op.eq(row.id, input.roomTypeId),
-                op.eq(row.propertyId, property.id),
-                op.eq(row.status, 'ACTIVE'),
+        : await this.database.query.properties.findFirst({
+            where: (item, operators) =>
+              operators.and(
+                operators.eq(item.id, roomType.propertyId),
+                operators.eq(item.status, 'ACTIVE'),
+                ...(input.propertyId === undefined
+                  ? []
+                  : [operators.eq(item.id, input.propertyId)]),
               ),
           });
     if (property === undefined || roomType === undefined) return undefined;
@@ -82,22 +83,22 @@ export class QuoteRepository implements QuoteRepositoryPort {
   }
 
   public async catalogFor(input: CreateQuoteRequest) {
-    // Match the public availability projection: the product currently has one
-    // customer-facing property and both paths must resolve it deterministically.
-    const property = await this.database.query.properties.findFirst({
-      where: (item, operators) => operators.eq(item.status, 'ACTIVE'),
-      orderBy: (item, operators) => [operators.asc(item.createdAt), operators.asc(item.id)],
+    const roomType = await this.database.query.roomTypes.findFirst({
+      where: (row, op) => op.and(op.eq(row.id, input.roomTypeId), op.eq(row.status, 'ACTIVE')),
     });
-    const roomType = property
-      ? await this.database.query.roomTypes.findFirst({
-          where: (row, op) =>
-            op.and(
-              op.eq(row.id, input.roomTypeId),
-              op.eq(row.propertyId, property.id),
-              op.eq(row.status, 'ACTIVE'),
-            ),
-        })
-      : undefined;
+    const property =
+      roomType === undefined
+        ? undefined
+        : await this.database.query.properties.findFirst({
+            where: (item, operators) =>
+              operators.and(
+                operators.eq(item.id, roomType.propertyId),
+                operators.eq(item.status, 'ACTIVE'),
+                ...(input.propertyId === undefined
+                  ? []
+                  : [operators.eq(item.id, input.propertyId)]),
+              ),
+          });
     if (!property || !roomType) return undefined;
     if (
       !isWithinPropertyStayPolicy(
@@ -203,6 +204,7 @@ export class QuoteRepository implements QuoteRepositoryPort {
       : pricing.totalAmountVnd;
     const snapshot: Record<string, unknown> = {
       id: randomUUID(),
+      propertyId: source.propertyId,
       roomTypeId: input.roomTypeId,
       roomTypeName: source.roomTypeName,
       checkIn: input.checkIn,

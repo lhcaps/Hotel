@@ -11,6 +11,7 @@ const catalogCodeSchema = z
 const nameSchema = z.string().trim().min(1).max(160);
 const optionalDescriptionSchema = z.string().trim().min(1).max(2_000).nullable().optional();
 const statusSchema = z.enum(['ACTIVE', 'INACTIVE']);
+const customerFacingCapacitySchema = z.union([z.literal(2), z.literal(4)]);
 export const adminRoleSchema = z.enum(['ADMIN', 'SUPER_ADMIN', 'ROOM_STATUS_VIEWER']);
 export const adminProfileCodeSchema = z.enum([
   'SUPER_ADMIN',
@@ -94,6 +95,7 @@ export const adminAccountSchema = z
     profileCode: adminProfileCodeSchema.nullable(),
     profileLabelVi: z.string().trim().min(1).max(160).nullable(),
     departments: z.array(z.string().min(1).max(160)).readonly(),
+    propertyIds: z.array(uuidSchema).readonly(),
     activeSessionCount: z.number().int().min(0),
     lastActivityAt: instantSchema.nullable(),
     createdAt: instantSchema,
@@ -105,6 +107,7 @@ export const adminAccountPatchSchema = z
     status: z.enum(['ACTIVE', 'DISABLED']).optional(),
     role: adminProfileCodeSchema.optional(),
     departmentIds: z.array(uuidSchema).min(1).max(20).optional(),
+    propertyIds: z.array(uuidSchema).min(1).max(100).optional(),
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, 'At least one account change is required.');
@@ -116,6 +119,7 @@ export const adminAccountCreateSchema = z
     password: z.string().min(8).max(128),
     role: adminProfileCodeSchema,
     departmentIds: z.array(uuidSchema).min(1).max(20),
+    propertyIds: z.array(uuidSchema).min(1).max(100).optional(),
   })
   .strict();
 
@@ -254,7 +258,7 @@ export const roomTypeCommandSchema = z
     description: optionalDescriptionSchema,
     maxAdults: z.number().int().min(1).max(20),
     maxChildren: z.number().int().min(0).max(20).default(0),
-    maxOccupancy: z.number().int().min(1).max(40),
+    maxOccupancy: customerFacingCapacitySchema,
   })
   .strict()
   .superRefine((value, context) => {
@@ -278,7 +282,7 @@ export const roomTypePatchSchema = z
     description: z.union([z.string().trim().min(1).max(2_000), z.null()]).optional(),
     maxAdults: z.number().int().min(1).max(20).optional(),
     maxChildren: z.number().int().min(0).max(20).optional(),
-    maxOccupancy: z.number().int().min(1).max(40).optional(),
+    maxOccupancy: customerFacingCapacitySchema.optional(),
     priceTierId: uuidSchema.optional(),
   })
   .strict()
@@ -391,7 +395,10 @@ export const roomPatchSchema = z
 export type RoomPatch = z.infer<typeof roomPatchSchema>;
 
 export const roomHousekeepingCommandSchema = z
-  .object({ status: roomHousekeepingStatusSchema })
+  .object({
+    status: roomHousekeepingStatusSchema,
+    expectedVersion: z.number().int().min(0),
+  })
   .strict();
 
 export const housekeepingTaskAssignmentCommandSchema = z
@@ -426,6 +433,14 @@ export const housekeepingTaskActionSchema = z
     roomId: uuidSchema,
     version: z.number().int().min(1),
   })
+  .strict();
+
+export const housekeepingAssigneeSchema = z
+  .object({ id: uuidSchema, displayName: nameSchema })
+  .strict();
+
+export const housekeepingAssigneeListSchema = z
+  .object({ items: z.array(housekeepingAssigneeSchema).max(100).readonly() })
   .strict();
 
 export const maintenanceBlockSchema = z
@@ -491,5 +506,6 @@ export type HousekeepingTaskAssignment = z.infer<typeof housekeepingTaskAssignme
 export type HousekeepingTaskVersionCommand = z.infer<typeof housekeepingTaskVersionCommandSchema>;
 export type HousekeepingTaskReopenCommand = z.infer<typeof housekeepingTaskReopenCommandSchema>;
 export type HousekeepingTaskAction = z.infer<typeof housekeepingTaskActionSchema>;
+export type HousekeepingAssignee = z.infer<typeof housekeepingAssigneeSchema>;
 export type MaintenanceBlock = z.infer<typeof maintenanceBlockSchema>;
 export type MaintenanceBlockCommand = z.infer<typeof maintenanceBlockCommandSchema>;

@@ -520,7 +520,10 @@ export class AdminBookingRepository {
     };
   }
 
-  public async findDetailByBookingCode(bookingCode: string): Promise<AdminBookingDetailRow | null> {
+  public async findDetailByBookingCode(
+    propertyId: string,
+    bookingCode: string,
+  ): Promise<AdminBookingDetailRow | null> {
     const result = await this.pool.query<AdminBookingDetailDbRow>(
       `SELECT b.id                       AS booking_id,
               b.booking_code             AS booking_code,
@@ -589,9 +592,10 @@ export class AdminBookingRepository {
             ORDER BY opened_at DESC
             LIMIT 1
          ) rv ON TRUE
-        WHERE b.booking_code = $1
+        WHERE b.property_id = $1
+          AND b.booking_code = $2
         LIMIT 1`,
-      [bookingCode],
+      [propertyId, bookingCode],
     );
     const row = result.rows[0];
     if (row === undefined) return null;
@@ -689,6 +693,7 @@ export class AdminBookingRepository {
   }
 
   public async findOperationalReviewById(
+    propertyId: string,
     reviewId: string,
   ): Promise<AdminOperationalReviewDetailRow | null> {
     const result = await this.pool.query<AdminOperationalReviewDbRow>(
@@ -720,9 +725,10 @@ export class AdminBookingRepository {
          JOIN room_types rt ON rt.property_id = b.property_id AND rt.id = b.room_type_id
          LEFT JOIN rooms r ON r.property_id = b.property_id AND r.id = b.room_id
          LEFT JOIN payments pay ON pay.booking_id = b.id
-        WHERE rv.id = $1
+        WHERE rv.property_id = $1
+          AND rv.id = $2
         LIMIT 1`,
-      [reviewId],
+      [propertyId, reviewId],
     );
     const row = result.rows[0];
     if (row === undefined) return null;

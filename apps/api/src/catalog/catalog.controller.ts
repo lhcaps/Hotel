@@ -215,6 +215,13 @@ export class CatalogController {
     return this.catalog.assignRoomHousekeeping(request.actor, id, body);
   }
 
+  @Get('housekeeping/assignees')
+  @Version('1')
+  @RequirePermissions('housekeeping.task.manage')
+  public housekeepingAssignees(@Req() request: { actor: ActorContext }) {
+    return this.catalog.listHousekeepingAssignees(request.actor);
+  }
+
   @Patch('rooms/:id/housekeeping/verification')
   @Version('1')
   @RequirePermissions('housekeeping.task.manage')

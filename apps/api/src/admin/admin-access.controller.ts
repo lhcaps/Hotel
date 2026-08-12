@@ -24,15 +24,22 @@ export class AdminAccessController {
   @Get('accounts')
   @Version('1')
   @RequirePermissions('admin.account.read')
-  public accounts() {
-    return this.access.listAccounts();
+  public accounts(@Req() request: { actor: ActorContext }) {
+    return this.access.listAccounts(request.actor);
+  }
+
+  @Get('account-properties')
+  @Version('1')
+  @RequirePermissions('admin.account.manage')
+  public accountProperties(@Req() request: { actor: ActorContext }) {
+    return this.access.listAssignableProperties(request.actor);
   }
 
   @Get('customer-accounts')
   @Version('1')
   @RequirePermissions('admin.account.read')
-  public customerAccounts() {
-    return this.access.listCustomerAccounts();
+  public customerAccounts(@Req() request: { actor: ActorContext }) {
+    return this.access.listCustomerAccounts(request.actor);
   }
 
   @Post('accounts')
@@ -95,7 +102,7 @@ export class AdminAccessController {
   @Get('audit')
   @Version('1')
   @RequirePermissions('admin.audit.read')
-  public audit() {
-    return this.access.listAudit();
+  public audit(@Req() request: { actor: ActorContext }) {
+    return this.access.listAudit(request.actor);
   }
 }

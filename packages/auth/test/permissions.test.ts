@@ -174,8 +174,8 @@ describe('V3 RBAC operational profiles — least-privilege separation', () => {
     expect(perms).toContain('admin.account.read');
     expect(perms).toContain('admin.account.manage');
     expect(perms).toContain('admin.department.read');
-    expect(perms).toContain('admin.department.manage');
-    expect(perms).toContain('admin.audit.read');
+    expect(perms).not.toContain('admin.department.manage');
+    expect(perms).not.toContain('admin.audit.read');
     // Must NOT have booking, financial, or operational mutation
     expect(perms).not.toContain('bookings.read');
     expect(perms).not.toContain('bookings.manage');

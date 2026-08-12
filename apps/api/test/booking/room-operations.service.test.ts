@@ -91,9 +91,13 @@ describe('deriveRoomDisplayGroup (ORIG-C-005)', () => {
     const room = {
       ...baseRoom(),
       activeHousekeepingTask: {
+        taskId: '10000000-0000-4000-8000-000000000201',
         type: 'TURNOVER' as const,
         status: 'IN_PROGRESS' as const,
         dueAt: NOW,
+        assigneeId: '10000000-0000-4000-8000-000000000202',
+        version: 2,
+        verifiedAt: null,
       },
     };
     expect(deriveRoomDisplayGroup(room, NOW)).toBe('cleaning');
@@ -101,6 +105,52 @@ describe('deriveRoomDisplayGroup (ORIG-C-005)', () => {
 
   it('returns ready when clean, vacant, no upcoming booking, no active task', () => {
     expect(deriveRoomDisplayGroup(baseRoom(), NOW)).toBe('ready');
+  });
+});
+
+describe('RoomOperationsService currentOccupancy derivation', () => {
+  it('treats an early-checked-out booking as vacant even while its scheduled window has not elapsed', async () => {
+    const repository = {
+      list: vi.fn().mockResolvedValue([
+        {
+          roomId: '10000000-0000-4000-8000-000000000101',
+          roomNumber: '101',
+          roomConcept: 'Deluxe King',
+          physicalRoomCode: 'ROOM-101',
+          roomTier: 'Standard',
+          floor: '1',
+          roomStatus: 'ACTIVE',
+          housekeepingStatus: 'CLEAN',
+          maintenanceState: 'NONE',
+          blockedIntervals: [],
+          activeHousekeepingTask: null,
+          bookings: [
+            {
+              bookingCode: 'BK-101',
+              status: 'CHECKED_OUT',
+              checkIn: new Date(nowMs - 60 * 60 * 1000),
+              checkOut: new Date(nowMs + 5 * 60 * 60 * 1000),
+            },
+          ],
+        },
+      ]),
+    };
+    const service = new RoomOperationsService(repository);
+
+    await expect(
+      service.list(
+        'property-1',
+        { from: '2026-08-01T00:00:00.000Z', to: '2026-08-01T23:59:59.999Z' },
+        NOW,
+      ),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          currentOccupancy: 'VACANT',
+          displayGroup: 'ready',
+        },
+      ],
+    });
   });
 });
 

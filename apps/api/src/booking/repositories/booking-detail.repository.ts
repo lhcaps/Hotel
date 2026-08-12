@@ -208,7 +208,10 @@ export class BookingDetailRepository {
     return toBookingDetailRecord(row);
   }
 
-  public async findAccessPassRecord(bookingId: string): Promise<BookingAccessPassRecord | null> {
+  public async findAccessPassRecord(
+    propertyId: string,
+    bookingId: string,
+  ): Promise<BookingAccessPassRecord | null> {
     const result = await this.client.execute<
       {
         booking_id: string;
@@ -224,7 +227,8 @@ export class BookingDetailRepository {
                   access_pass_version,
                   access_pass_revoked_at
              FROM bookings
-            WHERE id = ${bookingId}`,
+            WHERE property_id = ${propertyId}
+              AND id = ${bookingId}`,
     );
     const row = result.rows[0];
     if (row === undefined) return null;

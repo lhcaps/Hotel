@@ -80,6 +80,24 @@ export interface MultiNightPricingCandidate {
   readonly restrictionRank: number;
   readonly stableCandidateId: string;
   readonly rationale: string;
+  readonly selectionReason?: MultiNightPricingSelectionReason;
+  readonly alternatives?: readonly MultiNightPricingAlternative[];
+}
+
+export type MultiNightPricingSelectionReason =
+  | 'LOWEST_VALID_CUSTOMER_TOTAL'
+  | 'FEWER_COMPONENTS_TIE_BREAK'
+  | 'LOWER_CONDITION_COMPLEXITY_TIE_BREAK'
+  | 'LOWER_RESTRICTION_RANK_TIE_BREAK'
+  | 'STABLE_CANDIDATE_TIE_BREAK';
+
+export interface MultiNightPricingAlternative {
+  readonly stableCandidateId: string;
+  readonly finalAmountVnd: number;
+  readonly componentCount: number;
+  readonly conditionComplexity: number;
+  readonly restrictionRank: number;
+  readonly rationale: string;
 }
 
 export interface MultiNightPricingResult {
@@ -369,16 +387,18 @@ function candidateFor(
     conditionComplexity,
     restrictionRank: restrictionRankValue,
     stableCandidateId,
-    rationale: 'Exact continuous coverage using one published policy release.',
+    rationale: `Exact continuous coverage using ${lines.length} published component${
+      lines.length === 1 ? '' : 's'
+    }.`,
   };
 }
 
 function candidateSort(a: MultiNightPricingCandidate, b: MultiNightPricingCandidate): number {
   return (
+    a.finalAmountVnd - b.finalAmountVnd ||
     a.componentCount - b.componentCount ||
     a.conditionComplexity - b.conditionComplexity ||
     a.restrictionRank - b.restrictionRank ||
-    a.finalAmountVnd - b.finalAmountVnd ||
     a.stableCandidateId.localeCompare(b.stableCandidateId)
   );
 }

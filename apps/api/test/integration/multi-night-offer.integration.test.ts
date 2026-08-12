@@ -47,14 +47,22 @@ import type { ActorContext } from '../../src/auth/actor-context.js';
 
 const ids = {
   property: '00000000-0000-4000-8000-000000008101',
+  otherProperty: '00000000-0000-4000-8000-000000008102',
   tier: '00000000-0000-4000-8000-000000008201',
+  otherTier: '00000000-0000-4000-8000-000000008202',
   roomType: '00000000-0000-4000-8000-000000008301',
+  otherRoomType: '00000000-0000-4000-8000-000000008302',
   roomA: '00000000-0000-4000-8000-000000008401',
   roomB: '00000000-0000-4000-8000-000000008402',
+  otherRoom: '00000000-0000-4000-8000-000000008403',
   nightPlan: '00000000-0000-4000-8000-000000008501',
   extraPlan: '00000000-0000-4000-8000-000000008502',
+  otherNightPlan: '00000000-0000-4000-8000-000000008503',
+  otherExtraPlan: '00000000-0000-4000-8000-000000008504',
   nightPrice: '00000000-0000-4000-8000-000000008601',
   extraPrice: '00000000-0000-4000-8000-000000008602',
+  otherNightPrice: '00000000-0000-4000-8000-000000008603',
+  otherExtraPrice: '00000000-0000-4000-8000-000000008604',
   admin: '00000000-0000-4000-8000-000000008901',
   maintenanceA: '00000000-0000-4000-8000-000000008701',
   maintenanceB: '00000000-0000-4000-8000-000000008702',
@@ -72,6 +80,7 @@ const adminActor: ActorContext = {
   displayName: 'B0 Runtime Admin',
   role: 'ADMIN',
   permissions: ['booking.lifecycle.read', 'booking.lifecycle.manage'],
+  propertyIds: [ids.property],
   sessionId: ids.admin,
   sessionExpiresAt: new Date('2030-01-01T00:00:00.000Z'),
   requestId: 'b0-runtime-lifecycle-request',
@@ -101,6 +110,7 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
   let database: GuardedTestDatabase;
   let availability: AvailabilityService;
   let quotes: QuoteService;
+  let policyService: PricingPolicyService;
 
   beforeAll(async () => {
     const url = process.env.TEST_DATABASE_URL;
@@ -110,7 +120,7 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
     );
     const client: DatabaseClient = createDatabaseClient(database.pool);
     const policyRepository = new PricingPolicyRepository(client);
-    const policyService = new PricingPolicyService(
+    policyService = new PricingPolicyService(
       client as unknown as {
         transaction<T>(operation: (transaction: unknown) => Promise<T>): Promise<T>;
       },
@@ -799,5 +809,100 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
     } finally {
       await lifecyclePool.end();
     }
+  });
+
+  it('searches, quotes, and persists the selected active property without first-property fallback', async () => {
+    await database.pool.query(
+      `INSERT INTO properties
+        (id, code, name, timezone, minimum_stay_minutes, maximum_stay_minutes,
+         minimum_lead_time_minutes, maximum_advance_booking_days, default_overnight_duration_minutes)
+       VALUES ($1, 'B0_SECOND', 'B0 Second Property', 'Asia/Ho_Chi_Minh', 60, 44640, 0, 2000, 720)`,
+      [ids.otherProperty],
+    );
+    await database.pool.query(
+      `INSERT INTO price_tiers (id, property_id, code, name, sort_order)
+       VALUES ($1, $2, 'B0_SECOND_STANDARD', 'B0 second standard', 1)`,
+      [ids.otherTier, ids.otherProperty],
+    );
+    await database.pool.query(
+      `INSERT INTO room_types
+        (id, property_id, price_tier_id, code, name, max_adults, max_children, max_occupancy)
+       VALUES ($1, $2, $3, 'B0_SECOND_DELUXE', 'B0 Second Deluxe', 2, 1, 3)`,
+      [ids.otherRoomType, ids.otherProperty, ids.otherTier],
+    );
+    await database.pool.query(
+      `INSERT INTO rooms (id, property_id, room_type_id, room_number)
+       VALUES ($1, $2, $3, 'B0-SECOND-101')`,
+      [ids.otherRoom, ids.otherProperty, ids.otherRoomType],
+    );
+    await database.pool.query(
+      `INSERT INTO rate_plans
+       (id, property_id, code, name, status, included_duration_minutes, priority, is_base_plan,
+         min_duration_minutes_inclusive, max_duration_minutes_inclusive)
+       VALUES
+        ($1, $3, 'NIGHT_COMBO', 'Night combo', 'ACTIVE', 720, 1, true, 60, 1440),
+        ($2, $3, 'EXTRA_HOUR', 'Extra hour', 'ACTIVE', 60, 2, false, NULL, NULL)`,
+      [ids.otherNightPlan, ids.otherExtraPlan, ids.otherProperty],
+    );
+    await database.pool.query(
+      `INSERT INTO rate_plan_prices (id, property_id, rate_plan_id, price_tier_id, amount_vnd)
+       VALUES ($1, $4, $2, $3, 700000), ($5, $4, $6, $3, 120000)`,
+      [
+        ids.otherNightPrice,
+        ids.otherNightPlan,
+        ids.otherTier,
+        ids.otherProperty,
+        ids.otherExtraPrice,
+        ids.otherExtraPlan,
+      ],
+    );
+    const policyActor = {
+      userId: ids.admin,
+      requestId: 'b0-second-property-bootstrap',
+      propertyIds: [ids.otherProperty] as readonly string[] | 'ALL',
+    };
+    const bootstrapped = await policyService.bootstrapDraft(policyActor, {
+      internalName: 'B0 second property bootstrap',
+      effectiveFrom: new Date('2027-01-01T00:00:00.000Z'),
+      overnightWindow: '21-09',
+      nightPlanCode: 'NIGHT_COMBO',
+      extraHourPlanCode: 'EXTRA_HOUR',
+      idempotencyKey: 'b0-second-property-bootstrap-001',
+      dryRun: false,
+    });
+    await policyService.publishInitial(policyActor, bootstrapped.policyId);
+
+    const input = stay(28, 1);
+    const allProperties = await availability.search(input);
+    expect(allProperties.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ propertyId: ids.property, roomTypeId: ids.roomType }),
+        expect.objectContaining({ propertyId: ids.otherProperty, roomTypeId: ids.otherRoomType }),
+      ]),
+    );
+
+    const selectedProperty = await availability.search({ ...input, propertyId: ids.otherProperty });
+    expect(selectedProperty.items).toHaveLength(1);
+    expect(selectedProperty.items[0]).toMatchObject({
+      propertyId: ids.otherProperty,
+      roomTypeId: ids.otherRoomType,
+    });
+
+    const quote = await quotes.issue({ ...input, roomTypeId: ids.otherRoomType });
+    expect(quote).toMatchObject({ propertyId: ids.otherProperty });
+    if (!('selectionReason' in quote.pricing)) {
+      throw new Error('expected a multi-night selection explanation');
+    }
+    expect(quote.pricing.selectionReason).toBe('LOWEST_VALID_CUSTOMER_TOTAL');
+    expect(quote.pricing.alternatives).toEqual(expect.any(Array));
+    const persisted = await database.pool.query<{ property_id: string }>(
+      `SELECT property_id FROM quotes WHERE id = $1`,
+      [quote.id],
+    );
+    expect(persisted.rows[0]?.property_id).toBe(ids.otherProperty);
+
+    await expect(
+      quotes.issue({ ...input, propertyId: ids.property, roomTypeId: ids.otherRoomType }),
+    ).rejects.toMatchObject({ code: 'NO_VALID_PRICING' });
   });
 });

@@ -9,6 +9,7 @@ import { CouponDeliveryError } from '../coupon-delivery.errors.js';
 
 export interface CouponDeliveryQueueCommand {
   readonly actorId: string;
+  readonly propertyId: string;
   readonly bookingCode: string;
   readonly couponCodes: readonly string[];
   readonly idempotencyKey: string;
@@ -39,10 +40,15 @@ export class CouponDeliveryService {
     bookingCode: string,
     input: unknown,
     idempotencyKey: string,
+    propertyId?: string,
   ): Promise<CouponDeliveryQueueResult> {
+    if (propertyId === undefined) {
+      throw new CouponDeliveryError('COUPON_DELIVERY_BOOKING_NOT_FOUND');
+    }
     const command: AdminBookingCouponDelivery = adminBookingCouponDeliverySchema.parse(input);
     return this.repository.queue({
       actorId: actor.userId,
+      propertyId,
       bookingCode,
       couponCodes: command.couponCodes,
       idempotencyKey: parseIdempotencyKey(idempotencyKey),

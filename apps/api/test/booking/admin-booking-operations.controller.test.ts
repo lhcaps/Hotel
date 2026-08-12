@@ -14,7 +14,7 @@ describe('AdminBookingOperationsController', () => {
     } as unknown as AdminBookingAccessPassService;
     const controller = new AdminBookingOperationsController(
       {} as never,
-      {} as never,
+      { getCurrent: vi.fn().mockResolvedValue({ id: 'property-id' }) } as never,
       {} as never,
       scanner,
     );
@@ -29,7 +29,11 @@ describe('AdminBookingOperationsController', () => {
       status: 'CONFIRMED',
       action: 'check-in',
     });
-    expect(scanner.scan).toHaveBeenCalledWith('signed-access-pass-value', expect.any(Date));
+    expect(scanner.scan).toHaveBeenCalledWith(
+      'signed-access-pass-value',
+      expect.any(Date),
+      'property-id',
+    );
     expect(result).not.toHaveProperty('value');
   });
 });

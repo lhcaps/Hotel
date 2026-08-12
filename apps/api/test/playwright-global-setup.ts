@@ -7,6 +7,7 @@ import { join } from 'node:path';
 
 import type { FullConfig } from '@playwright/test';
 import { createDatabaseClient } from '@room/database';
+import { hashPassword } from 'better-auth/crypto';
 import {
   createPreparedGuardedTestDatabase,
   type GuardedTestDatabase,
@@ -39,6 +40,24 @@ const PLAYWRIGHT_OIDC_PORT = 3420;
 const PLAYWRIGHT_OIDC_PROVIDER_ID = 'det-oauth';
 const PLAYWRIGHT_OIDC_CLIENT_ID = 'playwright-oauth-test-client';
 const PLAYWRIGHT_OIDC_CLIENT_SECRET = 'playwright-oauth-test-secret-with-enough-length';
+
+function goldenFlowPricingWindow(now: Date): {
+  readonly localStartMinute: number;
+  readonly localEndMinute: number;
+  readonly localEndDayOffset: number;
+} {
+  // Keep the real end-to-end lifecycle runnable at any wall-clock time. The
+  // published B0 shape remains a 24-hour local-clock window plus continuations;
+  // only this isolated fixture's clock window is moved ahead of the test.
+  const windowStart = new Date(now.getTime() + 30 * 60_000);
+  windowStart.setUTCSeconds(0, 0);
+  windowStart.setUTCMinutes(Math.ceil(windowStart.getUTCMinutes() / 15) * 15);
+  const propertyLocal = new Date(windowStart.getTime() + 7 * 60 * 60_000);
+  const localStartMinute = propertyLocal.getUTCHours() * 60 + propertyLocal.getUTCMinutes();
+  return localStartMinute === 0
+    ? { localStartMinute, localEndMinute: 1_440, localEndDayOffset: 0 }
+    : { localStartMinute, localEndMinute: localStartMinute, localEndDayOffset: 1 };
+}
 
 function buildOauthAuthorizationUrl(port: number): string {
   return `http://${PLAYWRIGHT_OIDC_HOST}:${port}/oauth2/authorize`;
@@ -311,7 +330,26 @@ INSERT INTO rate_plans (id, property_id, code, name, status, included_duration_m
                          minimum_order_amount_vnd, valid_from, valid_until, applies_to_all_room_types)
        VALUES ('10000000-0000-4000-8000-000000000801', '10000000-0000-4000-8000-000000000001', 'DEMO-FIXED',
                'ACTIVE', 'FIXED', 50000, 0,
-               CURRENT_TIMESTAMP - interval '1 day', CURRENT_TIMESTAMP + interval '365 days', true);`,
+               CURRENT_TIMESTAMP - interval '1 day', CURRENT_TIMESTAMP + interval '365 days', true);
+     INSERT INTO admin_departments (id, code, name)
+       VALUES ('10000000-0000-4000-8000-000000000901', 'HOUSEKEEPING', 'Housekeeping')
+       ON CONFLICT (id) DO NOTHING;
+     INSERT INTO users (id, name, email, email_verified, role, status)
+       VALUES ('10000000-0000-4000-8000-000000000902', 'Playwright Housekeeping Staff', 'housekeeping.staff.playwright@example.test', true, 'ADMIN', 'ACTIVE')
+       ON CONFLICT (id) DO NOTHING;
+     INSERT INTO admin_memberships (user_id, department_id, role, status)
+       VALUES ('10000000-0000-4000-8000-000000000902', '10000000-0000-4000-8000-000000000901', 'HOUSEKEEPING_STAFF', 'ACTIVE')
+       ON CONFLICT (user_id, department_id) DO NOTHING;
+     INSERT INTO admin_property_memberships (user_id, property_id, status)
+       VALUES ('10000000-0000-4000-8000-000000000902', '10000000-0000-4000-8000-000000000001', 'ACTIVE');`,
+  );
+  const staffPassword = await hashPassword(requirePlaywrightAdminPassword());
+  await database.pool.query(
+    `INSERT INTO accounts (account_id, provider_id, user_id, password)
+     VALUES ($1::text, 'credential', $1::uuid, $2)
+     ON CONFLICT (provider_id, account_id)
+     DO UPDATE SET password = EXCLUDED.password, updated_at = CURRENT_TIMESTAMP`,
+    ['10000000-0000-4000-8000-000000000902', staffPassword],
   );
 }
 
@@ -332,6 +370,7 @@ async function seedPlaywrightB0Policy(database: GuardedTestDatabase): Promise<vo
   if (adminId === undefined) throw new Error('Playwright B0 admin bootstrap did not create a user');
   const actor = {
     userId: adminId,
+    propertyIds: 'ALL' as const,
     requestId: 'playwright-b0-policy-bootstrap',
     correlationId: 'playwright-b0-policy-correlation',
   };
@@ -350,6 +389,22 @@ async function seedPlaywrightB0Policy(database: GuardedTestDatabase): Promise<vo
       `Playwright B0 policy is not publication-ready: ${JSON.stringify(bootstrapped.errors)}`,
     );
   }
+  const window = goldenFlowPricingWindow(new Date());
+  await database.pool.query(
+    `UPDATE pricing_policy_components
+        SET local_start_minute_inclusive = $2,
+            local_end_minute_exclusive = $3,
+            local_end_day_offset = $4,
+            updated_at = CURRENT_TIMESTAMP
+      WHERE policy_version_id = $1
+        AND component_code = 'B0_FINAL_NIGHT'`,
+    [
+      bootstrapped.policyId,
+      window.localStartMinute,
+      window.localEndMinute,
+      window.localEndDayOffset,
+    ],
+  );
   await service.publishInitial(actor, bootstrapped.policyId, 'playwright-b0-publish-001');
 }
 
@@ -564,8 +619,22 @@ export default async function globalSetup(_config: FullConfig): Promise<() => Pr
     await seedPlaywrightCatalog(database);
     await seedPhase8iReportingEvidence(database);
     await bootstrapPlaywrightAdmin(database.databaseUrl);
-    const b0Enabled = process.env.PLAYWRIGHT_B0_ENABLED === 'true';
-    if (b0Enabled) await seedPlaywrightB0Policy(database);
+    // Grant the admin user access to the Playwright property before seeding policy
+    await database.pool.query(
+      `INSERT INTO admin_property_memberships (user_id, property_id, status)
+       SELECT u.id, '10000000-0000-4000-8000-000000000001', 'ACTIVE'
+       FROM users u
+       WHERE u.email = 'admin.playwright@example.test'
+       AND NOT EXISTS (
+         SELECT 1 FROM admin_property_memberships apm
+         WHERE apm.user_id = u.id
+         AND COALESCE(apm.property_id, '00000000-0000-0000-0000-000000000000'::uuid) = '10000000-0000-4000-8000-000000000001'::uuid
+         AND apm.status = 'ACTIVE'
+       )`,
+    );
+    // Always seed B0 pricing policy for Operations V3 tests (golden flow, multi-night, etc.)
+    await seedPlaywrightB0Policy(database);
+    const b0Enabled = true; // Always enabled for Operations V3
     const api = startServer(
       'Playwright API',
       ['--filter', '@room/api', 'exec', 'tsx', 'src/main.ts'],
@@ -680,6 +749,7 @@ export default async function globalSetup(_config: FullConfig): Promise<() => Pr
         WORKER_MODE: 'continuous',
         WORKER_OUTBOX_INTERVAL_MS: '250',
         WORKER_EXPIRATION_INTERVAL_MS: '1000',
+        WORKER_HOUSEKEEPING_REMINDER_INTERVAL_MS: '250',
         WORKER_ERROR_BACKOFF_MS: '100',
         WORKER_MAX_ERROR_BACKOFF_MS: '1000',
       },

@@ -205,7 +205,7 @@ describe('composeMultiNightPricing', () => {
     ).toThrow(MultiNightPricingError);
   });
 
-  it('ranks customer-convenient valid coverage before a cheaper restricted alternative', () => {
+  it('selects the lowest-total complete valid candidate before component and restriction ties', () => {
     const base = policy();
     const restrictedContinuation = component(
       RESTRICTED_CONTINUATION_ID,
@@ -240,9 +240,10 @@ describe('composeMultiNightPricing', () => {
 
     const result = compose('2026-08-06T14:00:00.000Z', '2026-08-08T02:00:00.000Z', ranked);
     expect(result.selected.lines.map((line) => line.componentCode)).toEqual([
-      'B0_CONTINUATION',
+      'B0_RESTRICTED_CONTINUATION',
       'B0_FINAL_NIGHT',
     ]);
+    expect(result.selected.finalAmountVnd).toBe(500_001);
   });
 
   it('is deterministic and rejects a gap outside the supported graph', () => {

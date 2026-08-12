@@ -85,8 +85,46 @@ export class MultiNightOfferService {
     }
     this.options.publicGate.assertEnabled();
     this.options.pricingGate.assertEnabled();
+    if (input.propertyId === undefined) {
+      const activeProperties = await this.options.database.query.properties.findMany({
+        where: (row, operators) => operators.eq(row.status, 'ACTIVE'),
+        orderBy: (row, operators) => [operators.asc(row.createdAt), operators.asc(row.id)],
+      });
+      if (activeProperties.length > 1) {
+        const responses = await Promise.all(
+          activeProperties.map((property) => this.search({ ...input, propertyId: property.id })),
+        );
+        const items = responses.flatMap((response) => response.items);
+        const state =
+          items.length > 0
+            ? 'AVAILABLE'
+            : ((
+                [
+                  'NO_CONTINUOUS_ROOM',
+                  'NO_VALID_PRICING',
+                  'POLICY_NOT_CONFIGURED',
+                  'ABOVE_MAXIMUM_STAY',
+                  'BELOW_MINIMUM_STAY',
+                  'INVALID_INTERVAL',
+                  'CATALOG_UNAVAILABLE',
+                ] as const
+              ).find((candidate) => responses.some((response) => response.state === candidate)) ??
+              'NO_VALID_PRICING');
+        return availabilitySearchResponseSchema.parse({
+          state,
+          requestedInterval: { checkIn: input.checkIn, checkOut: input.checkOut },
+          items,
+        });
+      }
+    }
     const property = await this.options.database.query.properties.findFirst({
-      where: (row, operators) => operators.eq(row.status, 'ACTIVE'),
+      where: (row, operators) =>
+        input.propertyId === undefined
+          ? operators.eq(row.status, 'ACTIVE')
+          : operators.and(
+              operators.eq(row.id, input.propertyId),
+              operators.eq(row.status, 'ACTIVE'),
+            ),
       orderBy: (row, operators) => [operators.asc(row.createdAt), operators.asc(row.id)],
     });
     if (property === undefined) {
@@ -225,6 +263,8 @@ export class MultiNightOfferService {
         });
         return [
           {
+            propertyId: property.id,
+            propertyName: property.name,
             roomTypeId: roomType.id,
             roomTypeName: roomType.name,
             maxAdults: roomType.maxAdults,
@@ -270,9 +310,18 @@ export class MultiNightOfferService {
   ): Promise<MultiNightQuoteSource | undefined> {
     if (input.mode !== 'multi_night') return undefined;
     this.options.pricingGate.assertEnabled();
+    const roomType = await this.options.database.query.roomTypes.findFirst({
+      where: (row, operators) =>
+        operators.and(operators.eq(row.id, input.roomTypeId), operators.eq(row.status, 'ACTIVE')),
+    });
+    if (roomType === undefined) return undefined;
     const property = await this.options.database.query.properties.findFirst({
-      where: (row, operators) => operators.eq(row.status, 'ACTIVE'),
-      orderBy: (row, operators) => [operators.asc(row.createdAt), operators.asc(row.id)],
+      where: (row, operators) =>
+        operators.and(
+          operators.eq(row.id, roomType.propertyId),
+          operators.eq(row.status, 'ACTIVE'),
+          ...(input.propertyId === undefined ? [] : [operators.eq(row.id, input.propertyId)]),
+        ),
     });
     if (property === undefined) return undefined;
     const policy = propertyStayPolicy(property);
@@ -288,15 +337,6 @@ export class MultiNightOfferService {
     ) {
       return undefined;
     }
-    const roomType = await this.options.database.query.roomTypes.findFirst({
-      where: (row, operators) =>
-        operators.and(
-          operators.eq(row.id, input.roomTypeId),
-          operators.eq(row.propertyId, property.id),
-          operators.eq(row.status, 'ACTIVE'),
-        ),
-    });
-    if (roomType === undefined) return undefined;
     const tier = await this.options.database.query.priceTiers.findFirst({
       where: (row, operators) =>
         operators.and(

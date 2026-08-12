@@ -62,7 +62,11 @@ const profileOptions: readonly { readonly value: AdminProfileCode; readonly labe
     { value: 'MAINTENANCE_STAFF', label: 'admin.roleMaintenanceStaff' },
     { value: 'STAFF_MANAGER', label: 'admin.roleStaffManager' },
   ];
-type AccountDraft = { readonly role: AdminProfileCode; readonly departmentIds: readonly string[] };
+type AccountDraft = {
+  readonly role: AdminProfileCode;
+  readonly departmentIds: readonly string[];
+  readonly propertyIds: readonly string[];
+};
 
 export default function AdminAccountsPage() {
   const locale = useLocale();
@@ -76,6 +80,9 @@ export default function AdminAccountsPage() {
   const [departments, setDepartments] = useState<
     Awaited<ReturnType<typeof adminApi.listAdminDepartments>>
   >([]);
+  const [accountProperties, setAccountProperties] = useState<
+    Awaited<ReturnType<typeof adminApi.listAccountProperties>>
+  >([]);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState<string>();
   const [me, setMe] = useState<Awaited<ReturnType<typeof adminApi.me>>>();
@@ -86,7 +93,15 @@ export default function AdminAccountsPage() {
     password: string;
     role: AdminProfileCode;
     departmentIds: string[];
-  }>({ displayName: '', email: '', password: '', role: 'ROOM_STATUS_VIEWER', departmentIds: [] });
+    propertyIds: string[];
+  }>({
+    displayName: '',
+    email: '',
+    password: '',
+    role: 'ROOM_STATUS_VIEWER',
+    departmentIds: [],
+    propertyIds: [],
+  });
   const [createMessage, setCreateMessage] = useState<string>();
   const [createOpen, setCreateOpen] = useState(false);
   const [editAccountId, setEditAccountId] = useState<string>();
@@ -100,10 +115,13 @@ export default function AdminAccountsPage() {
         adminApi.me(),
         adminApi.listAdminDepartments(),
       ]);
+      const availableProperties =
+        current.profileCode === 'SUPER_ADMIN' ? await adminApi.listAccountProperties() : [];
       setItems(accounts);
       setCustomers(customerAccounts);
       setMe(current);
       setDepartments(availableDepartments);
+      setAccountProperties(availableProperties);
       setError(undefined);
     } catch (cause) {
       setError(
@@ -118,16 +136,23 @@ export default function AdminAccountsPage() {
 
   async function createAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (createForm.role !== 'SUPER_ADMIN' && createForm.propertyIds.length === 0) {
+      setError(translate(locale, 'admin.propertyScopeRequired'));
+      return;
+    }
     setPending('create');
     setCreateMessage(undefined);
     try {
-      await adminApi.createAdminAccount(createForm);
+      await adminApi.createAdminAccount(
+        createForm.role === 'SUPER_ADMIN' ? { ...createForm, propertyIds: undefined } : createForm,
+      );
       setCreateForm({
         displayName: '',
         email: '',
         password: '',
         role: 'ROOM_STATUS_VIEWER',
         departmentIds: [],
+        propertyIds: [],
       });
       setCreateMessage(translate(locale, 'admin.accountCreated'));
       setCreateOpen(false);
@@ -148,6 +173,7 @@ export default function AdminAccountsPage() {
         departmentIds: departments
           .filter((department) => item.departments.includes(department.name))
           .map((department) => department.id),
+        propertyIds: item.propertyIds,
       }
     );
   }
@@ -166,9 +192,16 @@ export default function AdminAccountsPage() {
       setError(translate(locale, 'admin.departmentsRequired'));
       return false;
     }
+    if (draft.role !== 'SUPER_ADMIN' && draft.propertyIds.length === 0) {
+      setError(translate(locale, 'admin.propertyScopeRequired'));
+      return false;
+    }
     setPending(id);
     try {
-      const updated = await adminApi.updateAdminAccount(id, draft);
+      const updated = await adminApi.updateAdminAccount(
+        id,
+        draft.role === 'SUPER_ADMIN' ? { ...draft, propertyIds: undefined } : draft,
+      );
       setItems((current) =>
         current?.map((candidate) => (candidate.id === id ? updated : candidate)),
       );
@@ -373,6 +406,23 @@ export default function AdminAccountsPage() {
                 placeholder={translate(locale, 'admin.department')}
               />
             </label>
+            {createForm.role !== 'SUPER_ADMIN' ? (
+              <label>
+                {translate(locale, 'admin.property')}
+                <AdminMultiSelect
+                  ariaLabel={translate(locale, 'admin.property')}
+                  options={accountProperties.map((property) => ({
+                    value: property.id,
+                    label: `${property.code} · ${property.name}`,
+                  }))}
+                  value={createForm.propertyIds}
+                  onChange={(propertyIds) =>
+                    setCreateForm((current) => ({ ...current, propertyIds: [...propertyIds] }))
+                  }
+                  placeholder={translate(locale, 'admin.property')}
+                />
+              </label>
+            ) : null}
             <Button disabled={pending !== undefined} type="submit">
               {pending === 'create'
                 ? translate(locale, 'admin.creating')
@@ -447,6 +497,21 @@ export default function AdminAccountsPage() {
                       placeholder={translate(locale, 'admin.department')}
                     />
                   </label>
+                  {draft.role !== 'SUPER_ADMIN' ? (
+                    <label>
+                      {translate(locale, 'admin.property')}
+                      <AdminMultiSelect
+                        ariaLabel={translate(locale, 'admin.property')}
+                        options={accountProperties.map((property) => ({
+                          value: property.id,
+                          label: `${property.code} · ${property.name}`,
+                        }))}
+                        value={draft.propertyIds}
+                        onChange={(propertyIds) => updateDraft(item.id, { propertyIds })}
+                        placeholder={translate(locale, 'admin.property')}
+                      />
+                    </label>
+                  ) : null}
                 </div>
               </AdminFormSheet>
             );

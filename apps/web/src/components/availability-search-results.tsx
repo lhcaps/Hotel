@@ -300,6 +300,7 @@ export function AvailabilitySearchResults({
               key={room.roomTypeId}
               roomTypeId={room.roomTypeId}
               roomTypeName={room.roomTypeName}
+              {...(room.propertyName === undefined ? {} : { propertyName: room.propertyName })}
               state={state}
               amenities={room.amenities}
               availableRoomCount={room.availableRoomCount}
@@ -332,6 +333,7 @@ export function AvailabilitySearchResults({
 function ResultCard({
   roomTypeId,
   roomTypeName,
+  propertyName,
   description,
   amenities,
   availableRoomCount,
@@ -344,6 +346,7 @@ function ResultCard({
 }: Readonly<{
   roomTypeId: string;
   roomTypeName: string;
+  propertyName?: string;
   description?: string | null;
   amenities: string[];
   availableRoomCount: number;
@@ -370,6 +373,7 @@ function ResultCard({
           <Badge variant={availableRoomCount > 0 ? 'secondary' : 'destructive'}>{status}</Badge>
         </div>
         <h3>{roomTypeName}</h3>
+        {propertyName === undefined ? null : <CardDescription>{propertyName}</CardDescription>}
         <CardDescription>
           {translate(locale, 'search.capacity', { count: maxOccupancy })} ·{' '}
           {translate(

@@ -49,9 +49,6 @@ test('ADMIN V2 Vietnamese shell and operational routes remain responsive', async
       page.locator('.admin-content .admin-page h1', { hasText: 'Tình trạng phòng' }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Làm mới bảng' })).toBeVisible();
-    await expect(
-      page.getByText('Bạn đang ở chế độ chỉ đọc theo dõi tình trạng phòng.'),
-    ).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
     const documentWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(documentWidth).toBeLessThanOrEqual(viewport.width);

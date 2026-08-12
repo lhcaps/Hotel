@@ -14,6 +14,7 @@ const actor: ActorContext = {
   sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
   requestId: 'coupon-delivery-test',
 };
+const propertyId = '660e8400-e29b-41d4-a716-446655440101';
 
 describe('CouponDeliveryService', () => {
   it('queues validated coupon codes against the booking contact and preserves the idempotency key', async () => {
@@ -26,11 +27,18 @@ describe('CouponDeliveryService', () => {
     });
 
     await expect(
-      service.request(actor, 'BOOKING-2026', { couponCodes: ['welcome-10'] }, 'delivery-2026-0001'),
+      service.request(
+        actor,
+        'BOOKING-2026',
+        { couponCodes: ['welcome-10'] },
+        'delivery-2026-0001',
+        propertyId,
+      ),
     ).resolves.toEqual({ deliveryId: '760e8400-e29b-41d4-a716-446655440001', status: 'PENDING' });
     expect(queued).toEqual([
       {
         actorId: actor.userId,
+        propertyId,
         bookingCode: 'BOOKING-2026',
         couponCodes: ['WELCOME-10'],
         idempotencyKey: 'delivery-2026-0001',
@@ -43,10 +51,16 @@ describe('CouponDeliveryService', () => {
       queue: async () => ({ deliveryId: 'x', status: 'PENDING' }),
     });
     expect(() =>
-      service.request(actor, 'BOOKING-2026', { couponCodes: ['WELCOME-10'] }, ''),
+      service.request(actor, 'BOOKING-2026', { couponCodes: ['WELCOME-10'] }, '', propertyId),
     ).toThrow(CouponDeliveryError);
     expect(() =>
-      service.request(actor, 'BOOKING-2026', { couponCodes: ['WELCOME-10'] }, 'x'.repeat(129)),
+      service.request(
+        actor,
+        'BOOKING-2026',
+        { couponCodes: ['WELCOME-10'] },
+        'x'.repeat(129),
+        propertyId,
+      ),
     ).toThrow(CouponDeliveryError);
   });
 });
