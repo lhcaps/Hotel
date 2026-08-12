@@ -35,14 +35,21 @@ function help() {
     'Usage: node scripts/release/deploy-release.mjs --manifest <path> --target <isolated|production> --target-root <path> --source-directory <path> --compose-file <path> --compose-project <name> --compose-env-file <path> --service-env-directory <path> --backup-evidence-file <path> [production evidence options] [--dry-run|--execute]\n',
   );
 }
-function composeArguments({ composeFile, composeProject, composeEnvironment }) {
+function composeArguments({
+  composeFile,
+  composeProject,
+  composeEnvironment,
+  composeOverrides = [],
+}) {
   const args = ['compose', '--project-name', composeProject, '--file', composeFile];
+  for (const override of composeOverrides) args.push('--file', override);
   args.push('--env-file', composeEnvironment);
   return args;
 }
-function composeUp(inputs) {
+function composeUp(inputs, { noBuild = false } = {}) {
   const args = composeArguments(inputs);
   args.push('up', '--detach', '--force-recreate');
+  if (noBuild) args.push('--no-build');
   execFileSync('docker', args, { stdio: 'pipe', windowsHide: true });
 }
 function composeTopologyValid(inputs) {
@@ -309,6 +316,7 @@ function waitForCandidateHealth(inputs) {
 
 function recoveryBaselineMatchesRuntime({ baseline, targetRoot }) {
   try {
+    if (!recoverySnapshotValid(baseline)) return false;
     if (readProductionCurrentPointer(targetRoot) !== baseline.currentPointer) return false;
     if (!existsSync(baseline.composeFile) || !existsSync(baseline.caddyFile)) return false;
     if (!existsSync(baseline.composeEnvironmentFile)) return false;
@@ -348,6 +356,23 @@ function recoveryBaselineMatchesRuntime({ baseline, targetRoot }) {
         Number(actual.RestartCount ?? -1) === expected.restartCount
       );
     });
+  } catch {
+    return false;
+  }
+}
+function recoverySnapshotValid(baseline) {
+  try {
+    const snapshot = baseline.recovery;
+    return (
+      existsSync(snapshot.composeFile) &&
+      existsSync(snapshot.caddyFile) &&
+      existsSync(snapshot.composeEnvironmentFile) &&
+      existsSync(snapshot.overrideFile) &&
+      hashFile(snapshot.composeFile) === snapshot.composeIdentity &&
+      hashFile(snapshot.caddyFile) === snapshot.caddyIdentity &&
+      hashFile(snapshot.composeEnvironmentFile) === snapshot.composeEnvironmentIdentity &&
+      hashFile(snapshot.overrideFile) === snapshot.overrideIdentity
+    );
   } catch {
     return false;
   }
@@ -424,6 +449,9 @@ try {
               }
             })(),
           }),
+          recoverySnapshot: recoverySnapshotValid(
+            readEvidence(recoveryBaselineFile, 'Recovery baseline evidence'),
+          ),
           disk: diskAvailable(targetRoot),
           caddyContract: caddyContractValid(sourceDirectory),
           topology: composeTopologyValid(composeInputs),
@@ -485,11 +513,18 @@ try {
               runtimeSnapshot: dockerSnapshot({ manifest, project: composeProject }),
             }).status === 'PASS',
           onRecoverFailure: () =>
-            composeUp({
-              composeFile: recoveryBaseline.composeFile,
-              composeProject,
-              composeEnvironment: recoveryBaseline.composeEnvironmentFile,
-            }),
+            (() => {
+              composeUp(
+                {
+                  composeFile: recoveryBaseline.recovery.composeFile,
+                  composeOverrides: [recoveryBaseline.recovery.overrideFile],
+                  composeProject,
+                  composeEnvironment: recoveryBaseline.recovery.composeEnvironmentFile,
+                },
+                { noBuild: true },
+              );
+              return recoveryBaselineMatchesRuntime({ baseline: recoveryBaseline, targetRoot });
+            })(),
         })
       : (() => {
           composeUp(composeInputs);

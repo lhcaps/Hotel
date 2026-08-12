@@ -47,35 +47,44 @@ function readEvidence(path, label) {
   }
 }
 
-function composeUp({ composeFile, composeProject, composeEnvironment }) {
+function composeUp(
+  { composeFile, composeProject, composeEnvironment, composeOverrides = [] },
+  { noBuild = false } = {},
+) {
+  const files = [composeFile, ...composeOverrides].flatMap((file) => ['--file', file]);
   execFileSync(
     'docker',
     [
       'compose',
       '--project-name',
       composeProject,
-      '--file',
-      composeFile,
+      ...files,
       '--env-file',
       composeEnvironment,
       'up',
       '--detach',
       '--force-recreate',
+      ...(noBuild ? ['--no-build'] : []),
     ],
     { stdio: 'pipe', windowsHide: true },
   );
 }
 
-function composeTopologyValid({ composeFile, composeProject, composeEnvironment }) {
+function composeTopologyValid({
+  composeFile,
+  composeProject,
+  composeEnvironment,
+  composeOverrides = [],
+}) {
   try {
+    const files = [composeFile, ...composeOverrides].flatMap((file) => ['--file', file]);
     execFileSync(
       'docker',
       [
         'compose',
         '--project-name',
         composeProject,
-        '--file',
-        composeFile,
+        ...files,
         '--env-file',
         composeEnvironment,
         'config',
@@ -145,7 +154,16 @@ function recoveryArtifactsValid(baseline) {
       existsSync(baseline.composeEnvironmentFile) &&
       hashFile(baseline.composeFile) === baseline.composeIdentity &&
       hashFile(baseline.caddyFile) === baseline.caddyIdentity &&
-      hashFile(baseline.composeEnvironmentFile) === baseline.environmentFileHashes.compose
+      hashFile(baseline.composeEnvironmentFile) === baseline.environmentFileHashes.compose &&
+      existsSync(baseline.recovery.composeFile) &&
+      existsSync(baseline.recovery.caddyFile) &&
+      existsSync(baseline.recovery.composeEnvironmentFile) &&
+      existsSync(baseline.recovery.overrideFile) &&
+      hashFile(baseline.recovery.composeFile) === baseline.recovery.composeIdentity &&
+      hashFile(baseline.recovery.caddyFile) === baseline.recovery.caddyIdentity &&
+      hashFile(baseline.recovery.composeEnvironmentFile) ===
+        baseline.recovery.composeEnvironmentIdentity &&
+      hashFile(baseline.recovery.overrideFile) === baseline.recovery.overrideIdentity
     );
   } catch {
     return false;
@@ -296,14 +314,15 @@ export function runProductionRollback() {
     ? resolve(baseline.currentPointer)
     : resolve(targetRoot, 'releases', releaseDirectoryName(targetReleaseId));
   const composeFile = rollbackToBaseline
-    ? resolve(baseline.composeFile)
+    ? resolve(baseline.recovery.composeFile)
     : resolve(option('--compose-file', true));
   const composeEnvironment = rollbackToBaseline
-    ? resolve(baseline.composeEnvironmentFile)
+    ? resolve(baseline.recovery.composeEnvironmentFile)
     : resolve(option('--compose-env-file', true));
   const serviceEnvironmentDirectory = rollbackToBaseline
     ? undefined
     : resolve(option('--service-env-directory', true));
+  const composeOverrides = rollbackToBaseline ? [resolve(baseline.recovery.overrideFile)] : [];
   const current = currentManifest(targetRoot);
   const target = rollbackToBaseline
     ? undefined
@@ -370,7 +389,12 @@ export function runProductionRollback() {
     databaseHealth: health.databaseHealth,
     dockerHealth: health.dockerHealth,
     disk: diskAvailable(targetRoot),
-    topology: composeTopologyValid({ composeFile, composeProject, composeEnvironment }),
+    topology: composeTopologyValid({
+      composeFile,
+      composeProject,
+      composeEnvironment,
+      composeOverrides,
+    }),
   };
   const preflight = preflightRelease({ checks });
   if (process.argv.includes('--dry-run') || !process.argv.includes('--execute')) {
@@ -392,7 +416,11 @@ export function runProductionRollback() {
         switchProductionCurrentPointer({ targetRoot, releaseDirectory: previousPointer });
       }
     },
-    onStartCandidate: () => composeUp({ composeFile, composeProject, composeEnvironment }),
+    onStartCandidate: () =>
+      composeUp(
+        { composeFile, composeProject, composeEnvironment, composeOverrides },
+        { noBuild: rollbackToBaseline },
+      ),
     onVerifyCandidate: () => waitForHealth({ composeProject }),
     onAttest: () =>
       rollbackToBaseline

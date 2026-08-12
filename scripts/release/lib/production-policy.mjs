@@ -98,6 +98,18 @@ export function validateRecoveryBaseline(baseline) {
     throw new Error('Recovery baseline Compose environment hash is required.');
   }
   nonEmptyString(baseline.databaseIdentity, 'Recovery baseline database identity');
+  const recovery = object(baseline.recovery, 'Recovery baseline runtime snapshot');
+  for (const key of ['composeFile', 'caddyFile', 'composeEnvironmentFile', 'overrideFile']) {
+    nonEmptyString(recovery[key], `Recovery snapshot ${key}`);
+  }
+  for (const key of [
+    'composeIdentity',
+    'caddyIdentity',
+    'composeEnvironmentIdentity',
+    'overrideIdentity',
+  ]) {
+    sha256(recovery[key], `Recovery snapshot ${key}`);
+  }
   return true;
 }
 

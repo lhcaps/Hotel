@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { copyFileSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
 import { canonicalJson, hashFile, sha256 } from './lib/canonical.mjs';
 import { validateRecoveryBaseline } from './lib/production-policy.mjs';
@@ -10,6 +10,60 @@ function nonEmptyString(value, label) {
     throw new Error(`${label} is required.`);
   }
   return value;
+}
+
+const APPLICATION_SERVICES = ['web', 'api', 'worker', 'payment-demo'];
+
+function recoveryOverride(services) {
+  const lines = ['services:'];
+  for (const service of APPLICATION_SERVICES) {
+    const evidence = services[service];
+    if (evidence === undefined || evidence.revision === null) {
+      throw new Error(
+        `Recovery snapshot requires immutable ${service} image and revision evidence.`,
+      );
+    }
+    lines.push(
+      `  ${service}:`,
+      `    image: ${JSON.stringify(evidence.imageId)}`,
+      '    environment:',
+      `      RELEASE_SHA: ${JSON.stringify(evidence.revision)}`,
+      '    labels:',
+      `      org.opencontainers.image.revision: ${JSON.stringify(evidence.revision)}`,
+    );
+  }
+  const api = services.api;
+  lines.push(
+    '  migrate:',
+    `    image: ${JSON.stringify(api.imageId)}`,
+    '    environment:',
+    `      RELEASE_SHA: ${JSON.stringify(api.revision)}`,
+    '    labels:',
+    `      org.opencontainers.image.revision: ${JSON.stringify(api.revision)}`,
+  );
+  return `${lines.join('\n')}\n`;
+}
+
+function recoveryArtifacts({
+  directory,
+  composeFile,
+  caddyFile,
+  composeEnvironmentFile,
+  services,
+}) {
+  const root = resolve(directory);
+  const override = recoveryOverride(services);
+  return {
+    composeFile: join(root, 'docker-compose.production.yml'),
+    caddyFile: join(root, 'deploy', 'Caddyfile'),
+    composeEnvironmentFile: join(root, 'compose.env'),
+    overrideFile: join(root, 'baseline-images.override.yml'),
+    composeIdentity: hashFile(resolve(composeFile)),
+    caddyIdentity: hashFile(resolve(caddyFile)),
+    composeEnvironmentIdentity: hashFile(resolve(composeEnvironmentFile)),
+    overrideIdentity: sha256(override),
+    override,
+  };
 }
 
 export function createRecoveryBaseline(snapshot) {
@@ -26,6 +80,7 @@ export function createRecoveryBaseline(snapshot) {
     migrationState: snapshot.migrationState,
     environmentFileHashes: snapshot.environmentFileHashes,
     databaseIdentity: snapshot.databaseIdentity,
+    recovery: snapshot.recovery,
   };
   const baseline = {
     schemaVersion: 1,
@@ -119,16 +174,27 @@ export function captureRecoveryBaseline({
   environmentFiles,
   migrationState,
   databaseIdentity,
+  recoveryDirectory,
   capturedAt = new Date().toISOString(),
 }) {
   nonEmptyString(project, 'Docker Compose project');
   const root = resolve(targetRoot);
   const containers = inspectProject(project);
+  const services = serviceSnapshot(containers);
+  const recovery = recoveryArtifacts({
+    directory: recoveryDirectory,
+    composeFile,
+    caddyFile,
+    composeEnvironmentFile,
+    services,
+  });
+  const recoveryEvidence = { ...recovery };
+  delete recoveryEvidence.override;
   return createRecoveryBaseline({
     project,
     capturedAt,
     currentPointer: realpathSync(resolve(root, 'current')),
-    services: serviceSnapshot(containers),
+    services,
     composeIdentity: hashFile(resolve(composeFile)),
     caddyIdentity: hashFile(resolve(caddyFile)),
     composeFile: resolve(composeFile),
@@ -137,6 +203,7 @@ export function captureRecoveryBaseline({
     migrationState: nonEmptyString(migrationState, 'Migration state'),
     environmentFileHashes: environmentHashes(environmentFiles),
     databaseIdentity: nonEmptyString(databaseIdentity, 'Database identity'),
+    recovery: recoveryEvidence,
   });
 }
 
@@ -149,6 +216,7 @@ if (import.meta.main) {
       process.exit(0);
     }
     const output = resolve(option('--output', true));
+    const recoveryDirectory = resolve(dirname(output), 'runtime-snapshot');
     const baseline = captureRecoveryBaseline({
       project: option('--project', true),
       targetRoot: option('--target-root', true),
@@ -158,7 +226,17 @@ if (import.meta.main) {
       environmentFiles: options('--environment-file'),
       migrationState: option('--migration-state', true),
       databaseIdentity: option('--database-identity', true),
+      recoveryDirectory,
     });
+    const override = recoveryOverride(baseline.services);
+    mkdirSync(join(recoveryDirectory, 'deploy'), { recursive: true, mode: 0o700 });
+    copyFileSync(resolve(option('--compose-file', true)), baseline.recovery.composeFile);
+    copyFileSync(resolve(option('--caddy-file', true)), baseline.recovery.caddyFile);
+    copyFileSync(
+      resolve(option('--compose-env-file', true)),
+      baseline.recovery.composeEnvironmentFile,
+    );
+    writeFileSync(baseline.recovery.overrideFile, override, { encoding: 'utf8', mode: 0o600 });
     mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
     writeFileSync(output, `${JSON.stringify(baseline, null, 2)}\n`, {
       encoding: 'utf8',

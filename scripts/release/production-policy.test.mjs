@@ -60,6 +60,16 @@ function recoveryBaseline(overrides = {}) {
       worker: 'f'.repeat(64),
     },
     databaseIdentity: 'postgres:room-management-postgres-1',
+    recovery: {
+      composeFile: '/opt/room-management/evidence/runtime-snapshot/docker-compose.production.yml',
+      caddyFile: '/opt/room-management/evidence/runtime-snapshot/deploy/Caddyfile',
+      composeEnvironmentFile: '/opt/room-management/evidence/runtime-snapshot/compose.env',
+      overrideFile: '/opt/room-management/evidence/runtime-snapshot/baseline-images.override.yml',
+      composeIdentity: 'c'.repeat(64),
+      caddyIdentity: 'd'.repeat(64),
+      composeEnvironmentIdentity: 'e'.repeat(64),
+      overrideIdentity: 'f'.repeat(64),
+    },
     ...overrides,
   };
 }

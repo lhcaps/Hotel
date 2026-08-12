@@ -24,6 +24,7 @@ const checks = {
   dockerHealth: true,
   currentTruth: true,
   rollbackTarget: true,
+  recoverySnapshot: true,
   migrationProvenance: true,
   disk: true,
   topology: true,
