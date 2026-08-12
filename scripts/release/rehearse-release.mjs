@@ -46,7 +46,7 @@ function release(sourceSha, character) {
   });
 }
 function snapshot(manifest, mixedWorker) {
-  const directory = `/opt/room-management/releases/${manifest.releaseId}`;
+  const directory = `/opt/room-management/releases/${manifest.releaseId.replace(':', '-')}`;
   const service = (image) => ({
     image,
     releaseId: manifest.releaseId,
