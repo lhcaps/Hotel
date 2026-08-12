@@ -28,6 +28,9 @@
         "TRUSTED_PROXY_CIDRS",
         "DATABASE_URL",
         "REDIS_URL",
+        "MAIL_HOST",
+        "MAIL_PORT",
+        "MAIL_FROM",
         "BETTER_AUTH_SECRET",
         "GUEST_OTP_SECRET",
         "GUEST_CHALLENGE_REF_SECRET",
@@ -255,17 +258,17 @@
     },
     "MAIL_HOST": {
       "classification": "NON_SECRET_SERVICE_CONFIG",
-      "consumers": ["worker"],
+      "consumers": ["api", "worker"],
       "requiredInRealProduction": false
     },
     "MAIL_PORT": {
       "classification": "NON_SECRET_SERVICE_CONFIG",
-      "consumers": ["worker"],
+      "consumers": ["api", "worker"],
       "requiredInRealProduction": false
     },
     "MAIL_FROM": {
       "classification": "NON_SECRET_SERVICE_CONFIG",
-      "consumers": ["worker"],
+      "consumers": ["api", "worker"],
       "requiredInRealProduction": false
     },
     "SMTP_HOST": {

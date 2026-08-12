@@ -31,6 +31,9 @@ function validValues() {
     AUTH_BASE_URL: 'https://room.example.com',
     DATABASE_URL: 'postgresql://room:synthetic@postgres:5432/room',
     REDIS_URL: 'redis://redis:6379',
+    MAIL_HOST: 'smtp.room.example.com',
+    MAIL_PORT: '587',
+    MAIL_FROM: 'no-reply@room.example.com',
     POSTGRES_USER: 'room',
     POSTGRES_PASSWORD: 'synthetic-password',
     POSTGRES_DB: 'room',
@@ -90,10 +93,14 @@ test('service environment rendering keeps database and SMTP secrets out of web a
     const webKeys = readFileSync(rendered.services.web.file, 'utf8');
     const paymentDemoKeys = readFileSync(rendered.services['payment-demo'].file, 'utf8');
     const caddyKeys = readFileSync(rendered.services.caddy.file, 'utf8');
+    const apiKeys = readFileSync(rendered.services.api.file, 'utf8');
 
     assert.match(webKeys, /^NEXT_PUBLIC_API_BASE_URL=/mu);
     assert.doesNotMatch(webKeys, /DATABASE_URL|SMTP_PASSWORD/u);
     assert.doesNotMatch(paymentDemoKeys, /DATABASE_URL|SMTP_PASSWORD|BETTER_AUTH_SECRET/u);
+    assert.match(apiKeys, /^MAIL_HOST=/mu);
+    assert.match(apiKeys, /^MAIL_PORT=/mu);
+    assert.match(apiKeys, /^MAIL_FROM=/mu);
     assert.doesNotMatch(
       caddyKeys,
       /BETTER_AUTH_SECRET|GUEST_SESSION_SECRET|PAYMENT_DEMO_CONTROL_TOKEN/u,
