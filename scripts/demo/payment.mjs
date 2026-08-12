@@ -23,6 +23,8 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { futureLunchInterval, selectAvailableRoomType } from './payment-canary-fixtures.mjs';
+
 const API_BASE = process.env.DEMO_API_BASE ?? 'http://127.0.0.1:3101/api/v1';
 const SIMULATOR_BASE = process.env.PAYMENT_SIMULATOR_BASE_URL ?? 'http://127.0.0.1:3090';
 const MANIFEST_PATH =
@@ -85,22 +87,19 @@ async function fetchJson(url, init) {
   return { status: response.status, body, headers: response.headers, text };
 }
 
-function futureLunchIso() {
-  const target = new Date(Date.now() + 24 * 60 * 60_000);
-  const lunch = new Date(
-    Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate() + 1, 11, 0, 0, 0),
-  );
-  const minute = lunch.getUTCMinutes();
-  const remainder = minute % 15;
-  if (remainder !== 0) lunch.setUTCMinutes(minute + (15 - remainder));
-  const checkIn = lunch;
-  const checkOut = new Date(checkIn.getTime() + 60 * 60_000);
-  return {
-    checkIn: checkIn.toISOString(),
-    checkOut: checkOut.toISOString(),
-    adults: 2,
-    children: 0,
-  };
+async function resolveCanaryRoomType(apiBase, interval) {
+  const response = await fetch(`${apiBase}/availability/search`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(interval),
+  });
+  if (!response.ok) throw new Error(`availability failed: ${response.status}`);
+  const body = /** @type {{ items?: unknown }} */ (await response.json());
+  const roomTypeId = selectAvailableRoomType(body?.items);
+  if (roomTypeId === undefined) {
+    throw new Error('availability returned no priced room type for the canary interval');
+  }
+  return roomTypeId;
 }
 
 async function setSimulatorMode(provider, mode, extras = {}) {
@@ -134,11 +133,12 @@ function captureCookie(response, name) {
 }
 
 async function createHoldWithCookie(apiBase) {
-  const interval = futureLunchIso();
+  const interval = futureLunchInterval();
+  const roomTypeId = await resolveCanaryRoomType(apiBase, interval);
   const quote = await fetchJson(`${apiBase}/quotes`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ ...interval, roomTypeId: '10000000-0000-4000-8000-000000000202' }),
+    body: JSON.stringify({ ...interval, roomTypeId }),
   });
   if (quote.status !== 200 && quote.status !== 201) {
     throw new Error(`quote failed: ${quote.status}`);
