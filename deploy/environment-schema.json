@@ -153,6 +153,31 @@
       "consumers": ["caddy", "web", "api", "worker", "payment-demo", "postgres", "migrate"],
       "requiredInRealProduction": true
     },
+    "RELEASE_WORKING_DIRECTORY": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": [],
+      "requiredInRealProduction": true
+    },
+    "RELEASE_CURRENT_POINTER": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": [],
+      "requiredInRealProduction": true
+    },
+    "RELEASE_COMPOSE_SHA256": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": [],
+      "requiredInRealProduction": true
+    },
+    "RELEASE_CADDY_SHA256": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": [],
+      "requiredInRealProduction": true
+    },
+    "RELEASE_MIGRATION_COMPLETED": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": [],
+      "requiredInRealProduction": true
+    },
     "PUBLIC_DOMAIN": {
       "classification": "PUBLIC_CONFIG",
       "consumers": ["caddy", "api"],

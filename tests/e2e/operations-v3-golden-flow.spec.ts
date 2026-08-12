@@ -668,7 +668,7 @@ test('GOLDEN FLOW: quote → HOLD → payment → CONFIRMED → T-30 credential 
   await staffPage.getByLabel('Email').fill(HOUSEKEEPING_STAFF_EMAIL);
   await staffPage.getByLabel('Mật khẩu').fill(playwrightAdminPassword);
   await staffPage.getByRole('button', { name: 'Đăng nhập' }).click();
-  await expect(staffPage).toHaveURL(/\/admin$/, { timeout: 10_000 });
+  await expect(staffPage).toHaveURL(/\/admin\/room-operations$/, { timeout: 10_000 });
 
   const startResponse = await staffPage.request.patch(
     `${API_BASE}/admin/rooms/${allocatedRoomId}/housekeeping`,

@@ -1,11 +1,21 @@
 name: room-management
 
+x-release-labels: &release-labels
+  RELEASE_ID: ${RELEASE_ID:?RELEASE_ID must name the immutable release}
+  com.room.release.working_directory: ${RELEASE_WORKING_DIRECTORY:?RELEASE_WORKING_DIRECTORY must identify the immutable release directory}
+  com.room.release.current_pointer: ${RELEASE_CURRENT_POINTER:?RELEASE_CURRENT_POINTER must identify the intended current release directory}
+  com.room.release.shared_release_id: ${RELEASE_ID:?RELEASE_ID must name the immutable release}
+  com.room.release.compose_sha256: ${RELEASE_COMPOSE_SHA256:?RELEASE_COMPOSE_SHA256 must identify the canonical Compose file}
+  com.room.release.caddy_sha256: ${RELEASE_CADDY_SHA256:?RELEASE_CADDY_SHA256 must identify the canonical Caddy file}
+  com.room.release.migration_completed: ${RELEASE_MIGRATION_COMPLETED:?RELEASE_MIGRATION_COMPLETED must record successful canonical migration}
+
 x-app: &app
   restart: unless-stopped
   environment:
     RELEASE_SHA: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
     RELEASE_ID: ${RELEASE_ID:?RELEASE_ID must name the immutable release}
   labels:
+    <<: *release-labels
     org.opencontainers.image.revision: ${RELEASE_SHA:?RELEASE_SHA must name the committed release}
   networks:
     - private
@@ -14,6 +24,8 @@ services:
   caddy:
     image: caddy:2.10.2-alpine
     restart: unless-stopped
+    labels:
+      <<: *release-labels
     depends_on:
       web:
         condition: service_started
@@ -134,6 +146,8 @@ services:
   postgres:
     image: postgres:18.1-alpine
     restart: unless-stopped
+    labels:
+      <<: *release-labels
     env_file:
       - path: ${RELEASE_ENV_DIR:?RELEASE_ENV_DIR must identify service environment files}/postgres.env
         required: true
@@ -155,6 +169,8 @@ services:
   redis:
     image: redis:8.4.0-alpine
     restart: unless-stopped
+    labels:
+      <<: *release-labels
     command: ['redis-server', '--appendonly', 'yes']
     volumes:
       - redis_data:/data

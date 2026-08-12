@@ -27,6 +27,7 @@ const digest = (character) => `sha256:${character.repeat(64)}`;
 function release(sourceSha, character) {
   return createManifest({
     sourceSha,
+    sourceTreeSha: sourceSha,
     createdAt: '2026-08-10T00:00:00.000Z',
     images: {
       web: { repository: 'rehearsal/web', digest: digest(character) },

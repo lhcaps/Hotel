@@ -118,12 +118,18 @@ function rollbackMigrationCompatible(targetManifest, currentManifest) {
 try {
   if (process.argv.includes('--help')) {
     process.stdout.write(
-      'Usage: node scripts/release/rollback-release.mjs --target-release-id <id> --target isolated --target-root <path> --compose-file <path> --compose-project <name> --compose-env-file <path> --service-env-directory <path> [--dry-run|--execute]\n',
+      'Usage: node scripts/release/rollback-release.mjs --target-release-id <id> --target <isolated|production> --target-root <path> --compose-file <path> --compose-project <name> --compose-env-file <path> --service-env-directory <path> [production evidence options] [--dry-run|--execute]\n',
     );
     process.exit(0);
   }
   const target = option('--target', true);
-  if (target !== 'isolated') throw new Error('Only the isolated target is authorized in Wave 1.');
+  if (!['isolated', 'production'].includes(target)) {
+    throw new Error('--target must be isolated or production.');
+  }
+  if (target === 'production') {
+    const { runProductionRollback } = await import('./production-rollback.mjs');
+    process.exit(runProductionRollback());
+  }
   const targetRoot = resolve(option('--target-root', true));
   const releaseId = option('--target-release-id', true);
   const releaseDirectory = resolve(targetRoot, 'releases', releaseDirectoryName(releaseId));

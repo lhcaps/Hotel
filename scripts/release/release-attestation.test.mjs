@@ -8,6 +8,7 @@ const sourceSha = 'a'.repeat(40);
 const digest = (character) => `sha256:${character.repeat(64)}`;
 const manifest = createManifest({
   sourceSha,
+  sourceTreeSha: 'b'.repeat(40),
   createdAt: '2026-08-10T00:00:00.000Z',
   images: {
     web: { repository: 'registry.example/web', digest: digest('1') },

@@ -25,6 +25,12 @@ function assertSourceSha(value) {
   }
 }
 
+function assertSourceTreeSha(value) {
+  if (typeof value !== 'string' || !SOURCE_SHA_PATTERN.test(value)) {
+    throw new Error('Source tree SHA must be a 40 to 64 character hexadecimal revision.');
+  }
+}
+
 function assertImage(image, name) {
   assertPlainObject(image, `${name} image`);
   if (typeof image.repository !== 'string' || image.repository.length === 0) {
@@ -65,6 +71,7 @@ function identityPayload(manifest) {
   return {
     schemaVersion: manifest.schemaVersion,
     sourceSha: manifest.sourceSha,
+    sourceTreeSha: manifest.sourceTreeSha,
     images: manifest.images,
     compose: manifest.compose,
     caddy: manifest.caddy,
@@ -79,6 +86,7 @@ export function releaseIdentity(manifest) {
 
 export function createManifest({
   sourceSha,
+  sourceTreeSha,
   createdAt,
   images,
   composeSha256,
@@ -87,6 +95,7 @@ export function createManifest({
   envSchemaSha256,
 }) {
   assertSourceSha(sourceSha);
+  assertSourceTreeSha(sourceTreeSha);
   if (typeof createdAt !== 'string' || Number.isNaN(Date.parse(createdAt))) {
     throw new Error('createdAt must be an ISO-8601 timestamp.');
   }
@@ -106,6 +115,7 @@ export function createManifest({
   const manifest = {
     schemaVersion: 1,
     sourceSha: sourceSha.toLowerCase(),
+    sourceTreeSha: sourceTreeSha.toLowerCase(),
     createdAt,
     images: normalizedImages,
     compose: { sha256: composeSha256.toLowerCase() },
@@ -120,6 +130,7 @@ function assertManifest(manifest) {
   assertPlainObject(manifest, 'Release manifest');
   if (manifest.schemaVersion !== 1) throw new Error('Release manifest schemaVersion must be 1.');
   assertSourceSha(manifest.sourceSha);
+  assertSourceTreeSha(manifest.sourceTreeSha);
   if (typeof manifest.createdAt !== 'string' || Number.isNaN(Date.parse(manifest.createdAt))) {
     throw new Error('Release manifest createdAt is invalid.');
   }
@@ -159,6 +170,11 @@ export function verifyManifest({ manifest, releaseDirectory, repositoryRoot }) {
   if (hashFile(caddyPath) !== manifest.caddy.sha256) throw new Error('Caddy digest mismatch.');
   if (hashFile(environmentSchemaPath) !== manifest.envSchema.sha256) {
     throw new Error('Environment schema digest mismatch.');
+  }
+
+  const source = JSON.parse(readFileSync(join(releaseDirectory, 'release-source.json'), 'utf8'));
+  if (source.sourceSha !== manifest.sourceSha || source.treeSha !== manifest.sourceTreeSha) {
+    throw new Error('Release source identity does not match the release manifest.');
   }
 
   const services = composeServiceNames(readFileSync(composePath, 'utf8'));

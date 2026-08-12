@@ -132,3 +132,193 @@ export function executeIsolatedRollback({ targetRoot, targetReleaseId, checks, f
     };
   }
 }
+
+function invokeHook(hook, name, input) {
+  if (hook === undefined) return;
+  const result = hook(input);
+  if (result === false) throw new Error(`${name} rejected the production transition.`);
+}
+
+export function executeProductionDeploy({
+  targetRoot,
+  releaseId,
+  sourceDirectory,
+  checks,
+  onStartCandidate,
+  onVerifyCandidate,
+  onAttest,
+  onRecoverFailure,
+  readCurrentPointer,
+  switchCurrentPointer,
+  restoreCurrentPointer,
+  fault,
+}) {
+  const evidence = [];
+  const preflight = preflightRelease({ checks });
+  evidence.push({ phase: 'PREFLIGHT', ok: preflight.ok, failures: preflight.failures });
+  if (!preflight.ok) return { status: 'FAIL', evidence, preflight };
+
+  const root = resolve(targetRoot);
+  const releases = join(root, 'releases');
+  const destination = join(releases, releaseDirectoryName(releaseId));
+  const temporary = `${destination}.partial`;
+  const readCurrent = readCurrentPointer ?? (() => previousPointer(root));
+  const switchCurrent =
+    switchCurrentPointer ??
+    (({ releaseId: nextReleaseId }) => writePointer(root, nextReleaseId, fault));
+  const restoreCurrent =
+    restoreCurrentPointer ??
+    (({ previousPointer: previous }) => {
+      if (previous === undefined) rmSync(pointerPath(root), { force: true });
+      else writeFileSync(pointerPath(root), `${previous}\n`, 'utf8');
+    });
+  const previous = readCurrent();
+  try {
+    mkdirSync(releases, { recursive: true });
+    if (existsSync(destination)) throw new Error('Candidate release already exists.');
+    cpSync(sourceDirectory, temporary, { recursive: true, errorOnExist: true });
+    renameSync(temporary, destination);
+    evidence.push({ phase: 'PREPARE_RELEASE', ok: true });
+
+    if (fault === 'START_CANDIDATE') throw new Error('Injected START_CANDIDATE failure.');
+    invokeHook(onStartCandidate, 'Candidate startup', { releaseDirectory: destination, releaseId });
+    evidence.push({ phase: 'START_CANDIDATE', ok: true });
+
+    if (fault === 'VERIFY_CANDIDATE') throw new Error('Injected VERIFY_CANDIDATE failure.');
+    invokeHook(onVerifyCandidate, 'Candidate verification', {
+      releaseDirectory: destination,
+      releaseId,
+    });
+    evidence.push({ phase: 'VERIFY_CANDIDATE', ok: true });
+
+    switchCurrent({ releaseDirectory: destination, releaseId });
+    evidence.push({ phase: 'SWITCH_CURRENT', ok: true });
+
+    if (fault === 'ATTEST') throw new Error('Injected ATTEST failure.');
+    invokeHook(onAttest, 'Release attestation', { releaseDirectory: destination, releaseId });
+    evidence.push({ phase: 'ATTEST', ok: true }, { phase: 'COMPLETE', ok: true });
+    return { status: 'PASS', evidence, releaseId };
+  } catch (error) {
+    restoreCurrent({ previousPointer: previous });
+    try {
+      invokeHook(onRecoverFailure, 'Production recovery', { previousPointer: previous, releaseId });
+    } catch (recoveryError) {
+      evidence.push({
+        phase: 'RECOVERY',
+        ok: false,
+        reason: recoveryError instanceof Error ? recoveryError.message : String(recoveryError),
+      });
+    }
+    rmSync(temporary, { recursive: true, force: true });
+    evidence.push({
+      phase: 'FAIL',
+      ok: false,
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    return { status: 'FAIL', evidence, releaseId: previous };
+  }
+}
+
+export function executeProductionRollback({
+  targetRoot,
+  targetReleaseId,
+  targetDirectory,
+  checks,
+  onStartCandidate,
+  onVerifyCandidate,
+  onAttest,
+  onRecoverFailure,
+  readCurrentPointer,
+  switchCurrentPointer,
+  restoreCurrentPointer,
+  fault,
+}) {
+  const root = resolve(targetRoot);
+  const resolvedTargetDirectory = resolve(
+    targetDirectory ?? join(root, 'releases', releaseDirectoryName(targetReleaseId)),
+  );
+  const preflight = preflightRelease({ checks });
+  if (!existsSync(resolvedTargetDirectory)) {
+    return {
+      status: 'FAIL',
+      evidence: [{ phase: 'PREFLIGHT', ok: false, failures: ['rollbackTarget'] }],
+    };
+  }
+  if (!preflight.ok) {
+    return {
+      status: 'FAIL',
+      evidence: [{ phase: 'PREFLIGHT', ok: false, failures: preflight.failures }],
+    };
+  }
+
+  const readCurrent = readCurrentPointer ?? (() => previousPointer(root));
+  const switchCurrent =
+    switchCurrentPointer ??
+    (({ releaseId: nextReleaseId }) => writePointer(root, nextReleaseId, fault));
+  const restoreCurrent =
+    restoreCurrentPointer ??
+    (({ previousPointer: previous }) => {
+      if (previous !== undefined) writeFileSync(pointerPath(root), `${previous}\n`, 'utf8');
+    });
+  const previous = readCurrent();
+  try {
+    if (previous === undefined) throw new Error('Current release is unknown.');
+    invokeHook(onStartCandidate, 'Rollback startup', {
+      releaseDirectory: resolvedTargetDirectory,
+      releaseId: targetReleaseId,
+    });
+    if (fault === 'VERIFY_CANDIDATE') throw new Error('Injected rollback verification failure.');
+    invokeHook(onVerifyCandidate, 'Rollback verification', {
+      releaseDirectory: resolvedTargetDirectory,
+      releaseId: targetReleaseId,
+    });
+    switchCurrent({ releaseDirectory: resolvedTargetDirectory, releaseId: targetReleaseId });
+    invokeHook(onAttest, 'Rollback attestation', {
+      releaseDirectory: resolvedTargetDirectory,
+      releaseId: targetReleaseId,
+    });
+    return {
+      status: 'PASS',
+      releaseId: targetReleaseId,
+      evidence: [
+        { phase: 'PREFLIGHT', ok: true },
+        { phase: 'START_CANDIDATE', ok: true },
+        { phase: 'VERIFY_CANDIDATE', ok: true },
+        { phase: 'SWITCH_CURRENT', ok: true },
+        { phase: 'ATTEST', ok: true },
+        { phase: 'COMPLETE', ok: true },
+      ],
+    };
+  } catch (error) {
+    restoreCurrent({ previousPointer: previous });
+    try {
+      invokeHook(onRecoverFailure, 'Rollback recovery', {
+        previousPointer: previous,
+        targetReleaseId,
+      });
+    } catch (recoveryError) {
+      return {
+        status: 'FAIL',
+        releaseId: previous,
+        evidence: [
+          {
+            phase: 'RECOVERY',
+            ok: false,
+            reason: recoveryError instanceof Error ? recoveryError.message : String(recoveryError),
+          },
+        ],
+      };
+    }
+    return {
+      status: 'FAIL',
+      releaseId: previous,
+      evidence: [
+        {
+          phase: 'FAIL',
+          ok: false,
+          reason: error instanceof Error ? error.message : String(error),
+        },
+      ],
+    };
+  }
+}

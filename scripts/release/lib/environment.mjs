@@ -83,6 +83,64 @@ function isHttpEndpointKey(key) {
   return key.includes('ORIGIN') || key.endsWith('_URL') || key.includes('API_BASE');
 }
 
+function productionDomain(value, key) {
+  if (
+    typeof value !== 'string' ||
+    !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/iu.test(
+      value,
+    )
+  ) {
+    throw new Error(`${key} must be a production host name.`);
+  }
+  return value.toLowerCase();
+}
+
+function requireExactEnvironmentValue(values, key, expected) {
+  if (values[key] !== expected) throw new Error(`${key} does not match the production topology.`);
+}
+
+function validateProductionOrigins(values) {
+  const publicDomain = productionDomain(values.PUBLIC_DOMAIN, 'PUBLIC_DOMAIN');
+  const webOrigin = `https://${publicDomain}`;
+  requireExactEnvironmentValue(values, 'WEB_ORIGIN', webOrigin);
+  requireExactEnvironmentValue(values, 'NEXT_PUBLIC_API_BASE_URL', `${webOrigin}/api/v1`);
+  requireExactEnvironmentValue(values, 'INTERNAL_API_BASE_URL', 'http://api:3001/api/v1');
+  if (values.AUTH_BASE_URL !== undefined)
+    requireExactEnvironmentValue(values, 'AUTH_BASE_URL', webOrigin);
+
+  if (values.PAYMENT_DEMO_ENABLED === 'true') {
+    const paymentDemoDomain = productionDomain(values.PAYMENT_DEMO_DOMAIN, 'PAYMENT_DEMO_DOMAIN');
+    requireExactEnvironmentValue(
+      values,
+      'PAYMENT_DEMO_PUBLIC_ORIGIN',
+      `https://${paymentDemoDomain}`,
+    );
+    requireExactEnvironmentValue(values, 'PAYMENT_DEMO_WEB_ORIGIN', webOrigin);
+    requireExactEnvironmentValue(
+      values,
+      'PAYMENT_DEMO_INTERNAL_BASE_URL',
+      'http://payment-demo:3090',
+    );
+  }
+}
+
+function validateProductionReleaseIdentity(values) {
+  if (typeof values.RELEASE_ID !== 'string' || !/^sha256:[a-f0-9]{64}$/iu.test(values.RELEASE_ID)) {
+    throw new Error('RELEASE_ID must be an immutable release identity.');
+  }
+  const expectedDirectory = `/opt/room-management/releases/${values.RELEASE_ID.replace(':', '-')}`;
+  requireExactEnvironmentValue(values, 'RELEASE_WORKING_DIRECTORY', expectedDirectory);
+  requireExactEnvironmentValue(values, 'RELEASE_CURRENT_POINTER', expectedDirectory);
+  for (const key of ['RELEASE_COMPOSE_SHA256', 'RELEASE_CADDY_SHA256']) {
+    if (typeof values[key] !== 'string' || !/^[a-f0-9]{64}$/iu.test(values[key])) {
+      throw new Error(`${key} must be a SHA-256 digest.`);
+    }
+  }
+  if (values.RELEASE_MIGRATION_COMPLETED !== 'true') {
+    throw new Error('RELEASE_MIGRATION_COMPLETED must be true for production cutover.');
+  }
+}
+
 export function validateEnvironment({ values, schema, deploymentClass }) {
   validateEnvironmentSchema(schema);
   assertPlainObject(values, 'Environment values');
@@ -113,9 +171,8 @@ export function validateEnvironment({ values, schema, deploymentClass }) {
   if (values.WEB_ORIGIN === '*' || values.NEXT_PUBLIC_API_BASE_URL === '*') {
     throw new Error('Public origins must not use a wildcard in real production.');
   }
-  if (values.PAYMENT_DEMO_ENABLED === 'true') {
-    throw new Error('PAYMENT_DEMO_ENABLED must be false for real production.');
-  }
+  validateProductionOrigins(values);
+  validateProductionReleaseIdentity(values);
   return { ok: true };
 }
 

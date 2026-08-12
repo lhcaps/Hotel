@@ -18,9 +18,17 @@ function validValues() {
     NODE_ENV: 'production',
     RELEASE_ID: `sha256:${'1'.repeat(64)}`,
     RELEASE_SHA: 'a'.repeat(40),
+    RELEASE_WORKING_DIRECTORY: `/opt/room-management/releases/sha256-${'1'.repeat(64)}`,
+    RELEASE_CURRENT_POINTER: `/opt/room-management/releases/sha256-${'1'.repeat(64)}`,
+    RELEASE_COMPOSE_SHA256: 'b'.repeat(64),
+    RELEASE_CADDY_SHA256: 'c'.repeat(64),
+    RELEASE_MIGRATION_COMPLETED: 'true',
     PUBLIC_DOMAIN: 'room.example.com',
+    PAYMENT_DEMO_DOMAIN: 'payments.room.example.com',
     WEB_ORIGIN: 'https://room.example.com',
     NEXT_PUBLIC_API_BASE_URL: 'https://room.example.com/api/v1',
+    INTERNAL_API_BASE_URL: 'http://api:3001/api/v1',
+    AUTH_BASE_URL: 'https://room.example.com',
     DATABASE_URL: 'postgresql://room:synthetic@postgres:5432/room',
     REDIS_URL: 'redis://redis:6379',
     POSTGRES_USER: 'room',
@@ -37,7 +45,10 @@ function validValues() {
     MOMO_SECRET_KEY: 'h'.repeat(40),
     VNPAY_HASH_SECRET: 'i'.repeat(40),
     SMTP_PASSWORD: 'synthetic-smtp-password',
-    PAYMENT_DEMO_ENABLED: 'false',
+    PAYMENT_DEMO_ENABLED: 'true',
+    PAYMENT_DEMO_PUBLIC_ORIGIN: 'https://payments.room.example.com',
+    PAYMENT_DEMO_WEB_ORIGIN: 'https://room.example.com',
+    PAYMENT_DEMO_INTERNAL_BASE_URL: 'http://payment-demo:3090',
   };
 }
 
@@ -88,6 +99,7 @@ test('service environment rendering keeps database and SMTP secrets out of web a
       /BETTER_AUTH_SECRET|GUEST_SESSION_SECRET|PAYMENT_DEMO_CONTROL_TOKEN/u,
     );
     assert.deepEqual(rendered.services.web.keys, [
+      'INTERNAL_API_BASE_URL',
       'NEXT_PUBLIC_API_BASE_URL',
       'NODE_ENV',
       'RELEASE_ID',
@@ -98,14 +110,48 @@ test('service environment rendering keeps database and SMTP secrets out of web a
   }
 });
 
-test('real production rejects a demo payment authority', () => {
+test('real production accepts Demo payment only with canonical public and private origins', () => {
+  assert.deepEqual(
+    validateEnvironment({ values: validValues(), schema, deploymentClass: 'real-production' }),
+    { ok: true },
+  );
   assert.throws(
     () =>
       validateEnvironment({
-        values: { ...validValues(), PAYMENT_DEMO_ENABLED: 'true' },
+        values: { ...validValues(), WEB_ORIGIN: 'https://other.room.example.com' },
         schema,
         deploymentClass: 'real-production',
       }),
-    /PAYMENT_DEMO_ENABLED/u,
+    /WEB_ORIGIN/u,
+  );
+  assert.throws(
+    () =>
+      validateEnvironment({
+        values: { ...validValues(), INTERNAL_API_BASE_URL: 'https://room.example.com/api/v1' },
+        schema,
+        deploymentClass: 'real-production',
+      }),
+    /INTERNAL_API_BASE_URL/u,
+  );
+  assert.throws(
+    () =>
+      validateEnvironment({
+        values: {
+          ...validValues(),
+          PAYMENT_DEMO_PUBLIC_ORIGIN: 'https://other-payments.example.com',
+        },
+        schema,
+        deploymentClass: 'real-production',
+      }),
+    /PAYMENT_DEMO_PUBLIC_ORIGIN/u,
+  );
+  assert.throws(
+    () =>
+      validateEnvironment({
+        values: { ...validValues(), RELEASE_MIGRATION_COMPLETED: 'false' },
+        schema,
+        deploymentClass: 'real-production',
+      }),
+    /RELEASE_MIGRATION_COMPLETED/u,
   );
 });

@@ -10,6 +10,7 @@ import { createManifest, verifyManifest } from './lib/manifest.mjs';
 import { deriveMigrationSet } from './lib/migrations.mjs';
 
 const SOURCE_SHA = 'a'.repeat(40);
+const SOURCE_TREE_SHA = 'b'.repeat(40);
 const DIGEST_A = `sha256:${'1'.repeat(64)}`;
 const DIGEST_B = `sha256:${'2'.repeat(64)}`;
 const DIGEST_C = `sha256:${'3'.repeat(64)}`;
@@ -20,6 +21,21 @@ test('canonical production Compose requires explicit immutable application image
   assert.doesNotMatch(compose, /^x-app:\s*&app\r?\n\s+build:/mu);
   for (const imageVariable of ['WEB_IMAGE', 'API_IMAGE', 'WORKER_IMAGE', 'PAYMENT_DEMO_IMAGE']) {
     assert.match(compose, new RegExp(`\\$\\{${imageVariable}:\\?`, 'u'));
+  }
+});
+
+test('canonical production Compose binds every governed service to release attestation labels', () => {
+  const compose = readFileSync('docker-compose.production.yml', 'utf8');
+  for (const label of [
+    'RELEASE_ID',
+    'com.room.release.working_directory',
+    'com.room.release.current_pointer',
+    'com.room.release.shared_release_id',
+    'com.room.release.compose_sha256',
+    'com.room.release.caddy_sha256',
+    'com.room.release.migration_completed',
+  ]) {
+    assert.match(compose, new RegExp(`${label.replaceAll('.', '\\.')}:`, 'u'));
   }
 });
 
@@ -52,10 +68,15 @@ function makeReleaseFixture() {
     join(root, 'packages', 'database', 'drizzle', 'meta', '_journal.json'),
     `${JSON.stringify({ entries: [{ idx: 0, tag: '0000_test' }] })}\n`,
   );
+  writeFile(
+    join(root, 'release-source.json'),
+    `${JSON.stringify({ sourceSha: SOURCE_SHA, treeSha: SOURCE_TREE_SHA })}\n`,
+  );
 
   const migrations = deriveMigrationSet(root);
   const manifest = createManifest({
     sourceSha: SOURCE_SHA,
+    sourceTreeSha: SOURCE_TREE_SHA,
     createdAt: '2026-08-10T00:00:00.000Z',
     images: {
       web: { repository: 'registry.example/room-web', digest: DIGEST_A },
@@ -85,6 +106,7 @@ test('manifest identity is stable across createdAt changes and verifies exact re
   withFixture(({ root, manifest }) => {
     const later = createManifest({
       sourceSha: SOURCE_SHA,
+      sourceTreeSha: SOURCE_TREE_SHA,
       createdAt: '2026-08-10T01:00:00.000Z',
       images: manifest.images,
       composeSha256: manifest.compose.sha256,
@@ -107,6 +129,7 @@ test('manifest creation rejects malformed source SHA', () => {
       () =>
         createManifest({
           sourceSha: 'not-a-source-sha',
+          sourceTreeSha: SOURCE_TREE_SHA,
           createdAt: manifest.createdAt,
           images: manifest.images,
           composeSha256: manifest.compose.sha256,
@@ -148,6 +171,7 @@ test('verification rejects a release whose exact Compose topology omits worker',
     writeFile(composePath, withoutWorker);
     const topologyManifest = createManifest({
       sourceSha: manifest.sourceSha,
+      sourceTreeSha: manifest.sourceTreeSha,
       createdAt: manifest.createdAt,
       images: manifest.images,
       composeSha256: sha256(readFileSync(composePath)),
@@ -174,6 +198,7 @@ test('manifest creation rejects mutable image references without immutable diges
       () =>
         createManifest({
           sourceSha: manifest.sourceSha,
+          sourceTreeSha: manifest.sourceTreeSha,
           createdAt: manifest.createdAt,
           images: {
             ...manifest.images,
@@ -185,6 +210,36 @@ test('manifest creation rejects mutable image references without immutable diges
           envSchemaSha256: manifest.envSchema.sha256,
         }),
       /immutable digest|latest/i,
+    );
+  });
+});
+
+test('manifest identity binds the exact committed source tree', () => {
+  withFixture(({ manifest }) => {
+    assert.equal(manifest.sourceTreeSha, SOURCE_TREE_SHA);
+    const alternateTree = createManifest({
+      sourceSha: manifest.sourceSha,
+      sourceTreeSha: 'c'.repeat(40),
+      createdAt: manifest.createdAt,
+      images: manifest.images,
+      composeSha256: manifest.compose.sha256,
+      caddySha256: manifest.caddy.sha256,
+      migrations: manifest.migrations,
+      envSchemaSha256: manifest.envSchema.sha256,
+    });
+    assert.notEqual(alternateTree.releaseId, manifest.releaseId);
+    assert.throws(
+      () =>
+        createManifest({
+          sourceSha: manifest.sourceSha,
+          createdAt: manifest.createdAt,
+          images: manifest.images,
+          composeSha256: manifest.compose.sha256,
+          caddySha256: manifest.caddy.sha256,
+          migrations: manifest.migrations,
+          envSchemaSha256: manifest.envSchema.sha256,
+        }),
+      /source tree SHA/i,
     );
   });
 });
@@ -240,6 +295,8 @@ test('generator and verifier commands create and verify a manifest from explicit
         root,
         '--source-sha',
         SOURCE_SHA,
+        '--source-tree-sha',
+        SOURCE_TREE_SHA,
         '--created-at',
         manifest.createdAt,
         ...imageArguments,

@@ -7,7 +7,7 @@ import { deriveMigrationSet } from './lib/migrations.mjs';
 
 function printHelp() {
   process.stdout.write(
-    `Usage: node scripts/release/generate-release-manifest.mjs --release-directory <path> --source-sha <sha> --web-image <repository@digest> --api-image <repository@digest> --worker-image <repository@digest> --payment-demo-image <repository@digest> [options]\n\n`,
+    `Usage: node scripts/release/generate-release-manifest.mjs --release-directory <path> --source-sha <sha> --source-tree-sha <sha> --web-image <repository@digest> --api-image <repository@digest> --worker-image <repository@digest> --payment-demo-image <repository@digest> [options]\n\n`,
   );
   process.stdout.write(`Options:\n`);
   process.stdout.write(
@@ -43,6 +43,7 @@ try {
   const repositoryRoot = resolve(readOption('--repository-root', false) ?? process.cwd());
   const manifest = createManifest({
     sourceSha: readOption('--source-sha'),
+    sourceTreeSha: readOption('--source-tree-sha'),
     createdAt: readOption('--created-at', false) ?? new Date().toISOString(),
     images: {
       web: parseImage(readOption('--web-image'), 'web image'),

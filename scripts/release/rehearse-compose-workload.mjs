@@ -120,6 +120,7 @@ function makeRelease(root, name, sourceSha) {
   const migrations = deriveMigrationSet(REPOSITORY_ROOT);
   const manifest = createManifest({
     sourceSha,
+    sourceTreeSha: sourceSha,
     createdAt: '2026-08-10T00:00:00.000Z',
     images: {
       web: { repository: `rehearsal/${name}/app`, digest: image.digest },
@@ -133,6 +134,10 @@ function makeRelease(root, name, sourceSha) {
     envSchemaSha256: hashFile(join(directory, 'deploy', 'environment-schema.json')),
   });
   writeFileSync(join(directory, 'release-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+  writeFileSync(
+    join(directory, 'release-source.json'),
+    `${JSON.stringify({ sourceSha: manifest.sourceSha, treeSha: manifest.sourceTreeSha }, null, 2)}\n`,
+  );
   const backupEvidenceFile = join(directory, 'backup-evidence.json');
   writeFileSync(
     backupEvidenceFile,
