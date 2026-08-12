@@ -4,6 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { hashFile } from './lib/canonical.mjs';
 import { createManifest } from './lib/manifest.mjs';
 import { deriveMigrationSet } from './lib/migrations.mjs';
+import { validatePublicBuildConfig } from '../deploy/validate-public-build-config.mjs';
 
 function printHelp() {
   process.stdout.write(
@@ -14,6 +15,11 @@ function printHelp() {
     `  --repository-root <path>  Repository containing immutable migration provenance (default: current directory)\n`,
   );
   process.stdout.write(`  --created-at <timestamp>  Manifest timestamp (default: current time)\n`);
+  process.stdout.write(
+    `  --public-api-base-url <url>  Validated public API URL baked into web assets\n`,
+  );
+  process.stdout.write(`  --public-domain <hostname>  Public web hostname used by the build\n`);
+  process.stdout.write(`  --web-origin <url>  Public web origin used by the build\n`);
 }
 
 function readOption(name, required = true) {
@@ -41,6 +47,11 @@ try {
 
   const releaseDirectory = resolve(readOption('--release-directory'));
   const repositoryRoot = resolve(readOption('--repository-root', false) ?? process.cwd());
+  const publicBuild = validatePublicBuildConfig({
+    apiBaseUrl: readOption('--public-api-base-url'),
+    publicDomain: readOption('--public-domain'),
+    webOrigin: readOption('--web-origin'),
+  });
   const manifest = createManifest({
     sourceSha: readOption('--source-sha'),
     sourceTreeSha: readOption('--source-tree-sha'),
@@ -55,6 +66,7 @@ try {
     caddySha256: hashFile(join(releaseDirectory, 'deploy', 'Caddyfile')),
     migrations: deriveMigrationSet(repositoryRoot),
     envSchemaSha256: hashFile(join(releaseDirectory, 'deploy', 'environment-schema.json')),
+    publicBuild,
   });
   const outputPath = join(releaseDirectory, 'release-manifest.json');
   mkdirSync(dirname(outputPath), { recursive: true });

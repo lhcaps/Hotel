@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { useLocale } from '../../../../components/locale-provider';
 import { translate } from '../../../../lib/i18n/messages';
+import { resolvePublicApiOrigin } from '../../../../lib/public-api-origin';
 
 interface ClaimBookingClientProps {
   readonly apiBase: string;
@@ -21,14 +22,13 @@ export function ClaimBookingClient({ apiBase, bookingCode }: ClaimBookingClientP
     setError(undefined);
     setMessage(undefined);
     try {
-      const response = await fetch(
-        `${new URL(apiBase).origin}/api/v1/customer/bookings/${bookingCode}/claim`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'content-type': 'application/json' },
-        },
-      );
+      const origin = resolvePublicApiOrigin(apiBase);
+      if (origin === undefined) throw new Error(translate(locale, 'claim.error'));
+      const response = await fetch(`${origin}/api/v1/customer/bookings/${bookingCode}/claim`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+      });
       if (response.status === 401) {
         throw new Error(translate(locale, 'claim.signInRequired'));
       }

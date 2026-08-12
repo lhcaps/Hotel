@@ -7,6 +7,7 @@ import type { CustomerLoginPresentation } from './customer-login-presentation';
 import { useLocale } from '../../components/locale-provider';
 
 import { type Locale, translate } from '../../lib/i18n/messages';
+import { resolvePublicApiOrigin } from '../../lib/public-api-origin';
 
 const GOOGLE_SIGN_IN_ENDPOINT = '/api/auth/sign-in/social';
 const GENERIC_OAUTH_SIGN_IN_ENDPOINT = '/api/auth/sign-in/oauth2';
@@ -174,9 +175,8 @@ async function beginSignIn(
   setPending(true);
   setError(undefined);
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-    if (apiBase === undefined) throw new Error(translate(locale, 'login.serverError'));
-    const apiOrigin = new URL(apiBase).origin;
+    const apiOrigin = resolvePublicApiOrigin();
+    if (apiOrigin === undefined) throw new Error(translate(locale, 'login.serverError'));
     const redirectUrl = await initiateSignIn(locale, apiOrigin, endpoint, body);
     window.location.assign(redirectUrl);
   } catch (cause) {

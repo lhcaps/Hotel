@@ -299,16 +299,20 @@ test('generator and verifier commands create and verify a manifest from explicit
         SOURCE_TREE_SHA,
         '--created-at',
         manifest.createdAt,
+        '--public-api-base-url',
+        'https://room.example.com/api/v1',
+        '--public-domain',
+        'room.example.com',
+        '--web-origin',
+        'https://room.example.com',
         ...imageArguments,
       ],
       { cwd: process.cwd(), encoding: 'utf8', shell: false },
     );
 
     assert.equal(generated.status, 0, generated.stderr);
-    assert.equal(
-      JSON.parse(readFileSync(join(root, 'release-manifest.json'), 'utf8')).releaseId,
-      manifest.releaseId,
-    );
+    const generatedManifest = JSON.parse(readFileSync(join(root, 'release-manifest.json'), 'utf8'));
+    assert.equal(generatedManifest.publicBuild.apiBaseUrl, 'https://room.example.com/api/v1');
 
     const verified = spawnSync(
       process.execPath,

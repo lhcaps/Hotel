@@ -18,6 +18,7 @@ import {
 } from './ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { LocaleSwitch } from './locale-switch';
+import { resolvePublicApiOrigin } from '../lib/public-api-origin';
 
 type AccountState = 'unknown' | 'anonymous' | 'customer' | 'admin';
 
@@ -31,12 +32,11 @@ export function PublicHeader({
 
   useEffect(() => {
     let cancelled = false;
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-    if (apiBase === undefined) {
+    const origin = resolvePublicApiOrigin();
+    if (origin === undefined) {
       setAccountState('anonymous');
       return undefined;
     }
-    const origin = new URL(apiBase).origin;
     void fetch(`${origin}/api/auth/get-session`, { credentials: 'include' })
       .then(async (response) => {
         const body: unknown = await response.json().catch(() => undefined);
@@ -64,9 +64,9 @@ export function PublicHeader({
     if (logoutPending) return;
     setLogoutPending(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-      if (apiBase !== undefined)
-        await fetch(`${new URL(apiBase).origin}/api/auth/sign-out`, {
+      const origin = resolvePublicApiOrigin();
+      if (origin !== undefined)
+        await fetch(`${origin}/api/auth/sign-out`, {
           method: 'POST',
           credentials: 'include',
         });

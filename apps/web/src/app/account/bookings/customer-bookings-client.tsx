@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { useLocale } from '../../../components/locale-provider';
+import { resolvePublicApiOrigin } from '../../../lib/public-api-origin';
 import {
   formatDateTime,
   formatVnd,
@@ -38,12 +39,11 @@ export function CustomerBookingsClient() {
   const [state, setState] = useState<BookingsState>({ kind: 'loading' });
 
   useEffect(() => {
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
-    if (apiBase === undefined) {
+    const origin = resolvePublicApiOrigin();
+    if (origin === undefined) {
       setState({ kind: 'error' });
       return;
     }
-    const origin = new URL(apiBase).origin;
     let cancelled = false;
     void fetch(`${origin}/api/v1/customer/bookings?limit=20`, {
       credentials: 'include',

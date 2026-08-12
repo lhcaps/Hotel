@@ -9,6 +9,9 @@ RUN corepack enable
 COPY . .
 RUN pnpm install --frozen-lockfile
 ARG NEXT_PUBLIC_API_BASE_URL
+ARG PUBLIC_DOMAIN
+ARG WEB_ORIGIN
+RUN NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL}" PUBLIC_DOMAIN="${PUBLIC_DOMAIN}" WEB_ORIGIN="${WEB_ORIGIN}" node scripts/deploy/validate-public-build-config.mjs
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 RUN pnpm --filter @room/config build \
  && pnpm --filter @room/contracts build \

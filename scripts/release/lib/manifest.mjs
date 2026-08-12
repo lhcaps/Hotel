@@ -67,8 +67,42 @@ function normalizeMigrations(migrations) {
   };
 }
 
-function identityPayload(manifest) {
+function normalizePublicBuild(publicBuild) {
+  if (publicBuild === undefined) return undefined;
+  assertPlainObject(publicBuild, 'Public build configuration');
+  if (
+    typeof publicBuild.apiBaseUrl !== 'string' ||
+    !/^https:\/\/[^/]+\/api\/v1$/u.test(publicBuild.apiBaseUrl)
+  ) {
+    throw new Error('Public build API base URL is invalid.');
+  }
+  if (
+    typeof publicBuild.webOrigin !== 'string' ||
+    !/^https:\/\/[^/]+$/u.test(publicBuild.webOrigin)
+  ) {
+    throw new Error('Public build web origin is invalid.');
+  }
+  if (
+    typeof publicBuild.fingerprint !== 'string' ||
+    !/^sha256:[a-f0-9]{64}$/iu.test(publicBuild.fingerprint)
+  ) {
+    throw new Error('Public build fingerprint is invalid.');
+  }
+  if (publicBuild.apiBaseUrl !== `${publicBuild.webOrigin}/api/v1`) {
+    throw new Error('Public build API base URL does not match its web origin.');
+  }
+  if (publicBuild.fingerprint !== `sha256:${sha256(publicBuild.apiBaseUrl)}`) {
+    throw new Error('Public build fingerprint does not match its API base URL.');
+  }
   return {
+    apiBaseUrl: publicBuild.apiBaseUrl,
+    webOrigin: publicBuild.webOrigin,
+    fingerprint: publicBuild.fingerprint.toLowerCase(),
+  };
+}
+
+function identityPayload(manifest) {
+  const payload = {
     schemaVersion: manifest.schemaVersion,
     sourceSha: manifest.sourceSha,
     sourceTreeSha: manifest.sourceTreeSha,
@@ -78,6 +112,8 @@ function identityPayload(manifest) {
     migrations: manifest.migrations,
     envSchema: manifest.envSchema,
   };
+  if (manifest.publicBuild !== undefined) payload.publicBuild = manifest.publicBuild;
+  return payload;
 }
 
 export function releaseIdentity(manifest) {
@@ -93,6 +129,7 @@ export function createManifest({
   caddySha256,
   migrations,
   envSchemaSha256,
+  publicBuild,
 }) {
   assertSourceSha(sourceSha);
   assertSourceTreeSha(sourceTreeSha);
@@ -112,6 +149,7 @@ export function createManifest({
   assertSha256(caddySha256, 'Caddy digest');
   assertSha256(envSchemaSha256, 'Environment schema digest');
 
+  const normalizedPublicBuild = normalizePublicBuild(publicBuild);
   const manifest = {
     schemaVersion: 1,
     sourceSha: sourceSha.toLowerCase(),
@@ -123,6 +161,7 @@ export function createManifest({
     migrations: normalizeMigrations(migrations),
     envSchema: { sha256: envSchemaSha256.toLowerCase() },
   };
+  if (normalizedPublicBuild !== undefined) manifest.publicBuild = normalizedPublicBuild;
   return { ...manifest, releaseId: releaseIdentity(manifest) };
 }
 
@@ -143,6 +182,7 @@ function assertManifest(manifest) {
   assertSha256(manifest.caddy.sha256, 'Caddy digest');
   assertSha256(manifest.envSchema.sha256, 'Environment schema digest');
   normalizeMigrations(manifest.migrations);
+  normalizePublicBuild(manifest.publicBuild);
   if (typeof manifest.releaseId !== 'string' || !RELEASE_ID_PATTERN.test(manifest.releaseId)) {
     throw new Error('Release manifest releaseId is invalid.');
   }

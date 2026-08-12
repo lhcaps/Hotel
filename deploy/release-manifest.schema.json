@@ -33,6 +33,7 @@
     "compose": { "$ref": "#/$defs/fileDigest" },
     "caddy": { "$ref": "#/$defs/fileDigest" },
     "envSchema": { "$ref": "#/$defs/fileDigest" },
+    "publicBuild": { "$ref": "#/$defs/publicBuild" },
     "migrations": {
       "type": "object",
       "additionalProperties": false,
@@ -63,6 +64,16 @@
       "properties": {
         "repository": { "type": "string", "minLength": 1, "not": { "pattern": ":latest$" } },
         "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+      }
+    },
+    "publicBuild": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["apiBaseUrl", "webOrigin", "fingerprint"],
+      "properties": {
+        "apiBaseUrl": { "type": "string", "format": "uri", "pattern": "^https://[^/]+/api/v1$" },
+        "webOrigin": { "type": "string", "format": "uri", "pattern": "^https://[^/]+$" },
+        "fingerprint": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
       }
     }
   }

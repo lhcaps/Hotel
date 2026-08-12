@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { useLocale } from '../../../components/locale-provider';
 import { translate } from '../../../lib/i18n/messages';
+import { resolvePublicApiOrigin } from '../../../lib/public-api-origin';
 import { SessionLogoutButton } from '../../../components/session-logout-button';
 
 interface ProfilePayload {
@@ -51,7 +52,9 @@ export function CustomerProfileClient({ initialProfile, apiBase }: CustomerProfi
       countryCode: String(form.get('countryCode') ?? profile.countryCode).toUpperCase(),
     };
     try {
-      const response = await fetch(`${new URL(apiBase).origin}/api/v1/customer/profile`, {
+      const origin = resolvePublicApiOrigin(apiBase);
+      if (origin === undefined) throw new Error(translate(locale, 'profile.saveError'));
+      const response = await fetch(`${origin}/api/v1/customer/profile`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         credentials: 'include',

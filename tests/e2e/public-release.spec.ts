@@ -15,8 +15,18 @@ test.describe('public release smoke', () => {
       const response = await request.get(new URL(path, baseURL).toString());
       expect(response.status(), path).toBe(200);
     }
-    await page.goto(baseURL);
+    const pageErrors: string[] = [];
+    const consoleErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    page.on('console', (message) => {
+      if (message.type() === 'error') consoleErrors.push(message.text());
+    });
+    await page.goto(baseURL, { waitUntil: 'networkidle' });
     await expect(page).toHaveURL(new RegExp(`^${baseURL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+    await expect(page.getByRole('banner')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Room Management' }).first()).toBeVisible();
+    expect(pageErrors).toEqual([]);
+    expect(consoleErrors.filter((message) => /Invalid URL/iu.test(message))).toEqual([]);
   });
 
   test('ADMIN session uses a secure HttpOnly same-origin cookie', async ({ page, context }) => {
