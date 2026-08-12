@@ -118,6 +118,39 @@ test('service environment rendering keeps database and SMTP secrets out of web a
   }
 });
 
+test('service environment rendering retains active API-only payment and Google configuration', () => {
+  const destinationDirectory = mkdtempSync(join(tmpdir(), 'room-release-api-env-'));
+  try {
+    const values = {
+      ...validValues(),
+      GOOGLE_AUTH_ENABLED: 'true',
+      GOOGLE_CLIENT_ID: 'synthetic-google-client-id',
+      GOOGLE_CLIENT_SECRET: 'synthetic-google-client-secret',
+      GOOGLE_REDIRECT_URI: 'https://room.example.com/api/auth/callback/google',
+    };
+    assert.deepEqual(validateEnvironment({ values, schema, deploymentClass: 'real-production' }), {
+      ok: true,
+    });
+    const rendered = renderServiceEnvironments({ values, schema, destinationDirectory });
+    const apiKeys = readFileSync(rendered.services.api.file, 'utf8');
+    const workerKeys = readFileSync(rendered.services.worker.file, 'utf8');
+
+    for (const key of [
+      'PAYMENT_DEMO_PUBLIC_ORIGIN',
+      'GOOGLE_CLIENT_ID',
+      'GOOGLE_CLIENT_SECRET',
+      'GOOGLE_REDIRECT_URI',
+    ]) {
+      assert.match(apiKeys, new RegExp(`^${key}=`, 'mu'));
+      assert.doesNotMatch(workerKeys, new RegExp(`^${key}=`, 'mu'));
+    }
+    assert.doesNotMatch(apiKeys, /^SMTP_PASSWORD=/mu);
+    assert.doesNotMatch(apiKeys, /^POSTGRES_PASSWORD=/mu);
+  } finally {
+    rmSync(destinationDirectory, { recursive: true, force: true });
+  }
+});
+
 test('service-environment CLI reports only key counts when production values include sentinels', () => {
   const directory = mkdtempSync(join(tmpdir(), 'room-release-env-cli-'));
   const sentinel = 'SENTINEL_SECRET_MUST_NOT_APPEAR_5f3a59c4';
@@ -125,7 +158,14 @@ test('service-environment CLI reports only key counts when production values inc
     const environmentFile = join(directory, 'production.env');
     writeFileSync(
       environmentFile,
-      `${Object.entries({ ...validValues(), BETTER_AUTH_SECRET: sentinel })
+      `${Object.entries({
+        ...validValues(),
+        GOOGLE_AUTH_ENABLED: 'true',
+        GOOGLE_CLIENT_ID: 'synthetic-google-client-id',
+        GOOGLE_CLIENT_SECRET: sentinel,
+        GOOGLE_REDIRECT_URI: 'https://room.example.com/api/auth/callback/google',
+        BETTER_AUTH_SECRET: sentinel,
+      })
         .map(([key, value]) => `${key}=${value}`)
         .join('\n')}\n`,
       'utf8',

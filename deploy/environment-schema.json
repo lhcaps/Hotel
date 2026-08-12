@@ -38,6 +38,7 @@
         "BOOKING_IP_DIGEST_SECRET",
         "BOOKING_ACCESS_QR_SECRET",
         "PAYMENT_DEMO_ENABLED",
+        "PAYMENT_DEMO_PUBLIC_ORIGIN",
         "PAYMENT_DEMO_INTERNAL_BASE_URL",
         "PAYMENT_DEMO_CONTROL_TOKEN",
         "MOMO_ENABLED",
@@ -56,6 +57,9 @@
         "VNPAY_RETURN_URL",
         "VNPAY_IPN_URL",
         "GOOGLE_AUTH_ENABLED",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_REDIRECT_URI",
         "GOOGLE_TRANSLATION_ENABLED"
       ]
     },
@@ -338,7 +342,7 @@
     },
     "PAYMENT_DEMO_PUBLIC_ORIGIN": {
       "classification": "PUBLIC_CONFIG",
-      "consumers": ["payment-demo"],
+      "consumers": ["api", "payment-demo"],
       "requiredInRealProduction": false
     },
     "PAYMENT_DEMO_WEB_ORIGIN": {
@@ -453,6 +457,21 @@
     },
     "GOOGLE_AUTH_ENABLED": {
       "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "GOOGLE_CLIENT_ID": {
+      "classification": "NON_SECRET_SERVICE_CONFIG",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "GOOGLE_CLIENT_SECRET": {
+      "classification": "SECRET",
+      "consumers": ["api"],
+      "requiredInRealProduction": false
+    },
+    "GOOGLE_REDIRECT_URI": {
+      "classification": "PUBLIC_CONFIG",
       "consumers": ["api"],
       "requiredInRealProduction": false
     },
