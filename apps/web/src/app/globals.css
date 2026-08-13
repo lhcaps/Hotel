@@ -6272,11 +6272,15 @@ body {
   }
 }
 
-.admin-app-shell *,
-.admin-app-shell *::before,
-.admin-app-shell *::after {
-  animation-duration: 0s !important;
-  animation-iteration-count: 1 !important;
+@media (prefers-reduced-motion: reduce) {
+  .admin-app-shell *,
+  .admin-app-shell *::before,
+  .admin-app-shell *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+  }
 }
 
 @media (max-width: 68rem) {
@@ -7366,6 +7370,17 @@ body {
 .admin-app-shell .admin-data-table.admin-customer-accounts-table th:nth-child(7),
 .admin-app-shell .admin-data-table.admin-customer-accounts-table td:nth-child(7) {
   width: 20% !important;
+}
+
+@media (max-width: 40rem) {
+  .admin-app-shell .admin-quick-search,
+  .admin-app-shell .admin-property-context {
+    display: none !important;
+  }
+
+  .admin-app-shell .admin-topbar__actions {
+    gap: 0.25rem !important;
+  }
 }
 
 .admin-app-shell .admin-data-table.admin-physical-rooms-table th:last-child,
