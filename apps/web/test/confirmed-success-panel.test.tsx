@@ -84,7 +84,10 @@ describe('ConfirmedSuccessPanel', () => {
 
     render(
       <LocaleProvider locale="en">
-        <ConfirmedSuccessPanel booking={BOOKING} payment={PAYMENT} />
+        <ConfirmedSuccessPanel
+          booking={{ ...BOOKING, checkIn: new Date(Date.now() + 5 * 60 * 1_000).toISOString() }}
+          payment={PAYMENT}
+        />
       </LocaleProvider>,
     );
 

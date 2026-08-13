@@ -79,6 +79,7 @@ test.describe('phase1 browser api seams', () => {
               roomTypes: [
                 {
                   roomTypeId: ROOM_TYPE_ID,
+                  roomTypeCode: 'DELUXE',
                   roomTypeName: 'Deluxe',
                   maxAdults: 2,
                   maxChildren: 1,

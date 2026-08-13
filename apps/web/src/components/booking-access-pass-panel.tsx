@@ -17,17 +17,34 @@ type AccessPassState =
       readonly arrival?: BookingAccessPassResponse['arrival'];
     };
 
+const ACCESS_PASS_RELEASE_WINDOW_MS = 30 * 60 * 1_000;
+
+function isAccessPassReleaseWindowOpen(checkIn: string): boolean {
+  const checkInTimestamp = Date.parse(checkIn);
+  return (
+    Number.isFinite(checkInTimestamp) &&
+    Date.now() >= checkInTimestamp - ACCESS_PASS_RELEASE_WINDOW_MS
+  );
+}
+
 export function BookingAccessPassPanel({
   bookingCode,
+  checkIn,
   customer = false,
 }: {
   readonly bookingCode: string;
+  readonly checkIn: string;
   readonly customer?: boolean;
 }) {
   const locale = useLocale();
   const [state, setState] = useState<AccessPassState>({ kind: 'loading' });
 
   useEffect(() => {
+    if (!isAccessPassReleaseWindowOpen(checkIn)) {
+      setState({ kind: 'unavailable' });
+      return;
+    }
+
     let cancelled = false;
     void (
       customer
@@ -55,7 +72,7 @@ export function BookingAccessPassPanel({
     return () => {
       cancelled = true;
     };
-  }, [bookingCode, customer]);
+  }, [bookingCode, checkIn, customer]);
 
   if (state.kind === 'loading') return null;
 

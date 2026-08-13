@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BookingAccessPassPanel } from '../src/components/booking-access-pass-panel';
 import { LocaleProvider } from '../src/components/locale-provider';
 
+function checkInWithinAccessReleaseWindow(): string {
+  return new Date(Date.now() + 5 * 60 * 1_000).toISOString();
+}
+
 describe('BookingAccessPassPanel', () => {
   const fetchMock = vi.fn<typeof fetch>();
 
@@ -32,7 +36,10 @@ describe('BookingAccessPassPanel', () => {
 
     const { container } = render(
       <LocaleProvider locale="en">
-        <BookingAccessPassPanel bookingCode="RM-AB23-CD45-EF67" />
+        <BookingAccessPassPanel
+          bookingCode="RM-AB23-CD45-EF67"
+          checkIn={checkInWithinAccessReleaseWindow()}
+        />
       </LocaleProvider>,
     );
 
@@ -65,7 +72,10 @@ describe('BookingAccessPassPanel', () => {
 
     render(
       <LocaleProvider locale="en">
-        <BookingAccessPassPanel bookingCode="RM-AB23-CD45-EF67" />
+        <BookingAccessPassPanel
+          bookingCode="RM-AB23-CD45-EF67"
+          checkIn={checkInWithinAccessReleaseWindow()}
+        />
       </LocaleProvider>,
     );
 
@@ -75,5 +85,23 @@ describe('BookingAccessPassPanel', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: 'Booking access QR code' })).not.toBeInTheDocument();
+  });
+
+  it('does not request the gated endpoint before the access release window', async () => {
+    render(
+      <LocaleProvider locale="en">
+        <BookingAccessPassPanel
+          bookingCode="RM-AB23-CD45-EF67"
+          checkIn={new Date(Date.now() + 31 * 60 * 1_000).toISOString()}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(
+      await screen.findByText(
+        'Check-in information becomes available about 30 minutes before arrival.',
+      ),
+    ).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

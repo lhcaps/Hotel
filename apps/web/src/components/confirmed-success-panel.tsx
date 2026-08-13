@@ -94,7 +94,7 @@ export function ConfirmedSuccessPanel({ booking, payment }: ConfirmedSuccessPane
         policy={booking.cancellationPolicy}
       />
 
-      <BookingAccessPassPanel bookingCode={booking.bookingCode} />
+      <BookingAccessPassPanel bookingCode={booking.bookingCode} checkIn={booking.checkIn} />
 
       <p className="mt-4 text-sm text-emerald-900" role="status">
         {translate(locale, 'success.emailNotice')}

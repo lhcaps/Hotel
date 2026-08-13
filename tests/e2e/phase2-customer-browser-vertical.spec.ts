@@ -26,6 +26,10 @@ import { fillHourlySearch } from './public-search-helpers';
 
 const WEB_BASE = process.env.PAYMENT_TEST_WEB_BASE ?? 'http://127.0.0.1:3100';
 const API_BASE = process.env.PAYMENT_TEST_API_BASE ?? 'http://127.0.0.1:3101/api/v1';
+
+function confirmationSubject(bookingCode: string): RegExp {
+  return new RegExp(`^PeaceNest xác nhận đặt phòng · ${bookingCode}$`);
+}
 const MAILPIT_API = process.env.MAILPIT_API ?? 'http://127.0.0.1:8025';
 const ROOM_TYPE_ID = '10000000-0000-4000-8000-000000000201';
 
@@ -250,7 +254,6 @@ test.describe('Phase 2 customer browser vertical', () => {
     // the booking code on the browser-side redirect.
     await setSimulatorMode('momo', 'verify');
 
-    const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
     const moMoButton = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
     await expect(moMoButton).toBeVisible();
     await Promise.all([
@@ -258,16 +261,10 @@ test.describe('Phase 2 customer browser vertical', () => {
       moMoButton.click(),
     ]);
 
-    // Wait until the simulator has posted at least one IPN, then wait
-    // until the persistent route is back and renders the success surface.
-    await waitFor(
-      async () => {
-        const counts = await readSimulatorCounts();
-        return counts.counts.momoIpnAttempts > initialIpnCount;
-      },
-      { timeoutMs: 15_000 },
-    );
-
+    // The simulator callback is asynchronous. The returned route and
+    // authoritative payment status prove that its IPN was accepted; a raw
+    // simulator counter is an implementation detail and can be sampled
+    // after the callback has already completed.
     await expect(page).toHaveURL(/\/booking\/manage\/[A-Za-z0-9-]+$/, { timeout: 30_000 });
     expect(page.url()).toContain(booking.bookingCode);
     await settlePayment(booking.bookingCode, booking.guestSessionCookie, listener);
@@ -290,7 +287,7 @@ test.describe('Phase 2 customer browser vertical', () => {
       async () => {
         const counts = await countMailpitMessages(
           booking.contactEmail,
-          new RegExp(`Booking confirmed: ${booking.bookingCode}`),
+          confirmationSubject(booking.bookingCode),
         );
         return counts.matching === 1;
       },
@@ -323,11 +320,6 @@ test.describe('Phase 2 customer browser vertical', () => {
     await expect(firstCard).toBeVisible({ timeout: 60_000 });
     await firstCard.getByRole('link', { name: /Xem phòng/i }).click();
 
-    const planButtons = page.getByTestId('room-detail-plan');
-    await expect(planButtons.first()).toBeVisible({ timeout: 30_000 });
-    const selectedPlanCode = await planButtons.first().getAttribute('data-plan-code');
-    if (!selectedPlanCode) throw new Error('Selected rate plan is missing data-plan-code');
-    await planButtons.first().click();
     await expect(page.getByRole('button', { name: 'Xem giá chính thức' })).toBeVisible({
       timeout: 30_000,
     });
@@ -383,10 +375,7 @@ test.describe('Phase 2 customer browser vertical', () => {
     // 5. Exactly one confirmation email lands in Mailpit for this booking.
     await waitFor(
       async () => {
-        const counts = await countMailpitMessages(
-          recipientEmail,
-          new RegExp(`Booking confirmed: ${bookingCode}`),
-        );
+        const counts = await countMailpitMessages(recipientEmail, confirmationSubject(bookingCode));
         return counts.matching === 1;
       },
       { timeoutMs: 15_000 },
@@ -407,21 +396,12 @@ test.describe('Phase 2 customer browser vertical', () => {
     // No control-plane backRedirectUrl: see MoMo desktop comment.
     await setSimulatorMode('momo', 'verify');
 
-    const initialIpnCount = (await readSimulatorCounts()).counts.momoIpnAttempts;
     const moMoButton = page.getByRole('button', { name: 'Thanh toán qua MoMo' });
     await expect(moMoButton).toBeVisible();
     await Promise.all([
       page.waitForURL((current) => current.host === '127.0.0.1:3090', { timeout: 30_000 }),
       moMoButton.click(),
     ]);
-
-    await waitFor(
-      async () => {
-        const counts = await readSimulatorCounts();
-        return counts.counts.momoIpnAttempts > initialIpnCount;
-      },
-      { timeoutMs: 15_000 },
-    );
 
     await expect(page).toHaveURL(/\/booking\/manage\/[A-Z0-9-]+$/, { timeout: 30_000 });
     expect(page.url()).toContain(booking.bookingCode);
@@ -434,7 +414,7 @@ test.describe('Phase 2 customer browser vertical', () => {
       async () => {
         const counts = await countMailpitMessages(
           booking.contactEmail,
-          new RegExp(`Booking confirmed: ${booking.bookingCode}`),
+          confirmationSubject(booking.bookingCode),
         );
         return counts.matching === 1;
       },
@@ -578,17 +558,10 @@ test.describe('Phase 2 customer browser vertical', () => {
       .getByRole('link', { name: 'Xem phòng & giá' });
     await Promise.all([page.waitForURL(/\/rooms\//), roomLink.click()]);
 
-    // 5. Choose an eligible rate plan visible on the detail page.
+    // 5. Request a quote. The server chooses the eligible pricing policy.
     await expect(page.getByRole('button', { name: 'Xem giá chính thức' })).toBeVisible({
       timeout: 30_000,
     });
-    const planButtons = page.getByTestId('room-detail-plan');
-    await expect(planButtons.first()).toBeVisible();
-    const selectedPlanCode = await planButtons.first().getAttribute('data-plan-code');
-    if (!selectedPlanCode) {
-      throw new Error('Selected rate plan is missing data-plan-code attribute');
-    }
-    await planButtons.first().click();
 
     // 6. Create a quote through the browser.
     await Promise.all([
@@ -613,14 +586,11 @@ test.describe('Phase 2 customer browser vertical', () => {
     await expect(couponSummary).toBeVisible();
     await expect(couponSummary).toContainText('DEMO-FIXED');
 
-    // 8. The selected plan code is preserved across coupon requote.
+    // 8. The coupon requote does not expose or accept a client plan choice.
     const requoteUrl = page.url();
-    expect(requoteUrl).toContain('selectedPlanCode=');
-    expect(requoteUrl).toMatch(
-      new RegExp(`selectedPlanCode=${encodeURIComponent(selectedPlanCode)}`),
-    );
-    // The quote id in the URL must change after the requote — same selected
-    // plan must persist while the coupon is applied to a fresh quote.
+    expect(requoteUrl).not.toContain('selectedPlanCode=');
+    // The quote id in the URL must change after the requote while the server
+    // remains the pricing authority.
     expect(new URL(requoteUrl).pathname).not.toBe(new URL(quoteUrl).pathname);
 
     // 9. Enter synthetic customer contact through the browser.
@@ -696,10 +666,7 @@ test.describe('Phase 2 customer browser vertical', () => {
     // 21. Exactly one confirmation email lands in Mailpit.
     await waitFor(
       async () => {
-        const counts = await countMailpitMessages(
-          recipientEmail,
-          new RegExp(`Booking confirmed: ${bookingCode}`),
-        );
+        const counts = await countMailpitMessages(recipientEmail, confirmationSubject(bookingCode));
         return counts.matching === 1;
       },
       { timeoutMs: 15_000 },
@@ -731,13 +698,6 @@ test.describe('Phase 2 customer browser vertical', () => {
     await expect(firstCard).toBeVisible({ timeout: 60_000 });
     await firstCard.getByRole('link', { name: /Xem phòng/i }).click();
 
-    const planButtons = page.getByTestId('room-detail-plan');
-    await expect(planButtons.first()).toBeVisible({ timeout: 30_000 });
-    const selectedPlanCode = await planButtons.first().getAttribute('data-plan-code');
-    if (!selectedPlanCode) {
-      throw new Error('Selected rate plan is missing data-plan-code attribute');
-    }
-    await planButtons.first().click();
     await expect(page.getByRole('button', { name: 'Xem giá chính thức' })).toBeVisible({
       timeout: 30_000,
     });
@@ -798,10 +758,7 @@ test.describe('Phase 2 customer browser vertical', () => {
     // 10. One confirmation email.
     await waitFor(
       async () => {
-        const counts = await countMailpitMessages(
-          recipientEmail,
-          new RegExp(`Booking confirmed: ${bookingCode}`),
-        );
+        const counts = await countMailpitMessages(recipientEmail, confirmationSubject(bookingCode));
         return counts.matching === 1;
       },
       { timeoutMs: 15_000 },
@@ -858,9 +815,6 @@ test.describe('Phase 2 customer browser vertical', () => {
     await expect(firstCard).toBeVisible({ timeout: 60_000 });
     await firstCard.getByRole('link', { name: /Xem phòng/i }).click();
 
-    const planButtons = page.getByTestId('room-detail-plan');
-    await expect(planButtons.first()).toBeVisible({ timeout: 30_000 });
-    await planButtons.first().click();
     await expect(page.getByRole('button', { name: 'Xem giá chính thức' })).toBeVisible({
       timeout: 30_000,
     });
@@ -921,10 +875,7 @@ test.describe('Phase 2 customer browser vertical', () => {
     // and assert the count is still exactly one.
     await waitFor(
       async () => {
-        const counts = await countMailpitMessages(
-          recipientEmail,
-          new RegExp(`Booking confirmed: ${bookingCode}`),
-        );
+        const counts = await countMailpitMessages(recipientEmail, confirmationSubject(bookingCode));
         return counts.matching === 1;
       },
       { timeoutMs: 15_000 },
@@ -935,7 +886,7 @@ test.describe('Phase 2 customer browser vertical', () => {
     await page.waitForTimeout(3_000);
     const finalCounts = await countMailpitMessages(
       recipientEmail,
-      new RegExp(`Booking confirmed: ${bookingCode}`),
+      confirmationSubject(bookingCode),
     );
     expect(finalCounts.matching).toBe(1);
 

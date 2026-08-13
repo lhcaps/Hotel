@@ -190,6 +190,7 @@ test('ADMIN V3 core interactions work through the shared UI system', async ({ pa
   await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.goto('/admin/accounts', { waitUntil: 'domcontentloaded' });
+  await waitForRouteData(page);
   await page.getByRole('tab', { name: 'Tài khoản khách hàng' }).click();
   await expect(page.getByRole('tab', { name: 'Tài khoản khách hàng' })).toHaveAttribute(
     'aria-selected',
@@ -273,6 +274,7 @@ test('ADMIN V3 closes the pricing-policy setup sheet before opening a new draft 
 }) => {
   await login(page);
   await page.goto('/admin/pricing-policies', { waitUntil: 'domcontentloaded' });
+  await waitForRouteData(page);
 
   await page.getByRole('button', { name: 'Tạo draft', exact: true }).click();
   const createSheet = page.getByRole('dialog');

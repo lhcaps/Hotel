@@ -102,7 +102,12 @@ describe('BookingDetailPanel', () => {
       const url = String(input);
       if (url.endsWith(`/public/bookings/${BOOKING.bookingCode}`)) {
         return Promise.resolve(
-          jsonResponse({ ...BOOKING, status: 'CONFIRMED', holdExpiresAt: null }),
+          jsonResponse({
+            ...BOOKING,
+            checkIn: new Date(Date.now() + 5 * 60 * 1_000).toISOString(),
+            status: 'CONFIRMED',
+            holdExpiresAt: null,
+          }),
         );
       }
       if (url.endsWith(`/public/bookings/${BOOKING.bookingCode}/access-pass`)) {

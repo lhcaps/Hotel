@@ -171,7 +171,11 @@ export default async function CustomerBookingDetailPage({ params }: PageProps) {
           <PaymentProviderSelector bookingCode={booking.bookingCode} customer />
         ) : null}
         <PaymentStatusSummary bookingCode={booking.bookingCode} customer />
-        <BookingAccessPassPanel bookingCode={booking.bookingCode} customer />
+        <BookingAccessPassPanel
+          bookingCode={booking.bookingCode}
+          checkIn={booking.checkIn}
+          customer
+        />
         <CustomerBookingActions
           adults={booking.adults}
           bookingCode={booking.bookingCode}

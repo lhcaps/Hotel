@@ -224,9 +224,6 @@ async function buildCustomerBooking(
   await expect(firstCard).toBeVisible({ timeout: 60_000 });
   await firstCard.getByRole('link', { name: /Xem phòng/i }).click();
 
-  const planButtons = page.getByTestId('room-detail-plan');
-  await expect(planButtons.first()).toBeVisible({ timeout: 30_000 });
-  await planButtons.first().click();
   await expect(page.getByRole('button', { name: /Xem giá chính thức/ })).toBeVisible({
     timeout: 30_000,
   });
@@ -325,7 +322,7 @@ test.describe('Final local demo acceptance', () => {
     // Exactly one confirmation email landed in Mailpit for that booking code.
     const confirmationCount = await countMatchingMailpit(
       recipientEmail,
-      new RegExp(`Booking confirmed: ${bookingCode}`),
+      new RegExp(`^PeaceNest xác nhận đặt phòng · ${bookingCode}$`),
       8_000,
     );
     expect(confirmationCount, `confirmations for ${bookingCode}`).toBe(1);
@@ -349,7 +346,7 @@ test.describe('Final local demo acceptance', () => {
     // checkout page may abort a follow-up navigation.
     const confirmationCount = await countMatchingMailpit(
       recipientEmail,
-      new RegExp(`Booking confirmed: ${bookingCode}`),
+      new RegExp(`^PeaceNest xác nhận đặt phòng · ${bookingCode}$`),
       8_000,
     );
     expect(confirmationCount, `VNPAY confirmations for ${bookingCode}`).toBe(1);

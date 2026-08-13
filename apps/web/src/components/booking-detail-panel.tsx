@@ -208,7 +208,7 @@ export function BookingDetailPanel({ bookingCode, email, onLogout }: BookingDeta
       ) : null}
 
       {booking.status === 'CONFIRMED' ? (
-        <BookingAccessPassPanel bookingCode={booking.bookingCode} />
+        <BookingAccessPassPanel bookingCode={booking.bookingCode} checkIn={booking.checkIn} />
       ) : null}
 
       <PaymentStatusSummary bookingCode={booking.bookingCode} />
