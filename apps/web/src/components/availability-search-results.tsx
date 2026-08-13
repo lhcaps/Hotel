@@ -119,6 +119,7 @@ function responseStateCopy(
         title: translate(locale, 'search.invalidIntervalErrorTitle'),
         help: translate(locale, 'search.invalidIntervalErrorHelp'),
       };
+    case 'PRICING_CONFIGURATION_UNAVAILABLE':
     case 'NO_VALID_PRICING':
     case 'POLICY_NOT_CONFIGURED':
       return {

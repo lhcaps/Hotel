@@ -125,6 +125,32 @@ describe('AvailabilitySearchResults', () => {
     expect(screen.getByText('Invalid stay interval')).toBeInTheDocument();
   });
 
+  it('shows a pricing-unavailable message for a controlled pricing configuration response', () => {
+    render(
+      <LocaleProvider locale="en">
+        <AvailabilitySearchResults
+          exactResponse={{
+            state: 'PRICING_CONFIGURATION_UNAVAILABLE',
+            items: [],
+            requestedInterval: {
+              checkIn: '2026-08-16T09:06:00+07:00',
+              checkOut: '2026-08-17T10:06:00+07:00',
+            },
+          }}
+          exactStatus="unavailable"
+          state={{
+            checkIn: '2026-08-16T09:06:00+07:00',
+            checkOut: '2026-08-17T10:06:00+07:00',
+            adults: 1,
+            children: 0,
+          }}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByText('Pricing is not available for this interval')).toBeInTheDocument();
+  });
+
   it('falls back to the generic load-error message for unrecognized errors', () => {
     render(
       <LocaleProvider locale="en">

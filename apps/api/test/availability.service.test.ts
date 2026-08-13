@@ -97,4 +97,29 @@ describe('AvailabilityService', () => {
     expect(multiNight.search).toHaveBeenCalledWith(customerRequest);
     expect(repository.search).toHaveBeenCalledWith(customerRequest);
   });
+
+  it('preserves a controlled pricing-configuration state for the exact mode-free 25-hour incident interval', async () => {
+    const repository: AvailabilityRepositoryPort = {
+      search: vi.fn(),
+      searchWithState: vi.fn().mockResolvedValue({
+        state: 'PRICING_CONFIGURATION_UNAVAILABLE',
+        items: [],
+      }),
+    };
+    const result = await new AvailabilityService(repository).search({
+      checkIn: '2026-08-16T09:06:00+07:00',
+      checkOut: '2026-08-17T10:06:00+07:00',
+      adults: 1,
+      children: 0,
+    });
+
+    expect(result).toMatchObject({
+      state: 'PRICING_CONFIGURATION_UNAVAILABLE',
+      requestedInterval: {
+        checkIn: '2026-08-16T09:06:00+07:00',
+        checkOut: '2026-08-17T10:06:00+07:00',
+      },
+      items: [],
+    });
+  });
 });
