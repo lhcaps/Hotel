@@ -119,32 +119,38 @@ async function waitForRouteData(page: Page) {
     .toBe(true);
 }
 
-test('ADMIN V3 renders all accessible protected routes without errors or page overflow', async ({
-  page,
-}) => {
-  const pageErrors: string[] = [];
-  const consoleErrors: string[] = [];
-  let authenticated = false;
-  page.on('pageerror', (error) => pageErrors.push(error.message));
-  page.on('console', (message) => {
-    const location = message.location();
-    if (authenticated && message.type() === 'error') {
-      consoleErrors.push(`${message.text()} @ ${location.url || '<inline>'}`);
-    }
-  });
+for (const viewport of viewports) {
+  test(`ADMIN V3 renders all accessible protected routes without errors or page overflow at ${viewport.name}`, async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    const consoleErrors: string[] = [];
+    let authenticated = false;
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    page.on('console', (message) => {
+      const location = message.location();
+      if (authenticated && message.type() === 'error') {
+        consoleErrors.push(`${message.text()} @ ${location.url || '<inline>'}`);
+      }
+    });
 
-  await login(page);
-  authenticated = true;
-  await page.goto('/admin/payments', { waitUntil: 'domcontentloaded' });
-  const paymentDetailRoute = await page
-    .locator('a[href^="/admin/payments/"]')
-    .first()
-    .getAttribute('href');
-  expect(paymentDetailRoute).toBeTruthy();
-  for (const viewport of viewports) {
+    await login(page);
+    authenticated = true;
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     for (const route of routes) {
-      const actualRoute = route === '/admin/payments/__from-list__' ? paymentDetailRoute! : route;
+      let actualRoute: string = route;
+      if (route === '/admin/payments/__from-list__') {
+        await page.goto('/admin/payments', { waitUntil: 'domcontentloaded' });
+        const paymentDetailRoute = await page
+          .locator('a[href^="/admin/payments/"]')
+          .first()
+          .getAttribute('href');
+        expect(paymentDetailRoute).toBeTruthy();
+        if (!paymentDetailRoute) {
+          throw new Error('Expected a payment detail route from the payments list');
+        }
+        actualRoute = paymentDetailRoute;
+      }
       await page.goto(actualRoute, { waitUntil: 'domcontentloaded' });
       await expect(
         page.locator('.admin-page').first(),
@@ -156,10 +162,10 @@ test('ADMIN V3 renders all accessible protected routes without errors or page ov
         viewport.width,
       );
     }
-  }
-  expect(pageErrors).toEqual([]);
-  expect(consoleErrors).toEqual([]);
-});
+    expect(pageErrors).toEqual([]);
+    expect(consoleErrors).toEqual([]);
+  });
+}
 
 test('ADMIN V3 keeps core workflows reachable at narrow safety viewports', async ({ page }) => {
   await login(page);
