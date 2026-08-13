@@ -26,6 +26,7 @@ const PLAYWRIGHT_GUEST_SECRETS = {
   GUEST_CHALLENGE_REF_SECRET: 'test-challenge-ref-secret-32-chars-aaaa',
   GUEST_SESSION_SECRET: 'test-guest-session-secret-32-chars-aaaa',
   BOOKING_IP_DIGEST_SECRET: 'test-ip-digest-secret-32-chars-aaaaa',
+  BOOKING_ACCESS_QR_SECRET: 'test-booking-access-qr-secret-32-chars-aaaa',
 } as const;
 
 interface WorkerRunResult {

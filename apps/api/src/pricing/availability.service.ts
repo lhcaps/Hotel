@@ -85,7 +85,7 @@ export class AvailabilityService {
       });
     }
     const request = parsed.success ? parsed.data : availabilitySearchRequestSchema.parse(input);
-    if (request.mode === undefined || request.mode === 'multi_night') {
+    if (request.mode === 'multi_night') {
       if (this.multiNight === undefined) {
         return availabilitySearchResponseSchema.parse({
           state: 'SERVICE_UNAVAILABLE',
@@ -95,6 +95,11 @@ export class AvailabilityService {
       }
       return this.multiNight.search(request);
     }
+    if (request.mode === undefined) return this.searchFlexible(request);
+    return this.searchCatalog(request);
+  }
+
+  private async searchCatalog(request: AvailabilitySearchRequest) {
     const result = this.repository.searchWithState
       ? await this.repository.searchWithState(request)
       : {
@@ -109,6 +114,65 @@ export class AvailabilityService {
       items: result.items,
     });
   }
+
+  private async searchFlexible(request: AvailabilitySearchRequest) {
+    const [catalog, policy] = await Promise.all([
+      this.searchCatalog(request),
+      this.multiNight?.search(request) ?? Promise.resolve(undefined),
+    ]);
+    const items = mergeFlexibleItems(catalog.items, policy?.items ?? []);
+    const state =
+      items.length > 0 ? 'AVAILABLE' : selectFlexibleState(catalog.state, policy?.state);
+    return availabilitySearchResponseSchema.parse({
+      state,
+      ...(catalog.policy === undefined && policy?.policy === undefined
+        ? {}
+        : { policy: catalog.policy ?? policy?.policy }),
+      requestedInterval: { checkIn: request.checkIn, checkOut: request.checkOut },
+      items,
+    });
+  }
+}
+
+function mergeFlexibleItems(
+  catalog: readonly AvailabilitySearchRoomType[],
+  policy: readonly AvailabilitySearchRoomType[],
+): readonly AvailabilitySearchRoomType[] {
+  const policyByRoomType = new Map(policy.map((item) => [item.roomTypeId, item]));
+  const catalogByRoomType = new Map(catalog.map((item) => [item.roomTypeId, item]));
+  const roomTypeIds = [
+    ...new Set([...catalogByRoomType.keys(), ...policyByRoomType.keys()]),
+  ].sort();
+  return roomTypeIds.flatMap((roomTypeId) => {
+    const catalogItem = catalogByRoomType.get(roomTypeId);
+    const policyItem = policyByRoomType.get(roomTypeId);
+    if (catalogItem === undefined) return policyItem === undefined ? [] : [policyItem];
+    if (policyItem === undefined) return [catalogItem];
+    // Equal totals retain catalog ordering; the quote resolver uses the same
+    // deterministic representation tie-break rather than a client decision.
+    return policyItem.offer !== null &&
+      (catalogItem.offer === null || policyItem.offer.amountVnd < catalogItem.offer.amountVnd)
+      ? [policyItem]
+      : [catalogItem];
+  });
+}
+
+function selectFlexibleState(
+  catalog: AvailabilityState | undefined,
+  policy: AvailabilityState | undefined,
+): AvailabilityState {
+  const candidates = [catalog, policy].filter(
+    (state): state is AvailabilityState => state !== undefined,
+  );
+  return (
+    candidates.find(
+      (state) =>
+        state !== 'AVAILABLE' && state !== 'NO_EXACT_AVAILABILITY' && state !== 'NO_VALID_PRICING',
+    ) ??
+    candidates.find((state) => state === 'NO_VALID_PRICING') ??
+    candidates[0] ??
+    'NO_EXACT_AVAILABILITY'
+  );
 }
 
 function isMultiNightRequest(input: unknown): input is Record<string, unknown> {

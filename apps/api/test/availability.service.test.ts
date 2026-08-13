@@ -80,8 +80,8 @@ describe('AvailabilityService', () => {
     expect(repository.searchWithState).not.toHaveBeenCalled();
   });
 
-  it('routes a mode-free Customer interval through the flexible pricing resolver', async () => {
-    const repository: AvailabilityRepositoryPort = { search: vi.fn() };
+  it('evaluates catalog and policy candidates for a mode-free Customer interval', async () => {
+    const repository: AvailabilityRepositoryPort = { search: vi.fn().mockResolvedValue([]) };
     const multiNight = {
       search: vi.fn().mockResolvedValue({
         state: 'AVAILABLE',
@@ -95,6 +95,6 @@ describe('AvailabilityService', () => {
     await new AvailabilityService(repository, multiNight).search(customerRequest);
 
     expect(multiNight.search).toHaveBeenCalledWith(customerRequest);
-    expect(repository.search).not.toHaveBeenCalled();
+    expect(repository.search).toHaveBeenCalledWith(customerRequest);
   });
 });

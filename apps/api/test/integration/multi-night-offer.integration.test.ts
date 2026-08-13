@@ -290,6 +290,26 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
     expect(multiNightPricing.finalAmountVnd).toBe(nightCount * 600000);
   });
 
+  it('resolves an exact multi-night interval without a client pricing mode', async () => {
+    const { mode: _legacyMode, ...input } = stay(12, 2);
+    void _legacyMode;
+    const result = await availability.search(input);
+    expect(result).toMatchObject({
+      state: 'AVAILABLE',
+      requestedInterval: { checkIn: input.checkIn, checkOut: input.checkOut },
+    });
+
+    const quote = await quotes.issue({ ...input, roomTypeId: ids.roomType });
+    if (!('displayNightCount' in quote.pricing)) {
+      throw new Error('expected a policy-composed pricing snapshot');
+    }
+    expect(quote.pricing.displayNightCount).toBe(2);
+    expect(quote.pricing.requestedInterval).toEqual({
+      checkInAt: new Date(input.checkIn).toISOString(),
+      checkOutAt: new Date(input.checkOut).toISOString(),
+    });
+  });
+
   it.each([
     ['leading extra', '2027-03-10T19:00:00+07:00', '2027-03-11T09:00:00+07:00', 1, 2],
     ['trailing extra', '2027-03-10T21:00:00+07:00', '2027-03-11T11:00:00+07:00', 1, 2],

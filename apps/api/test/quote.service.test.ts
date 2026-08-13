@@ -108,7 +108,7 @@ describe('QuoteService', () => {
     expect(repo.issue).not.toHaveBeenCalled();
   });
 
-  it('routes a mode-free Customer quote to the server-owned flexible resolver', async () => {
+  it('evaluates catalog and policy candidates for a mode-free Customer quote', async () => {
     const repo: QuoteRepositoryPort = { catalogFor: vi.fn(), issue: vi.fn(), get: vi.fn() };
     const multiNight = {
       quote: vi.fn().mockResolvedValue(undefined),
@@ -124,7 +124,7 @@ describe('QuoteService', () => {
     });
 
     expect(multiNight.quote).toHaveBeenCalledWith(customerRequest);
-    expect(repo.catalogFor).not.toHaveBeenCalled();
+    expect(repo.catalogFor).toHaveBeenCalledWith(customerRequest);
   });
 
   it('preserves server-owned multi-night availability states at quote time', async () => {
