@@ -145,13 +145,11 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
   }, [data?.items]);
 
   return (
-    <section
-      className="room-operations-board"
-      aria-label={translate(locale, 'admin.roomBoardHeading')}
-    >
+    <section className="room-operations-board" aria-labelledby="room-board-heading">
       <div className="room-operations-board__body">
         <AdminPageHeader
           eyebrow={translate(locale, 'admin.roomOperations')}
+          headingId="room-board-heading"
           title={translate(locale, 'admin.roomBoardHeading')}
           description={translate(locale, 'admin.roomBoardHelp')}
           actions={

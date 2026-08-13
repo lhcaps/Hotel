@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import type { AdminOperationalReport } from '@room/contracts';
 
@@ -8,7 +8,14 @@ import { AdminApiError, adminApi, type AdminRoomOperationsResponse } from '../li
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
-import { AdminErrorState, AdminMetric, AdminPageHeader } from './admin/admin-ui';
+import { Field, FieldLabel } from './ui/field';
+import { Input } from './ui/input';
+import {
+  AdminErrorState,
+  AdminFilterToolbar,
+  AdminMetric,
+  AdminPageHeader,
+} from './admin/admin-ui';
 
 type RoomItem = AdminRoomOperationsResponse['items'][number];
 
@@ -279,10 +286,10 @@ function Queue({
 export function OperationalReportDashboard() {
   const locale = useLocale();
   const today = useMemo(() => new Date(), []);
-  const [from] = useState(() =>
+  const [from, setFrom] = useState(() =>
     dateInputValue(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29)),
   );
-  const [to] = useState(() => dateInputValue(today));
+  const [to, setTo] = useState(() => dateInputValue(today));
   const [report, setReport] = useState<AdminOperationalReport>();
   const [rooms, setRooms] = useState<AdminRoomOperationsResponse>();
   const [error, setError] = useState<string>();
@@ -331,6 +338,11 @@ export function OperationalReportDashboard() {
     void refresh();
   }, [refresh]);
 
+  function applyFilters(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void refresh();
+  }
+
   const items = rooms?.items ?? [];
   const metrics = roomMetrics(items);
 
@@ -361,6 +373,37 @@ export function OperationalReportDashboard() {
           </div>
         }
       />
+
+      <AdminFilterToolbar
+        className="report-filters report-filters--compact"
+        onSubmit={applyFilters}
+      >
+        <Field>
+          <FieldLabel htmlFor="operational-report-from">
+            {translate(locale, 'admin.reportFrom')}
+          </FieldLabel>
+          <Input
+            id="operational-report-from"
+            onChange={(event) => setFrom(event.target.value)}
+            type="date"
+            value={from}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="operational-report-to">
+            {translate(locale, 'admin.reportTo')}
+          </FieldLabel>
+          <Input
+            id="operational-report-to"
+            onChange={(event) => setTo(event.target.value)}
+            type="date"
+            value={to}
+          />
+        </Field>
+        <Button disabled={refreshing} type="submit">
+          {translate(locale, 'admin.reportApply')}
+        </Button>
+      </AdminFilterToolbar>
 
       {error ? (
         <AdminErrorState title={translate(locale, 'admin.reportLoadError')} description={error} />

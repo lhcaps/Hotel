@@ -249,18 +249,20 @@ export function AdminPageHeader({
   description,
   actions,
   className,
+  headingId,
 }: Readonly<{
   eyebrow?: React.ReactNode;
   title: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
   className?: string;
+  headingId?: string;
 }>) {
   return (
     <div className={cn('admin-page-header', className)}>
       <div className="admin-page-header__copy">
         {eyebrow ? <p className="admin-eyebrow">{eyebrow}</p> : null}
-        <h1>{title}</h1>
+        <h1 id={headingId}>{title}</h1>
         {description ? <p>{description}</p> : null}
       </div>
       {actions ? <div className="admin-page-header__actions">{actions}</div> : null}

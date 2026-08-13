@@ -7478,6 +7478,47 @@ body {
   }
 }
 
+.admin-app-shell .admin-overview .report-filters--compact {
+  width: fit-content !important;
+  max-width: 100%;
+  margin-block-end: 0.75rem;
+  border-color: transparent;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.admin-app-shell .admin-overview .report-filters--compact > .admin-filter-toolbar__controls {
+  grid-template-columns: minmax(8rem, 10rem) minmax(8rem, 10rem) auto !important;
+  justify-content: start;
+}
+
+.admin-app-shell
+  .admin-overview
+  .report-filters--compact
+  > .admin-filter-toolbar__controls
+  > button {
+  min-height: 2.4rem;
+}
+
+@media (max-width: 43.75rem) {
+  .admin-app-shell .admin-overview .report-filters--compact > .admin-filter-toolbar__controls {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-app-shell .admin-overview .report-filters--compact {
+    width: 100% !important;
+  }
+
+  .admin-app-shell
+    .admin-overview
+    .report-filters--compact
+    > .admin-filter-toolbar__controls
+    > button {
+    width: 100%;
+  }
+}
+
 /* Final canonical overrides: this block intentionally comes after legacy route
    rules so migrated ADMIN screens inherit the same neutral visual language. */
 .admin-app-shell {

@@ -18,5 +18,6 @@ test('ADMIN creates a maintenance block', async ({ page }) => {
   await expect(page.getByText('Đã tạo bảo trì: Repair.')).toBeVisible();
   await expect(page.getByRole('cell', { name: 'Repair', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Hủy bảo trì' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Hủy bảo trì' }).click();
   await expect(page.getByText('Đã hủy bảo trì.', { exact: true })).toBeVisible();
 });
