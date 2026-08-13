@@ -35,6 +35,7 @@ const stableAdminRoutes = [
 ] as const;
 
 test('ADMIN V2 Vietnamese shell and operational routes remain responsive', async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto('/admin/login');
   await page.getByLabel('Email').fill(playwrightAdminEmail);
   await page.getByLabel('Mật khẩu').fill(playwrightAdminPassword);

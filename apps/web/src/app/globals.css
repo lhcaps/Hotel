@@ -7540,3 +7540,9 @@ body {
     display: none;
   }
 }
+
+@media (max-width: 68rem) {
+  .admin-app-shell .admin-profile-trigger__copy {
+    display: none !important;
+  }
+}
