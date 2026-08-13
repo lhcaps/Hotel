@@ -268,10 +268,6 @@ export class QuoteService {
       );
     }
     if (catalogError !== undefined) throw this.mapPricingError(catalogError);
-    if (multiNightSource === undefined && this.options.multiNight !== undefined) {
-      const state = await this.multiNightState(request);
-      if (state !== undefined) throw new QuoteMultiNightStateError(state);
-    }
     throw new QuoteUnavailableError();
   }
 

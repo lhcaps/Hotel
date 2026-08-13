@@ -120,7 +120,7 @@ describe('QuoteService', () => {
     await expect(
       new QuoteService(repo, { multiNight }).issue(customerRequest),
     ).rejects.toMatchObject({
-      code: 'NO_VALID_PRICING',
+      code: 'AVAILABILITY_UNAVAILABLE',
     });
 
     expect(multiNight.quote).toHaveBeenCalledWith(customerRequest);

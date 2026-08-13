@@ -258,7 +258,10 @@ test('ADMIN V3 rejects an invalid property stay range before saving', async ({ p
 
   await page.locator('#property-min-stay').fill('120');
   await page.locator('#property-max-stay').fill('60');
-  await page.locator('form').getByRole('button').click();
+  await page
+    .locator('form.admin-property-form')
+    .getByRole('button', { name: 'Lưu thay đổi' })
+    .click();
 
   await expect(page.locator('[data-slot="field-error"]')).toBeVisible();
   await expect(page.locator('#property-min-stay')).toHaveAttribute('aria-invalid', 'true');
