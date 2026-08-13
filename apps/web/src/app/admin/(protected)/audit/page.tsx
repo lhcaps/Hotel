@@ -75,7 +75,7 @@ export default function AdminAuditPage() {
             {items.length === 0 ? (
               <AdminEmptyState title={translate(locale, 'admin.noEvents')} />
             ) : (
-              <AdminDataTable>
+              <AdminDataTable variant="audit">
                 <Table>
                   <TableHeader>
                     <TableRow>

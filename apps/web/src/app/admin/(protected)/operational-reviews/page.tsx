@@ -15,6 +15,7 @@ import { Input } from '../../../../components/ui/input';
 import { Table } from '../../../../components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import { Field, FieldLabel } from '../../../../components/ui/field';
+import { Textarea } from '../../../../components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -217,7 +218,7 @@ export default function OperationalReviewsPage() {
         <AdminErrorState title={translate(locale, 'admin.reviewsLoadError')} description={error} />
       )}
       {items !== undefined ? (
-        <AdminDataTable className="admin-reviews-table">
+        <AdminDataTable variant="operational" className="admin-reviews-table">
           <Table>
             <thead>
               <tr>
@@ -332,7 +333,7 @@ export default function OperationalReviewsPage() {
                 <FieldLabel htmlFor="review-detail-note">
                   {translate(locale, 'admin.processingNote')}
                 </FieldLabel>
-                <textarea
+                <Textarea
                   className="admin-textarea"
                   id="review-detail-note"
                   value={detailNote}

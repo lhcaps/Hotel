@@ -467,7 +467,7 @@ export default function Rooms() {
       ) : visibleRooms.length === 0 ? (
         <AdminEmptyState title={translate(locale, 'room.empty')} />
       ) : (
-        <AdminDataTable className="admin-physical-rooms-table">
+        <AdminDataTable variant="management" className="admin-physical-rooms-table">
           <Table>
             <thead>
               <tr>

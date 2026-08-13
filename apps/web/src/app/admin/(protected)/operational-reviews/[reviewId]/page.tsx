@@ -10,6 +10,9 @@ import {
   type AdminOperationalReviewDetail,
 } from '../../../../../lib/admin-api';
 import { useLocale } from '../../../../../components/locale-provider';
+import { AdminPageHeader } from '../../../../../components/admin/admin-ui';
+import { Button } from '../../../../../components/ui/button';
+import { Textarea } from '../../../../../components/ui/textarea';
 import { formatDateTime, translate, translateAdminStatus } from '../../../../../lib/i18n/messages';
 
 const reviewCategoryKeys = {
@@ -75,9 +78,7 @@ export default function OperationalReviewDetailPage() {
   if (review === undefined && error === undefined) {
     return (
       <section className="admin-page">
-        <h1>
-          {translate(locale, 'admin.review')} {reviewId.slice(0, 8)}
-        </h1>
+        <AdminPageHeader title={`${translate(locale, 'admin.review')} ${reviewId.slice(0, 8)}`} />
         <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
       </section>
     );
@@ -86,9 +87,7 @@ export default function OperationalReviewDetailPage() {
   if (review === undefined) {
     return (
       <section className="admin-page">
-        <h1>
-          {translate(locale, 'admin.review')} {reviewId.slice(0, 8)}
-        </h1>
+        <AdminPageHeader title={`${translate(locale, 'admin.review')} ${reviewId.slice(0, 8)}`} />
         <p role="alert" style={{ color: 'var(--color-danger)' }}>
           {error}
         </p>
@@ -99,9 +98,12 @@ export default function OperationalReviewDetailPage() {
 
   return (
     <section className="admin-page">
-      <h1>
-        {translate(locale, 'admin.review')} {review.reviewId.slice(0, 8)}
-      </h1>
+      <AdminPageHeader
+        title={`${translate(locale, 'admin.review')} ${review.reviewId.slice(0, 8)}`}
+        actions={
+          <Link href="/admin/operational-reviews">{translate(locale, 'admin.backToReviews')}</Link>
+        }
+      />
       <p>
         {translate(locale, 'admin.status')}:{' '}
         <strong>{translateAdminStatus(locale, review.status)}</strong> ·{' '}
@@ -135,7 +137,7 @@ export default function OperationalReviewDetailPage() {
           <form onSubmit={onResolve}>
             <label>
               {translate(locale, 'admin.processingNote')}
-              <textarea
+              <Textarea
                 onChange={(event) => setNote(event.target.value)}
                 placeholder={translate(locale, 'admin.processingNotePlaceholder')}
                 required
@@ -143,11 +145,11 @@ export default function OperationalReviewDetailPage() {
                 value={note}
               />
             </label>
-            <button disabled={pending} type="submit">
+            <Button disabled={pending} type="submit">
               {pending
                 ? translate(locale, 'admin.processing')
                 : translate(locale, 'admin.markResolved')}
-            </button>
+            </Button>
           </form>
         ) : (
           <dl>

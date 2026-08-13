@@ -35,6 +35,9 @@ import {
   AdminDataTable,
   AdminFilterToolbar,
   AdminFormSheet,
+  AdminTab,
+  AdminTabList,
+  AdminTabs,
   AdminMultiSelect,
   AdminPageHeader,
   AdminStatusBadge,
@@ -87,6 +90,7 @@ export default function AdminAccountsPage() {
   const [pending, setPending] = useState<string>();
   const [me, setMe] = useState<Awaited<ReturnType<typeof adminApi.me>>>();
   const [drafts, setDrafts] = useState<Record<string, AccountDraft>>({});
+  const [accountTab, setAccountTab] = useState('admin-accounts');
   const [createForm, setCreateForm] = useState<{
     displayName: string;
     email: string;
@@ -129,6 +133,26 @@ export default function AdminAccountsPage() {
       );
     }
   }, [locale]);
+
+  useEffect(() => {
+    const syncHash = () => {
+      const next = window.location.hash.slice(1);
+      if (next === 'admin-accounts' || next === 'customer-accounts') setAccountTab(next);
+    };
+    syncHash();
+    window.addEventListener('hashchange', syncHash);
+    return () => window.removeEventListener('hashchange', syncHash);
+  }, []);
+
+  const selectAccountTab = useCallback((value: string) => {
+    if (value !== 'admin-accounts' && value !== 'customer-accounts') return;
+    setAccountTab(value);
+    window.history.replaceState(null, '', `#${value}`);
+    document.getElementById(value)?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }, []);
 
   useEffect(() => {
     void load();
@@ -288,12 +312,14 @@ export default function AdminAccountsPage() {
           </div>
         }
       />
-      <nav className="admin-tabs" aria-label={translate(locale, 'admin.accountType')}>
-        <a aria-current="page" href="#admin-accounts">
-          {translate(locale, 'admin.adminAccounts')}
-        </a>
-        <a href="#customer-accounts">{translate(locale, 'admin.customerAccounts')}</a>
-      </nav>
+      <AdminTabs value={accountTab} onValueChange={selectAccountTab}>
+        <AdminTabList variant="line" aria-label={translate(locale, 'admin.accountType')}>
+          <AdminTab value="admin-accounts">{translate(locale, 'admin.adminAccounts')}</AdminTab>
+          <AdminTab value="customer-accounts">
+            {translate(locale, 'admin.customerAccounts')}
+          </AdminTab>
+        </AdminTabList>
+      </AdminTabs>
       {error ? (
         <p className="admin-alert admin-alert--error" role="alert">
           {error}
@@ -529,7 +555,7 @@ export default function AdminAccountsPage() {
           ) : visibleItems?.length === 0 ? (
             <p className="admin-state">{translate(locale, 'admin.noAccounts')}</p>
           ) : (
-            <AdminDataTable className="admin-accounts-table">
+            <AdminDataTable variant="management" className="admin-accounts-table">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -640,7 +666,7 @@ export default function AdminAccountsPage() {
           ) : visibleCustomers?.length === 0 ? (
             <p className="admin-state">{translate(locale, 'admin.noCustomerAccounts')}</p>
           ) : (
-            <AdminDataTable className="admin-customer-accounts-table">
+            <AdminDataTable variant="management" className="admin-customer-accounts-table">
               <Table>
                 <TableHeader>
                   <TableRow>

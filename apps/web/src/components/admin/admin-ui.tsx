@@ -1,7 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { CheckIcon, ChevronDownIcon, MoreHorizontalIcon, UserRoundIcon, XIcon } from 'lucide-react';
+import {
+  Building2Icon,
+  CheckIcon,
+  ChevronDownIcon,
+  MoreHorizontalIcon,
+  SearchIcon,
+  UserRoundIcon,
+  XIcon,
+} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { translate } from '@/lib/i18n/messages';
@@ -17,6 +25,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Sheet,
   SheetContent,
@@ -57,16 +66,20 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 export function AdminAppShell({
   children,
   className,
-}: Readonly<{ children: React.ReactNode; className?: string }>) {
+}: Readonly<{
+  children: React.ReactNode;
+  className?: string;
+  variant?: 'operational' | 'management' | 'audit';
+}>) {
   return (
     <SidebarProvider
       defaultOpen
       className={cn('admin-app-shell', className)}
       style={
         {
-          '--sidebar-width': '15rem',
+          '--sidebar-width': '16.5rem',
           '--sidebar-width-mobile': '19rem',
-          '--sidebar-width-icon': '3.5rem',
+          '--sidebar-width-icon': '3.25rem',
         } as React.CSSProperties
       }
     >
@@ -76,19 +89,37 @@ export function AdminAppShell({
 }
 
 export function AdminTopbar({
+  breadcrumb,
   eyebrow,
   identity,
   actions,
-}: Readonly<{ eyebrow?: React.ReactNode; identity?: React.ReactNode; actions?: React.ReactNode }>) {
+}: Readonly<{
+  breadcrumb?: React.ReactNode;
+  eyebrow?: React.ReactNode;
+  identity?: React.ReactNode;
+  actions?: React.ReactNode;
+}>) {
   const locale = useLocale();
   return (
     <header className="admin-topbar" data-slot="admin-topbar">
       <div className="admin-topbar__leading">
         <SidebarTrigger aria-label={translate(locale, 'admin.toggleNavigation')} />
-        {eyebrow ? <span className="admin-topbar__eyebrow">{eyebrow}</span> : null}
+        {breadcrumb ?? (eyebrow ? <span className="admin-topbar__eyebrow">{eyebrow}</span> : null)}
       </div>
       {identity ? <div className="admin-topbar__identity">{identity}</div> : null}
-      {actions ? <div className="admin-topbar__actions">{actions}</div> : null}
+      <div className="admin-topbar__actions">
+        <Button className="admin-quick-search" variant="outline" size="sm" type="button">
+          <SearchIcon aria-hidden="true" />
+          <span>{translate(locale, 'admin.search')}</span>
+          <kbd>⌘ K</kbd>
+        </Button>
+        <Button className="admin-property-context" variant="outline" size="sm" type="button">
+          <Building2Icon aria-hidden="true" />
+          <span>{translate(locale, 'admin.propertyContext')}</span>
+          <ChevronDownIcon aria-hidden="true" />
+        </Button>
+        {actions}
+      </div>
     </header>
   );
 }
@@ -192,6 +223,33 @@ export function AdminFilterToolbar({
   );
 }
 
+export function AdminTabs({
+  defaultValue,
+  value,
+  onValueChange,
+  children,
+  className,
+}: Readonly<{
+  defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
+  children: React.ReactNode;
+  className?: string;
+}>) {
+  return (
+    <Tabs
+      {...(defaultValue === undefined ? {} : { defaultValue })}
+      {...(value === undefined ? {} : { value })}
+      {...(onValueChange === undefined ? {} : { onValueChange })}
+      className={cn('admin-tabs-system', className)}
+    >
+      {children}
+    </Tabs>
+  );
+}
+
+export { TabsContent as AdminTabContent, TabsList as AdminTabList, TabsTrigger as AdminTab };
+
 export function AdminActiveFilters({
   filters,
   onClear,
@@ -231,9 +289,17 @@ export function AdminActiveFilters({
 export function AdminDataTable({
   children,
   className,
-}: Readonly<{ children: React.ReactNode; className?: string }>) {
+  variant = 'operational',
+}: Readonly<{
+  children: React.ReactNode;
+  className?: string;
+  variant?: 'operational' | 'management' | 'audit';
+}>) {
   return (
-    <div className={cn('admin-data-table', className)} data-slot="admin-data-table">
+    <div
+      className={cn('admin-data-table', `admin-data-table--${variant}`, className)}
+      data-slot="admin-data-table"
+    >
       <div className="admin-data-table__scroll">{children}</div>
     </div>
   );
@@ -317,6 +383,18 @@ export function AdminStatusBadge({
   );
 }
 
+export function AdminStatusText({
+  tone = 'neutral',
+  children,
+}: Readonly<{ tone?: AdminStatusTone; children: React.ReactNode }>) {
+  return (
+    <span className={cn('admin-status-text', `admin-status-text--${tone}`)}>
+      <span className="admin-status-text__dot" aria-hidden="true" />
+      {children}
+    </span>
+  );
+}
+
 export function AdminDetailSheet({
   open,
   onOpenChange,
@@ -334,14 +412,16 @@ export function AdminDetailSheet({
 }>) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="admin-detail-sheet">
-        <SheetHeader>
-          <SheetTitle>{title}</SheetTitle>
-          {description ? <SheetDescription>{description}</SheetDescription> : null}
-        </SheetHeader>
-        <div className="admin-detail-sheet__body">{children}</div>
-        {footer ? <SheetFooter>{footer}</SheetFooter> : null}
-      </SheetContent>
+      {open ? (
+        <SheetContent className="admin-detail-sheet">
+          <SheetHeader>
+            <SheetTitle>{title}</SheetTitle>
+            {description ? <SheetDescription>{description}</SheetDescription> : null}
+          </SheetHeader>
+          <div className="admin-detail-sheet__body">{children}</div>
+          {footer ? <SheetFooter>{footer}</SheetFooter> : null}
+        </SheetContent>
+      ) : null}
     </Sheet>
   );
 }

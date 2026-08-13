@@ -134,7 +134,7 @@ export function CatalogTable<T extends CatalogRow>({
         />
       ) : null}
       {visibleItems === undefined || visibleItems.length === 0 ? null : (
-        <AdminDataTable>
+        <AdminDataTable variant="management">
           <Table>
             <thead>
               <tr>

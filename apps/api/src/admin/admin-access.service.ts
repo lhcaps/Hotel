@@ -127,6 +127,7 @@ export class AdminAccessService {
     return rows.map((row) =>
       propertySchema.parse({
         ...row,
+        currency: 'VND',
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
       }),

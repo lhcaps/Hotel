@@ -7,6 +7,8 @@ import { adminApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { AdminPageHeader } from './admin/admin-ui';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
 
 type ScanResult = { readonly bookingCode: string; readonly action: 'check-in' | 'check-out' };
 
@@ -101,23 +103,23 @@ export function BookingAccessScanner() {
       />
       <form className="admin-card" onSubmit={(event) => void submit(event)}>
         <label htmlFor="booking-access-pass">{translate(locale, 'admin.scannerValue')}</label>
-        <textarea
+        <Textarea
           id="booking-access-pass"
           onChange={(event) => setValue(event.target.value)}
           required
           rows={4}
           value={value}
         />
-        <button disabled={pending} type="submit">
+        <Button disabled={pending} type="submit">
           {translate(locale, 'admin.verifyPass')}
-        </button>
+        </Button>
       </form>
       <section className="admin-card" aria-labelledby="booking-access-camera-heading">
         <h2 id="booking-access-camera-heading">{translate(locale, 'admin.scannerCamera')}</h2>
         <video className="max-w-full" muted playsInline ref={video} />
-        <button disabled={cameraPending} onClick={() => void startCamera()} type="button">
+        <Button disabled={cameraPending} onClick={() => void startCamera()} type="button">
           {translate(locale, 'admin.startCamera')}
-        </button>
+        </Button>
         {cameraError ? <p role="alert">{translate(locale, 'admin.cameraError')}</p> : null}
       </section>
       {error ? <p role="alert">{translate(locale, 'admin.scannerError')}</p> : null}

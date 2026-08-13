@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Button } from './ui/button';
 
 export function CouponDeliveryAction({ bookingCode }: { readonly bookingCode: string }) {
   const locale = useLocale();
@@ -84,6 +85,7 @@ export function CouponDeliveryAction({ bookingCode }: { readonly bookingCode: st
             {availableCodes.map((code) => (
               <label key={code}>
                 <input
+                  className="admin-checkbox-input"
                   checked={selectedCodes.includes(code)}
                   onChange={() => toggleCoupon(code)}
                   type="checkbox"
@@ -95,6 +97,7 @@ export function CouponDeliveryAction({ bookingCode }: { readonly bookingCode: st
           {hasSelection ? (
             <label>
               <input
+                className="admin-checkbox-input"
                 checked={confirmed}
                 onChange={(event) => setConfirmed(event.target.checked)}
                 type="checkbox"
@@ -102,11 +105,11 @@ export function CouponDeliveryAction({ bookingCode }: { readonly bookingCode: st
               {translate(locale, 'admin.confirmCouponDelivery', { codes: selectedLabel })}
             </label>
           ) : null}
-          <button disabled={!hasSelection || !confirmed || pending} type="submit">
+          <Button disabled={!hasSelection || !confirmed || pending} type="submit">
             {pending
               ? translate(locale, 'admin.queueing')
               : translate(locale, 'admin.queueCouponDelivery')}
-          </button>
+          </Button>
         </form>
       )}
     </section>

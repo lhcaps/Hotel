@@ -12,6 +12,38 @@ import { resolveAdminSessionFromHeaders } from '../../../lib/admin-session-serve
 
 const PATHNAME_HEADER = 'x-room-pathname';
 
+const ADMIN_ROUTE_CONTEXTS: ReadonlyArray<readonly [string, string]> = [
+  ['/admin/accounts', 'admin.accounts'],
+  ['/admin/audit', 'admin.audit'],
+  ['/admin/bookings', 'admin.bookings'],
+  ['/admin/scanner', 'admin.scanner'],
+  ['/admin/payments', 'admin.payments'],
+  ['/admin/operational-reviews', 'admin.reviews'],
+  ['/admin/room-operations', 'admin.roomOperations'],
+  ['/admin/housekeeping', 'admin.housekeepingWorkboard'],
+  ['/admin/rooms', 'admin.rooms'],
+  ['/admin/maintenance', 'admin.maintenance'],
+  ['/admin/room-types', 'admin.roomTypes'],
+  ['/admin/amenities', 'admin.amenities'],
+  ['/admin/property', 'admin.property'],
+  ['/admin/price-tiers', 'admin.priceTiers'],
+  ['/admin/rate-plans', 'admin.ratePlans'],
+  ['/admin/pricing-policies', 'admin.pricingPolicies'],
+  ['/admin/coupons', 'admin.coupons'],
+  ['/admin/payment-providers', 'admin.providers'],
+  ['/admin/departments', 'admin.departments'],
+  ['/admin/profile', 'admin.profileHeading'],
+];
+
+function resolveAdminContext(pathname: string, locale: Parameters<typeof translate>[0]) {
+  const match = ADMIN_ROUTE_CONTEXTS.find(
+    ([href]) => pathname === href || pathname.startsWith(`${href}/`),
+  );
+  return match === undefined
+    ? translate(locale, 'admin.overview')
+    : translate(locale, match[1] as never);
+}
+
 /**
  * Server-side administrator authority boundary. Every protected `/admin/**`
  * route lives under this layout. The layout forwards the inbound HttpOnly
@@ -66,9 +98,11 @@ export default async function AdminProtectedLayout({
       </a>
       <Sidebar className="admin-nav" collapsible="offcanvas" variant="sidebar">
         <SidebarHeader>
-          <Link className="admin-brand" href="/admin">
-            <span>RM</span>
-            <strong>Room Management</strong>
+          <Link className="admin-brand" href="/admin" aria-label="PeaceNest Hotel Operations">
+            <span aria-hidden="true">PN</span>
+            <strong>
+              PeaceNest<small>Hotel Operations</small>
+            </strong>
           </Link>
         </SidebarHeader>
         <AdminNavigation
@@ -79,7 +113,11 @@ export default async function AdminProtectedLayout({
       </Sidebar>
       <SidebarInset className="admin-workspace">
         <AdminTopbar
-          identity={null}
+          breadcrumb={
+            <span className="admin-topbar__breadcrumb">
+              PeaceNest <span aria-hidden="true">/</span> {resolveAdminContext(pathname, locale)}
+            </span>
+          }
           actions={
             <AdminProfileMenu
               displayName={resolution.session.displayName}

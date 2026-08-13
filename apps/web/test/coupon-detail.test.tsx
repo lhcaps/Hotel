@@ -69,13 +69,11 @@ function makeDisabledCoupon(): Coupon {
 
 describe('CouponDetail authority and disable behaviour', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
-  let confirmSpy: ReturnType<typeof vi.spyOn<typeof globalThis, 'confirm'>>;
 
   beforeEach(() => {
     fetchMock = vi.fn<typeof fetch>();
     process.env.NEXT_PUBLIC_API_BASE_URL = 'http://api.local/api/v1';
     globalThis.fetch = fetchMock as unknown as typeof fetch;
-    confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -118,6 +116,18 @@ describe('CouponDetail authority and disable behaviour', () => {
     const button = await screen.findByRole('button', { name: 'Vô hiệu hóa coupon' });
     await user.click(button);
 
+    const confirmButton = screen
+      .getAllByRole('button')
+      .find(
+        (candidate) =>
+          candidate.closest('[data-slot="sheet-content"]') !== null &&
+          candidate.textContent?.trim() !== '' &&
+          candidate.textContent?.trim() !== 'Hủy' &&
+          candidate.getAttribute('data-slot') !== 'sheet-close',
+      );
+    if (confirmButton === undefined) throw new Error('confirmation action was not rendered');
+    await user.click(confirmButton);
+
     // The button must become disabled while the request is in flight, so a
     // second click cannot fire another POST. waitFor polls until React commits
     // the pending state.
@@ -137,7 +147,6 @@ describe('CouponDetail authority and disable behaviour', () => {
         (call[1] as RequestInit | undefined)?.method === 'POST',
     );
     expect(disableCalls).toHaveLength(1);
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
 
     // Resolve the in-flight request with a 200 so the cleanup runs cleanly.
     resolveDisable?.(jsonResponse(makeDisabledCoupon()));

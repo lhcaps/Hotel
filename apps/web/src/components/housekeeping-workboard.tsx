@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { AdminApiError, adminApi, type AdminRoomOperationsResponse } from '../lib/admin-api';
@@ -11,7 +11,7 @@ import { compareRoomDisplayOrder } from '../lib/admin-natural-sort';
 import { translate, type MessageKey } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { AdminStatusBadge } from './admin/admin-ui';
+import { AdminDataTable, AdminStatusBadge, AdminDetailSheet } from './admin/admin-ui';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 type TaskStatus = 'SCHEDULED' | 'DUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
@@ -58,6 +58,8 @@ export function HousekeepingWorkboard() {
   const [stale, setStale] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>('ALL');
+  const [reopenRoomId, setReopenRoomId] = useState<string>();
+  const [reopenReason, setReopenReason] = useState('');
 
   const refresh = useCallback(() => {
     setError(undefined);
@@ -171,9 +173,19 @@ export function HousekeepingWorkboard() {
         if (action === 'verify') {
           await adminApi.verifyRoomHousekeeping(roomId, { expectedVersion });
         } else {
-          const reason = window.prompt(translate(locale, 'admin.reopenTaskReason'));
-          if (reason === null || reason.trim() === '') return;
-          await adminApi.reopenRoomHousekeeping(roomId, { expectedVersion, reason: reason.trim() });
+          if (reopenReason.trim() === '') {
+            setActionError((current) => ({
+              ...current,
+              [roomId]: translate(locale, 'admin.reasonRequired'),
+            }));
+            return;
+          }
+          await adminApi.reopenRoomHousekeeping(roomId, {
+            expectedVersion,
+            reason: reopenReason.trim(),
+          });
+          setReopenRoomId(undefined);
+          setReopenReason('');
         }
         await refresh();
       } catch (cause: unknown) {
@@ -186,19 +198,17 @@ export function HousekeepingWorkboard() {
         setPending((current) => ({ ...current, [roomId]: false }));
       }
     },
-    [locale, refresh],
+    [locale, refresh, reopenReason],
   );
 
   return (
     <section className="housekeeping-workboard" aria-labelledby="housekeeping-heading">
-      <Card className="admin-surface">
-        <CardHeader className="admin-surface__header">
+      <div className="admin-surface">
+        <div className="admin-surface__header">
           <div className="admin-page-heading admin-page-heading--compact">
             <div>
               <p className="admin-eyebrow">{translate(locale, 'admin.housekeeping')}</p>
-              <CardTitle id="housekeeping-heading">
-                {translate(locale, 'admin.housekeepingTasks')}
-              </CardTitle>
+              <h2 id="housekeeping-heading">{translate(locale, 'admin.housekeepingTasks')}</h2>
               <p className="admin-supporting-text">
                 {translate(locale, 'admin.housekeepingTasksHelp')}
               </p>
@@ -209,8 +219,8 @@ export function HousekeepingWorkboard() {
                 : `${translate(locale, 'admin.roomBoardUpdated', { time: new Date(data.generatedAt).toLocaleTimeString(locale) })}${stale ? ` · ${translate(locale, 'admin.roomBoardStale')}` : ''}`}
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="admin-surface__content">
           <div className="admin-filter-toolbar">
             <div className="admin-filter-toolbar__controls">
               <label>
@@ -273,7 +283,7 @@ export function HousekeepingWorkboard() {
             <p className="admin-state">{translate(locale, 'admin.noHousekeepingTasks')}</p>
           ) : null}
           {roomsWithTasks.length > 0 ? (
-            <div className="admin-data-table">
+            <AdminDataTable variant="operational">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -416,9 +426,7 @@ export function HousekeepingWorkboard() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() =>
-                                  void handleManagerAction(room.roomId, 'reopen', task.version)
-                                }
+                                onClick={() => setReopenRoomId(room.roomId)}
                                 disabled={pending[room.roomId] === true}
                               >
                                 {translate(locale, 'admin.reopenTask')}
@@ -442,10 +450,55 @@ export function HousekeepingWorkboard() {
                   })}
                 </TableBody>
               </Table>
-            </div>
+            </AdminDataTable>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+        <AdminDetailSheet
+          open={reopenRoomId !== undefined}
+          onOpenChange={(open) => {
+            if (!open) {
+              setReopenRoomId(undefined);
+              setReopenReason('');
+            }
+          }}
+          title={translate(locale, 'admin.reopenTask')}
+          description={translate(locale, 'admin.reopenTaskReason')}
+          footer={
+            <>
+              <Button type="button" variant="outline" onClick={() => setReopenRoomId(undefined)}>
+                {translate(locale, 'admin.cancel')}
+              </Button>
+              <Button
+                type="button"
+                disabled={reopenRoomId === undefined || pending[reopenRoomId] === true}
+                onClick={() => {
+                  if (reopenRoomId === undefined) return;
+                  const taskRoom = roomsWithTasks.find((room) => room.roomId === reopenRoomId);
+                  const task = taskRoom?.activeHousekeepingTask ?? taskRoom?.latestTurnoverTask;
+                  if (task === undefined || task === null) return;
+                  void handleManagerAction(reopenRoomId, 'reopen', task.version);
+                }}
+              >
+                {translate(locale, 'admin.apply')}
+              </Button>
+            </>
+          }
+        >
+          <label className="admin-field-stack">
+            <span>{translate(locale, 'admin.reopenTaskReason')}</span>
+            <Textarea
+              rows={5}
+              required
+              value={reopenReason}
+              onChange={(event) => setReopenReason(event.target.value)}
+              placeholder={translate(locale, 'admin.reasonPlaceholder')}
+              aria-invalid={
+                reopenRoomId !== undefined && reopenReason.trim() === '' ? 'true' : undefined
+              }
+            />
+          </label>
+        </AdminDetailSheet>
+      </div>
     </section>
   );
 }

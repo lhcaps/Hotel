@@ -12,6 +12,7 @@ import {
   GitBranch,
   LayoutDashboard,
   MessageSquareWarning,
+  Sparkles,
   PanelsTopLeft,
   QrCode,
   ScrollText,
@@ -58,6 +59,7 @@ const groups = [
       ['admin.rooms', '/admin/rooms', 'catalog.room.read', BedDouble],
       ['admin.maintenance', '/admin/maintenance', 'catalog.maintenance.read', Wrench],
       ['admin.roomTypes', '/admin/room-types', 'catalog.room_type.read', Building2],
+      ['admin.amenities', '/admin/amenities', 'catalog.amenity.read', Sparkles],
     ],
   },
   {

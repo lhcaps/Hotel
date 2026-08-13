@@ -15,8 +15,10 @@ import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
 import { Field, FieldGroup, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import {
   AdminDataTable,
+  AdminDetailSheet,
   AdminEmptyState,
   AdminLoadingState,
   AdminPageHeader,
@@ -190,6 +192,7 @@ export function PricingPolicyManager() {
   const [cutover, setCutover] = useState('');
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'publish' | 'supersede' | 'retire'>();
 
   const load = useCallback(async () => {
     try {
@@ -327,7 +330,6 @@ export function PricingPolicyManager() {
 
   async function publish() {
     if (selectedId === undefined) return;
-    if (!window.confirm(translate(locale, 'pricingPolicy.confirmPublish'))) return;
     setPending(true);
     setMessage(undefined);
     try {
@@ -359,7 +361,6 @@ export function PricingPolicyManager() {
 
   async function supersede() {
     if (selectedId === undefined || successorId.trim() === '' || cutover === '') return;
-    if (!window.confirm(translate(locale, 'pricingPolicy.confirmSupersede'))) return;
     setPending(true);
     setMessage(undefined);
     try {
@@ -379,7 +380,6 @@ export function PricingPolicyManager() {
 
   async function retire() {
     if (selectedId === undefined) return;
-    if (!window.confirm(translate(locale, 'pricingPolicy.confirmRetire'))) return;
     setPending(true);
     setMessage(undefined);
     try {
@@ -400,7 +400,7 @@ export function PricingPolicyManager() {
         description={translate(locale, 'pricingPolicy.help')}
       />
       {message ? <p role="alert">{message}</p> : null}
-      <AdminDataTable>
+      <AdminDataTable variant="management">
         <table>
           <thead>
             <tr>
@@ -575,19 +575,23 @@ export function PricingPolicyManager() {
             <FieldLabel htmlFor="pricing-policy-window">
               {translate(locale, 'pricingPolicy.window')}
             </FieldLabel>
-            <select
-              id="pricing-policy-window"
+            <Select
               value={bootstrap.overnightWindow}
-              onChange={(event) =>
+              onValueChange={(value) =>
                 setBootstrap((current) => ({
                   ...current,
-                  overnightWindow: event.target.value === '22-10' ? '22-10' : '21-09',
+                  overnightWindow: value === '22-10' ? '22-10' : '21-09',
                 }))
               }
             >
-              <option value="21-09">21:00–09:00</option>
-              <option value="22-10">22:00–10:00</option>
-            </select>
+              <SelectTrigger id="pricing-policy-window" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="21-09">21:00–09:00</SelectItem>
+                <SelectItem value="22-10">22:00–10:00</SelectItem>
+              </SelectContent>
+            </Select>
           </Field>
         </FieldGroup>
         <div className="admin-responsive-actions">
@@ -777,73 +781,81 @@ export function PricingPolicyManager() {
                       <FieldLabel htmlFor={`pricing-policy-edge-from-${index}`}>
                         {translate(locale, 'pricingPolicy.predecessor')}
                       </FieldLabel>
-                      <select
-                        id={`pricing-policy-edge-from-${index}`}
+                      <Select
                         value={recordString(edge, 'predecessorComponentId')}
-                        disabled={selected.status !== 'DRAFT'}
-                        onChange={(event) =>
+                        onValueChange={(value) => {
+                          if (value === null) return;
                           setEditor(
                             (current) =>
                               current && {
                                 ...current,
                                 edges: current.edges.map((item, itemIndex) =>
                                   itemIndex === index
-                                    ? setRecordValue(
-                                        item,
-                                        'predecessorComponentId',
-                                        event.target.value,
-                                      )
+                                    ? setRecordValue(item, 'predecessorComponentId', value)
                                     : item,
                                 ),
                               },
-                          )
-                        }
+                          );
+                        }}
                       >
-                        {editor.components.map((component) => (
-                          <option
-                            key={recordString(component, 'id')}
-                            value={recordString(component, 'id')}
-                          >
-                            {componentLabel(locale, recordString(component, 'componentCode'))}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger
+                          id={`pricing-policy-edge-from-${index}`}
+                          className="w-full"
+                          disabled={selected.status !== 'DRAFT'}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {editor.components.map((component) => (
+                            <SelectItem
+                              key={recordString(component, 'id')}
+                              value={recordString(component, 'id')}
+                            >
+                              {componentLabel(locale, recordString(component, 'componentCode'))}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </Field>
                     <Field>
                       <FieldLabel htmlFor={`pricing-policy-edge-to-${index}`}>
                         {translate(locale, 'pricingPolicy.successorComponent')}
                       </FieldLabel>
-                      <select
-                        id={`pricing-policy-edge-to-${index}`}
+                      <Select
                         value={recordString(edge, 'successorComponentId')}
-                        disabled={selected.status !== 'DRAFT'}
-                        onChange={(event) =>
+                        onValueChange={(value) => {
+                          if (value === null) return;
                           setEditor(
                             (current) =>
                               current && {
                                 ...current,
                                 edges: current.edges.map((item, itemIndex) =>
                                   itemIndex === index
-                                    ? setRecordValue(
-                                        item,
-                                        'successorComponentId',
-                                        event.target.value,
-                                      )
+                                    ? setRecordValue(item, 'successorComponentId', value)
                                     : item,
                                 ),
                               },
-                          )
-                        }
+                          );
+                        }}
                       >
-                        {editor.components.map((component) => (
-                          <option
-                            key={recordString(component, 'id')}
-                            value={recordString(component, 'id')}
-                          >
-                            {componentLabel(locale, recordString(component, 'componentCode'))}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger
+                          id={`pricing-policy-edge-to-${index}`}
+                          className="w-full"
+                          disabled={selected.status !== 'DRAFT'}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {editor.components.map((component) => (
+                            <SelectItem
+                              key={recordString(component, 'id')}
+                              value={recordString(component, 'id')}
+                            >
+                              {componentLabel(locale, recordString(component, 'componentCode'))}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </Field>
                     <p>
                       {translate(locale, 'pricingPolicy.restrictions')}:{' '}
@@ -868,7 +880,11 @@ export function PricingPolicyManager() {
                 >
                   {translate(locale, 'pricingPolicy.preview')}
                 </Button>
-                <Button type="button" disabled={pending} onClick={() => void publish()}>
+                <Button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => setConfirmAction('publish')}
+                >
                   {translate(locale, 'pricingPolicy.publish')}
                 </Button>
               </>
@@ -878,7 +894,7 @@ export function PricingPolicyManager() {
                 type="button"
                 variant="outline"
                 disabled={pending}
-                onClick={() => void retire()}
+                onClick={() => setConfirmAction('retire')}
               >
                 {translate(locale, 'pricingPolicy.retire')}
               </Button>
@@ -933,7 +949,7 @@ export function PricingPolicyManager() {
                 type="button"
                 variant="outline"
                 disabled={pending || successorId.trim() === '' || cutover === ''}
-                onClick={() => void supersede()}
+                onClick={() => setConfirmAction('supersede')}
               >
                 {translate(locale, 'pricingPolicy.supersede')}
               </Button>
@@ -960,6 +976,42 @@ export function PricingPolicyManager() {
           ))}
         </section>
       ) : null}
+      <AdminDetailSheet
+        open={confirmAction !== undefined}
+        onOpenChange={(open) => {
+          if (!open) setConfirmAction(undefined);
+        }}
+        title={translate(locale, 'admin.action')}
+        description={
+          confirmAction === 'publish'
+            ? translate(locale, 'pricingPolicy.confirmPublish')
+            : confirmAction === 'supersede'
+              ? translate(locale, 'pricingPolicy.confirmSupersede')
+              : translate(locale, 'pricingPolicy.confirmRetire')
+        }
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setConfirmAction(undefined)}>
+              {translate(locale, 'admin.cancel')}
+            </Button>
+            <Button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                const action = confirmAction;
+                setConfirmAction(undefined);
+                if (action === 'publish') void publish();
+                if (action === 'supersede') void supersede();
+                if (action === 'retire') void retire();
+              }}
+            >
+              {translate(locale, 'admin.apply')}
+            </Button>
+          </>
+        }
+      >
+        <p className="admin-muted">{translate(locale, 'pricingPolicy.help')}</p>
+      </AdminDetailSheet>
     </section>
   );
 }

@@ -327,7 +327,7 @@ export default function AdminPaymentsPage() {
         <AdminEmptyState title={translate(locale, 'admin.paymentsEmpty')} />
       ) : null}
       {items !== undefined && items.length > 0 ? (
-        <AdminDataTable className="admin-payments-table">
+        <AdminDataTable variant="operational" className="admin-payments-table">
           <Table>
             <thead>
               <tr>

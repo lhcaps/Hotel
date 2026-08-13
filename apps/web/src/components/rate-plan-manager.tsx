@@ -441,7 +441,7 @@ export function RatePlanManager() {
       ) : sortedPlans.length === 0 ? (
         <AdminEmptyState title={translate(locale, 'ratePlan.empty')} />
       ) : (
-        <AdminDataTable className="admin-rate-plan-table">
+        <AdminDataTable variant="management" className="admin-rate-plan-table">
           <Table>
             <thead>
               <tr>

@@ -314,6 +314,7 @@ test.describe('Phase 6E ADMIN coupon vertical', () => {
         response.request().method() === 'POST',
     );
     await page.getByRole('button', { name: 'Vô hiệu hóa coupon' }).click();
+    await page.getByTestId('coupon-disable-confirm').click();
     const disableResponse = await disablePromise;
     expect(
       disableResponse.ok(),

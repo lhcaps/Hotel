@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
 import { useLocale } from '../../../../../components/locale-provider';
 import { AdminDataTable } from '../../../../../components/admin/admin-ui';
+import { AdminPageHeader } from '../../../../../components/admin/admin-ui';
+import { Button } from '../../../../../components/ui/button';
 import { AdminApiError, adminApi, type AdminPaymentDetail } from '../../../../../lib/admin-api';
 import { Table } from '../../../../../components/ui/table';
 import {
@@ -163,9 +165,9 @@ export default function AdminPaymentDetailPage({
   if (detail === undefined && error === undefined) {
     return (
       <section className="admin-page">
-        <h1>
-          {translate(locale, 'account.payment')} {paymentId.slice(0, 8)}
-        </h1>
+        <AdminPageHeader
+          title={`${translate(locale, 'account.payment')} ${paymentId.slice(0, 8)}`}
+        />
         <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
       </section>
     );
@@ -174,9 +176,9 @@ export default function AdminPaymentDetailPage({
   if (detail === undefined) {
     return (
       <section className="admin-page">
-        <h1>
-          {translate(locale, 'account.payment')} {paymentId.slice(0, 8)}
-        </h1>
+        <AdminPageHeader
+          title={`${translate(locale, 'account.payment')} ${paymentId.slice(0, 8)}`}
+        />
         <p role="alert" style={{ color: 'var(--color-danger)' }}>
           {error}
         </p>
@@ -263,7 +265,7 @@ export default function AdminPaymentDetailPage({
         {detail.attempts.length === 0 ? (
           <p>{translate(locale, 'admin.noAttempts')}</p>
         ) : (
-          <AdminDataTable className="admin-payment-attempts-table">
+          <AdminDataTable variant="audit" className="admin-payment-attempts-table">
             <Table>
               <thead>
                 <tr>
@@ -380,17 +382,22 @@ export default function AdminPaymentDetailPage({
         ) : confirmingQuery ? (
           <form onSubmit={onQueryProvider}>
             <p>{translate(locale, 'admin.providerQueryHelp')}</p>
-            <button disabled={pending} type="submit">
+            <Button disabled={pending} type="submit">
               {pending
                 ? translate(locale, 'admin.querying')
                 : translate(locale, 'admin.confirmProviderQuery')}
-            </button>
-            <button disabled={pending} onClick={() => setConfirmingQuery(false)} type="button">
+            </Button>
+            <Button
+              variant="outline"
+              disabled={pending}
+              onClick={() => setConfirmingQuery(false)}
+              type="button"
+            >
               {translate(locale, 'admin.cancel')}
-            </button>
+            </Button>
           </form>
         ) : (
-          <button
+          <Button
             disabled={pending}
             onClick={() => {
               setConfirmingQuery(true);
@@ -400,7 +407,7 @@ export default function AdminPaymentDetailPage({
             type="button"
           >
             {translate(locale, 'admin.queryProviderStatus')}
-          </button>
+          </Button>
         )}
         <p>{translate(locale, 'admin.noManualPaymentSuccess')}</p>
       </section>

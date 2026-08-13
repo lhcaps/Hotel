@@ -109,7 +109,7 @@ export default function AdminDepartmentsPage() {
       ) : items.length === 0 ? (
         <AdminEmptyState title={translate(locale, 'admin.noDepartmentsFound')} />
       ) : (
-        <AdminDataTable className="admin-departments-table">
+        <AdminDataTable variant="management" className="admin-departments-table">
           <Table>
             <TableHeader>
               <TableRow>

@@ -13,6 +13,7 @@ import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 import { Checkbox } from './ui/checkbox';
 import { AdminPageHeader, AdminStatusBadge } from './admin/admin-ui';
 
@@ -170,7 +171,7 @@ export function PaymentProviderManager() {
                   </label>
                   <label>
                     {translate(locale, 'admin.maintenanceMessage')}
-                    <textarea
+                    <Textarea
                       maxLength={500}
                       value={provider.maintenanceMessage}
                       onChange={(event) =>

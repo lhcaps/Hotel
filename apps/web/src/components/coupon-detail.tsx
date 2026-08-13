@@ -5,6 +5,8 @@ import type { Coupon } from '@room/contracts';
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { formatDateTime, formatVnd, translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { AdminDetailSheet, AdminPageHeader } from './admin/admin-ui';
+import { Button } from './ui/button';
 
 const lifecycleLabels = {
   AVAILABLE: 'coupon.lifecycleAvailable',
@@ -25,6 +27,7 @@ export function CouponDetail({ id }: { id: string }) {
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string>();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const load = () =>
     void adminApi
       .getCoupon(id)
@@ -38,11 +41,11 @@ export function CouponDetail({ id }: { id: string }) {
       );
   useEffect(load, [id, locale]);
   async function disable() {
-    if (!globalThis.confirm(translate(locale, 'coupon.disableConfirm'))) return;
     setPending(true);
     try {
       await adminApi.disableCoupon(id);
       setMessage(translate(locale, 'coupon.disabled'));
+      setConfirmOpen(false);
       load();
     } catch (reason) {
       setError(
@@ -69,7 +72,10 @@ export function CouponDetail({ id }: { id: string }) {
   return (
     <section className="admin-page">
       <Link href="/admin/coupons">← {translate(locale, 'coupon.backToList')}</Link>
-      <h1>{coupon.code}</h1>
+      <AdminPageHeader
+        title={coupon.code}
+        actions={<Link href="/admin/coupons">{translate(locale, 'coupon.backToList')}</Link>}
+      />
       <p>
         {translate(locale, 'coupon.lifecycle')}:{' '}
         <strong>{lifecycleLabel(locale, coupon.lifecycle)}</strong>{' '}
@@ -112,10 +118,32 @@ export function CouponDetail({ id }: { id: string }) {
         </p>
       </div>
       {coupon.status === 'ACTIVE' && (
-        <button disabled={pending} type="button" onClick={() => void disable()}>
+        <Button disabled={pending} type="button" onClick={() => setConfirmOpen(true)}>
           {translate(locale, 'coupon.disable')}
-        </button>
+        </Button>
       )}
+      <AdminDetailSheet
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={translate(locale, 'coupon.disable')}
+        description={translate(locale, 'coupon.disableConfirm')}
+        footer={
+          <>
+            <Button variant="outline" disabled={pending} onClick={() => setConfirmOpen(false)}>
+              {translate(locale, 'admin.cancel')}
+            </Button>
+            <Button
+              data-testid="coupon-disable-confirm"
+              disabled={pending}
+              onClick={() => void disable()}
+            >
+              {translate(locale, 'coupon.disable')}
+            </Button>
+          </>
+        }
+      >
+        <p>{translate(locale, 'coupon.disableConfirm')}</p>
+      </AdminDetailSheet>
     </section>
   );
 }

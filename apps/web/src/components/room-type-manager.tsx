@@ -433,7 +433,7 @@ export function RoomTypeManager() {
         <AdminEmptyState title={translate(locale, 'catalog.noResults')} />
       ) : null}
       {types === undefined || types.items.length === 0 ? null : (
-        <AdminDataTable className="admin-room-types-table">
+        <AdminDataTable variant="management" className="admin-room-types-table">
           <Table>
             <thead>
               <tr>

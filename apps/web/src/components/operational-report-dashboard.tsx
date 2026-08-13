@@ -290,7 +290,6 @@ export function OperationalReportDashboard() {
   return (
     <section className="admin-overview" aria-labelledby="operational-report-heading">
       <AdminPageHeader
-        eyebrow={translate(locale, 'admin.overview')}
         title={translate(locale, 'admin.dashboardHeading')}
         description={translate(locale, 'admin.dashboardHelp')}
         className="admin-overview__header"
@@ -415,21 +414,22 @@ export function OperationalReportDashboard() {
         aria-label={translate(locale, 'admin.dashboardSummary')}
       >
         {[
+          ['admin.reportGrossRevenue', report?.grossRevenueVnd ?? null],
           ['admin.currentGuests', metrics.occupied],
           ['admin.upcomingArrivals', metrics.arrivals],
-          ['admin.upcomingDepartures', metrics.departures],
-          ['admin.roomsAttention', metrics.attention],
-          ['admin.paymentReview', report?.paymentReviewCount ?? null],
+          ['admin.roomsAttention', metrics.attention + (report?.paymentReviewCount ?? 0)],
         ].map(([label, value]) => (
           <AdminMetric
             key={label}
             label={translate(locale, label as Parameters<typeof translate>[1])}
-            value={value === null ? '—' : value}
-            tone={
-              label === 'admin.roomsAttention' || label === 'admin.paymentReview'
-                ? 'warning'
-                : 'info'
+            value={
+              value === null
+                ? '—'
+                : label === 'admin.reportGrossRevenue'
+                  ? money(value as number, locale)
+                  : value
             }
+            tone={label === 'admin.roomsAttention' ? 'warning' : 'info'}
           />
         ))}
       </section>
@@ -480,10 +480,7 @@ export function OperationalReportDashboard() {
             <section className="overview-panel" aria-labelledby="daily-revenue-heading">
               <div className="overview-panel__heading">
                 <h2 id="daily-revenue-heading">{translate(locale, 'admin.reportDailyRevenue')}</h2>
-                <span>
-                  {translate(locale, 'admin.reportGrossRevenue')}:{' '}
-                  {money(report.grossRevenueVnd, locale)}
-                </span>
+                <span>{money(report.grossRevenueVnd, locale)}</span>
               </div>
               {report.bookingCount === 0 ? (
                 <p className="admin-state">{translate(locale, 'admin.reportNoBookings')}</p>

@@ -355,7 +355,7 @@ export default function AdminBookingsPage() {
         <AdminEmptyState title={translate(locale, 'admin.bookingsEmpty')} />
       ) : null}
       {items !== undefined && items.length > 0 ? (
-        <AdminDataTable className="admin-bookings-table">
+        <AdminDataTable variant="operational" className="admin-bookings-table">
           <Table>
             <thead>
               <tr>

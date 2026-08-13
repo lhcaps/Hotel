@@ -8,6 +8,9 @@ import { AdminApiError, adminApi, type AdminBookingDetail } from '../../../../..
 import { CouponDeliveryAction } from '../../../../../components/coupon-delivery-action';
 import { CancellationPolicySummary } from '../../../../../components/cancellation-policy-summary';
 import { useLocale } from '../../../../../components/locale-provider';
+import { AdminPageHeader } from '../../../../../components/admin/admin-ui';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
 import {
   formatDateTime,
   formatVnd,
@@ -83,7 +86,9 @@ export default function AdminBookingDetailPage() {
   if (detail === undefined && error === undefined) {
     return (
       <section className="admin-page">
-        <h1>{translate(locale, 'account.bookingHeading', { code: bookingCode })}</h1>
+        <AdminPageHeader
+          title={translate(locale, 'account.bookingHeading', { code: bookingCode })}
+        />
         <p aria-live="polite">{translate(locale, 'admin.loadingData')}</p>
       </section>
     );
@@ -92,7 +97,9 @@ export default function AdminBookingDetailPage() {
   if (detail === undefined) {
     return (
       <section className="admin-page">
-        <h1>{translate(locale, 'account.bookingHeading', { code: bookingCode })}</h1>
+        <AdminPageHeader
+          title={translate(locale, 'account.bookingHeading', { code: bookingCode })}
+        />
         <p role="alert" style={{ color: 'var(--color-danger)' }}>
           {error}
         </p>
@@ -103,7 +110,10 @@ export default function AdminBookingDetailPage() {
 
   return (
     <section className="admin-page">
-      <h1>{translate(locale, 'account.bookingHeading', { code: detail.bookingCode })}</h1>
+      <AdminPageHeader
+        title={translate(locale, 'account.bookingHeading', { code: detail.bookingCode })}
+        actions={<Link href="/admin/bookings">{translate(locale, 'admin.backToBookings')}</Link>}
+      />
       <p>
         {translate(locale, 'admin.status')}:{' '}
         <strong>{translatePaymentStatus(locale, detail.status)}</strong> ·{' '}
@@ -222,7 +232,7 @@ export default function AdminBookingDetailPage() {
                   true,
                 )}
               >
-                <button
+                <Button
                   disabled={pendingAction !== undefined}
                   onClick={() => {
                     setPendingAction('cancel-preview');
@@ -236,7 +246,7 @@ export default function AdminBookingDetailPage() {
                   type="button"
                 >
                   {translate(locale, 'admin.previewCancellation')}
-                </button>
+                </Button>
                 {cancellationPreview ? (
                   <div role="status">
                     <p>{cancellationPreview.policyMessage}</p>
@@ -260,18 +270,18 @@ export default function AdminBookingDetailPage() {
                 ) : null}
                 <label>
                   {translate(locale, 'admin.cancelReason')}
-                  <input
+                  <Input
                     onChange={(event) => setReason(event.target.value)}
                     placeholder={translate(locale, 'admin.reasonPlaceholder')}
                     required
                     value={reason}
                   />
                 </label>
-                <button disabled={pendingAction !== undefined} type="submit">
+                <Button disabled={pendingAction !== undefined} type="submit">
                   {pendingAction === 'cancel'
                     ? translate(locale, 'admin.cancelling')
                     : translate(locale, 'admin.cancelBooking')}
-                </button>
+                </Button>
               </form>
             ) : null}
             {detail.availableActions.includes('no-show') ? (
@@ -284,18 +294,18 @@ export default function AdminBookingDetailPage() {
               >
                 <label>
                   {translate(locale, 'admin.noShowReason')}
-                  <input
+                  <Input
                     onChange={(event) => setReason(event.target.value)}
                     placeholder={translate(locale, 'admin.reasonPlaceholder')}
                     required
                     value={reason}
                   />
                 </label>
-                <button disabled={pendingAction !== undefined} type="submit">
+                <Button disabled={pendingAction !== undefined} type="submit">
                   {pendingAction === 'no-show'
                     ? translate(locale, 'admin.markingNoShow')
                     : translate(locale, 'admin.markNoShow')}
-                </button>
+                </Button>
               </form>
             ) : null}
             {detail.availableActions.includes('check-in') ? (
@@ -304,7 +314,7 @@ export default function AdminBookingDetailPage() {
                   adminApi.checkInAdminBooking(detail.bookingCode),
                 )}
               >
-                <button
+                <Button
                   aria-label={translate(locale, 'admin.legacyCheckInLabel')}
                   disabled={pendingAction !== undefined}
                   type="submit"
@@ -312,7 +322,7 @@ export default function AdminBookingDetailPage() {
                   {pendingAction === 'check-in'
                     ? translate(locale, 'admin.checkingIn')
                     : translate(locale, 'account.checkIn')}
-                </button>
+                </Button>
               </form>
             ) : null}
             {detail.availableActions.includes('check-out') ? (
@@ -321,7 +331,7 @@ export default function AdminBookingDetailPage() {
                   adminApi.checkOutAdminBooking(detail.bookingCode),
                 )}
               >
-                <button
+                <Button
                   aria-label={translate(locale, 'admin.legacyCheckOutLabel')}
                   disabled={pendingAction !== undefined}
                   type="submit"
@@ -329,7 +339,7 @@ export default function AdminBookingDetailPage() {
                   {pendingAction === 'check-out'
                     ? translate(locale, 'admin.checkingOut')
                     : translate(locale, 'account.checkOut')}
-                </button>
+                </Button>
               </form>
             ) : null}
           </>

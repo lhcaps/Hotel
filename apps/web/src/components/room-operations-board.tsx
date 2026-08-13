@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { AdminApiError, adminApi, type AdminRoomOperationsResponse } from '../lib/admin-api';
@@ -12,7 +11,7 @@ import { compareRoomDisplayOrder } from '../lib/admin-natural-sort';
 import { translate, type MessageKey } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { AdminStatusBadge } from './admin/admin-ui';
+import { AdminDataTable, AdminStatusBadge } from './admin/admin-ui';
 
 type RoomOperation = AdminRoomOperationsResponse['items'][number];
 type RoomStatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
@@ -39,16 +38,6 @@ const groupLabels = {
   maintenance: 'admin.roomGroupMaintenance',
   inactive: 'admin.roomGroupInactive',
 } as const satisfies Record<RoomGroup, MessageKey>;
-
-const groupOrder: readonly RoomGroup[] = [
-  'occupied',
-  'checkout',
-  'arrival',
-  'cleaning',
-  'ready',
-  'maintenance',
-  'inactive',
-];
 
 function localDate(value: Date): string {
   return [
@@ -124,29 +113,14 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
       .sort((left, right) => compareRoomDisplayOrder(left.roomNumber, right.roomNumber));
   }, [data?.items, locale, query, statusFilter]);
 
-  const groups = useMemo(() => {
-    const grouped = new Map<RoomGroup, RoomOperation[]>();
-    for (const room of visibleItems) {
-      const group = room.displayGroup;
-      const current = grouped.get(group) ?? [];
-      current.push(room);
-      grouped.set(group, current);
-    }
-    return groupOrder
-      .map((group) => ({ group, rooms: grouped.get(group) ?? [] }))
-      .filter(({ rooms }) => rooms.length > 0);
-  }, [visibleItems]);
-
   return (
     <section className="room-operations-board" aria-labelledby="room-board-heading">
-      <Card className="admin-surface">
-        <CardHeader className="admin-surface__header">
+      <div className="admin-surface">
+        <div className="admin-surface__header">
           <div className="admin-page-heading admin-page-heading--compact">
             <div>
               <p className="admin-eyebrow">{translate(locale, 'admin.roomOperations')}</p>
-              <CardTitle id="room-board-heading">
-                {translate(locale, 'admin.roomBoardHeading')}
-              </CardTitle>
+              <h2 id="room-board-heading">{translate(locale, 'admin.roomBoardHeading')}</h2>
               <p className="admin-supporting-text">{translate(locale, 'admin.roomBoardHelp')}</p>
             </div>
             <div className="admin-live-state" aria-live="polite">
@@ -155,8 +129,8 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
                 : `${translate(locale, 'admin.roomBoardUpdated', { time: new Date(data.generatedAt).toLocaleTimeString(locale) })}${stale ? ` · ${translate(locale, 'admin.roomBoardStale')}` : ''}`}
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="admin-surface__content">
           {viewerMode ? (
             <p className="admin-scope-note">{translate(locale, 'admin.roomViewerScope')}</p>
           ) : null}
@@ -222,87 +196,79 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
           {data !== undefined && data.items.length > 0 && visibleItems.length === 0 ? (
             <p className="admin-state">{translate(locale, 'admin.noRoomsMatch')}</p>
           ) : null}
-          <div className="room-board-groups">
-            {groups.map(({ group, rooms }) => (
-              <section className="room-board-group" key={group}>
-                <div className="room-board-group__heading">
-                  <h3>{translate(locale, groupLabels[group])}</h3>
-                  <span>{translate(locale, 'admin.roomsCount', { count: rooms.length })}</span>
-                </div>
-                <div className="room-board-table-wrap">
-                  <Table className="room-board-table">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{translate(locale, 'admin.room')}</TableHead>
-                        <TableHead>{translate(locale, 'admin.roomConcept')}</TableHead>
-                        <TableHead>{translate(locale, 'admin.status')}</TableHead>
-                        <TableHead>{translate(locale, 'admin.housekeeping')}</TableHead>
-                        <TableHead>{translate(locale, 'admin.nextSchedule')}</TableHead>
-                        {!viewerMode ? (
-                          <TableHead>{translate(locale, 'admin.action')}</TableHead>
-                        ) : null}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rooms.map((room) => (
-                        <TableRow key={room.roomId}>
-                          <TableCell data-label={translate(locale, 'admin.room')}>
-                            <strong>
-                              {translate(locale, 'admin.roomNumber', { number: room.roomNumber })}
-                            </strong>
-                            <span className="admin-muted room-code">{room.physicalRoomCode}</span>
-                          </TableCell>
-                          <TableCell data-label={translate(locale, 'admin.roomConcept')}>
-                            <span>{room.roomConcept}</span>
-                            <span className="admin-muted">{room.roomTier}</span>
-                          </TableCell>
-                          <TableCell data-label={translate(locale, 'admin.status')}>
-                            <AdminStatusBadge tone={groupStatusTone(group)}>
-                              {translate(locale, groupLabels[group])}
-                            </AdminStatusBadge>
-                            <span className="admin-muted">
-                              {room.currentOccupancy === 'OCCUPIED'
-                                ? translate(locale, 'admin.occupied')
-                                : translate(locale, 'admin.vacant')}
-                            </span>
-                          </TableCell>
-                          <TableCell data-label={translate(locale, 'admin.housekeeping')}>
-                            <span>
-                              {translate(locale, housekeepingLabels[room.housekeepingStatus])}
-                            </span>
-                            <span className="admin-muted">
-                              {room.maintenanceState === 'ACTIVE'
-                                ? translate(locale, 'admin.maintenanceActive')
-                                : translate(locale, 'admin.maintenanceNone')}
-                            </span>
-                          </TableCell>
-                          <TableCell data-label={translate(locale, 'admin.nextSchedule')}>
-                            {room.nextBookingWindow === null ? (
-                              translate(locale, 'admin.noNextBooking')
-                            ) : (
-                              <span>
-                                {formatTime(room.nextBookingWindow.checkIn, locale)}–
-                                {formatTime(room.nextBookingWindow.checkOut, locale)}
-                              </span>
-                            )}
-                          </TableCell>
-                          {!viewerMode ? (
-                            <TableCell data-label={translate(locale, 'admin.action')}>
-                              <Link href={`/admin/rooms/${room.roomId}`}>
-                                {translate(locale, 'admin.open')}
-                              </Link>
-                            </TableCell>
-                          ) : null}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </section>
-            ))}
+          <div className="room-board-group room-board-group--flat">
+            <AdminDataTable variant="operational" className="room-board-table-wrap">
+              <Table className="room-board-table">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{translate(locale, 'admin.room')}</TableHead>
+                    <TableHead>{translate(locale, 'admin.roomConcept')}</TableHead>
+                    <TableHead>{translate(locale, 'admin.status')}</TableHead>
+                    <TableHead>{translate(locale, 'admin.housekeeping')}</TableHead>
+                    <TableHead>{translate(locale, 'admin.nextSchedule')}</TableHead>
+                    {!viewerMode ? (
+                      <TableHead>{translate(locale, 'admin.action')}</TableHead>
+                    ) : null}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleItems.map((room) => (
+                    <TableRow key={room.roomId}>
+                      <TableCell data-label={translate(locale, 'admin.room')}>
+                        <strong>
+                          {translate(locale, 'admin.roomNumber', { number: room.roomNumber })}
+                        </strong>
+                        <span className="admin-muted room-code">{room.physicalRoomCode}</span>
+                      </TableCell>
+                      <TableCell data-label={translate(locale, 'admin.roomConcept')}>
+                        <span>{room.roomConcept}</span>
+                        <span className="admin-muted">{room.roomTier}</span>
+                      </TableCell>
+                      <TableCell data-label={translate(locale, 'admin.status')}>
+                        <AdminStatusBadge tone={groupStatusTone(room.displayGroup)}>
+                          {translate(locale, groupLabels[room.displayGroup])}
+                        </AdminStatusBadge>
+                        <span className="admin-muted">
+                          {room.currentOccupancy === 'OCCUPIED'
+                            ? translate(locale, 'admin.occupied')
+                            : translate(locale, 'admin.vacant')}
+                        </span>
+                      </TableCell>
+                      <TableCell data-label={translate(locale, 'admin.housekeeping')}>
+                        <span>
+                          {translate(locale, housekeepingLabels[room.housekeepingStatus])}
+                        </span>
+                        <span className="admin-muted">
+                          {room.maintenanceState === 'ACTIVE'
+                            ? translate(locale, 'admin.maintenanceActive')
+                            : translate(locale, 'admin.maintenanceNone')}
+                        </span>
+                      </TableCell>
+                      <TableCell data-label={translate(locale, 'admin.nextSchedule')}>
+                        {room.nextBookingWindow === null ? (
+                          translate(locale, 'admin.noNextBooking')
+                        ) : (
+                          <span>
+                            {formatTime(room.nextBookingWindow.checkIn, locale)}–
+                            {formatTime(room.nextBookingWindow.checkOut, locale)}
+                          </span>
+                        )}
+                      </TableCell>
+                      {!viewerMode ? (
+                        <TableCell data-label={translate(locale, 'admin.action')}>
+                          <Link href={`/admin/rooms/${room.roomId}`}>
+                            {translate(locale, 'admin.open')}
+                          </Link>
+                        </TableCell>
+                      ) : null}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </AdminDataTable>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </section>
   );
 }

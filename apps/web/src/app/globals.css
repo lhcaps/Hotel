@@ -74,10 +74,10 @@
   box-sizing: border-box;
 }
 
-/* Product closure policy: keep public booking and admin surfaces motion-free. */
-*,
-*::before,
-*::after {
+/* Public booking remains motion-free; ADMIN owns its own reduced-motion-safe language. */
+.public-surface *,
+.public-surface *::before,
+.public-surface *::after {
   animation: none !important;
   scroll-behavior: auto !important;
   transition: none !important;
@@ -1750,14 +1750,14 @@ a:focus {
 
 /* ADMIN V2: calm, dense operations surfaces with an explicit mobile layout. */
 .admin-layout {
-  --admin-navy: #152235;
-  --admin-navy-2: #1d3049;
-  --admin-gold: #c79a45;
-  --admin-ink: #152235;
-  --admin-muted: #667487;
-  --admin-line: #dce3ea;
+  --admin-navy: #1d2822;
+  --admin-navy-2: #314238;
+  --admin-gold: #c5a45d;
+  --admin-ink: #1d2822;
+  --admin-muted: #68736b;
+  --admin-line: #d8dad4;
   --admin-surface: #ffffff;
-  --admin-canvas: #f4f6f8;
+  --admin-canvas: #f6f5f1;
   background: var(--admin-canvas);
 }
 .admin-layout,
@@ -2102,6 +2102,11 @@ a:focus {
   overflow: hidden;
   border: 1px solid var(--admin-line);
   border-radius: 0.65rem;
+}
+.room-board-group--flat {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
 }
 .room-board-group__heading {
   display: flex;
@@ -2517,25 +2522,28 @@ a:focus {
   }
 }
 
-/* ADMIN V2 shared Base UI contract. Route components consume these tokens and
-   primitives so the workspace keeps one shell, one density, and one status language. */
+/* Canonical PeaceNest ADMIN design system. Route components consume these tokens
+   and primitives so every protected surface keeps one shell, one density, and
+   one status language. */
 :root {
-  --admin-workspace-bg: #f5f7fb;
+  --admin-workspace-bg: #f6f5f1;
   --admin-surface: #ffffff;
-  --admin-surface-muted: #f8fafc;
-  --admin-border: #dbe3ee;
-  --admin-ink-strong: #132238;
-  --admin-ink-muted: #607086;
-  --admin-status-success-bg: #e9f7ef;
-  --admin-status-success-fg: #166534;
-  --admin-status-info-bg: #eaf2ff;
-  --admin-status-info-fg: #1d4ed8;
-  --admin-status-warning-bg: #fff5d9;
-  --admin-status-warning-fg: #a16207;
-  --admin-status-danger-bg: #feeceb;
+  --admin-surface-muted: #f1f0ec;
+  --admin-border: #d8dad4;
+  --admin-ink-strong: #1d2822;
+  --admin-ink-muted: #68736b;
+  --admin-status-success-bg: #e9f2e8;
+  --admin-status-success-fg: #1f7a36;
+  --admin-status-info-bg: #e8eef1;
+  --admin-status-info-fg: #2f6ea7;
+  --admin-status-warning-bg: #fff2d7;
+  --admin-status-warning-fg: #a96500;
+  --admin-status-danger-bg: #fde9e7;
   --admin-status-danger-fg: #b42318;
-  --admin-status-neutral-bg: #f1f5f9;
-  --admin-status-neutral-fg: #475569;
+  --admin-status-neutral-bg: #f0f1ef;
+  --admin-status-neutral-fg: #5f6962;
+  --admin-status-attention: #ed8b00;
+  --admin-focus: #1d2822;
 }
 
 .admin-app-shell {
@@ -2547,7 +2555,7 @@ a:focus {
 .admin-app-shell [data-slot='sidebar-gap'],
 .admin-app-shell [data-slot='sidebar-container'],
 .admin-app-shell [data-slot='sidebar-inner'] {
-  width: 17rem;
+  width: 16.5rem;
 }
 
 .admin-app-shell [data-slot='sidebar-gap'] {
@@ -2556,12 +2564,12 @@ a:focus {
 
 .admin-app-shell [data-slot='sidebar-inner'] {
   border-right: 1px solid var(--sidebar-border);
-  background: var(--sidebar);
+  background: #eeede8;
 }
 
 .admin-app-shell [data-slot='sidebar-header'] {
-  min-height: 4rem;
-  padding: 0.8rem 1rem;
+  min-height: 4.25rem;
+  padding: 0.9rem 1rem;
 }
 
 .admin-app-shell [data-slot='sidebar-group'] {
@@ -2570,7 +2578,7 @@ a:focus {
 
 .admin-app-shell [data-slot='sidebar-group-label'] {
   height: 1.8rem;
-  color: #9bb0c8;
+  color: #69746d;
   font-size: 0.68rem;
   font-weight: 750;
   letter-spacing: 0.09em;
@@ -2578,15 +2586,15 @@ a:focus {
 }
 
 .admin-app-shell [data-slot='sidebar-menu-button'] {
-  min-height: 2.55rem;
+  min-height: 2.2rem;
   border-left: 2px solid transparent;
-  color: #d8e4f1;
-  font-size: 0.88rem;
+  color: #26332b;
+  font-size: 0.82rem;
 }
 
-.admin-app-shell [data-slot='sidebar-menu-button'][data-active='true'] {
-  border-left-color: #8bb7ff;
-  background: #1b416c;
+.admin-app-shell [data-slot='sidebar-menu-button'][data-active] {
+  border-left-color: #1d2822;
+  background: #1d2822;
   color: #ffffff;
 }
 
@@ -2600,13 +2608,13 @@ a:focus {
   top: 0;
   z-index: 20;
   display: flex;
-  min-height: 4rem;
+  min-height: 3.5rem;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   border-bottom: 1px solid var(--admin-border);
   background: rgb(255 255 255 / 96%);
-  padding: 0.65rem clamp(1rem, 2.5vw, 2.5rem);
+  padding: 0.45rem clamp(1rem, 2.5vw, 2.5rem);
 }
 
 .admin-topbar__leading,
@@ -2639,7 +2647,7 @@ a:focus {
   width: min(100%, 120rem);
   max-width: none;
   margin-inline: auto;
-  padding: clamp(1.25rem, 2.5vw, 2.5rem) clamp(1rem, 3vw, 3rem) 4rem;
+  padding: clamp(1.1rem, 2.2vw, 2rem) clamp(1rem, 3vw, 3rem) 4rem;
 }
 
 .admin-page-header {
@@ -2658,7 +2666,7 @@ a:focus {
 .admin-page-header h1 {
   margin: 0;
   color: var(--admin-ink-strong);
-  font-size: clamp(1.65rem, 2.6vw, 2.35rem);
+  font-size: clamp(1.55rem, 2.3vw, 2.1rem);
   letter-spacing: -0.035em;
   line-height: 1.1;
 }
@@ -2676,7 +2684,7 @@ a:focus {
 
 .admin-eyebrow {
   margin: 0 0 0.4rem;
-  color: #2563eb;
+  color: var(--admin-ink-muted);
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -2687,10 +2695,10 @@ a:focus {
   width: 100%;
   margin-block-end: 1rem;
   border: 1px solid var(--admin-border);
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   background: var(--admin-surface);
-  box-shadow: 0 0.5rem 1.5rem rgb(15 23 42 / 3%);
-  padding: 1rem;
+  box-shadow: none;
+  padding: 0.7rem;
 }
 
 .admin-filter-toolbar__controls {
@@ -2736,6 +2744,65 @@ a:focus {
   font-weight: 700;
 }
 
+.admin-tabs-system {
+  margin-block: 0 0.9rem;
+}
+
+.admin-tabs-system [data-slot='tabs-list'] {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--admin-border);
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.admin-tabs-system [data-slot='tabs-trigger'] {
+  position: relative;
+  min-height: 2.45rem;
+  border-radius: 0;
+  color: var(--admin-ink-muted);
+  font-size: 0.78rem;
+}
+
+.admin-tabs-system [data-slot='tabs-trigger'][data-active],
+.admin-tabs-system [data-slot='tabs-trigger'][data-state='active'] {
+  color: var(--admin-ink-strong);
+  background: transparent;
+}
+
+.admin-tabs-system [data-slot='tabs-trigger'][data-active]::after,
+.admin-tabs-system [data-slot='tabs-trigger'][data-state='active']::after {
+  position: absolute;
+  right: 0.7rem;
+  bottom: -1px;
+  left: 0.7rem;
+  height: 2px;
+  background: var(--admin-ink-strong);
+  content: '';
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-tabs-system [data-slot='tabs-trigger']::after {
+    transform: scaleX(0.35);
+    transition:
+      transform 180ms ease,
+      opacity 180ms ease;
+  }
+  .admin-tabs-system [data-slot='tabs-trigger'][data-active]::after,
+  .admin-tabs-system [data-slot='tabs-trigger'][data-state='active']::after {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-tabs-system [data-slot='tabs-trigger']::after {
+    transition: none;
+  }
+}
+
 .admin-filter-chip {
   height: auto;
   min-height: 1.75rem;
@@ -2763,8 +2830,21 @@ a:focus {
   min-width: 0;
   overflow-x: auto;
   border: 1px solid var(--admin-border);
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   background: var(--admin-surface);
+}
+
+.admin-data-table--management td {
+  min-height: 2.75rem;
+}
+
+.admin-data-table--operational td {
+  min-height: 3rem;
+}
+
+.admin-data-table--audit td {
+  color: var(--admin-ink-muted);
+  font-size: 0.78rem;
 }
 
 .admin-data-table [data-slot='table-container'] {
@@ -2820,7 +2900,7 @@ a:focus {
 }
 
 .admin-data-table th {
-  height: 2.75rem;
+  height: 2.55rem;
   background: var(--admin-surface-muted);
   color: var(--admin-ink-muted);
   font-size: 0.72rem;
@@ -2874,12 +2954,12 @@ a:focus {
 .admin-metric {
   display: grid;
   min-width: 0;
-  min-height: 7.25rem;
+  min-height: 6.5rem;
   align-content: space-between;
   gap: 0.65rem;
   border: 1px solid var(--admin-border);
   border-top: 3px solid var(--admin-status-info-fg);
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   background: var(--admin-surface);
   padding: 1rem;
 }
@@ -2904,6 +2984,149 @@ a:focus {
 
 .admin-detail-sheet {
   width: min(100%, 34rem);
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--admin-ink-strong);
+  text-decoration: none;
+}
+
+.admin-brand > span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 0.25rem;
+  background: var(--admin-ink-strong);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.admin-brand strong {
+  display: grid;
+  gap: 0.1rem;
+  font-size: 0.93rem;
+  line-height: 1;
+}
+
+.admin-brand small {
+  color: var(--admin-ink-muted);
+  font-size: 0.61rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.admin-topbar__breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  color: var(--admin-ink-muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.admin-topbar__breadcrumb span {
+  color: var(--admin-border);
+}
+
+.admin-quick-search,
+.admin-property-context {
+  min-height: 2.15rem;
+  border-color: var(--admin-border);
+  color: var(--admin-ink-muted);
+  font-size: 0.75rem;
+}
+
+.admin-quick-search svg,
+.admin-property-context svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.admin-quick-search kbd {
+  border: 1px solid var(--admin-border);
+  border-radius: 0.2rem;
+  padding: 0.08rem 0.25rem;
+  font-size: 0.62rem;
+}
+
+.admin-quick-search:hover,
+.admin-property-context:hover {
+  border-color: var(--admin-ink-strong);
+  color: var(--admin-ink-strong);
+}
+
+.admin-app-shell button:focus-visible,
+.admin-app-shell a:focus-visible,
+.admin-app-shell input:focus-visible,
+.admin-app-shell select:focus-visible,
+.admin-app-shell textarea:focus-visible {
+  outline: 2px solid var(--admin-focus);
+  outline-offset: 2px;
+}
+
+.admin-status-badge__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.admin-status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--admin-ink-strong);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.admin-status-text__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.admin-status-text--success {
+  color: var(--admin-status-success-fg);
+}
+.admin-status-text--info {
+  color: var(--admin-status-info-fg);
+}
+.admin-status-text--warning {
+  color: var(--admin-status-warning-fg);
+}
+.admin-status-text--danger {
+  color: var(--admin-status-danger-fg);
+}
+.admin-status-text--neutral {
+  color: var(--admin-status-neutral-fg);
+}
+
+.admin-status-badge--attention {
+  background: #fff2d7;
+  color: var(--admin-status-attention);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-app-shell [data-slot='sidebar-menu-button'],
+  .admin-app-shell button,
+  .admin-app-shell a,
+  .admin-detail-sheet {
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      color 160ms ease,
+      opacity 160ms ease,
+      transform 160ms ease;
+  }
 }
 
 .admin-detail-sheet__body,
@@ -5409,6 +5632,7 @@ body {
   min-height: 100vh;
   width: 100%;
   min-width: 0;
+  overflow-x: clip;
   background: var(--admin-workspace-bg);
 }
 .admin-app-shell .admin-nav {
@@ -5514,28 +5738,28 @@ body {
    every protected route: the shell, filter density, data surfaces, and status
    language should not drift page by page. */
 :root {
-  --admin-sidebar-bg: #102a43;
-  --admin-sidebar-bg-strong: #0c2137;
-  --admin-sidebar-active: #1e4d76;
-  --admin-sidebar-text: #e7f0f8;
-  --admin-sidebar-muted: #a9bfd4;
-  --admin-accent: #d29a3b;
-  --admin-workspace-bg: #f4f7fa;
+  --admin-sidebar-bg: #eeede8;
+  --admin-sidebar-bg-strong: #e2e2dc;
+  --admin-sidebar-active: #1d2822;
+  --admin-sidebar-text: #1d2822;
+  --admin-sidebar-muted: #68736b;
+  --admin-accent: #c5a45d;
+  --admin-workspace-bg: #f6f5f1;
   --admin-surface: #ffffff;
   --admin-surface-subtle: #f8fafc;
-  --admin-border: #d8e1eb;
-  --admin-ink-strong: #132238;
-  --admin-ink-muted: #5d6d80;
-  --admin-success-bg: #e8f6ed;
-  --admin-success-fg: #17643d;
-  --admin-info-bg: #eaf2ff;
-  --admin-info-fg: #1e5aa8;
-  --admin-warning-bg: #fff4dc;
-  --admin-warning-fg: #95620c;
-  --admin-danger-bg: #feeceb;
-  --admin-danger-fg: #a82722;
-  --admin-neutral-bg: #eef2f6;
-  --admin-neutral-fg: #526174;
+  --admin-border: #d8dad4;
+  --admin-ink-strong: #1d2822;
+  --admin-ink-muted: #68736b;
+  --admin-success-bg: #e9f2e9;
+  --admin-success-fg: #2f6b45;
+  --admin-info-bg: #e9f0f1;
+  --admin-info-fg: #35626a;
+  --admin-warning-bg: #f7edd7;
+  --admin-warning-fg: #8a631e;
+  --admin-danger-bg: #f6e5e1;
+  --admin-danger-fg: #9d4238;
+  --admin-neutral-bg: #eeede8;
+  --admin-neutral-fg: #68736b;
 }
 
 .admin-app-shell {
@@ -6273,28 +6497,28 @@ body {
    neutral: protected pages compose the same shell, fields, tables, sheets,
    and semantic status language. */
 :root {
-  --admin-sidebar-bg: #102a43;
-  --admin-sidebar-bg-strong: #0b2136;
-  --admin-sidebar-active: #1f4f7b;
-  --admin-sidebar-text: #e7f0f8;
-  --admin-sidebar-muted: #a9bfd4;
-  --admin-accent: #d29a3b;
-  --admin-workspace-bg: #f4f7fa;
+  --admin-sidebar-bg: #eeede8;
+  --admin-sidebar-bg-strong: #e2e2dc;
+  --admin-sidebar-active: #1d2822;
+  --admin-sidebar-text: #1d2822;
+  --admin-sidebar-muted: #68736b;
+  --admin-accent: #c5a45d;
+  --admin-workspace-bg: #f6f5f1;
   --admin-surface: #ffffff;
   --admin-surface-subtle: #f7f9fb;
-  --admin-border: #d8e1eb;
-  --admin-ink-strong: #132238;
-  --admin-ink-muted: #5d6d80;
-  --admin-success-bg: #e8f6ed;
-  --admin-success-fg: #17643d;
-  --admin-info-bg: #eaf2ff;
-  --admin-info-fg: #1e5aa8;
-  --admin-warning-bg: #fff4dc;
-  --admin-warning-fg: #95620c;
-  --admin-danger-bg: #feeceb;
-  --admin-danger-fg: #a82722;
-  --admin-neutral-bg: #eef2f6;
-  --admin-neutral-fg: #526174;
+  --admin-border: #d8dad4;
+  --admin-ink-strong: #1d2822;
+  --admin-ink-muted: #68736b;
+  --admin-success-bg: #e9f2e9;
+  --admin-success-fg: #2f6b45;
+  --admin-info-bg: #e9f0f1;
+  --admin-info-fg: #35626a;
+  --admin-warning-bg: #f7edd7;
+  --admin-warning-fg: #8a631e;
+  --admin-danger-bg: #f6e5e1;
+  --admin-danger-fg: #9d4238;
+  --admin-neutral-bg: #eeede8;
+  --admin-neutral-fg: #68736b;
 }
 
 .admin-app-shell {
@@ -7231,5 +7455,73 @@ body {
   .admin-app-shell .admin-overview .report-filters .report-filters__codes,
   .admin-app-shell .admin-overview .report-filters > .admin-filter-toolbar__controls > button {
     grid-column: span 1 !important;
+  }
+}
+
+/* Final canonical overrides: this block intentionally comes after legacy route
+   rules so migrated ADMIN screens inherit the same neutral visual language. */
+.admin-app-shell {
+  --sidebar: #eeede8;
+  --sidebar-foreground: #26332b;
+  --sidebar-border: #d8dad4;
+  --sidebar-accent: #e2e2dc;
+  --sidebar-accent-foreground: #1d2822;
+  --sidebar-primary: #1d2822;
+  --sidebar-primary-foreground: #fff;
+  --sidebar-ring: #1d2822;
+}
+
+.admin-app-shell [data-slot='sidebar-menu-button']:hover {
+  background: #e2e2dc;
+  color: var(--admin-ink-strong);
+}
+
+.admin-app-shell [data-slot='sidebar-menu-button'][data-active='true'] {
+  background: var(--admin-ink-strong) !important;
+  border-left-color: var(--admin-ink-strong) !important;
+  color: #fff !important;
+}
+
+.admin-app-shell .admin-page-header h1,
+.admin-app-shell .admin-page h1 {
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.admin-app-shell .admin-page [data-slot='card'],
+.admin-app-shell .admin-page [data-slot='alert'],
+.admin-app-shell .admin-page [data-slot='empty'] {
+  border-color: var(--admin-border);
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
+.admin-app-shell .admin-page [data-slot='card-header'] {
+  padding: 0.9rem 1rem 0.6rem;
+}
+
+.admin-app-shell .admin-page [data-slot='card-content'] {
+  padding: 0.7rem 1rem 1rem;
+}
+
+.admin-checkbox-input {
+  accent-color: var(--admin-ink-strong);
+  inline-size: 1rem;
+  block-size: 1rem;
+  margin-inline-end: 0.45rem;
+  vertical-align: -0.15em;
+}
+
+@media (max-width: 48rem) {
+  .admin-app-shell [data-slot='sidebar-gap'],
+  .admin-app-shell [data-slot='sidebar-container'],
+  .admin-app-shell [data-slot='sidebar-inner'] {
+    width: 19rem;
+  }
+
+  .admin-quick-search span,
+  .admin-property-context span,
+  .admin-property-context svg:last-child {
+    display: none;
   }
 }

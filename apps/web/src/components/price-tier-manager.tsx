@@ -187,7 +187,7 @@ export function PriceTierManager() {
         <AdminEmptyState title={translate(locale, 'priceTier.empty')} />
       ) : null}
       {page === undefined || page.items.length === 0 ? null : (
-        <AdminDataTable>
+        <AdminDataTable variant="management">
           <Table>
             <thead>
               <tr>

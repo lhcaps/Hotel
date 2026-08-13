@@ -205,7 +205,7 @@ export function AmenityManager() {
         <AdminEmptyState title={translate(locale, 'catalog.noResults')} />
       ) : null}
       {page === undefined || page.items.length === 0 ? null : (
-        <AdminDataTable>
+        <AdminDataTable variant="management">
           <Table>
             <thead>
               <tr>

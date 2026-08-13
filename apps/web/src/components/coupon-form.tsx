@@ -5,6 +5,9 @@ import type { FormEvent } from 'react';
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { AdminPageHeader } from './admin/admin-ui';
 export function CouponForm() {
   const locale = useLocale();
   const [type, setType] = useState<'FIXED' | 'PERCENTAGE'>('FIXED');
@@ -72,12 +75,15 @@ export function CouponForm() {
   return (
     <section className="admin-page">
       <Link href="/admin/coupons">← {translate(locale, 'coupon.backToList')}</Link>
-      <h1>{translate(locale, 'coupon.createHeading')}</h1>
+      <AdminPageHeader
+        title={translate(locale, 'coupon.createHeading')}
+        description={translate(locale, 'coupon.roomTypeScope')}
+      />
       {error && <p role="alert">{error}</p>}
       <form className="coupon-form" onSubmit={(event) => void submit(event)}>
         <label>
           {translate(locale, 'coupon.code')}
-          <input name="code" required minLength={4} maxLength={32} />
+          <Input name="code" required minLength={4} maxLength={32} />
         </label>
         <fieldset>
           <legend>{translate(locale, 'coupon.discountType')}</legend>
@@ -97,40 +103,41 @@ export function CouponForm() {
         {type === 'FIXED' ? (
           <label>
             {translate(locale, 'coupon.fixedAmount')}
-            <input name="fixedAmountVnd" type="number" min="1" required />
+            <Input name="fixedAmountVnd" type="number" min="1" required />
           </label>
         ) : (
           <>
             <label>
               {translate(locale, 'coupon.percentageBasisPoints')}
-              <input name="percentageBasisPoints" type="number" min="1" max="10000" required />
+              <Input name="percentageBasisPoints" type="number" min="1" max="10000" required />
               <small>{translate(locale, 'coupon.basisPointHelp')}</small>
             </label>
             <label>
               {translate(locale, 'coupon.maximumDiscount')}
-              <input name="maximumDiscountVnd" type="number" min="1" />
+              <Input name="maximumDiscountVnd" type="number" min="1" />
             </label>
           </>
         )}
         <label>
           {translate(locale, 'coupon.minimumOrder')}
-          <input name="minimumOrderAmountVnd" type="number" min="0" defaultValue="0" />
+          <Input name="minimumOrderAmountVnd" type="number" min="0" defaultValue="0" />
         </label>
         <label>
           {translate(locale, 'coupon.validFrom')}
-          <input name="validFrom" type="datetime-local" required />
+          <Input name="validFrom" type="datetime-local" required />
         </label>
         <label>
           {translate(locale, 'coupon.validUntil')}
-          <input name="validUntil" type="datetime-local" required />
+          <Input name="validUntil" type="datetime-local" required />
         </label>
         <fieldset>
           <legend>{translate(locale, 'coupon.roomTypeScope')}</legend>
           <label>
             <input
-              type="checkbox"
+              className="admin-checkbox-input"
               checked={all}
               onChange={(event) => setAll(event.target.checked)}
+              type="checkbox"
             />{' '}
             {translate(locale, 'coupon.allRoomTypes')}
           </label>
@@ -138,8 +145,9 @@ export function CouponForm() {
             roomTypes.map((room) => (
               <label key={room.id}>
                 <input
-                  type="checkbox"
+                  className="admin-checkbox-input"
                   checked={selected.includes(room.id)}
+                  type="checkbox"
                   onChange={(event) =>
                     setSelected(
                       event.target.checked
@@ -154,15 +162,15 @@ export function CouponForm() {
         </fieldset>
         <label>
           {translate(locale, 'coupon.totalUsageLimit')}
-          <input name="totalUsageLimit" type="number" min="1" />
+          <Input name="totalUsageLimit" type="number" min="1" />
         </label>
         <label>
           {translate(locale, 'coupon.perCustomerLimit')}
-          <input name="perCustomerLimit" type="number" min="1" />
+          <Input name="perCustomerLimit" type="number" min="1" />
         </label>
-        <button disabled={pending} type="submit">
+        <Button disabled={pending} type="submit">
           {pending ? translate(locale, 'coupon.createPending') : translate(locale, 'coupon.create')}
-        </button>
+        </Button>
       </form>
     </section>
   );

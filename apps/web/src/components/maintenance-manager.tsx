@@ -168,7 +168,7 @@ export function MaintenanceManager() {
         <AdminEmptyState title={translate(locale, 'catalog.noResults')} />
       ) : null}
       {blocks === undefined || blocks.length === 0 ? null : (
-        <AdminDataTable>
+        <AdminDataTable variant="management">
           <Table>
             <thead>
               <tr>
