@@ -38,9 +38,20 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Empty,
   EmptyDescription,
@@ -655,28 +666,24 @@ export type AdminAction = Readonly<{
   destructive?: boolean;
 }>;
 
-export function AdminResponsiveActions({
-  actions,
-  children,
-}: Readonly<{ actions: readonly AdminAction[]; children?: React.ReactNode }>) {
+export function AdminResponsiveActions({ actions }: Readonly<{ actions: readonly AdminAction[] }>) {
   const locale = useLocale();
   return (
     <div className="admin-responsive-actions">
-      <div className="admin-responsive-actions__wide">{children}</div>
-      <div className="admin-responsive-actions__compact">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="outline"
-                size="icon-sm"
-                aria-label={translate(locale, 'admin.otherActions')}
-              />
-            }
-          >
-            <MoreHorizontalIcon />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label={translate(locale, 'admin.otherActions')}
+            />
+          }
+        >
+          <MoreHorizontalIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuGroup>
             {actions.map((action) => (
               <DropdownMenuItem
                 key={action.label}
@@ -687,21 +694,52 @@ export function AdminResponsiveActions({
                 {action.label}
               </DropdownMenuItem>
             ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
 
-export function AdminRowActions({
-  actions,
-  children,
-}: Readonly<{ actions: readonly AdminAction[]; children?: React.ReactNode }>) {
+export function AdminRowActions({ actions }: Readonly<{ actions: readonly AdminAction[] }>) {
+  return <AdminResponsiveActions actions={actions} />;
+}
+
+export function AdminDestructiveActionDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel,
+  pending = false,
+  onConfirm,
+}: Readonly<{
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: React.ReactNode;
+  description: React.ReactNode;
+  confirmLabel: React.ReactNode;
+  pending?: boolean;
+  onConfirm: () => void;
+}>) {
+  const locale = useLocale();
   return (
-    <AdminResponsiveActions actions={actions}>
-      <div className="admin-row-actions">{children}</div>
-    </AdminResponsiveActions>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending}>
+            {translate(locale, 'admin.cancel')}
+          </AlertDialogCancel>
+          <AlertDialogAction disabled={pending} onClick={onConfirm} variant="destructive">
+            {confirmLabel}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

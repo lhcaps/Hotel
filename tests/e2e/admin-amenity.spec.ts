@@ -16,7 +16,12 @@ test('ADMIN creates an amenity and sees it after reload', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Thêm tiện nghi' }).click();
   await expect(page.getByText('PARKING', { exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByText('PARKING', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Lưu trữ Parking' }).click();
-  await expect(page.getByRole('cell', { name: 'Tạm ngưng', exact: true })).toBeVisible();
+  const parkingRow = page.locator('tbody tr', { hasText: 'PARKING' });
+  await expect(parkingRow).toBeVisible();
+  await parkingRow.locator('[data-slot="dropdown-menu-trigger"]').click();
+  await page.getByRole('menuitem', { name: 'Lưu trữ' }).click();
+  const archiveDialog = page.getByRole('alertdialog');
+  await expect(archiveDialog).toBeVisible();
+  await archiveDialog.getByRole('button', { name: 'Lưu trữ' }).click();
+  await expect(parkingRow.getByRole('cell', { name: 'Tạm ngưng', exact: true })).toBeVisible();
 });

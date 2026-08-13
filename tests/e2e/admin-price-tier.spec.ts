@@ -18,7 +18,12 @@ test('ADMIN creates a price tier and sees it after reload', async ({ page }) => 
   await dialog.getByRole('button', { name: 'Thêm hạng giá' }).click();
   await expect(page.getByRole('cell', { name: 'Premium', exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole('cell', { name: 'Premium', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Lưu trữ Premium' }).click();
-  await expect(page.getByRole('cell', { name: 'Tạm ngưng', exact: true })).toBeVisible();
+  const premiumRow = page.locator('tbody tr', { hasText: 'Premium' });
+  await expect(premiumRow).toBeVisible();
+  await premiumRow.locator('[data-slot="dropdown-menu-trigger"]').click();
+  await page.getByRole('menuitem', { name: 'Lưu trữ' }).click();
+  const archiveDialog = page.getByRole('alertdialog');
+  await expect(archiveDialog).toBeVisible();
+  await archiveDialog.getByRole('button', { name: 'Lưu trữ' }).click();
+  await expect(premiumRow.getByRole('cell', { name: 'Tạm ngưng', exact: true })).toBeVisible();
 });

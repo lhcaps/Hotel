@@ -12,16 +12,27 @@ import {
 } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Alert, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
 import { Field, FieldGroup, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import {
   AdminDataTable,
   AdminDetailSheet,
   AdminEmptyState,
+  AdminFormSheet,
   AdminLoadingState,
   AdminPageHeader,
+  AdminRowActions,
 } from './admin/admin-ui';
 
 interface BootstrapDraft {
@@ -193,6 +204,7 @@ export function PricingPolicyManager() {
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'publish' | 'supersede' | 'retire'>();
+  const [setupForm, setSetupForm] = useState<'bootstrap' | 'create'>();
 
   const load = useCallback(async () => {
     try {
@@ -254,7 +266,10 @@ export function PricingPolicyManager() {
           ? translate(locale, 'pricingPolicy.previewReady')
           : translate(locale, 'pricingPolicy.previewInvalid'),
       );
-      if (!dryRun && result.created) await refresh(result.policyId);
+      if (!dryRun) {
+        setSetupForm(undefined);
+        if (result.created) await refresh(result.policyId);
+      }
     } catch (cause) {
       setMessage(actionError(cause, translate(locale, 'pricingPolicy.bootstrapError')));
     } finally {
@@ -274,6 +289,7 @@ export function PricingPolicyManager() {
           createDraft.effectiveUntil === '' ? null : instantFromInput(createDraft.effectiveUntil),
       });
       setCreateDraft(initialCreateDraft);
+      setSetupForm(undefined);
       setMessage(translate(locale, 'pricingPolicy.saved'));
       await refresh(result.policyId);
     } catch (cause) {
@@ -398,60 +414,79 @@ export function PricingPolicyManager() {
       <AdminPageHeader
         title={translate(locale, 'pricingPolicy.heading')}
         description={translate(locale, 'pricingPolicy.help')}
+        actions={
+          <div className="admin-responsive-actions">
+            <Button type="button" variant="outline" onClick={() => setSetupForm('create')}>
+              {translate(locale, 'pricingPolicy.create')}
+            </Button>
+            <Button type="button" onClick={() => setSetupForm('bootstrap')}>
+              {translate(locale, 'pricingPolicy.bootstrap')}
+            </Button>
+          </div>
+        }
       />
-      {message ? <p role="alert">{message}</p> : null}
-      <AdminDataTable variant="management">
-        <table>
-          <thead>
-            <tr>
-              <th>{translate(locale, 'pricingPolicy.property')}</th>
-              <th>{translate(locale, 'pricingPolicy.version')}</th>
-              <th>{translate(locale, 'pricingPolicy.name')}</th>
-              <th>{translate(locale, 'pricingPolicy.status')}</th>
-              <th>{translate(locale, 'pricingPolicy.basis')}</th>
-              <th>{translate(locale, 'pricingPolicy.effectiveFrom')}</th>
-              <th>{translate(locale, 'pricingPolicy.effectiveUntil')}</th>
-              <th>{translate(locale, 'pricingPolicy.createdAt')}</th>
-              <th>{translate(locale, 'pricingPolicy.updatedAt')}</th>
-              <th>{translate(locale, 'pricingPolicy.completeness')}</th>
-              <th>{translate(locale, 'pricingPolicy.actions')}</th>
-            </tr>
-          </thead>
-          <tbody>
+      {message ? (
+        <Alert>
+          <AlertTitle>{message}</AlertTitle>
+        </Alert>
+      ) : null}
+      <AdminDataTable variant="management" className="admin-pricing-policy-table">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{translate(locale, 'pricingPolicy.property')}</TableHead>
+              <TableHead>{translate(locale, 'pricingPolicy.version')}</TableHead>
+              <TableHead>{translate(locale, 'pricingPolicy.name')}</TableHead>
+              <TableHead>{translate(locale, 'pricingPolicy.status')}</TableHead>
+              <TableHead>{translate(locale, 'pricingPolicy.basis')}</TableHead>
+              <TableHead>{translate(locale, 'pricingPolicy.effectiveFrom')}</TableHead>
+              <TableHead>{translate(locale, 'pricingPolicy.effectiveUntil')}</TableHead>
+              <TableHead>{translate(locale, 'pricingPolicy.createdAt')}</TableHead>
+              <TableHead>{translate(locale, 'pricingPolicy.updatedAt')}</TableHead>
+              <TableHead>{translate(locale, 'pricingPolicy.completeness')}</TableHead>
+              <TableHead>{translate(locale, 'pricingPolicy.actions')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {(releases ?? []).map((release) => (
-              <tr key={release.id}>
-                <td>{release.propertyId}</td>
-                <td>{release.versionNumber}</td>
-                <td>{release.internalName}</td>
-                <td>{statusLabel(locale, release.status)}</td>
-                <td>{basisLabel(locale, release.applicabilityBasis)}</td>
-                <td>{new Date(release.effectiveFrom).toLocaleString()}</td>
-                <td>
+              <TableRow key={release.id}>
+                <TableCell>
+                  <span className="admin-code" title={release.propertyId}>
+                    {release.propertyId}
+                  </span>
+                </TableCell>
+                <TableCell>{release.versionNumber}</TableCell>
+                <TableCell>{release.internalName}</TableCell>
+                <TableCell>{statusLabel(locale, release.status)}</TableCell>
+                <TableCell>{basisLabel(locale, release.applicabilityBasis)}</TableCell>
+                <TableCell>{new Date(release.effectiveFrom).toLocaleString()}</TableCell>
+                <TableCell>
                   {release.effectiveUntil === null
                     ? translate(locale, 'pricingPolicy.openEnded')
                     : new Date(release.effectiveUntil).toLocaleString()}
-                </td>
-                <td>{new Date(release.createdAt).toLocaleString()}</td>
-                <td>{new Date(release.updatedAt).toLocaleString()}</td>
-                <td>
+                </TableCell>
+                <TableCell>{new Date(release.createdAt).toLocaleString()}</TableCell>
+                <TableCell>{new Date(release.updatedAt).toLocaleString()}</TableCell>
+                <TableCell>
                   {release.componentCount ?? 0} / {release.priceCount ?? 0}{' '}
                   {release.priceComplete
                     ? translate(locale, 'pricingPolicy.complete')
                     : translate(locale, 'pricingPolicy.incomplete')}
-                </td>
-                <td>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => void openRelease(release.id)}
-                  >
-                    {translate(locale, 'pricingPolicy.open')}
-                  </Button>
-                </td>
-              </tr>
+                </TableCell>
+                <TableCell>
+                  <AdminRowActions
+                    actions={[
+                      {
+                        label: translate(locale, 'pricingPolicy.open'),
+                        onSelect: () => void openRelease(release.id),
+                      },
+                    ]}
+                  />
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </AdminDataTable>
       {releases !== undefined && releases.length === 0 ? (
         <AdminEmptyState
@@ -463,9 +498,14 @@ export function PricingPolicyManager() {
         <AdminLoadingState label={translate(locale, 'pricingPolicy.loading')} />
       ) : null}
 
-      <section className="admin-form-section">
-        <h2>{translate(locale, 'pricingPolicy.createHeading')}</h2>
-        <p>{translate(locale, 'pricingPolicy.createHelp')}</p>
+      <AdminFormSheet
+        open={setupForm === 'create'}
+        onOpenChange={(open) => {
+          if (!open) setSetupForm(undefined);
+        }}
+        title={translate(locale, 'pricingPolicy.createHeading')}
+        description={translate(locale, 'pricingPolicy.createHelp')}
+      >
         <FieldGroup>
           <Field>
             <FieldLabel htmlFor="pricing-policy-create-name">
@@ -515,11 +555,16 @@ export function PricingPolicyManager() {
         >
           {translate(locale, 'pricingPolicy.create')}
         </Button>
-      </section>
+      </AdminFormSheet>
 
-      <section className="admin-form-section">
-        <h2>{translate(locale, 'pricingPolicy.bootstrapHeading')}</h2>
-        <p>{translate(locale, 'pricingPolicy.bootstrapHelp')}</p>
+      <AdminFormSheet
+        open={setupForm === 'bootstrap'}
+        onOpenChange={(open) => {
+          if (!open) setSetupForm(undefined);
+        }}
+        title={translate(locale, 'pricingPolicy.bootstrapHeading')}
+        description={translate(locale, 'pricingPolicy.bootstrapHelp')}
+      >
         <FieldGroup>
           <Field>
             <FieldLabel htmlFor="pricing-policy-name">
@@ -588,8 +633,10 @@ export function PricingPolicyManager() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="21-09">21:00–09:00</SelectItem>
-                <SelectItem value="22-10">22:00–10:00</SelectItem>
+                <SelectGroup>
+                  <SelectItem value="21-09">21:00–09:00</SelectItem>
+                  <SelectItem value="22-10">22:00–10:00</SelectItem>
+                </SelectGroup>
               </SelectContent>
             </Select>
           </Field>
@@ -607,11 +654,21 @@ export function PricingPolicyManager() {
             {translate(locale, 'pricingPolicy.bootstrap')}
           </Button>
         </div>
-      </section>
+      </AdminFormSheet>
 
       {selected !== undefined && editor !== undefined ? (
-        <section className="admin-form-section">
-          <h2>{translate(locale, 'pricingPolicy.editorHeading')}</h2>
+        <AdminDetailSheet
+          open
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedId(undefined);
+              setAggregate(undefined);
+              setEditor(undefined);
+              setPreview(undefined);
+            }
+          }}
+          title={translate(locale, 'pricingPolicy.editorHeading')}
+        >
           <p>
             {statusLabel(locale, selected.status)} · {selected.timezoneSnapshot} ·{' '}
             {basisLabel(locale, selected.applicabilityBasis)}
@@ -806,14 +863,16 @@ export function PricingPolicyManager() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {editor.components.map((component) => (
-                            <SelectItem
-                              key={recordString(component, 'id')}
-                              value={recordString(component, 'id')}
-                            >
-                              {componentLabel(locale, recordString(component, 'componentCode'))}
-                            </SelectItem>
-                          ))}
+                          <SelectGroup>
+                            {editor.components.map((component) => (
+                              <SelectItem
+                                key={recordString(component, 'id')}
+                                value={recordString(component, 'id')}
+                              >
+                                {componentLabel(locale, recordString(component, 'componentCode'))}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
                         </SelectContent>
                       </Select>
                     </Field>
@@ -846,14 +905,16 @@ export function PricingPolicyManager() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {editor.components.map((component) => (
-                            <SelectItem
-                              key={recordString(component, 'id')}
-                              value={recordString(component, 'id')}
-                            >
-                              {componentLabel(locale, recordString(component, 'componentCode'))}
-                            </SelectItem>
-                          ))}
+                          <SelectGroup>
+                            {editor.components.map((component) => (
+                              <SelectItem
+                                key={recordString(component, 'id')}
+                                value={recordString(component, 'id')}
+                              >
+                                {componentLabel(locale, recordString(component, 'componentCode'))}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
                         </SelectContent>
                       </Select>
                     </Field>
@@ -955,7 +1016,7 @@ export function PricingPolicyManager() {
               </Button>
             </FieldGroup>
           ) : null}
-        </section>
+        </AdminDetailSheet>
       ) : null}
 
       {preview !== undefined ? (

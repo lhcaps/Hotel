@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 
 import {
@@ -12,13 +13,20 @@ import { useLocale } from '../../../../components/locale-provider';
 import { formatDateTime, translate, translateAdminStatus } from '../../../../lib/i18n/messages';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
-import { Table } from '../../../../components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../../components/ui/table';
 import { Field, FieldLabel } from '../../../../components/ui/field';
 import { Textarea } from '../../../../components/ui/textarea';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -31,7 +39,11 @@ import {
   AdminFilterToolbar,
   AdminLoadingState,
   AdminPageHeader,
+  AdminRowActions,
   AdminStatusBadge,
+  AdminTab,
+  AdminTabList,
+  AdminTabs,
   AdminTablePagination,
 } from '../../../../components/admin/admin-ui';
 
@@ -56,6 +68,7 @@ function reviewCategoryLabel(locale: 'vi' | 'en', category: 'PAID_CANCELLATION')
 
 export default function OperationalReviewsPage() {
   const locale = useLocale();
+  const router = useRouter();
   const [items, setItems] = useState<readonly AdminOperationalReviewSummary[]>();
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -144,7 +157,7 @@ export default function OperationalReviewsPage() {
         title={translate(locale, 'admin.reviews')}
         description={translate(locale, 'admin.reviewsHelp')}
       />
-      <Tabs
+      <AdminTabs
         value={filters.status === '' ? 'ALL' : filters.status}
         onValueChange={(value) => {
           const nextStatus = value === 'ALL' ? '' : (value as Filters['status']);
@@ -154,12 +167,12 @@ export default function OperationalReviewsPage() {
           refresh(1, next);
         }}
       >
-        <TabsList aria-label={translate(locale, 'admin.reviewFilterLabel')}>
-          <TabsTrigger value="OPEN">{translate(locale, 'admin.reviewOpen')}</TabsTrigger>
-          <TabsTrigger value="RESOLVED">{translate(locale, 'admin.reviewResolved')}</TabsTrigger>
-          <TabsTrigger value="ALL">{translate(locale, 'admin.all')}</TabsTrigger>
-        </TabsList>
-      </Tabs>
+        <AdminTabList aria-label={translate(locale, 'admin.reviewFilterLabel')}>
+          <AdminTab value="OPEN">{translate(locale, 'admin.reviewOpen')}</AdminTab>
+          <AdminTab value="RESOLVED">{translate(locale, 'admin.reviewResolved')}</AdminTab>
+          <AdminTab value="ALL">{translate(locale, 'admin.all')}</AdminTab>
+        </AdminTabList>
+      </AdminTabs>
       <AdminFilterToolbar onSubmit={onSubmit}>
         <Field>
           <FieldLabel htmlFor="admin-review-status">{translate(locale, 'admin.status')}</FieldLabel>
@@ -180,13 +193,15 @@ export default function OperationalReviewsPage() {
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {STATUS_OPTIONS.map((value) => (
-                <SelectItem key={value || 'ALL'} value={value || 'ALL'}>
-                  {value === ''
-                    ? translate(locale, 'admin.all')
-                    : translateAdminStatus(locale, value)}
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                {STATUS_OPTIONS.map((value) => (
+                  <SelectItem key={value || 'ALL'} value={value || 'ALL'}>
+                    {value === ''
+                      ? translate(locale, 'admin.all')
+                      : translateAdminStatus(locale, value)}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </Field>
@@ -220,55 +235,62 @@ export default function OperationalReviewsPage() {
       {items !== undefined ? (
         <AdminDataTable variant="operational" className="admin-reviews-table">
           <Table>
-            <thead>
-              <tr>
-                <th>{translate(locale, 'admin.review')}</th>
-                <th>{translate(locale, 'account.bookings')}</th>
-                <th>{translate(locale, 'admin.type')}</th>
-                <th>{translate(locale, 'admin.status')}</th>
-                <th>{translate(locale, 'admin.openedAt')}</th>
-                <th>{translate(locale, 'admin.action')}</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{translate(locale, 'admin.review')}</TableHead>
+                <TableHead>{translate(locale, 'account.bookings')}</TableHead>
+                <TableHead>{translate(locale, 'admin.type')}</TableHead>
+                <TableHead>{translate(locale, 'admin.status')}</TableHead>
+                <TableHead>{translate(locale, 'admin.openedAt')}</TableHead>
+                <TableHead>{translate(locale, 'admin.action')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {items.length === 0 ? (
-                <tr>
-                  <td colSpan={6}>
+                <TableRow>
+                  <TableCell colSpan={6}>
                     <AdminEmptyState title={translate(locale, 'admin.reviewsEmpty')} />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 items.map((item) => (
-                  <tr key={item.reviewId}>
-                    <td data-label={translate(locale, 'admin.review')}>
+                  <TableRow key={item.reviewId}>
+                    <TableCell data-label={translate(locale, 'admin.review')}>
                       {item.reviewId.slice(0, 8)}
-                    </td>
-                    <td data-label={translate(locale, 'account.bookings')}>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'account.bookings')}>
                       <Link href={`/admin/bookings/${item.bookingCode}`}>{item.bookingCode}</Link>
-                    </td>
-                    <td data-label={translate(locale, 'admin.type')}>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'admin.type')}>
                       {reviewCategoryLabel(locale, item.category)}
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'admin.status')}>
                       <AdminStatusBadge tone={item.status === 'RESOLVED' ? 'success' : 'warning'}>
                         {translateAdminStatus(locale, item.status)}
                       </AdminStatusBadge>
-                    </td>
-                    <td data-label={translate(locale, 'admin.openedAt')}>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'admin.openedAt')}>
                       {formatDateTime(locale, item.openedAt)}
-                    </td>
-                    <td data-label={translate(locale, 'admin.action')}>
-                      <Link href={`/admin/operational-reviews/${item.reviewId}`}>
-                        {translate(locale, 'admin.open')}
-                      </Link>
-                      <Button onClick={() => openDetail(item.reviewId)} size="sm" variant="outline">
-                        Xem nhanh
-                      </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'admin.action')}>
+                      <AdminRowActions
+                        actions={[
+                          {
+                            label: translate(locale, 'admin.open'),
+                            onSelect: () =>
+                              router.push(`/admin/operational-reviews/${item.reviewId}`),
+                          },
+                          {
+                            label: translate(locale, 'admin.view'),
+                            onSelect: () => openDetail(item.reviewId),
+                          },
+                        ]}
+                      />
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
+            </TableBody>
           </Table>
         </AdminDataTable>
       ) : null}

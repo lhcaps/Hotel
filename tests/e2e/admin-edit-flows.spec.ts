@@ -10,6 +10,15 @@ async function loginAsAdmin(page: import('@playwright/test').Page) {
   await expect(page).toHaveURL(/\/admin$/);
 }
 
+async function selectRowAction(
+  page: import('@playwright/test').Page,
+  row: import('@playwright/test').Locator,
+  name: string,
+) {
+  await row.locator('[data-slot="dropdown-menu-trigger"]').click();
+  await page.getByRole('menuitem', { name }).click();
+}
+
 test('ADMIN edits a room type description and persists the change', async ({ page }) => {
   await loginAsAdmin(page);
   await page.goto('/admin/room-types');
@@ -17,14 +26,14 @@ test('ADMIN edits a room type description and persists the change', async ({ pag
   await expect(firstRow).toBeVisible();
   const nameCell = await firstRow.locator('td').first().innerText();
   expect(nameCell.trim().length).toBeGreaterThan(0);
-  await firstRow.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  await selectRowAction(page, firstRow, 'Lưu thay đổi');
   const editDialog = page.getByRole('dialog');
   const descriptionInput = editDialog.getByLabel('Mô tả loại phòng');
   await descriptionInput.fill('Mô tả được cập nhật bởi Playwright');
   await editDialog.getByRole('button', { name: 'Lưu thay đổi' }).click();
   await expect(page.getByText(/Đã cập nhật/)).toBeVisible();
   await page.reload();
-  await firstRow.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  await selectRowAction(page, firstRow, 'Lưu thay đổi');
   await expect(page.getByRole('dialog').getByLabel('Mô tả loại phòng')).toHaveValue(
     'Mô tả được cập nhật bởi Playwright',
   );
@@ -41,7 +50,7 @@ test('ADMIN renames an amenity and the change is reflected in the public catalog
   const codeCell = (await firstRow.locator('td').first().innerText()).trim();
   expect(codeCell.length).toBeGreaterThan(0);
   const rename = `Tiện nghi Playwright ${Date.now()}`;
-  await firstRow.getByRole('button', { name: 'Lưu tên' }).click();
+  await selectRowAction(page, firstRow, 'Lưu tên');
   const amenityDialog = page.getByRole('dialog');
   const nameInput = amenityDialog.getByLabel('Tên tiện nghi');
   await nameInput.fill(rename);
@@ -71,7 +80,7 @@ test('ADMIN renames a physical room and the new number is visible in admin', asy
   const firstRow = page.locator('table tbody tr').first();
   await expect(firstRow).toBeVisible();
   const newNumber = `PW-${Date.now().toString().slice(-4)}`;
-  await firstRow.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  await selectRowAction(page, firstRow, 'Chỉnh sửa');
   const roomDialog = page.getByRole('dialog');
   await roomDialog.getByLabel('Số phòng').fill(newNumber);
   await roomDialog.getByRole('button', { name: 'Lưu thay đổi' }).click();

@@ -29,7 +29,8 @@ test('ADMIN creates a room type', async ({ page }) => {
   await createDialog.getByRole('button', { name: 'Thêm loại phòng' }).click();
   const suiteRow = page.getByTestId(`room-type-row-${roomTypeCode.toUpperCase()}`);
   await expect(suiteRow).toBeVisible();
-  await suiteRow.getByRole('button', { name: 'Lưu thay đổi' }).click();
+  await suiteRow.locator('[data-slot="dropdown-menu-trigger"]').click();
+  await page.getByRole('menuitem', { name: 'Lưu thay đổi' }).click();
   const editDialog = page.getByRole('dialog');
   await expect(editDialog.locator('#room-type-edit-name')).toHaveValue(roomTypeName);
   await editDialog.getByRole('button', { name: 'Lưu thay đổi' }).click();
@@ -42,8 +43,10 @@ test('ADMIN creates a room type', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(suiteRow).toContainText('Đang hoạt động');
-  await suiteRow.getByRole('button', { name: /Lưu trữ/ }).click();
-  const archiveMessage = page.locator('p[role="alert"]');
+  await suiteRow.locator('[data-slot="dropdown-menu-trigger"]').click();
+  await page.getByRole('menuitem', { name: 'Lưu trữ' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Lưu trữ' }).click();
+  const archiveMessage = page.locator('.admin-page [role="alert"]');
   await expect
     .poll(async () => (await archiveMessage.textContent())?.trim() ?? '')
     .toMatch(/Đã lưu trữ|gói giá đang hoạt động/);

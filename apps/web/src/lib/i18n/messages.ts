@@ -903,6 +903,11 @@ const messages = {
     'room.createError': 'Không thể tạo phòng.',
     'room.created': 'Đã tạo phòng {number}.',
     'property.help': 'Cập nhật tên và mã cơ sở. Múi giờ và tiền tệ được khóa theo chính sách MVP.',
+    'property.identityHeading': 'Thông tin cơ sở',
+    'property.stayRulesHeading': 'Quy tắc lưu trú',
+    'property.bookingWindowHeading': 'Cửa sổ đặt phòng',
+    'property.invalidStayRange':
+      'Thời gian lưu trú tối thiểu không được lớn hơn thời gian lưu trú tối đa.',
     'property.code': 'Mã cơ sở',
     'property.name': 'Tên cơ sở',
     'property.minimumStayMinutes': 'Thời gian lưu trú tối thiểu (phút)',
@@ -2076,6 +2081,10 @@ const messages = {
     'room.created': 'Room {number} created.',
     'property.help':
       'Update the property name and code. Time zone and currency are locked by MVP policy.',
+    'property.identityHeading': 'Property details',
+    'property.stayRulesHeading': 'Stay rules',
+    'property.bookingWindowHeading': 'Booking window',
+    'property.invalidStayRange': 'Minimum stay cannot be greater than maximum stay.',
     'property.code': 'Property code',
     'property.name': 'Property name',
     'property.minimumStayMinutes': 'Minimum stay (minutes)',

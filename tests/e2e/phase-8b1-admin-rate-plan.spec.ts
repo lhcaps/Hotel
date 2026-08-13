@@ -38,7 +38,8 @@ async function savePlanPrice(
   tierName: string,
   amount: number,
 ): Promise<void> {
-  await plan.getByRole('button', { name: 'Lưu giá' }).click();
+  await plan.locator('[data-slot="dropdown-menu-trigger"]').click();
+  await page.getByRole('menuitem', { name: 'Lưu giá' }).click();
   const sheet = page.getByRole('dialog');
   const input = sheet.getByRole('spinbutton', { name: new RegExp(`${tierName}$`, 'i') });
   await input.fill(String(amount));
@@ -149,7 +150,8 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
     // The default priority (30) conflicts with LUNCH_COMBO in its window;
     // 60 is unique among the deterministic seed rules.
     // Give the generic plan an explicit, unique priority before activation.
-    await planRow.getByRole('button', { name: 'Điều kiện áp dụng' }).click();
+    await planRow.locator('[data-slot="dropdown-menu-trigger"]').click();
+    await page.getByRole('menuitem', { name: 'Điều kiện áp dụng' }).click();
     const selectionDialog = page.getByRole('dialog');
     await selectionDialog.getByRole('combobox').last().click();
     await page.getByRole('option', { name: '60', exact: true }).click();
@@ -170,7 +172,10 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
           response.request().method() === 'POST' &&
           /\/admin\/rate-plans\/[^/]+\/activate$/.test(response.url()),
       ),
-      planRow.getByRole('button', { name: 'Kích hoạt' }).click(),
+      (async () => {
+        await planRow.locator('[data-slot="dropdown-menu-trigger"]').click();
+        await page.getByRole('menuitem', { name: 'Kích hoạt' }).click();
+      })(),
     ]);
     expect(activationResponse.ok(), await activationResponse.text()).toBeTruthy();
     await expect(planRow.getByText('Đang hoạt động')).toBeVisible();
@@ -252,7 +257,11 @@ test.describe('Phase 8B.1 ADMIN rate-plan vertical', () => {
           response.request().method() === 'POST' &&
           /\/admin\/rate-plans\/[^/]+\/inactivate$/.test(response.url()),
       ),
-      planRowInactive.getByRole('button', { name: 'Ngừng áp dụng' }).click(),
+      (async () => {
+        await planRowInactive.locator('[data-slot="dropdown-menu-trigger"]').click();
+        await page.getByRole('menuitem', { name: 'Tạm ngừng' }).click();
+        await page.getByRole('alertdialog').getByRole('button', { name: 'Tạm ngừng' }).click();
+      })(),
     ]);
     expect(inactivationResponse.ok()).toBeTruthy();
     await expect(planRowInactive.getByText('Ngừng hoạt động')).toBeVisible();

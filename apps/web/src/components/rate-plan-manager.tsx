@@ -15,11 +15,18 @@ import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Field, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Table } from './ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import {
   AdminDataTable,
+  AdminDestructiveActionDialog,
   AdminEmptyState,
   AdminFormSection,
   AdminFormSheet,
@@ -27,6 +34,10 @@ import {
   AdminPageHeader,
   AdminRowActions,
   AdminStatusBadge,
+  AdminTab,
+  AdminTabContent,
+  AdminTabList,
+  AdminTabs,
 } from './admin/admin-ui';
 
 const QUARTER_HOUR_OPTIONS = Array.from({ length: 96 }, (_, index) => {
@@ -155,6 +166,7 @@ export function RatePlanManager() {
   const [priceEditId, setPriceEditId] = useState<string>();
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [selectionEditId, setSelectionEditId] = useState<string>();
+  const [deactivateCandidate, setDeactivateCandidate] = useState<RatePlan>();
   const [createDraft, setCreateDraft] = useState<CreateDraft>(initialCreateDraft);
   const [selectionDrafts, setSelectionDrafts] = useState<Record<string, SelectionDraft>>({});
 
@@ -188,6 +200,7 @@ export function RatePlanManager() {
         ? await adminApi.activateRatePlan(plan.id)
         : await adminApi.inactivateRatePlan(plan.id);
       setPlans((current) => current?.map((item) => (item.id === plan.id ? next : item)));
+      setDeactivateCandidate(undefined);
     } catch {
       setMessage(translate(locale, 'ratePlan.statusError'));
     } finally {
@@ -310,12 +323,12 @@ export function RatePlanManager() {
         title={translate(locale, 'ratePlan.createLegend')}
         description={translate(locale, 'ratePlan.createHelp')}
       >
-        <Tabs defaultValue="overview" className="admin-form-tabs">
-          <TabsList>
-            <TabsTrigger value="overview">{translate(locale, 'ratePlan.overview')}</TabsTrigger>
-            <TabsTrigger value="rules">{translate(locale, 'ratePlan.selectionLegend')}</TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview">
+        <AdminTabs defaultValue="overview" className="admin-form-tabs">
+          <AdminTabList>
+            <AdminTab value="overview">{translate(locale, 'ratePlan.overview')}</AdminTab>
+            <AdminTab value="rules">{translate(locale, 'ratePlan.selectionLegend')}</AdminTab>
+          </AdminTabList>
+          <AdminTabContent value="overview">
             <AdminFormSection
               title={translate(locale, 'ratePlan.details')}
               description={translate(locale, 'ratePlan.createHelp')}
@@ -380,8 +393,8 @@ export function RatePlanManager() {
                 />
               </Field>
             </AdminFormSection>
-          </TabsContent>
-          <TabsContent value="rules">
+          </AdminTabContent>
+          <AdminTabContent value="rules">
             <AdminFormSection title={translate(locale, 'ratePlan.rulesHeading')}>
               <TimeSelect
                 label={translate(locale, 'ratePlan.checkInStart')}
@@ -430,8 +443,8 @@ export function RatePlanManager() {
                 />
               </Field>
             </AdminFormSection>
-          </TabsContent>
-        </Tabs>
+          </AdminTabContent>
+        </AdminTabs>
         <Button disabled={creating} onClick={() => void createPlan()}>
           {translate(locale, 'ratePlan.createDraft')}
         </Button>
@@ -443,54 +456,54 @@ export function RatePlanManager() {
       ) : (
         <AdminDataTable variant="management" className="admin-rate-plan-table">
           <Table>
-            <thead>
-              <tr>
-                <th>{translate(locale, 'ratePlan.name')}</th>
-                <th>{translate(locale, 'ratePlan.code')}</th>
-                <th>{translate(locale, 'ratePlan.type')}</th>
-                <th>{translate(locale, 'ratePlan.timeWindow')}</th>
-                <th>{translate(locale, 'ratePlan.durationLabel')}</th>
-                <th>{translate(locale, 'admin.priceTiers')}</th>
-                <th>{translate(locale, 'admin.amount')}</th>
-                <th>{translate(locale, 'ratePlan.priority')}</th>
-                <th>{translate(locale, 'admin.status')}</th>
-                <th>{translate(locale, 'ratePlan.validation')}</th>
-                <th>{translate(locale, 'admin.action')}</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{translate(locale, 'ratePlan.name')}</TableHead>
+                <TableHead>{translate(locale, 'ratePlan.code')}</TableHead>
+                <TableHead>{translate(locale, 'ratePlan.type')}</TableHead>
+                <TableHead>{translate(locale, 'ratePlan.timeWindow')}</TableHead>
+                <TableHead>{translate(locale, 'ratePlan.durationLabel')}</TableHead>
+                <TableHead>{translate(locale, 'admin.priceTiers')}</TableHead>
+                <TableHead>{translate(locale, 'admin.amount')}</TableHead>
+                <TableHead>{translate(locale, 'ratePlan.priority')}</TableHead>
+                <TableHead>{translate(locale, 'admin.status')}</TableHead>
+                <TableHead>{translate(locale, 'ratePlan.validation')}</TableHead>
+                <TableHead>{translate(locale, 'admin.action')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {sortedPlans.map((plan) => {
                 const displayName = localizedPlanName(locale, plan);
                 const configured = plan.prices.filter((price) => price.amountVnd !== null).length;
                 const total = plan.prices.length;
                 return (
-                  <tr
+                  <TableRow
                     key={plan.id}
                     role="article"
                     aria-label={`${plan.code} ${plan.name} ${displayName}`}
                   >
-                    <td>
+                    <TableCell>
                       <strong>{displayName}</strong>
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       <span className="admin-code">{plan.code}</span>
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       {translate(
                         locale,
                         plan.isBasePlan ? 'ratePlan.baseType' : 'ratePlan.extraHourType',
                       )}
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       {plan.isBasePlan &&
                       plan.minCheckInMinuteInclusive !== null &&
                       plan.maxCheckInMinuteExclusive !== null
                         ? `${minutesToTime(plan.minCheckInMinuteInclusive)}–${minutesToTime(plan.maxCheckInMinuteExclusive)}`
                         : translate(locale, 'ratePlan.anyTime')}
-                    </td>
-                    <td>{formatDuration(locale, plan.includedDurationMinutes)}</td>
-                    <td>{total}</td>
-                    <td>
+                    </TableCell>
+                    <TableCell>{formatDuration(locale, plan.includedDurationMinutes)}</TableCell>
+                    <TableCell>{total}</TableCell>
+                    <TableCell>
                       {configured === 0
                         ? translate(locale, 'ratePlan.unconfigured')
                         : formatVnd(
@@ -501,9 +514,9 @@ export function RatePlanManager() {
                                 .map((price) => price.amountVnd as number),
                             ),
                           )}
-                    </td>
-                    <td>{plan.priority}</td>
-                    <td>
+                    </TableCell>
+                    <TableCell>{plan.priority}</TableCell>
+                    <TableCell>
                       <AdminStatusBadge
                         tone={
                           plan.status === 'ACTIVE'
@@ -515,15 +528,15 @@ export function RatePlanManager() {
                       >
                         {statusLabel(locale, plan.status)}
                       </AdminStatusBadge>
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       <AdminStatusBadge
                         tone={configured === total && total > 0 ? 'success' : 'warning'}
                       >
                         {translate(locale, 'ratePlan.pricesConfigured', { configured, total })}
                       </AdminStatusBadge>
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       <AdminRowActions
                         actions={[
                           {
@@ -543,47 +556,40 @@ export function RatePlanManager() {
                               locale,
                               plan.status === 'ACTIVE' ? 'admin.deactivate' : 'admin.activate',
                             ),
-                            onSelect: () => void changeStatus(plan, plan.status !== 'ACTIVE'),
+                            destructive: plan.status === 'ACTIVE',
+                            onSelect: () =>
+                              plan.status === 'ACTIVE'
+                                ? setDeactivateCandidate(plan)
+                                : void changeStatus(plan, true),
                             disabled: pending,
                           },
                         ]}
-                      >
-                        <Button onClick={() => setPriceEditId(plan.id)} size="sm" variant="outline">
-                          {translate(locale, 'ratePlan.savePrice')}
-                        </Button>
-                        {plan.isBasePlan ? (
-                          <Button
-                            onClick={() => setSelectionEditId(plan.id)}
-                            size="sm"
-                            variant="outline"
-                          >
-                            {translate(locale, 'ratePlan.selectionLegend')}
-                          </Button>
-                        ) : null}
-                        <Button
-                          disabled={pending || plan.status === 'ACTIVE'}
-                          onClick={() => void changeStatus(plan, true)}
-                          size="sm"
-                        >
-                          {translate(locale, 'ratePlan.activate')}
-                        </Button>
-                        <Button
-                          disabled={pending || plan.status === 'INACTIVE'}
-                          onClick={() => void changeStatus(plan, false)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          {translate(locale, 'ratePlan.deactivate')}
-                        </Button>
-                      </AdminRowActions>
-                    </td>
-                  </tr>
+                      />
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
+            </TableBody>
           </Table>
         </AdminDataTable>
       )}
+      <AdminDestructiveActionDialog
+        open={deactivateCandidate !== undefined}
+        onOpenChange={(open) => {
+          if (!open) setDeactivateCandidate(undefined);
+        }}
+        title={translate(locale, 'admin.deactivate')}
+        description={
+          deactivateCandidate === undefined
+            ? ''
+            : `${localizedPlanName(locale, deactivateCandidate)} · ${deactivateCandidate.code}`
+        }
+        confirmLabel={translate(locale, 'admin.deactivate')}
+        pending={pending}
+        onConfirm={() => {
+          if (deactivateCandidate !== undefined) void changeStatus(deactivateCandidate, false);
+        }}
+      />
       {priceEditId !== undefined
         ? (() => {
             const plan = sortedPlans?.find((candidate) => candidate.id === priceEditId);
@@ -595,16 +601,14 @@ export function RatePlanManager() {
                 title={translate(locale, 'ratePlan.savePrice')}
                 description={`${localizedPlanName(locale, plan)} · ${plan.code}`}
               >
-                <Tabs defaultValue="price">
-                  <TabsList>
-                    <TabsTrigger value="price">
-                      {translate(locale, 'ratePlan.priceByTier')}
-                    </TabsTrigger>
-                    <TabsTrigger value="validation">
+                <AdminTabs defaultValue="price">
+                  <AdminTabList>
+                    <AdminTab value="price">{translate(locale, 'ratePlan.priceByTier')}</AdminTab>
+                    <AdminTab value="validation">
                       {translate(locale, 'ratePlan.validation')}
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="price">
+                    </AdminTab>
+                  </AdminTabList>
+                  <AdminTabContent value="price">
                     <AdminFormSection
                       title={translate(locale, 'ratePlan.priceByTier')}
                       description={translate(locale, 'ratePlan.priceDescription')}
@@ -658,8 +662,8 @@ export function RatePlanManager() {
                         );
                       })}
                     </AdminFormSection>
-                  </TabsContent>
-                  <TabsContent value="validation">
+                  </AdminTabContent>
+                  <AdminTabContent value="validation">
                     <AdminFormSection title={translate(locale, 'ratePlan.validationHeading')}>
                       <p>
                         {plan.prices.filter((price) => price.amountVnd !== null).length ===
@@ -669,8 +673,8 @@ export function RatePlanManager() {
                       </p>
                       <p className="admin-muted">{translate(locale, 'ratePlan.changeHistory')}</p>
                     </AdminFormSection>
-                  </TabsContent>
-                </Tabs>
+                  </AdminTabContent>
+                </AdminTabs>
               </AdminFormSheet>
             );
           })()
@@ -699,19 +703,15 @@ export function RatePlanManager() {
                   </Button>
                 }
               >
-                <Tabs defaultValue="time">
-                  <TabsList>
-                    <TabsTrigger value="time">
-                      {translate(locale, 'ratePlan.timeWindow')}
-                    </TabsTrigger>
-                    <TabsTrigger value="duration">
+                <AdminTabs defaultValue="time">
+                  <AdminTabList>
+                    <AdminTab value="time">{translate(locale, 'ratePlan.timeWindow')}</AdminTab>
+                    <AdminTab value="duration">
                       {translate(locale, 'ratePlan.durationLabel')}
-                    </TabsTrigger>
-                    <TabsTrigger value="priority">
-                      {translate(locale, 'ratePlan.priority')}
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="time">
+                    </AdminTab>
+                    <AdminTab value="priority">{translate(locale, 'ratePlan.priority')}</AdminTab>
+                  </AdminTabList>
+                  <AdminTabContent value="time">
                     <AdminFormSection title={translate(locale, 'ratePlan.checkInWindowHeading')}>
                       <Field>
                         <FieldLabel>
@@ -749,8 +749,8 @@ export function RatePlanManager() {
                         />
                       </Field>
                     </AdminFormSection>
-                  </TabsContent>
-                  <TabsContent value="duration">
+                  </AdminTabContent>
+                  <AdminTabContent value="duration">
                     <AdminFormSection title={translate(locale, 'ratePlan.durationLabel')}>
                       <Field>
                         <FieldLabel>
@@ -785,8 +785,8 @@ export function RatePlanManager() {
                         />
                       </Field>
                     </AdminFormSection>
-                  </TabsContent>
-                  <TabsContent value="priority">
+                  </AdminTabContent>
+                  <AdminTabContent value="priority">
                     <AdminFormSection title={translate(locale, 'ratePlan.priority')}>
                       <Field>
                         <FieldLabel>{translate(locale, 'ratePlan.priority')}</FieldLabel>
@@ -796,8 +796,8 @@ export function RatePlanManager() {
                         />
                       </Field>
                     </AdminFormSection>
-                  </TabsContent>
-                </Tabs>
+                  </AdminTabContent>
+                </AdminTabs>
               </AdminFormSheet>
             );
           })()
@@ -829,11 +829,13 @@ function DurationSelect({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {DURATION_OPTIONS.map((minutes) => (
-          <SelectItem key={minutes} value={String(minutes)}>
-            {formatDuration(locale, minutes)}
-          </SelectItem>
-        ))}
+        <SelectGroup>
+          {DURATION_OPTIONS.map((minutes) => (
+            <SelectItem key={minutes} value={String(minutes)}>
+              {formatDuration(locale, minutes)}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );
@@ -854,11 +856,13 @@ function PrioritySelect({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {PRIORITY_OPTIONS.map((priority) => (
-          <SelectItem key={priority} value={String(priority)}>
-            {priority}
-          </SelectItem>
-        ))}
+        <SelectGroup>
+          {PRIORITY_OPTIONS.map((priority) => (
+            <SelectItem key={priority} value={String(priority)}>
+              {priority}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );
@@ -889,12 +893,14 @@ function TimeSelect({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="__any__">{translate(locale, 'ratePlan.anyTime')}</SelectItem>
-          {QUARTER_HOUR_OPTIONS.map((time) => (
-            <SelectItem key={time} value={time}>
-              {time}
-            </SelectItem>
-          ))}
+          <SelectGroup>
+            <SelectItem value="__any__">{translate(locale, 'ratePlan.anyTime')}</SelectItem>
+            {QUARTER_HOUR_OPTIONS.map((time) => (
+              <SelectItem key={time} value={time}>
+                {time}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
     </Field>

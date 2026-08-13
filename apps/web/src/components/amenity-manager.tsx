@@ -10,13 +10,15 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
 import { Field, FieldGroup, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
-import { Table } from './ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import {
   AdminDataTable,
+  AdminDestructiveActionDialog,
   AdminEmptyState,
   AdminFormSheet,
   AdminLoadingState,
   AdminPageHeader,
+  AdminRowActions,
   AdminStatusBadge,
 } from './admin/admin-ui';
 
@@ -31,6 +33,7 @@ export function AmenityManager() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createOpen, setCreateOpen] = useState(false);
   const [editId, setEditId] = useState<string>();
+  const [archiveCandidate, setArchiveCandidate] = useState<Amenity>();
 
   useEffect(() => {
     void adminApi
@@ -68,6 +71,7 @@ export function AmenityManager() {
           ? current
           : { ...current, items: current.items.map((item) => (item.id === id ? amenity : item)) },
       );
+      setArchiveCandidate(undefined);
       setMessage(translate(locale, 'amenity.archived', { name: amenity.name }));
     } catch {
       setMessage(translate(locale, 'amenity.archiveError'));
@@ -197,7 +201,11 @@ export function AmenityManager() {
             );
           })()
         : null}
-      {message === undefined ? null : <p role="alert">{message}</p>}
+      {message === undefined ? null : (
+        <Alert>
+          <AlertTitle>{message}</AlertTitle>
+        </Alert>
+      )}
       {page === undefined ? (
         <AdminLoadingState label={translate(locale, 'admin.loadingData')} />
       ) : null}
@@ -207,47 +215,61 @@ export function AmenityManager() {
       {page === undefined || page.items.length === 0 ? null : (
         <AdminDataTable variant="management">
           <Table>
-            <thead>
-              <tr>
-                <th scope="col">{translate(locale, 'admin.code')}</th>
-                <th scope="col">{translate(locale, 'amenity.name')}</th>
-                <th scope="col">{translate(locale, 'admin.status')}</th>
-                <th scope="col">{translate(locale, 'admin.action')}</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">{translate(locale, 'admin.code')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'amenity.name')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'admin.status')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'admin.action')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {page.items.map((amenity) => {
                 return (
-                  <tr key={amenity.id}>
-                    <td>{amenity.code}</td>
-                    <td>{amenity.name}</td>
-                    <td>
+                  <TableRow key={amenity.id}>
+                    <TableCell>{amenity.code}</TableCell>
+                    <TableCell>{amenity.name}</TableCell>
+                    <TableCell>
                       <AdminStatusBadge tone={amenity.status === 'ACTIVE' ? 'success' : 'neutral'}>
                         {translateAdminStatus(locale, amenity.status)}
                       </AdminStatusBadge>
-                    </td>
-                    <td>
-                      <Button onClick={() => setEditId(amenity.id)} size="sm" variant="outline">
-                        {translate(locale, 'amenity.saveName')}
-                      </Button>
-                      <Button
-                        aria-label={translate(locale, 'amenity.archive', { name: amenity.name })}
-                        disabled={pending || amenity.status === 'INACTIVE'}
-                        onClick={() => void archive(amenity.id)}
-                        size="sm"
-                        type="button"
-                        variant="destructive"
-                      >
-                        {translate(locale, 'catalog.archive')}
-                      </Button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell>
+                      <AdminRowActions
+                        actions={[
+                          {
+                            label: translate(locale, 'amenity.saveName'),
+                            onSelect: () => setEditId(amenity.id),
+                          },
+                          {
+                            label: translate(locale, 'catalog.archive'),
+                            destructive: true,
+                            disabled: pending || amenity.status === 'INACTIVE',
+                            onSelect: () => setArchiveCandidate(amenity),
+                          },
+                        ]}
+                      />
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
+            </TableBody>
           </Table>
         </AdminDataTable>
       )}
+      <AdminDestructiveActionDialog
+        open={archiveCandidate !== undefined}
+        onOpenChange={(open) => {
+          if (!open) setArchiveCandidate(undefined);
+        }}
+        title={translate(locale, 'catalog.archive')}
+        description={archiveCandidate?.name ?? ''}
+        confirmLabel={translate(locale, 'catalog.archive')}
+        pending={pending}
+        onConfirm={() => {
+          if (archiveCandidate !== undefined) void archive(archiveCandidate.id);
+        }}
+      />
     </section>
   );
 }

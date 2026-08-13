@@ -6,16 +6,19 @@ import { AdminApiError, adminApi, type CatalogPage } from '../lib/admin-api';
 import type { PriceTier } from '@room/contracts';
 import { translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Alert, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Field, FieldGroup, FieldLabel } from './ui/field';
-import { Table } from './ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import {
   AdminDataTable,
+  AdminDestructiveActionDialog,
   AdminEmptyState,
   AdminFormSheet,
   AdminLoadingState,
   AdminPageHeader,
+  AdminRowActions,
   AdminStatusBadge,
 } from './admin/admin-ui';
 
@@ -29,6 +32,7 @@ export function PriceTierManager() {
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [archiveCandidate, setArchiveCandidate] = useState<PriceTier>();
 
   useEffect(() => {
     void adminApi
@@ -90,6 +94,7 @@ export function PriceTierManager() {
           ? current
           : { ...current, items: current.items.map((item) => (item.id === id ? tier : item)) },
       );
+      setArchiveCandidate(undefined);
       setMessage(translate(locale, 'priceTier.archived', { name: tier.name }));
     } catch (cause) {
       setMessage(
@@ -179,7 +184,11 @@ export function PriceTierManager() {
           </FieldGroup>
         </form>
       </AdminFormSheet>
-      {message === undefined ? null : <p role="alert">{message}</p>}
+      {message === undefined ? null : (
+        <Alert>
+          <AlertTitle>{message}</AlertTitle>
+        </Alert>
+      )}
       {page === undefined ? (
         <AdminLoadingState label={translate(locale, 'admin.loadingData')} />
       ) : null}
@@ -189,59 +198,68 @@ export function PriceTierManager() {
       {page === undefined || page.items.length === 0 ? null : (
         <AdminDataTable variant="management">
           <Table>
-            <thead>
-              <tr>
-                <th scope="col">{translate(locale, 'admin.code')}</th>
-                <th scope="col">{translate(locale, 'property.name')}</th>
-                <th scope="col">{translate(locale, 'priceTier.sortOrder')}</th>
-                <th scope="col">{translate(locale, 'admin.status')}</th>
-                <th scope="col">{translate(locale, 'admin.action')}</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">{translate(locale, 'admin.code')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'property.name')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'priceTier.sortOrder')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'admin.status')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'admin.action')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {page.items.map((tier) => (
-                <tr key={tier.id}>
-                  <td>{tier.code}</td>
-                  <td>{tier.name}</td>
-                  <td>{tier.sortOrder}</td>
-                  <td>
+                <TableRow key={tier.id}>
+                  <TableCell>{tier.code}</TableCell>
+                  <TableCell>{tier.name}</TableCell>
+                  <TableCell>{tier.sortOrder}</TableCell>
+                  <TableCell>
                     <AdminStatusBadge tone={tier.status === 'ACTIVE' ? 'success' : 'neutral'}>
                       {translateAdminStatus(locale, tier.status)}
                     </AdminStatusBadge>
-                  </td>
-                  <td>
-                    <Button
-                      disabled={pending || tier.status === 'INACTIVE'}
-                      onClick={() => {
-                        setCode(tier.code);
-                        setName(tier.name);
-                        setSortOrder(String(tier.sortOrder));
-                        setEditingId(tier.id);
-                        setFormOpen(true);
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      {translate(locale, 'priceTier.edit', { name: tier.name })}
-                    </Button>{' '}
-                    <Button
-                      aria-label={translate(locale, 'amenity.archive', { name: tier.name })}
-                      disabled={pending || tier.status === 'INACTIVE'}
-                      onClick={() => void archive(tier.id)}
-                      size="sm"
-                      type="button"
-                      variant="destructive"
-                    >
-                      {translate(locale, 'catalog.archive')}
-                    </Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell>
+                    <AdminRowActions
+                      actions={[
+                        {
+                          label: translate(locale, 'priceTier.edit', { name: tier.name }),
+                          disabled: pending || tier.status === 'INACTIVE',
+                          onSelect: () => {
+                            setCode(tier.code);
+                            setName(tier.name);
+                            setSortOrder(String(tier.sortOrder));
+                            setEditingId(tier.id);
+                            setFormOpen(true);
+                          },
+                        },
+                        {
+                          label: translate(locale, 'catalog.archive'),
+                          destructive: true,
+                          disabled: pending || tier.status === 'INACTIVE',
+                          onSelect: () => setArchiveCandidate(tier),
+                        },
+                      ]}
+                    />
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
+            </TableBody>
           </Table>
         </AdminDataTable>
       )}
+      <AdminDestructiveActionDialog
+        open={archiveCandidate !== undefined}
+        onOpenChange={(open) => {
+          if (!open) setArchiveCandidate(undefined);
+        }}
+        title={translate(locale, 'catalog.archive')}
+        description={archiveCandidate?.name ?? ''}
+        confirmLabel={translate(locale, 'catalog.archive')}
+        pending={pending}
+        onConfirm={() => {
+          if (archiveCandidate !== undefined) void archive(archiveCandidate.id);
+        }}
+      />
     </section>
   );
 }

@@ -572,31 +572,7 @@ export default function Rooms() {
                             onSelect: () => setArchiveConfirmId(room.id),
                           },
                         ]}
-                      >
-                        <Button
-                          aria-label={translate(locale, 'roomType.saveChanges')}
-                          onClick={() => setEditRoomId(room.id)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          {translate(locale, 'admin.edit')}
-                        </Button>
-                        <Button
-                          aria-label={translate(locale, 'room.archive', {
-                            number: room.roomNumber,
-                          })}
-                          disabled={pending || room.status === 'INACTIVE'}
-                          onClick={() => {
-                            setArchiveErrors((current) => ({ ...current, [room.id]: '' }));
-                            setArchiveConfirmId(room.id);
-                          }}
-                          size="sm"
-                          type="button"
-                          variant="destructive"
-                        >
-                          {translate(locale, 'admin.deactivate')}
-                        </Button>
-                      </AdminRowActions>
+                      />
                       <AlertDialog
                         open={archiveConfirmId === room.id}
                         onOpenChange={(open) => {

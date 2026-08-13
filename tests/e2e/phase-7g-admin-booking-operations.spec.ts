@@ -303,7 +303,10 @@ test.describe('Phase 7G ADMIN booking operations', () => {
     expect(reviewsResponse.status()).toBe(200);
     const reviews = (await reviewsResponse.json()) as { items: readonly { bookingCode: string }[] };
     expect(reviews.items.map((review) => review.bookingCode)).toContain(paidConfirmed.bookingCode);
-    await page.getByRole('link', { name: 'Mở' }).first().click();
+    const reviewRow = page.locator('tbody tr', { hasText: paidConfirmed.bookingCode });
+    await expect(reviewRow).toBeVisible();
+    await reviewRow.locator('[data-slot="dropdown-menu-trigger"]').click();
+    await page.getByRole('menuitem', { name: 'Mở' }).click();
     await page.waitForURL(/\/admin\/operational-reviews\/[^/]+$/);
     await page.getByLabel('Ghi chú xử lý').fill('Refund handled offline.');
     await page.getByRole('button', { name: 'Đánh dấu đã xử lý' }).click();

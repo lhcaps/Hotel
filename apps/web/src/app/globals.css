@@ -2293,6 +2293,124 @@ a:focus {
   }
 }
 
+/* Dense management tables reserve useful column widths and expose deliberate
+   horizontal scroll instead of collapsing identifiers into one character per line. */
+.admin-app-shell .admin-data-table.admin-room-types-table table {
+  min-width: 84rem !important;
+  table-layout: fixed !important;
+}
+
+.admin-app-shell .admin-data-table.admin-room-types-table th:nth-child(1),
+.admin-app-shell .admin-data-table.admin-room-types-table td:nth-child(1) {
+  width: 6rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-room-types-table th:nth-child(2),
+.admin-app-shell .admin-data-table.admin-room-types-table td:nth-child(2) {
+  width: 6.5rem !important;
+  overflow-wrap: normal !important;
+  white-space: nowrap !important;
+  word-break: normal !important;
+}
+
+.admin-app-shell .admin-data-table.admin-room-types-table th:nth-child(3),
+.admin-app-shell .admin-data-table.admin-room-types-table td:nth-child(3) {
+  width: 10rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-room-types-table th:nth-child(4),
+.admin-app-shell .admin-data-table.admin-room-types-table td:nth-child(4) {
+  width: 9rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-room-types-table th:nth-child(5),
+.admin-app-shell .admin-data-table.admin-room-types-table td:nth-child(5) {
+  width: 10.5rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-room-types-table th:nth-child(6),
+.admin-app-shell .admin-data-table.admin-room-types-table td:nth-child(6) {
+  width: 9.5rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-room-types-table th:nth-child(7),
+.admin-app-shell .admin-data-table.admin-room-types-table td:nth-child(7),
+.admin-app-shell .admin-data-table.admin-room-types-table th:nth-child(8),
+.admin-app-shell .admin-data-table.admin-room-types-table td:nth-child(8) {
+  width: 8.5rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-room-types-table th:last-child,
+.admin-app-shell .admin-data-table.admin-room-types-table td:last-child {
+  width: 8.5rem !important;
+  min-width: 8.5rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-pricing-policy-table table {
+  min-width: 105rem !important;
+  table-layout: fixed !important;
+}
+
+.admin-app-shell .admin-data-table.admin-pricing-policy-table th:nth-child(1),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:nth-child(1) {
+  width: 10rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:nth-child(1) .admin-code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-app-shell .admin-data-table.admin-pricing-policy-table th:nth-child(2),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:nth-child(2) {
+  width: 6rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-pricing-policy-table th:nth-child(3),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:nth-child(3) {
+  width: 11rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-pricing-policy-table th:nth-child(4),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:nth-child(4),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table th:nth-child(5),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:nth-child(5),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table th:nth-child(6),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:nth-child(6),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table th:nth-child(7),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:nth-child(7),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table th:nth-child(8),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:nth-child(8),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table th:nth-child(9),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:nth-child(9),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table th:nth-child(10),
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:nth-child(10) {
+  width: 10rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-pricing-policy-table th:last-child,
+.admin-app-shell .admin-data-table.admin-pricing-policy-table td:last-child {
+  width: 8.5rem !important;
+  min-width: 8.5rem !important;
+}
+
+@media (max-width: 48rem) {
+  .admin-app-shell .admin-data-table.admin-room-types-table table,
+  .admin-app-shell .admin-data-table.admin-pricing-policy-table table {
+    min-width: 0 !important;
+    table-layout: auto !important;
+  }
+}
+
+.admin-app-shell .admin-page form.admin-property-form {
+  display: grid !important;
+  width: min(100%, 56rem);
+  align-items: stretch !important;
+  gap: 1rem !important;
+}
+
 @media (max-width: 100rem) {
   .admin-bookings-table,
   .admin-payments-table,
@@ -2778,6 +2896,8 @@ a:focus {
 
 .admin-tabs-system__indicator {
   position: absolute;
+  top: 0;
+  left: 0;
   z-index: 1;
   display: block;
   width: 1px;
@@ -3171,13 +3291,11 @@ a:focus {
   height: 0.5rem;
 }
 
-.admin-responsive-actions__wide {
+.admin-responsive-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.45rem;
-}
-.admin-responsive-actions__compact {
-  display: none;
 }
 .admin-row-actions {
   display: flex;
@@ -3240,12 +3358,6 @@ a:focus {
   }
   .admin-filter-toolbar .report-filters__codes {
     grid-column: auto;
-  }
-  .admin-responsive-actions__wide {
-    display: none;
-  }
-  .admin-responsive-actions__compact {
-    display: block;
   }
   .admin-data-table {
     border: 0;
@@ -7298,6 +7410,42 @@ body {
   white-space: nowrap !important;
 }
 
+.admin-app-shell .admin-data-table.admin-reviews-table table {
+  min-width: 65rem !important;
+  table-layout: fixed !important;
+}
+
+.admin-app-shell .admin-data-table.admin-reviews-table th:nth-child(1),
+.admin-app-shell .admin-data-table.admin-reviews-table td:nth-child(1) {
+  width: 9rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-reviews-table th:nth-child(2),
+.admin-app-shell .admin-data-table.admin-reviews-table td:nth-child(2) {
+  width: 14rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-reviews-table th:nth-child(3),
+.admin-app-shell .admin-data-table.admin-reviews-table td:nth-child(3) {
+  width: 13rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-reviews-table th:nth-child(4),
+.admin-app-shell .admin-data-table.admin-reviews-table td:nth-child(4) {
+  width: 10rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-reviews-table th:nth-child(5),
+.admin-app-shell .admin-data-table.admin-reviews-table td:nth-child(5) {
+  width: 12rem !important;
+}
+
+.admin-app-shell .admin-data-table.admin-reviews-table th:last-child,
+.admin-app-shell .admin-data-table.admin-reviews-table td:last-child {
+  width: 6rem !important;
+  min-width: 6rem !important;
+}
+
 .admin-app-shell .admin-data-table.admin-accounts-table th:last-child,
 .admin-app-shell .admin-data-table.admin-accounts-table td:last-child,
 .admin-app-shell .admin-data-table.admin-customer-accounts-table th:last-child,
@@ -7439,7 +7587,8 @@ body {
 @media (max-width: 48rem) {
   .admin-app-shell .admin-data-table.admin-bookings-table table,
   .admin-app-shell .admin-data-table.admin-payments-table table,
-  .admin-app-shell .admin-data-table.admin-rate-plan-table table {
+  .admin-app-shell .admin-data-table.admin-rate-plan-table table,
+  .admin-app-shell .admin-data-table.admin-reviews-table table {
     min-width: 0 !important;
   }
 
@@ -7736,12 +7885,17 @@ body {
 .overview-dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+  align-items: start;
   gap: 0.9rem;
   margin-bottom: 0.9rem;
 }
 
 .overview-revenue-chart {
   min-height: 22rem;
+}
+
+.overview-revenue-chart--empty {
+  min-height: 0;
 }
 
 .overview-panel__heading > div {

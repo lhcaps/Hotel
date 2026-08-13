@@ -5,10 +5,11 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
+import { Alert, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Field, FieldGroup, FieldLabel } from './ui/field';
-import { AdminLoadingState, AdminPageHeader } from './admin/admin-ui';
+import { Field, FieldError, FieldGroup, FieldLabel } from './ui/field';
+import { AdminFormSection, AdminLoadingState, AdminPageHeader } from './admin/admin-ui';
 
 export function PropertyEditor() {
   const locale = useLocale();
@@ -22,6 +23,7 @@ export function PropertyEditor() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string>();
+  const [stayRangeError, setStayRangeError] = useState<string>();
 
   useEffect(() => {
     let active = true;
@@ -55,6 +57,11 @@ export function PropertyEditor() {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (minimumStayMinutes > maximumStayMinutes) {
+      setStayRangeError(translate(locale, 'property.invalidStayRange'));
+      return;
+    }
+    setStayRangeError(undefined);
     setPending(true);
     setMessage(undefined);
     try {
@@ -95,8 +102,8 @@ export function PropertyEditor() {
         description={translate(locale, 'property.help')}
       />
       {loading ? <AdminLoadingState label={translate(locale, 'admin.loadingData')} /> : null}
-      <form className="admin-form-stack" onSubmit={save}>
-        <FieldGroup>
+      <form className="admin-form-stack admin-property-form" onSubmit={save}>
+        <AdminFormSection title={translate(locale, 'property.identityHeading')}>
           <Field>
             <FieldLabel htmlFor="property-code">{translate(locale, 'property.code')}</FieldLabel>
             <Input
@@ -115,12 +122,15 @@ export function PropertyEditor() {
               value={name}
             />
           </Field>
-          <Field>
+        </AdminFormSection>
+        <AdminFormSection title={translate(locale, 'property.stayRulesHeading')}>
+          <Field data-invalid={stayRangeError !== undefined}>
             <FieldLabel htmlFor="property-min-stay">
               {translate(locale, 'property.minimumStayMinutes')}
             </FieldLabel>
             <Input
               id="property-min-stay"
+              aria-invalid={stayRangeError !== undefined}
               disabled={loading || pending}
               min={1}
               onChange={(event) => setMinimumStayMinutes(Number(event.target.value))}
@@ -128,19 +138,36 @@ export function PropertyEditor() {
               value={minimumStayMinutes}
             />
           </Field>
-          <Field>
+          <Field data-invalid={stayRangeError !== undefined}>
             <FieldLabel htmlFor="property-max-stay">
               {translate(locale, 'property.maximumStayMinutes')}
             </FieldLabel>
             <Input
               id="property-max-stay"
+              aria-invalid={stayRangeError !== undefined}
               disabled={loading || pending}
               min={1}
               onChange={(event) => setMaximumStayMinutes(Number(event.target.value))}
               type="number"
               value={maximumStayMinutes}
             />
+            <FieldError>{stayRangeError}</FieldError>
           </Field>
+          <Field>
+            <FieldLabel htmlFor="property-overnight">
+              {translate(locale, 'property.defaultOvernightDurationMinutes')}
+            </FieldLabel>
+            <Input
+              id="property-overnight"
+              disabled={loading || pending}
+              min={1}
+              onChange={(event) => setDefaultOvernightDurationMinutes(Number(event.target.value))}
+              type="number"
+              value={defaultOvernightDurationMinutes}
+            />
+          </Field>
+        </AdminFormSection>
+        <AdminFormSection title={translate(locale, 'property.bookingWindowHeading')}>
           <Field>
             <FieldLabel htmlFor="property-min-lead">
               {translate(locale, 'property.minimumLeadTimeMinutes')}
@@ -167,28 +194,17 @@ export function PropertyEditor() {
               value={maximumAdvanceBookingDays}
             />
           </Field>
-          <Field>
-            <FieldLabel htmlFor="property-overnight">
-              {translate(locale, 'property.defaultOvernightDurationMinutes')}
-            </FieldLabel>
-            <Input
-              id="property-overnight"
-              disabled={loading || pending}
-              min={1}
-              onChange={(event) => setDefaultOvernightDurationMinutes(Number(event.target.value))}
-              type="number"
-              value={defaultOvernightDurationMinutes}
-            />
-          </Field>
+        </AdminFormSection>
+        <FieldGroup>
           <Button disabled={loading || pending} type="submit">
             {pending ? translate(locale, 'profile.saving') : translate(locale, 'property.save')}
           </Button>
         </FieldGroup>
       </form>
       {message === undefined ? null : (
-        <p className="admin-alert" role="status">
-          {message}
-        </p>
+        <Alert>
+          <AlertTitle>{message}</AlertTitle>
+        </Alert>
       )}
     </section>
   );

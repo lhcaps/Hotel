@@ -10,11 +10,20 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
 import { Field, FieldGroup, FieldLabel } from './ui/field';
 import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Table } from './ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import {
   AdminDataTable,
+  AdminDestructiveActionDialog,
   AdminEmptyState,
+  AdminFormSection,
   AdminFormSheet,
   AdminLoadingState,
   AdminPageHeader,
@@ -81,6 +90,7 @@ export function RoomTypeManager() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editId, setEditId] = useState<string>();
   const [amenityOpen, setAmenityOpen] = useState(false);
+  const [archiveCandidate, setArchiveCandidate] = useState<RoomType>();
 
   useEffect(() => {
     void Promise.all([
@@ -156,6 +166,7 @@ export function RoomTypeManager() {
           ? current
           : { ...current, items: current.items.map((item) => (item.id === id ? roomType : item)) },
       );
+      setArchiveCandidate(undefined);
       setMessage(translate(locale, 'roomType.archived', { name: roomType.name }));
     } catch (cause) {
       const text =
@@ -269,11 +280,13 @@ export function RoomTypeManager() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {tiers.map((tier) => (
-                    <SelectItem key={tier.id} value={tier.id}>
-                      {tier.name}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    {tiers.map((tier) => (
+                      <SelectItem key={tier.id} value={tier.id}>
+                        {tier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </Field>
@@ -311,8 +324,10 @@ export function RoomTypeManager() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="2">2 {translate(locale, 'roomType.guests')}</SelectItem>
-                  <SelectItem value="4">4 {translate(locale, 'roomType.guests')}</SelectItem>
+                  <SelectGroup>
+                    <SelectItem value="2">2 {translate(locale, 'roomType.guests')}</SelectItem>
+                    <SelectItem value="4">4 {translate(locale, 'roomType.guests')}</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </Field>
@@ -387,11 +402,13 @@ export function RoomTypeManager() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {tiers.map((tier) => (
-                          <SelectItem key={tier.id} value={tier.id}>
-                            {tier.name}
-                          </SelectItem>
-                        ))}
+                        <SelectGroup>
+                          {tiers.map((tier) => (
+                            <SelectItem key={tier.id} value={tier.id}>
+                              {tier.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                   </Field>
@@ -409,8 +426,14 @@ export function RoomTypeManager() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="2">2 {translate(locale, 'roomType.guests')}</SelectItem>
-                        <SelectItem value="4">4 {translate(locale, 'roomType.guests')}</SelectItem>
+                        <SelectGroup>
+                          <SelectItem value="2">
+                            2 {translate(locale, 'roomType.guests')}
+                          </SelectItem>
+                          <SelectItem value="4">
+                            4 {translate(locale, 'roomType.guests')}
+                          </SelectItem>
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                   </Field>
@@ -425,7 +448,11 @@ export function RoomTypeManager() {
             );
           })()
         : null}
-      {message === undefined ? null : <p role="alert">{message}</p>}
+      {message === undefined ? null : (
+        <Alert>
+          <AlertTitle>{message}</AlertTitle>
+        </Alert>
+      )}
       {types === undefined ? (
         <AdminLoadingState label={translate(locale, 'admin.loadingData')} />
       ) : null}
@@ -435,61 +462,63 @@ export function RoomTypeManager() {
       {types === undefined || types.items.length === 0 ? null : (
         <AdminDataTable variant="management" className="admin-room-types-table">
           <Table>
-            <thead>
-              <tr>
-                <th scope="col">{translate(locale, 'admin.thumbnail')}</th>
-                <th scope="col">{translate(locale, 'admin.code')}</th>
-                <th scope="col">{translate(locale, 'roomType.name')}</th>
-                <th scope="col">{translate(locale, 'roomType.priceTier')}</th>
-                <th scope="col">{translate(locale, 'admin.activeRooms')}</th>
-                <th scope="col">{translate(locale, 'roomType.capacity')}</th>
-                <th scope="col">{translate(locale, 'admin.publication')}</th>
-                <th scope="col">{translate(locale, 'admin.status')}</th>
-                <th scope="col">{translate(locale, 'admin.action')}</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">{translate(locale, 'admin.thumbnail')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'admin.code')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'roomType.name')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'roomType.priceTier')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'admin.activeRooms')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'roomType.capacity')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'admin.publication')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'admin.status')}</TableHead>
+                <TableHead scope="col">{translate(locale, 'admin.action')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {types.items.map((roomType) => {
                 return (
-                  <tr key={roomType.id} data-testid={`room-type-row-${roomType.code}`}>
-                    <td data-label={translate(locale, 'admin.thumbnail')}>
+                  <TableRow key={roomType.id} data-testid={`room-type-row-${roomType.code}`}>
+                    <TableCell data-label={translate(locale, 'admin.thumbnail')}>
                       <span
                         className="admin-thumbnail-placeholder"
                         aria-label={translate(locale, 'admin.thumbnail')}
                       >
                         —
                       </span>
-                    </td>
-                    <td data-label={translate(locale, 'admin.code')}>{roomType.code}</td>
-                    <td data-label={translate(locale, 'roomType.name')}>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'admin.code')}>
+                      {roomType.code}
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'roomType.name')}>
                       <strong>{roomType.name}</strong>
-                    </td>
-                    <td data-label={translate(locale, 'roomType.priceTier')}>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'roomType.priceTier')}>
                       {tiers.find((tier) => tier.id === roomType.priceTierId)?.name ?? '—'}
-                    </td>
-                    <td data-label={translate(locale, 'admin.activeRooms')}>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'admin.activeRooms')}>
                       {
                         rooms.filter(
                           (room) => room.roomTypeId === roomType.id && room.status === 'ACTIVE',
                         ).length
                       }
-                    </td>
-                    <td data-label={translate(locale, 'roomType.capacity')}>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'roomType.capacity')}>
                       {roomType.maxOccupancy <= 2 ? 2 : 4} {translate(locale, 'roomType.guests')}
-                    </td>
-                    <td data-label={translate(locale, 'admin.publication')}>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'admin.publication')}>
                       <AdminStatusBadge tone={roomType.status === 'ACTIVE' ? 'success' : 'neutral'}>
                         {roomType.status === 'ACTIVE'
                           ? translate(locale, 'admin.published')
                           : translate(locale, 'admin.archived')}
                       </AdminStatusBadge>
-                    </td>
-                    <td data-label={translate(locale, 'admin.status')}>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'admin.status')}>
                       <AdminStatusBadge tone={roomType.status === 'ACTIVE' ? 'success' : 'neutral'}>
                         {roomTypeStatusLabel(locale, roomType.status)}
                       </AdminStatusBadge>
-                    </td>
-                    <td data-label={translate(locale, 'admin.action')}>
+                    </TableCell>
+                    <TableCell data-label={translate(locale, 'admin.action')}>
                       <AdminRowActions
                         actions={[
                           {
@@ -500,32 +529,31 @@ export function RoomTypeManager() {
                             label: translate(locale, 'catalog.archive'),
                             destructive: true,
                             disabled: pending || roomType.status === 'INACTIVE',
-                            onSelect: () => void archive(roomType.id),
+                            onSelect: () => setArchiveCandidate(roomType),
                           },
                         ]}
-                      >
-                        <Button onClick={() => setEditId(roomType.id)} size="sm" variant="outline">
-                          {translate(locale, 'roomType.saveChanges')}
-                        </Button>
-                        <Button
-                          aria-label={translate(locale, 'amenity.archive', { name: roomType.name })}
-                          disabled={pending || roomType.status === 'INACTIVE'}
-                          onClick={() => void archive(roomType.id)}
-                          size="sm"
-                          type="button"
-                          variant="destructive"
-                        >
-                          {translate(locale, 'catalog.archive')}
-                        </Button>
-                      </AdminRowActions>
-                    </td>
-                  </tr>
+                      />
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
+            </TableBody>
           </Table>
         </AdminDataTable>
       )}
+      <AdminDestructiveActionDialog
+        open={archiveCandidate !== undefined}
+        onOpenChange={(open) => {
+          if (!open) setArchiveCandidate(undefined);
+        }}
+        title={translate(locale, 'catalog.archive')}
+        description={archiveCandidate?.name ?? ''}
+        confirmLabel={translate(locale, 'catalog.archive')}
+        pending={pending}
+        onConfirm={() => {
+          if (archiveCandidate !== undefined) void archive(archiveCandidate.id);
+        }}
+      />
       <div className="admin-secondary-action">
         <Button type="button" variant="outline" onClick={() => setAmenityOpen(true)}>
           {translate(locale, 'roomType.assignAmenity')}
@@ -557,13 +585,15 @@ export function RoomTypeManager() {
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {(types?.items ?? [])
-                    .filter((type) => type.status === 'ACTIVE')
-                    .map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
+                  <SelectGroup>
+                    {(types?.items ?? [])
+                      .filter((type) => type.status === 'ACTIVE')
+                      .map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </Field>
@@ -585,11 +615,13 @@ export function RoomTypeManager() {
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {amenities.map((amenity) => (
-                    <SelectItem key={amenity.id} value={amenity.id}>
-                      {amenity.name}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    {amenities.map((amenity) => (
+                      <SelectItem key={amenity.id} value={amenity.id}>
+                        {amenity.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </Field>
@@ -601,8 +633,7 @@ export function RoomTypeManager() {
             </Button>
           </FieldGroup>
         </form>
-        <div className="admin-form-section">
-          <h2>{translate(locale, 'roomType.removeAmenity')}</h2>
+        <AdminFormSection title={translate(locale, 'roomType.removeAmenity')}>
           <div className="admin-amenity-removal-list">
             {types?.items
               .filter((type) => type.status === 'ACTIVE')
@@ -627,7 +658,7 @@ export function RoomTypeManager() {
                 </div>
               ))}
           </div>
-        </div>
+        </AdminFormSection>
       </AdminFormSheet>
     </section>
   );

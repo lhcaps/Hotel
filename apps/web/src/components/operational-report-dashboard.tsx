@@ -154,7 +154,7 @@ function RevenueChart({
 
   return (
     <section
-      className="overview-panel overview-revenue-chart"
+      className={`overview-panel overview-revenue-chart${daily.length === 0 ? ' overview-revenue-chart--empty' : ''}`}
       aria-labelledby="daily-revenue-heading"
     >
       <div className="overview-panel__heading">

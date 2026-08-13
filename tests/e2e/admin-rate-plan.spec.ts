@@ -8,7 +8,8 @@ async function savePlanPrice(
   tierName: string,
   amount: number,
 ): Promise<void> {
-  await plan.getByRole('button', { name: 'Lưu giá' }).click();
+  await plan.locator('[data-slot="dropdown-menu-trigger"]').click();
+  await page.getByRole('menuitem', { name: 'Lưu giá' }).click();
   const sheet = page.getByRole('dialog');
   const input = sheet.getByRole('spinbutton', { name: new RegExp(`${tierName}$`, 'i') });
   await input.fill(String(amount));
@@ -79,7 +80,8 @@ test('ADMIN changes the lunch boundary through the UI and historical quotes rema
   const lunch = page.getByRole('article', { name: /Lunch combo/i });
   await expect(lunch).toBeVisible();
   await savePlanPrice(page, lunch, 'Deluxe', 200000);
-  await lunch.getByRole('button', { name: 'Điều kiện áp dụng' }).click();
+  await lunch.locator('[data-slot="dropdown-menu-trigger"]').click();
+  await page.getByRole('menuitem', { name: 'Điều kiện áp dụng' }).click();
   let selectionDialog = page.getByRole('dialog');
   const rules = selectionDialog.getByRole('combobox');
   await rules.nth(2).click();
@@ -98,7 +100,8 @@ test('ADMIN changes the lunch boundary through the UI and historical quotes rema
   const quoteA = await issueQuoteAt(page, '2027-01-12T08:00:00.000Z', 5);
   expect(quoteA.pricing).toMatchObject({ selectedPlanCode: 'LUNCH_COMBO' });
 
-  await lunch.getByRole('button', { name: 'Điều kiện áp dụng' }).click();
+  await lunch.locator('[data-slot="dropdown-menu-trigger"]').click();
+  await page.getByRole('menuitem', { name: 'Điều kiện áp dụng' }).click();
   selectionDialog = page.getByRole('dialog');
   await selectionDialog.getByRole('combobox').nth(2).click();
   await page.getByRole('option', { name: '15:00' }).click();
