@@ -1,40 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { AdminOperationalReport } from '@room/contracts';
 
 import { AdminApiError, adminApi, type AdminRoomOperationsResponse } from '../lib/admin-api';
-import { translate, translatePaymentStatus } from '../lib/i18n/messages';
+import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
-import { Field, FieldLabel } from './ui/field';
-import { Input } from './ui/input';
-import {
-  AdminErrorState,
-  AdminFilterToolbar,
-  AdminMetric,
-  AdminMultiSelect,
-  AdminPageHeader,
-} from './admin/admin-ui';
-
-const bookingStatuses = [
-  'HOLD',
-  'CONFIRMED',
-  'EXPIRED',
-  'CANCELLED',
-  'NO_SHOW',
-  'CHECKED_IN',
-  'CHECKED_OUT',
-] as const;
-const paymentStatuses = [
-  'NONE',
-  'PENDING',
-  'SUCCEEDED',
-  'REVIEW_REQUIRED',
-  'CANCELLED',
-  'EXPIRED',
-] as const;
+import { AdminErrorState, AdminMetric, AdminPageHeader } from './admin/admin-ui';
 
 type RoomItem = AdminRoomOperationsResponse['items'][number];
 
@@ -56,14 +30,6 @@ function localDayEnd(date: string): string {
 
 function money(value: number, locale: 'vi' | 'en'): string {
   return `${new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US').format(value)} VND`;
-}
-
-function codes(value: string): readonly string[] | undefined {
-  const parsed = value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-  return parsed.length === 0 ? undefined : parsed;
 }
 
 function formatTime(value: string, locale: string): string {
@@ -159,6 +125,96 @@ function StatusDistribution({
   );
 }
 
+function RevenueChart({
+  daily,
+  locale,
+}: Readonly<{ daily: readonly AdminOperationalReport['daily'][number][]; locale: 'vi' | 'en' }>) {
+  const maximum = Math.max(...daily.map((point) => point.revenueVnd), 1);
+  const width = 760;
+  const height = 240;
+  const padding = { bottom: 30, left: 8, right: 8, top: 14 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const points = daily.map((point, index) => {
+    const x =
+      padding.left + (daily.length <= 1 ? plotWidth / 2 : (index / (daily.length - 1)) * plotWidth);
+    const y = padding.top + plotHeight - (point.revenueVnd / maximum) * plotHeight;
+    return { ...point, x, y };
+  });
+  const path = points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+    .join(' ');
+
+  return (
+    <section
+      className="overview-panel overview-revenue-chart"
+      aria-labelledby="daily-revenue-heading"
+    >
+      <div className="overview-panel__heading">
+        <div>
+          <h2 id="daily-revenue-heading">{translate(locale, 'admin.reportDailyRevenue')}</h2>
+          <p>
+            {translate(locale, 'admin.dashboardDateRange', {
+              from: daily.at(0)?.date ?? '',
+              to: daily.at(-1)?.date ?? '',
+            })}
+          </p>
+        </div>
+        <strong>
+          {money(
+            daily.reduce((sum, point) => sum + point.revenueVnd, 0),
+            locale,
+          )}
+        </strong>
+      </div>
+      {daily.length === 0 ? (
+        <p className="admin-state">{translate(locale, 'admin.reportNoBookings')}</p>
+      ) : (
+        <>
+          <svg
+            aria-hidden="true"
+            className="overview-revenue-chart__svg"
+            focusable="false"
+            preserveAspectRatio="none"
+            viewBox={`0 0 ${width} ${height}`}
+          >
+            {[0.25, 0.5, 0.75, 1].map((fraction) => (
+              <line
+                key={fraction}
+                x1={padding.left}
+                x2={width - padding.right}
+                y1={padding.top + plotHeight * (1 - fraction)}
+                y2={padding.top + plotHeight * (1 - fraction)}
+              />
+            ))}
+            <path d={path} fill="none" />
+            {points.map((point) => (
+              <circle key={point.date} cx={point.x} cy={point.y} r="3" />
+            ))}
+          </svg>
+          <table className="sr-only">
+            <caption>{translate(locale, 'admin.reportDailyRevenue')}</caption>
+            <thead>
+              <tr>
+                <th>{translate(locale, 'admin.reportDate')}</th>
+                <th>{translate(locale, 'admin.reportRevenue')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daily.map((point) => (
+                <tr key={point.date}>
+                  <td>{point.date}</td>
+                  <td>{money(point.revenueVnd, locale)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </section>
+  );
+}
+
 function Queue({
   title,
   items,
@@ -223,14 +279,10 @@ function Queue({
 export function OperationalReportDashboard() {
   const locale = useLocale();
   const today = useMemo(() => new Date(), []);
-  const [from, setFrom] = useState(() =>
+  const [from] = useState(() =>
     dateInputValue(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29)),
   );
-  const [to, setTo] = useState(() => dateInputValue(today));
-  const [bookingFilter, setBookingFilter] = useState<readonly string[]>();
-  const [paymentFilter, setPaymentFilter] = useState<readonly string[]>();
-  const [ratePlanCodes, setRatePlanCodes] = useState('');
-  const [roomTierCodes, setRoomTierCodes] = useState('');
+  const [to] = useState(() => dateInputValue(today));
   const [report, setReport] = useState<AdminOperationalReport>();
   const [rooms, setRooms] = useState<AdminRoomOperationsResponse>();
   const [error, setError] = useState<string>();
@@ -250,10 +302,10 @@ export function OperationalReportDashboard() {
       adminApi.getOperationalReport({
         from: localDayStart(from),
         to: localDayEnd(to),
-        bookingStatuses: bookingFilter,
-        paymentStatuses: paymentFilter,
-        ratePlanCodes: codes(ratePlanCodes),
-        roomTierCodes: codes(roomTierCodes),
+        bookingStatuses: undefined,
+        paymentStatuses: undefined,
+        ratePlanCodes: undefined,
+        roomTierCodes: undefined,
       }),
       roomRequest,
     ])
@@ -273,16 +325,11 @@ export function OperationalReportDashboard() {
         }
       })
       .finally(() => setRefreshing(false));
-  }, [bookingFilter, from, locale, paymentFilter, ratePlanCodes, roomTierCodes, to]);
+  }, [from, locale, to]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void refresh();
-  }
 
   const items = rooms?.items ?? [];
   const metrics = roomMetrics(items);
@@ -314,91 +361,6 @@ export function OperationalReportDashboard() {
           </div>
         }
       />
-
-      <AdminFilterToolbar className="report-filters" onSubmit={submit}>
-        <Field>
-          <FieldLabel htmlFor="admin-report-from">
-            {translate(locale, 'admin.reportFrom')}
-          </FieldLabel>
-          <Input
-            id="admin-report-from"
-            type="date"
-            value={from}
-            onChange={(event) => setFrom(event.target.value)}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="admin-report-to">{translate(locale, 'admin.reportTo')}</FieldLabel>
-          <Input
-            id="admin-report-to"
-            type="date"
-            value={to}
-            onChange={(event) => setTo(event.target.value)}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="admin-report-booking-status">
-            {translate(locale, 'admin.reportBookingStatus')}
-          </FieldLabel>
-          <AdminMultiSelect
-            ariaLabel={translate(locale, 'admin.reportBookingStatus')}
-            id="admin-report-booking-status"
-            options={bookingStatuses.map((status) => ({
-              value: status,
-              label: translatePaymentStatus(locale, status),
-            }))}
-            value={bookingFilter ?? []}
-            onChange={(value) => setBookingFilter(value.length > 0 ? value : undefined)}
-            placeholder={translate(locale, 'admin.reportBookingStatus')}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="admin-report-payment-status">
-            {translate(locale, 'admin.reportPaymentStatus')}
-          </FieldLabel>
-          <AdminMultiSelect
-            ariaLabel={translate(locale, 'admin.reportPaymentStatus')}
-            id="admin-report-payment-status"
-            options={paymentStatuses.map((status) => ({
-              value: status,
-              label:
-                status === 'NONE'
-                  ? translate(locale, 'admin.noPayment')
-                  : translatePaymentStatus(locale, status),
-            }))}
-            value={paymentFilter ?? []}
-            onChange={(value) => setPaymentFilter(value.length > 0 ? value : undefined)}
-            placeholder={translate(locale, 'admin.reportPaymentStatus')}
-          />
-        </Field>
-        <Field className="report-filters__codes">
-          <FieldLabel htmlFor="admin-report-rate-plans">
-            {translate(locale, 'admin.reportRatePlans')}
-          </FieldLabel>
-          <Input
-            id="admin-report-rate-plans"
-            placeholder={translate(locale, 'admin.reportCodePlaceholder')}
-            value={ratePlanCodes}
-            onChange={(event) => setRatePlanCodes(event.target.value)}
-          />
-        </Field>
-        <Field className="report-filters__codes">
-          <FieldLabel htmlFor="admin-report-room-tiers">
-            {translate(locale, 'admin.reportRoomTiers')}
-          </FieldLabel>
-          <Input
-            id="admin-report-room-tiers"
-            placeholder={translate(locale, 'admin.reportCodePlaceholder')}
-            value={roomTierCodes}
-            onChange={(event) => setRoomTierCodes(event.target.value)}
-          />
-        </Field>
-        <Button disabled={refreshing} type="submit">
-          {refreshing
-            ? translate(locale, 'admin.reportLoading')
-            : translate(locale, 'admin.reportApply')}
-        </Button>
-      </AdminFilterToolbar>
 
       {error ? (
         <AdminErrorState title={translate(locale, 'admin.reportLoadError')} description={error} />
@@ -439,6 +401,10 @@ export function OperationalReportDashboard() {
       ) : null}
       {report !== undefined ? (
         <>
+          <div className="overview-dashboard-grid">
+            <RevenueChart daily={report.daily} locale={locale} />
+            <StatusDistribution items={items} locale={locale} />
+          </div>
           <div className="overview-queues">
             <Queue
               emptyKey="admin.dashboardNoQueue"
@@ -475,37 +441,6 @@ export function OperationalReportDashboard() {
                   : translate(locale, 'admin.dashboardPaymentAction')}
               </p>
             </section>
-          </div>
-          <div className="overview-analytics">
-            <section className="overview-panel" aria-labelledby="daily-revenue-heading">
-              <div className="overview-panel__heading">
-                <h2 id="daily-revenue-heading">{translate(locale, 'admin.reportDailyRevenue')}</h2>
-                <span>{money(report.grossRevenueVnd, locale)}</span>
-              </div>
-              {report.bookingCount === 0 ? (
-                <p className="admin-state">{translate(locale, 'admin.reportNoBookings')}</p>
-              ) : (
-                <ul className="overview-bars overview-bars--revenue">
-                  {report.daily.map((point) => {
-                    const maximum = Math.max(...report.daily.map((item) => item.revenueVnd), 1);
-                    return (
-                      <li key={point.date}>
-                        <div>
-                          <span>{point.date}</span>
-                          <strong>{money(point.revenueVnd, locale)}</strong>
-                        </div>
-                        <span className="overview-bars__track">
-                          <span
-                            style={{ width: `${Math.max(4, (point.revenueVnd / maximum) * 100)}%` }}
-                          />
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-            <StatusDistribution items={items} locale={locale} />
           </div>
           <p className="report-disclosure">
             {translate(locale, 'admin.reportOutstandingDisclosure')}

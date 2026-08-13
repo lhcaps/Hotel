@@ -6,8 +6,26 @@ import { formatDateTime, translate, translateAdminStatus } from '../lib/i18n/mes
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from './ui/field';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 import { Table } from './ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 import {
   AdminDataTable,
   AdminEmptyState,
@@ -27,6 +45,14 @@ export function MaintenanceManager() {
   const [message, setMessage] = useState<string>();
   const [pending, setPending] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [createAttempted, setCreateAttempted] = useState(false);
+  const [cancelCandidate, setCancelCandidate] = useState<MaintenanceBlock>();
+  const validation = {
+    room: roomId === '',
+    reason: reason.trim() === '',
+    startsAt: startsAt === '',
+    endsAt: endsAt === '',
+  };
   useEffect(() => {
     void Promise.all([adminApi.listRooms(), adminApi.listMaintenanceBlocks()])
       .then(([roomPage, maintenancePage]) => {
@@ -44,6 +70,8 @@ export function MaintenanceManager() {
   }, [locale]);
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setCreateAttempted(true);
+    if (Object.values(validation).some(Boolean)) return;
     setPending(true);
     setMessage(undefined);
     try {
@@ -56,6 +84,9 @@ export function MaintenanceManager() {
       setBlocks((current) => (current === undefined ? current : [...current, block]));
       setMessage(translate(locale, 'maintenance.created', { reason: block.reason }));
       setReason('');
+      setStartsAt('');
+      setEndsAt('');
+      setCreateAttempted(false);
       setCreateOpen(false);
     } catch (cause) {
       setMessage(
@@ -93,71 +124,103 @@ export function MaintenanceManager() {
         title={translate(locale, 'admin.maintenance')}
         description={translate(locale, 'maintenance.help')}
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
+          <Button
+            onClick={() => {
+              setCreateAttempted(false);
+              setCreateOpen(true);
+            }}
+          >
             {translate(locale, 'maintenance.create')}
           </Button>
         }
       />
       <AdminFormSheet
         open={createOpen}
-        onOpenChange={setCreateOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) setCreateAttempted(false);
+        }}
         title={translate(locale, 'maintenance.create')}
         description={translate(locale, 'maintenance.help')}
       >
         <form className="admin-form-stack" onSubmit={create}>
-          <label>
-            {translate(locale, 'admin.rooms')}
-            <Select
-              disabled={pending || rooms.length === 0}
-              value={roomId}
-              onValueChange={(value) => {
-                if (value !== null) setRoomId(value);
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {rooms.map((room) => (
-                  <SelectItem key={room.id} value={room.id}>
-                    {room.roomNumber}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </label>
-          <label>
-            {translate(locale, 'maintenance.reason')}
-            <Input
-              disabled={pending}
-              onChange={(event) => setReason(event.target.value)}
-              required
-              value={reason}
-            />
-          </label>
-          <label>
-            {translate(locale, 'maintenance.startsAt')}
-            <Input
-              disabled={pending}
-              onChange={(event) => setStartsAt(event.target.value)}
-              required
-              type="datetime-local"
-              value={startsAt}
-            />
-          </label>
-          <label>
-            {translate(locale, 'maintenance.endsAt')}
-            <Input
-              disabled={pending}
-              onChange={(event) => setEndsAt(event.target.value)}
-              required
-              type="datetime-local"
-              value={endsAt}
-            />
-          </label>
-          <Button disabled={pending || roomId === ''} type="submit">
-            {translate(locale, 'maintenance.create')}
-          </Button>
+          <FieldGroup>
+            <Field data-invalid={(createAttempted && validation.room) || undefined}>
+              <FieldLabel>{translate(locale, 'admin.rooms')}</FieldLabel>
+              <Select
+                disabled={pending || rooms.length === 0}
+                value={roomId}
+                onValueChange={(value) => {
+                  if (value !== null) setRoomId(value);
+                }}
+              >
+                <SelectTrigger aria-invalid={createAttempted && validation.room} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {rooms.map((room) => (
+                      <SelectItem key={room.id} value={room.id}>
+                        {room.roomNumber}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <FieldError>
+                {createAttempted && validation.room
+                  ? translate(locale, 'admin.chooseItem')
+                  : undefined}
+              </FieldError>
+            </Field>
+            <Field data-invalid={(createAttempted && validation.reason) || undefined}>
+              <FieldLabel htmlFor="maintenance-reason">
+                {translate(locale, 'maintenance.reason')}
+              </FieldLabel>
+              <Input
+                aria-invalid={createAttempted && validation.reason}
+                disabled={pending}
+                id="maintenance-reason"
+                onChange={(event) => setReason(event.target.value)}
+                value={reason}
+              />
+              <FieldError>
+                {createAttempted && validation.reason
+                  ? translate(locale, 'maintenance.reason')
+                  : undefined}
+              </FieldError>
+            </Field>
+            <Field data-invalid={(createAttempted && validation.startsAt) || undefined}>
+              <FieldLabel htmlFor="maintenance-starts-at">
+                {translate(locale, 'maintenance.startsAt')}
+              </FieldLabel>
+              <Input
+                aria-invalid={createAttempted && validation.startsAt}
+                disabled={pending}
+                id="maintenance-starts-at"
+                onChange={(event) => setStartsAt(event.target.value)}
+                type="datetime-local"
+                value={startsAt}
+              />
+            </Field>
+            <Field data-invalid={(createAttempted && validation.endsAt) || undefined}>
+              <FieldLabel htmlFor="maintenance-ends-at">
+                {translate(locale, 'maintenance.endsAt')}
+              </FieldLabel>
+              <Input
+                aria-invalid={createAttempted && validation.endsAt}
+                disabled={pending}
+                id="maintenance-ends-at"
+                onChange={(event) => setEndsAt(event.target.value)}
+                type="datetime-local"
+                value={endsAt}
+              />
+              <FieldDescription>{translate(locale, 'maintenance.help')}</FieldDescription>
+            </Field>
+            <Button disabled={pending || roomId === ''} type="submit">
+              {translate(locale, 'maintenance.create')}
+            </Button>
+          </FieldGroup>
         </form>
       </AdminFormSheet>
       {message === undefined ? null : <p role="alert">{message}</p>}
@@ -196,7 +259,7 @@ export function MaintenanceManager() {
                         reason: block.reason,
                       })}
                       disabled={pending || block.status === 'CANCELLED'}
-                      onClick={() => void cancel(block.id)}
+                      onClick={() => setCancelCandidate(block)}
                       size="sm"
                       type="button"
                       variant="destructive"
@@ -210,6 +273,31 @@ export function MaintenanceManager() {
           </Table>
         </AdminDataTable>
       )}
+      <AlertDialog
+        open={cancelCandidate !== undefined}
+        onOpenChange={(open) => {
+          if (!open) setCancelCandidate(undefined);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{translate(locale, 'maintenance.cancel')}</AlertDialogTitle>
+            <AlertDialogDescription>{cancelCandidate?.reason}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{translate(locale, 'admin.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (cancelCandidate !== undefined) void cancel(cancelCandidate.id);
+                setCancelCandidate(undefined);
+              }}
+            >
+              {translate(locale, 'maintenance.cancel')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }

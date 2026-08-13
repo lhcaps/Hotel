@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { AdminLogoutButton } from '../../../components/admin-logout-button';
 import { AdminNavigation } from '../../../components/admin-navigation';
+import { getAuthorizedAdminDestinations } from '../../../lib/admin-navigation';
 import { Sidebar, SidebarHeader, SidebarInset } from '../../../components/ui/sidebar';
 import { AdminAppShell, AdminProfileMenu, AdminTopbar } from '../../../components/admin/admin-ui';
 import { resolveLocale, translate } from '../../../lib/i18n/messages';
@@ -118,6 +119,12 @@ export default async function AdminProtectedLayout({
               PeaceNest <span aria-hidden="true">/</span> {resolveAdminContext(pathname, locale)}
             </span>
           }
+          commandDestinations={getAuthorizedAdminDestinations({
+            locale,
+            permissions: resolution.session.permissions,
+            profileCode: resolution.session.profileCode,
+          })}
+          propertyContext={translate(locale, 'admin.propertyContext')}
           actions={
             <AdminProfileMenu
               displayName={resolution.session.displayName}

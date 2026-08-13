@@ -24,7 +24,8 @@ import {
   Wrench,
 } from 'lucide-react';
 
-import { translate, type Locale, type MessageKey } from '../lib/i18n/messages';
+import { translate, type Locale } from '../lib/i18n/messages';
+import { adminNavigationGroups, isAuthorizedAdminNavigation } from '../lib/admin-navigation';
 import {
   SidebarContent,
   SidebarGroup,
@@ -35,66 +36,34 @@ import {
   SidebarMenuItem,
 } from './ui/sidebar';
 
-const groups = [
-  {
-    label: 'admin.navReservations',
-    links: [
-      ['admin.overview', '/admin', 'dashboard.read', LayoutDashboard],
-      ['admin.bookings', '/admin/bookings', 'booking.lifecycle.read', CalendarDays],
-      ['admin.scanner', '/admin/scanner', 'booking.lifecycle.read', QrCode],
-      ['admin.payments', '/admin/payments', 'payment.reconciliation.read', CreditCard],
-      ['admin.reviews', '/admin/operational-reviews', 'booking.review.read', MessageSquareWarning],
-    ],
-  },
-  {
-    label: 'admin.navOperations',
-    links: [
-      ['admin.roomOperations', '/admin/room-operations', 'room_operations.read', PanelsTopLeft],
-      [
-        'admin.housekeepingWorkboard',
-        '/admin/housekeeping',
-        'housekeeping.task.read',
-        ClipboardCheck,
-      ],
-      ['admin.rooms', '/admin/rooms', 'catalog.room.read', BedDouble],
-      ['admin.maintenance', '/admin/maintenance', 'catalog.maintenance.read', Wrench],
-      ['admin.roomTypes', '/admin/room-types', 'catalog.room_type.read', Building2],
-      ['admin.amenities', '/admin/amenities', 'catalog.amenity.read', Sparkles],
-    ],
-  },
-  {
-    label: 'admin.navSetup',
-    links: [
-      ['admin.property', '/admin/property', 'catalog.property.read', Building2],
-      ['admin.priceTiers', '/admin/price-tiers', 'catalog.price_tier.read', Tags],
-      ['admin.ratePlans', '/admin/rate-plans', 'pricing.rate_plan.read', BadgeDollarSign],
-      ['admin.pricingPolicies', '/admin/pricing-policies', 'pricing.policy.read', GitBranch],
-      ['admin.coupons', '/admin/coupons', 'coupon.read', TicketPercent],
-      ['admin.providers', '/admin/payment-providers', 'providers.read', WalletCards],
-    ],
-  },
-  {
-    label: 'admin.accounts',
-    links: [
-      ['admin.accounts', '/admin/accounts', 'admin.account.read', Users],
-      ['admin.departments', '/admin/departments', 'admin.department.read', UsersRound],
-      ['admin.audit', '/admin/audit', 'admin.audit.read', ScrollText],
-    ],
-  },
-] as const satisfies readonly {
-  readonly label: MessageKey;
-  readonly links: readonly (readonly [MessageKey, string, string, typeof LayoutDashboard])[];
-}[];
+const navigationIcons = {
+  '/admin': LayoutDashboard,
+  '/admin/bookings': CalendarDays,
+  '/admin/scanner': QrCode,
+  '/admin/payments': CreditCard,
+  '/admin/operational-reviews': MessageSquareWarning,
+  '/admin/room-operations': PanelsTopLeft,
+  '/admin/housekeeping': ClipboardCheck,
+  '/admin/rooms': BedDouble,
+  '/admin/maintenance': Wrench,
+  '/admin/room-types': Building2,
+  '/admin/amenities': Sparkles,
+  '/admin/property': Building2,
+  '/admin/price-tiers': Tags,
+  '/admin/rate-plans': BadgeDollarSign,
+  '/admin/pricing-policies': GitBranch,
+  '/admin/coupons': TicketPercent,
+  '/admin/payment-providers': WalletCards,
+  '/admin/accounts': Users,
+  '/admin/departments': UsersRound,
+  '/admin/audit': ScrollText,
+} as const;
 
 function isCurrent(pathname: string, href: string) {
   return href === '/admin'
     ? pathname === href
     : pathname === href || pathname.startsWith(`${href}/`);
 }
-
-const ROOM_STATUS_VIEWER_NAVIGATION = new Set(['/admin/room-operations']);
-const HOUSEKEEPING_STAFF_NAVIGATION = new Set(['/admin/room-operations', '/admin/housekeeping']);
-const HOUSEKEEPING_MANAGER_NAVIGATION = new Set(['/admin/room-operations', '/admin/housekeeping']);
 
 export function AdminNavigation({
   locale,
@@ -115,21 +84,12 @@ export function AdminNavigation({
     | 'STAFF_MANAGER';
 }>) {
   const pathname = usePathname();
-  const visibleGroups = groups
+  const visibleGroups = adminNavigationGroups
     .map((group) => ({
       ...group,
-      links: group.links.filter(([, href, required]) => {
-        if (profileCode === 'ROOM_STATUS_VIEWER' && !ROOM_STATUS_VIEWER_NAVIGATION.has(href)) {
-          return false;
-        }
-        if (profileCode === 'HOUSEKEEPING_STAFF' && !HOUSEKEEPING_STAFF_NAVIGATION.has(href)) {
-          return false;
-        }
-        if (profileCode === 'HOUSEKEEPING_MANAGER' && !HOUSEKEEPING_MANAGER_NAVIGATION.has(href)) {
-          return false;
-        }
-        return permissions?.includes(required) ?? false;
-      }),
+      links: group.links.filter(([, href, required]) =>
+        isAuthorizedAdminNavigation(href, required, permissions, profileCode),
+      ),
     }))
     .filter((group) => group.links.length > 0);
   return (
@@ -140,8 +100,9 @@ export function AdminNavigation({
             <SidebarGroupLabel>{translate(locale, group.label)}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.links.map(([label, href, , Icon]) => {
+                {group.links.map(([label, href]) => {
                   const current = isCurrent(pathname, href);
+                  const Icon = navigationIcons[href];
                   return (
                     <SidebarMenuItem key={href}>
                       <SidebarMenuButton

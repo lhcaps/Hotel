@@ -10,8 +10,30 @@ import { AdminApiError, adminApi, type AdminRoomOperationsResponse } from '../li
 import { compareRoomDisplayOrder } from '../lib/admin-natural-sort';
 import { translate, type MessageKey } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { AdminDataTable, AdminStatusBadge } from './admin/admin-ui';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import {
+  AdminDataTable,
+  AdminPageHeader,
+  AdminStatusBadge,
+  AdminTab,
+  AdminTabList,
+  AdminTabs,
+} from './admin/admin-ui';
+import { Field, FieldLabel } from './ui/field';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
+import { MoreHorizontalIcon } from 'lucide-react';
 
 type RoomOperation = AdminRoomOperationsResponse['items'][number];
 type RoomStatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
@@ -73,6 +95,7 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
   const [stale, setStale] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<RoomStatusFilter>('ALL');
+  const [groupFilter, setGroupFilter] = useState<RoomGroup | 'all'>('all');
   const includeInactive = statusFilter === 'INACTIVE' || statusFilter === 'MAINTENANCE';
 
   const refresh = useCallback(() => {
@@ -103,6 +126,7 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
     const normalizedQuery = query.trim().toLocaleLowerCase(locale);
     return [...(data?.items ?? [])]
       .filter((room) => statusFilter === 'ALL' || room.roomStatus === statusFilter)
+      .filter((room) => groupFilter === 'all' || room.displayGroup === groupFilter)
       .filter(
         (room) =>
           normalizedQuery.length === 0 ||
@@ -111,52 +135,102 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
           ),
       )
       .sort((left, right) => compareRoomDisplayOrder(left.roomNumber, right.roomNumber));
-  }, [data?.items, locale, query, statusFilter]);
+  }, [data?.items, groupFilter, locale, query, statusFilter]);
+
+  const groupCounts = useMemo(() => {
+    const counts = new Map<RoomGroup, number>();
+    for (const room of data?.items ?? [])
+      counts.set(room.displayGroup, (counts.get(room.displayGroup) ?? 0) + 1);
+    return counts;
+  }, [data?.items]);
 
   return (
-    <section className="room-operations-board" aria-labelledby="room-board-heading">
-      <div className="admin-surface">
-        <div className="admin-surface__header">
-          <div className="admin-page-heading admin-page-heading--compact">
-            <div>
-              <p className="admin-eyebrow">{translate(locale, 'admin.roomOperations')}</p>
-              <h2 id="room-board-heading">{translate(locale, 'admin.roomBoardHeading')}</h2>
-              <p className="admin-supporting-text">{translate(locale, 'admin.roomBoardHelp')}</p>
-            </div>
+    <section
+      className="room-operations-board"
+      aria-label={translate(locale, 'admin.roomBoardHeading')}
+    >
+      <div className="room-operations-board__body">
+        <AdminPageHeader
+          eyebrow={translate(locale, 'admin.roomOperations')}
+          title={translate(locale, 'admin.roomBoardHeading')}
+          description={translate(locale, 'admin.roomBoardHelp')}
+          actions={
             <div className="admin-live-state" aria-live="polite">
               {data === undefined
                 ? translate(locale, 'admin.roomBoardLoading')
                 : `${translate(locale, 'admin.roomBoardUpdated', { time: new Date(data.generatedAt).toLocaleTimeString(locale) })}${stale ? ` · ${translate(locale, 'admin.roomBoardStale')}` : ''}`}
             </div>
-          </div>
-        </div>
-        <div className="admin-surface__content">
+          }
+        />
+        <div className="room-operations-board__content">
           {viewerMode ? (
             <p className="admin-scope-note">{translate(locale, 'admin.roomViewerScope')}</p>
           ) : null}
+          <div
+            className="room-operations-status-strip"
+            aria-label={translate(locale, 'admin.roomOperations')}
+          >
+            {(Object.keys(groupLabels) as RoomGroup[])
+              .filter((group) => group !== 'inactive')
+              .map((group) => (
+                <button
+                  aria-pressed={groupFilter === group}
+                  key={group}
+                  onClick={() => setGroupFilter((current) => (current === group ? 'all' : group))}
+                  type="button"
+                >
+                  <span>{translate(locale, groupLabels[group])}</span>
+                  <strong>{groupCounts.get(group) ?? 0}</strong>
+                </button>
+              ))}
+          </div>
+          <AdminTabs
+            value={groupFilter}
+            onValueChange={(value) => setGroupFilter(value as RoomGroup | 'all')}
+          >
+            <AdminTabList variant="line" aria-label={translate(locale, 'admin.status')}>
+              <AdminTab value="all">{translate(locale, 'admin.all')}</AdminTab>
+              <AdminTab value="occupied">{translate(locale, 'admin.roomGroupOccupied')}</AdminTab>
+              <AdminTab value="ready">{translate(locale, 'admin.roomGroupReady')}</AdminTab>
+              <AdminTab value="cleaning">{translate(locale, 'admin.roomGroupCleaning')}</AdminTab>
+              <AdminTab value="maintenance">
+                {translate(locale, 'admin.roomGroupMaintenance')}
+              </AdminTab>
+            </AdminTabList>
+          </AdminTabs>
           <div className="admin-filter-toolbar room-board-toolbar">
             <div className="admin-filter-toolbar__controls">
-              <label>
-                {translate(locale, 'admin.scheduleDate')}
-                <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-              </label>
-              <label className="admin-filter-toolbar__search">
-                {translate(locale, 'admin.roomSearch')}
+              <Field>
+                <FieldLabel htmlFor="room-board-date">
+                  {translate(locale, 'admin.scheduleDate')}
+                </FieldLabel>
                 <Input
+                  id="room-board-date"
+                  type="date"
+                  value={date}
+                  onChange={(event) => setDate(event.target.value)}
+                />
+              </Field>
+              <Field className="admin-filter-toolbar__search">
+                <FieldLabel htmlFor="room-board-search">
+                  {translate(locale, 'admin.roomSearch')}
+                </FieldLabel>
+                <Input
+                  id="room-board-search"
                   placeholder={translate(locale, 'admin.roomSearchPlaceholder')}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
-              </label>
-              <label>
-                {translate(locale, 'admin.status')}
+              </Field>
+              <Field>
+                <FieldLabel>{translate(locale, 'admin.status')}</FieldLabel>
                 <Select
                   value={statusFilter}
                   onValueChange={(value) => {
                     if (value !== null) setStatusFilter(value as RoomStatusFilter);
                   }}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger aria-label={translate(locale, 'admin.status')} className="w-full">
                     <SelectValue>
                       {statusFilter === 'ALL'
                         ? translate(locale, 'admin.all')
@@ -164,19 +238,21 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
-                    <SelectItem value="ACTIVE">
-                      {translate(locale, roomStatusLabels.ACTIVE)}
-                    </SelectItem>
-                    <SelectItem value="MAINTENANCE">
-                      {translate(locale, roomStatusLabels.MAINTENANCE)}
-                    </SelectItem>
-                    <SelectItem value="INACTIVE">
-                      {translate(locale, roomStatusLabels.INACTIVE)}
-                    </SelectItem>
+                    <SelectGroup>
+                      <SelectItem value="ALL">{translate(locale, 'admin.all')}</SelectItem>
+                      <SelectItem value="ACTIVE">
+                        {translate(locale, roomStatusLabels.ACTIVE)}
+                      </SelectItem>
+                      <SelectItem value="MAINTENANCE">
+                        {translate(locale, roomStatusLabels.MAINTENANCE)}
+                      </SelectItem>
+                      <SelectItem value="INACTIVE">
+                        {translate(locale, roomStatusLabels.INACTIVE)}
+                      </SelectItem>
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
-              </label>
+              </Field>
               <Button onClick={() => void refresh()} type="button" variant="outline">
                 {translate(locale, 'admin.refreshBoard')}
               </Button>
@@ -256,9 +332,26 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
                       </TableCell>
                       {!viewerMode ? (
                         <TableCell data-label={translate(locale, 'admin.action')}>
-                          <Link href={`/admin/rooms/${room.roomId}`}>
-                            {translate(locale, 'admin.open')}
-                          </Link>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              render={
+                                <Button
+                                  aria-label={translate(locale, 'admin.otherActions')}
+                                  size="icon-sm"
+                                  variant="outline"
+                                />
+                              }
+                            >
+                              <MoreHorizontalIcon aria-hidden="true" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                render={<Link href={`/admin/rooms/${room.roomId}`} />}
+                              >
+                                {translate(locale, 'admin.open')}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       ) : null}
                     </TableRow>

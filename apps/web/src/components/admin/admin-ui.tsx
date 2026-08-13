@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Building2Icon,
   CheckIcon,
@@ -54,6 +55,7 @@ import { FieldDescription, FieldGroup, FieldLegend, FieldSet } from '@/component
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Command,
+  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -93,13 +95,38 @@ export function AdminTopbar({
   eyebrow,
   identity,
   actions,
+  commandDestinations = [],
+  propertyContext,
 }: Readonly<{
   breadcrumb?: React.ReactNode;
   eyebrow?: React.ReactNode;
   identity?: React.ReactNode;
   actions?: React.ReactNode;
+  commandDestinations?: readonly { readonly href: string; readonly label: string }[];
+  /** The API exposes no selected-property mutation contract yet. */
+  propertyContext?: React.ReactNode;
 }>) {
   const locale = useLocale();
+  const router = useRouter();
+  const [commandOpen, setCommandOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 'k' || (!event.metaKey && !event.ctrlKey)) return;
+      event.preventDefault();
+      setCommandOpen(true);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  const selectDestination = React.useCallback(
+    (href: string) => {
+      setCommandOpen(false);
+      router.push(href);
+    },
+    [router],
+  );
   return (
     <header className="admin-topbar" data-slot="admin-topbar">
       <div className="admin-topbar__leading">
@@ -108,18 +135,52 @@ export function AdminTopbar({
       </div>
       {identity ? <div className="admin-topbar__identity">{identity}</div> : null}
       <div className="admin-topbar__actions">
-        <Button className="admin-quick-search" variant="outline" size="sm" type="button">
+        <Button
+          aria-haspopup="dialog"
+          aria-label={translate(locale, 'admin.search')}
+          className="admin-quick-search"
+          onClick={() => setCommandOpen(true)}
+          variant="outline"
+          size="sm"
+          type="button"
+        >
           <SearchIcon aria-hidden="true" />
           <span>{translate(locale, 'admin.search')}</span>
-          <kbd>⌘ K</kbd>
+          <kbd>Ctrl K</kbd>
         </Button>
-        <Button className="admin-property-context" variant="outline" size="sm" type="button">
+        <span
+          className="admin-property-context"
+          aria-label={translate(locale, 'admin.propertyContext')}
+        >
           <Building2Icon aria-hidden="true" />
-          <span>{translate(locale, 'admin.propertyContext')}</span>
-          <ChevronDownIcon aria-hidden="true" />
-        </Button>
+          <span>{propertyContext ?? translate(locale, 'admin.propertyContext')}</span>
+        </span>
         {actions}
       </div>
+      <CommandDialog
+        description={translate(locale, 'admin.search')}
+        onOpenChange={setCommandOpen}
+        open={commandOpen}
+        title={translate(locale, 'admin.search')}
+      >
+        <Command className="admin-command-palette">
+          <CommandInput autoFocus placeholder={translate(locale, 'admin.search')} />
+          <CommandList>
+            <CommandEmpty>{translate(locale, 'admin.noItemsMatch')}</CommandEmpty>
+            <CommandGroup heading={translate(locale, 'admin.navigation')}>
+              {commandDestinations.map((destination) => (
+                <CommandItem
+                  key={destination.href}
+                  value={destination.label}
+                  onSelect={() => selectDestination(destination.href)}
+                >
+                  {destination.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </CommandDialog>
     </header>
   );
 }
@@ -236,15 +297,70 @@ export function AdminTabs({
   children: React.ReactNode;
   className?: string;
 }>) {
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const [indicator, setIndicator] = React.useState({ x: 0, y: 0, width: 0, ready: false });
+
+  const syncIndicator = React.useCallback(() => {
+    const root = rootRef.current;
+    if (root === null) return;
+    const list = root.querySelector<HTMLElement>("[data-slot='tabs-list']");
+    const active = list?.querySelector<HTMLElement>("[data-slot='tabs-trigger'][data-active]");
+    if (list === null || active === null || active === undefined) return;
+    const listRect = list.getBoundingClientRect();
+    const activeRect = active.getBoundingClientRect();
+    setIndicator({
+      x: activeRect.left - listRect.left,
+      y: activeRect.bottom - listRect.top - 2,
+      width: Math.max(activeRect.width, 1),
+      ready: true,
+    });
+  }, []);
+
+  React.useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (root === null) return;
+    const frame = window.requestAnimationFrame(syncIndicator);
+    const observer = new MutationObserver(syncIndicator);
+    observer.observe(root, { attributes: true, attributeFilter: ['data-active'], subtree: true });
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(syncIndicator);
+    resizeObserver?.observe(root);
+    window.addEventListener('resize', syncIndicator);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', syncIndicator);
+    };
+  }, [syncIndicator]);
+
   return (
-    <Tabs
-      {...(defaultValue === undefined ? {} : { defaultValue })}
-      {...(value === undefined ? {} : { value })}
-      {...(onValueChange === undefined ? {} : { onValueChange })}
-      className={cn('admin-tabs-system', className)}
+    <div
+      className="admin-tabs-system"
+      data-indicator-ready={indicator.ready ? 'true' : undefined}
+      ref={rootRef}
+      style={
+        {
+          '--admin-tabs-indicator-x': `${indicator.x}px`,
+          '--admin-tabs-indicator-y': `${indicator.y}px`,
+          '--admin-tabs-indicator-width': indicator.width,
+        } as React.CSSProperties
+      }
     >
-      {children}
-    </Tabs>
+      <Tabs
+        {...(defaultValue === undefined ? {} : { defaultValue })}
+        {...(value === undefined ? {} : { value })}
+        {...(onValueChange === undefined ? {} : { onValueChange })}
+        className={className}
+      >
+        {children}
+      </Tabs>
+      <span
+        aria-hidden="true"
+        className="admin-tabs-system__indicator"
+        data-slot="admin-tabs-indicator"
+      />
+    </div>
   );
 }
 

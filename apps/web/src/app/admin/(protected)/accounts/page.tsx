@@ -13,13 +13,31 @@ import {
   CardTitle,
 } from '../../../../components/ui/card';
 import { Input } from '../../../../components/ui/input';
+import { Field, FieldLabel } from '../../../../components/ui/field';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '../../../../components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../../../components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../../../components/ui/alert-dialog';
 import {
   Table,
   TableBody,
@@ -36,12 +54,14 @@ import {
   AdminFilterToolbar,
   AdminFormSheet,
   AdminTab,
+  AdminTabContent,
   AdminTabList,
   AdminTabs,
   AdminMultiSelect,
   AdminPageHeader,
   AdminStatusBadge,
 } from '../../../../components/admin/admin-ui';
+import { MoreHorizontalIcon } from 'lucide-react';
 
 type AdminProfileCode =
   | 'SUPER_ADMIN'
@@ -71,6 +91,116 @@ type AccountDraft = {
   readonly propertyIds: readonly string[];
 };
 
+type AccountView = 'staff' | 'customers';
+
+type AccountActionKind = 'status' | 'sessions';
+
+function AccountActionsMenu({
+  disabled,
+  emailMasked,
+  hasActiveSessions,
+  locale,
+  onEdit,
+  onRevokeSessions,
+  onStatusChange,
+  status,
+  bookingsHref,
+}: Readonly<{
+  disabled: boolean;
+  emailMasked: string;
+  hasActiveSessions: boolean;
+  locale: 'vi' | 'en';
+  onEdit?: () => void;
+  onRevokeSessions: () => void;
+  onStatusChange: () => void;
+  status: 'ACTIVE' | 'DISABLED';
+  bookingsHref?: string;
+}>) {
+  const [pendingAction, setPendingAction] = useState<AccountActionKind>();
+  const statusLabel = translate(
+    locale,
+    status === 'ACTIVE' ? 'admin.lockAccount' : 'admin.unlockAccount',
+  );
+  const confirmationLabel =
+    pendingAction === 'status' ? statusLabel : translate(locale, 'admin.revokeSessions');
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              aria-label={translate(locale, 'admin.otherActions')}
+              disabled={disabled}
+              size="icon-sm"
+              type="button"
+              variant="outline"
+            />
+          }
+        >
+          <MoreHorizontalIcon aria-hidden="true" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {onEdit ? (
+            <DropdownMenuItem onClick={onEdit}>
+              {translate(locale, 'admin.profile')}
+            </DropdownMenuItem>
+          ) : null}
+          {bookingsHref ? (
+            <DropdownMenuItem render={<Link href={bookingsHref} />}>
+              {translate(locale, 'admin.viewBookings')}
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem onClick={() => setPendingAction('status')}>
+            {statusLabel}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={!hasActiveSessions}
+            onClick={() => setPendingAction('sessions')}
+          >
+            {translate(locale, 'admin.revokeSessions')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <AlertDialog
+        onOpenChange={(open) => {
+          if (!open) setPendingAction(undefined);
+        }}
+        open={pendingAction !== undefined}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmationLabel}</AlertDialogTitle>
+            <AlertDialogDescription>{emailMasked}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{translate(locale, 'admin.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingAction === 'status') onStatusChange();
+                else onRevokeSessions();
+                setPendingAction(undefined);
+              }}
+              variant={
+                pendingAction === 'status' && status === 'ACTIVE' ? 'destructive' : 'default'
+              }
+            >
+              {confirmationLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+function readAccountView(): AccountView {
+  if (typeof window === 'undefined') return 'staff';
+  return new URLSearchParams(window.location.search).get('view') === 'customers'
+    ? 'customers'
+    : 'staff';
+}
+
 export default function AdminAccountsPage() {
   const locale = useLocale();
   const visibleDisplayName = (displayName: string) =>
@@ -90,7 +220,7 @@ export default function AdminAccountsPage() {
   const [pending, setPending] = useState<string>();
   const [me, setMe] = useState<Awaited<ReturnType<typeof adminApi.me>>>();
   const [drafts, setDrafts] = useState<Record<string, AccountDraft>>({});
-  const [accountTab, setAccountTab] = useState('admin-accounts');
+  const [accountView, setAccountView] = useState<AccountView>('staff');
   const [createForm, setCreateForm] = useState<{
     displayName: string;
     email: string;
@@ -135,23 +265,19 @@ export default function AdminAccountsPage() {
   }, [locale]);
 
   useEffect(() => {
-    const syncHash = () => {
-      const next = window.location.hash.slice(1);
-      if (next === 'admin-accounts' || next === 'customer-accounts') setAccountTab(next);
-    };
-    syncHash();
-    window.addEventListener('hashchange', syncHash);
-    return () => window.removeEventListener('hashchange', syncHash);
+    const syncView = () => setAccountView(readAccountView());
+    syncView();
+    window.addEventListener('popstate', syncView);
+    return () => window.removeEventListener('popstate', syncView);
   }, []);
 
-  const selectAccountTab = useCallback((value: string) => {
-    if (value !== 'admin-accounts' && value !== 'customer-accounts') return;
-    setAccountTab(value);
-    window.history.replaceState(null, '', `#${value}`);
-    document.getElementById(value)?.scrollIntoView({
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-      block: 'start',
-    });
+  const selectAccountView = useCallback((value: string) => {
+    const next: AccountView = value === 'customers' ? 'customers' : 'staff';
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', next);
+    window.history.pushState(null, '', `${url.pathname}${url.search}`);
+    setAccountView(next);
+    setQuery('');
   }, []);
 
   useEffect(() => {
@@ -312,449 +438,427 @@ export default function AdminAccountsPage() {
           </div>
         }
       />
-      <AdminTabs value={accountTab} onValueChange={selectAccountTab}>
+      <AdminTabs value={accountView} onValueChange={selectAccountView}>
         <AdminTabList variant="line" aria-label={translate(locale, 'admin.accountType')}>
-          <AdminTab value="admin-accounts">{translate(locale, 'admin.adminAccounts')}</AdminTab>
-          <AdminTab value="customer-accounts">
-            {translate(locale, 'admin.customerAccounts')}
-          </AdminTab>
+          <AdminTab value="staff">{translate(locale, 'admin.adminAccounts')}</AdminTab>
+          <AdminTab value="customers">{translate(locale, 'admin.customerAccounts')}</AdminTab>
         </AdminTabList>
-      </AdminTabs>
-      {error ? (
-        <p className="admin-alert admin-alert--error" role="alert">
-          {error}
-        </p>
-      ) : null}
-      <AdminFilterToolbar>
-        <label>
-          {translate(locale, 'admin.search')}
-          <Input
-            type="search"
-            placeholder={translate(locale, 'admin.search')}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
-        <div className="admin-filter-toolbar__summary">
-          {translate(locale, 'admin.adminProfilesCount', {
-            count: visibleItems?.length ?? 0,
-          })}
-          {' · '}
-          {translate(locale, 'admin.customerAccounts')}: {visibleCustomers?.length ?? 0}
-        </div>
-      </AdminFilterToolbar>
+        {error ? (
+          <p className="admin-alert admin-alert--error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <AdminFilterToolbar>
+          <Field>
+            <FieldLabel htmlFor="admin-account-search">
+              {translate(locale, 'admin.search')}
+            </FieldLabel>
+            <Input
+              id="admin-account-search"
+              type="search"
+              placeholder={translate(locale, 'admin.search')}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </Field>
+          <div className="admin-filter-toolbar__summary">
+            {accountView === 'staff'
+              ? translate(locale, 'admin.adminProfilesCount', {
+                  count: visibleItems?.length ?? 0,
+                })
+              : null}
+            {accountView === 'staff'
+              ? null
+              : `${translate(locale, 'admin.customerAccounts')}: ${visibleCustomers?.length ?? 0}`}
+          </div>
+        </AdminFilterToolbar>
 
-      {me?.profileCode === 'SUPER_ADMIN' ? (
-        <AdminFormSheet
-          open={createOpen}
-          onOpenChange={setCreateOpen}
-          title={translate(locale, 'admin.createAccount')}
-          description={translate(locale, 'admin.createAccountHelp')}
-          footer={createMessage ? <span role="status">{createMessage}</span> : null}
-        >
-          <form
-            autoComplete="off"
-            className="admin-form-stack"
-            onSubmit={(event) => void createAccount(event)}
+        {me?.profileCode === 'SUPER_ADMIN' ? (
+          <AdminFormSheet
+            open={createOpen}
+            onOpenChange={setCreateOpen}
+            title={translate(locale, 'admin.createAccount')}
+            description={translate(locale, 'admin.createAccountHelp')}
+            footer={createMessage ? <span role="status">{createMessage}</span> : null}
           >
-            <label>
-              {translate(locale, 'admin.displayName')}
-              <Input
-                autoComplete="off"
-                name="new-admin-display-name"
-                required
-                value={createForm.displayName}
-                onChange={(event) =>
-                  setCreateForm((current) => ({ ...current, displayName: event.target.value }))
-                }
-              />
-            </label>
-            <label>
-              Email
-              <Input
-                autoComplete="off"
-                name="new-admin-email"
-                required
-                type="email"
-                value={createForm.email}
-                onChange={(event) =>
-                  setCreateForm((current) => ({ ...current, email: event.target.value }))
-                }
-              />
-            </label>
-            <label>
-              {translate(locale, 'admin.password')}
-              <Input
-                autoComplete="new-password"
-                name="new-admin-password"
-                required
-                minLength={8}
-                type="password"
-                value={createForm.password}
-                onChange={(event) =>
-                  setCreateForm((current) => ({ ...current, password: event.target.value }))
-                }
-              />
-            </label>
-            <label>
-              {translate(locale, 'admin.profile')}
-              <Select
-                value={createForm.role}
-                onValueChange={(value) => {
-                  if (value === null) return;
-                  setCreateForm((current) => ({ ...current, role: value as AdminProfileCode }));
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {profileOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {translate(locale, option.label)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
-            <label>
-              {translate(locale, 'admin.department')}
-              <AdminMultiSelect
-                ariaLabel={translate(locale, 'admin.department')}
-                options={departments.map((department) => ({
-                  value: department.id,
-                  label: department.name,
-                }))}
-                value={createForm.departmentIds}
-                onChange={(departmentIds) =>
-                  setCreateForm((current) => ({ ...current, departmentIds: [...departmentIds] }))
-                }
-                placeholder={translate(locale, 'admin.department')}
-              />
-            </label>
-            {createForm.role !== 'SUPER_ADMIN' ? (
+            <form
+              autoComplete="off"
+              className="admin-form-stack"
+              onSubmit={(event) => void createAccount(event)}
+            >
               <label>
-                {translate(locale, 'admin.property')}
-                <AdminMultiSelect
-                  ariaLabel={translate(locale, 'admin.property')}
-                  options={accountProperties.map((property) => ({
-                    value: property.id,
-                    label: `${property.code} · ${property.name}`,
-                  }))}
-                  value={createForm.propertyIds}
-                  onChange={(propertyIds) =>
-                    setCreateForm((current) => ({ ...current, propertyIds: [...propertyIds] }))
+                {translate(locale, 'admin.displayName')}
+                <Input
+                  autoComplete="off"
+                  name="new-admin-display-name"
+                  required
+                  value={createForm.displayName}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, displayName: event.target.value }))
                   }
-                  placeholder={translate(locale, 'admin.property')}
                 />
               </label>
-            ) : null}
-            <Button disabled={pending !== undefined} type="submit">
-              {pending === 'create'
-                ? translate(locale, 'admin.creating')
-                : translate(locale, 'admin.create')}
-            </Button>
-          </form>
-        </AdminFormSheet>
-      ) : null}
-
-      {editAccountId !== undefined
-        ? (() => {
-            const item = items?.find((candidate) => candidate.id === editAccountId);
-            if (item === undefined) return null;
-            const draft = draftFor(item);
-            return (
-              <AdminFormSheet
-                open
-                onOpenChange={(open) => {
-                  if (!open) setEditAccountId(undefined);
-                }}
-                title={translate(locale, 'admin.profile')}
-                description={item.emailMasked}
-                footer={
-                  <Button
-                    disabled={pending !== undefined}
-                    onClick={() =>
-                      void saveAssignment(item.id).then((saved) => {
-                        if (saved) setEditAccountId(undefined);
-                      })
+              <label>
+                Email
+                <Input
+                  autoComplete="off"
+                  name="new-admin-email"
+                  required
+                  type="email"
+                  value={createForm.email}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, email: event.target.value }))
+                  }
+                />
+              </label>
+              <label>
+                {translate(locale, 'admin.password')}
+                <Input
+                  autoComplete="new-password"
+                  name="new-admin-password"
+                  required
+                  minLength={8}
+                  type="password"
+                  value={createForm.password}
+                  onChange={(event) =>
+                    setCreateForm((current) => ({ ...current, password: event.target.value }))
+                  }
+                />
+              </label>
+              <label>
+                {translate(locale, 'admin.profile')}
+                <Select
+                  value={createForm.role}
+                  onValueChange={(value) => {
+                    if (value === null) return;
+                    setCreateForm((current) => ({ ...current, role: value as AdminProfileCode }));
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {profileOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {translate(locale, option.label)}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </label>
+              <label>
+                {translate(locale, 'admin.department')}
+                <AdminMultiSelect
+                  ariaLabel={translate(locale, 'admin.department')}
+                  options={departments.map((department) => ({
+                    value: department.id,
+                    label: department.name,
+                  }))}
+                  value={createForm.departmentIds}
+                  onChange={(departmentIds) =>
+                    setCreateForm((current) => ({ ...current, departmentIds: [...departmentIds] }))
+                  }
+                  placeholder={translate(locale, 'admin.department')}
+                />
+              </label>
+              {createForm.role !== 'SUPER_ADMIN' ? (
+                <label>
+                  {translate(locale, 'admin.property')}
+                  <AdminMultiSelect
+                    ariaLabel={translate(locale, 'admin.property')}
+                    options={accountProperties.map((property) => ({
+                      value: property.id,
+                      label: `${property.code} · ${property.name}`,
+                    }))}
+                    value={createForm.propertyIds}
+                    onChange={(propertyIds) =>
+                      setCreateForm((current) => ({ ...current, propertyIds: [...propertyIds] }))
                     }
-                  >
-                    {pending === item.id
-                      ? translate(locale, 'admin.saving')
-                      : translate(locale, 'admin.saveProfile')}
-                  </Button>
-                }
-              >
-                <div className="admin-form-stack">
-                  <label>
-                    {translate(locale, 'admin.profile')}
-                    <Select
-                      value={draft.role}
-                      onValueChange={(value) => {
-                        if (value !== null)
-                          updateDraft(item.id, { role: value as AdminProfileCode });
-                      }}
+                    placeholder={translate(locale, 'admin.property')}
+                  />
+                </label>
+              ) : null}
+              <Button disabled={pending !== undefined} type="submit">
+                {pending === 'create'
+                  ? translate(locale, 'admin.creating')
+                  : translate(locale, 'admin.create')}
+              </Button>
+            </form>
+          </AdminFormSheet>
+        ) : null}
+
+        {editAccountId !== undefined
+          ? (() => {
+              const item = items?.find((candidate) => candidate.id === editAccountId);
+              if (item === undefined) return null;
+              const draft = draftFor(item);
+              return (
+                <AdminFormSheet
+                  open
+                  onOpenChange={(open) => {
+                    if (!open) setEditAccountId(undefined);
+                  }}
+                  title={translate(locale, 'admin.profile')}
+                  description={item.emailMasked}
+                  footer={
+                    <Button
+                      disabled={pending !== undefined}
+                      onClick={() =>
+                        void saveAssignment(item.id).then((saved) => {
+                          if (saved) setEditAccountId(undefined);
+                        })
+                      }
                     >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {profileOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {translate(locale, option.label)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </label>
-                  <label>
-                    {translate(locale, 'admin.department')}
-                    <AdminMultiSelect
-                      ariaLabel={translate(locale, 'admin.departmentFor', {
-                        email: item.emailMasked,
-                      })}
-                      options={departments.map((department) => ({
-                        value: department.id,
-                        label: department.name,
-                      }))}
-                      value={draft.departmentIds}
-                      onChange={(departmentIds) => updateDraft(item.id, { departmentIds })}
-                      placeholder={translate(locale, 'admin.department')}
-                    />
-                  </label>
-                  {draft.role !== 'SUPER_ADMIN' ? (
+                      {pending === item.id
+                        ? translate(locale, 'admin.saving')
+                        : translate(locale, 'admin.saveProfile')}
+                    </Button>
+                  }
+                >
+                  <div className="admin-form-stack">
                     <label>
-                      {translate(locale, 'admin.property')}
+                      {translate(locale, 'admin.profile')}
+                      <Select
+                        value={draft.role}
+                        onValueChange={(value) => {
+                          if (value !== null)
+                            updateDraft(item.id, { role: value as AdminProfileCode });
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {profileOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {translate(locale, option.label)}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </label>
+                    <label>
+                      {translate(locale, 'admin.department')}
                       <AdminMultiSelect
-                        ariaLabel={translate(locale, 'admin.property')}
-                        options={accountProperties.map((property) => ({
-                          value: property.id,
-                          label: `${property.code} · ${property.name}`,
+                        ariaLabel={translate(locale, 'admin.departmentFor', {
+                          email: item.emailMasked,
+                        })}
+                        options={departments.map((department) => ({
+                          value: department.id,
+                          label: department.name,
                         }))}
-                        value={draft.propertyIds}
-                        onChange={(propertyIds) => updateDraft(item.id, { propertyIds })}
-                        placeholder={translate(locale, 'admin.property')}
+                        value={draft.departmentIds}
+                        onChange={(departmentIds) => updateDraft(item.id, { departmentIds })}
+                        placeholder={translate(locale, 'admin.department')}
                       />
                     </label>
-                  ) : null}
-                </div>
-              </AdminFormSheet>
-            );
-          })()
-        : null}
+                    {draft.role !== 'SUPER_ADMIN' ? (
+                      <label>
+                        {translate(locale, 'admin.property')}
+                        <AdminMultiSelect
+                          ariaLabel={translate(locale, 'admin.property')}
+                          options={accountProperties.map((property) => ({
+                            value: property.id,
+                            label: `${property.code} · ${property.name}`,
+                          }))}
+                          value={draft.propertyIds}
+                          onChange={(propertyIds) => updateDraft(item.id, { propertyIds })}
+                          placeholder={translate(locale, 'admin.property')}
+                        />
+                      </label>
+                    ) : null}
+                  </div>
+                </AdminFormSheet>
+              );
+            })()
+          : null}
 
-      <Card id="admin-accounts">
-        <CardHeader>
-          <CardTitle>{translate(locale, 'admin.adminAccounts')}</CardTitle>
-          <CardDescription>{translate(locale, 'admin.legacyAdminHelp')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {items === undefined ? (
-            <p className="admin-state">{translate(locale, 'admin.loading')}</p>
-          ) : visibleItems?.length === 0 ? (
-            <p className="admin-state">{translate(locale, 'admin.noAccounts')}</p>
-          ) : (
-            <AdminDataTable variant="management" className="admin-accounts-table">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{translate(locale, 'admin.user')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.profile')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.department')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.status')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.sessions')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.action')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visibleItems?.map((item) => {
-                    const draft = draftFor(item);
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell data-label={translate(locale, 'admin.user')}>
-                          <strong>{visibleDisplayName(item.displayName)}</strong>
-                          <br />
-                          <span className="admin-muted">{item.emailMasked}</span>
-                        </TableCell>
-                        <TableCell data-label={translate(locale, 'admin.profile')}>
-                          <span>
-                            {translate(
-                              locale,
-                              profileOptions.find((option) => option.value === draft.role)?.label ??
-                                'admin.roleRoomStatusViewer',
-                            )}
-                          </span>
-                          {item.profileCode === null ? (
-                            <Badge variant="destructive">
-                              {translate(locale, 'admin.needsAssignment')}
-                            </Badge>
-                          ) : null}
-                        </TableCell>
-                        <TableCell data-label={translate(locale, 'admin.department')}>
-                          {item.departments.join(', ') || translate(locale, 'account.notAvailable')}
-                        </TableCell>
-                        <TableCell data-label={translate(locale, 'admin.status')}>
-                          <AdminStatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'danger'}>
-                            {translate(
-                              locale,
-                              item.status === 'ACTIVE'
-                                ? 'admin.statusActive'
-                                : 'admin.statusDisabled',
-                            )}
-                          </AdminStatusBadge>
-                        </TableCell>
-                        <TableCell data-label={translate(locale, 'admin.sessions')}>
-                          {item.activeSessionCount}
-                        </TableCell>
-                        <TableCell data-label={translate(locale, 'admin.action')}>
-                          <div className="admin-row-actions">
-                            <Button
-                              disabled={pending !== undefined}
-                              onClick={() => setEditAccountId(item.id)}
-                              size="sm"
-                              variant="outline"
-                            >
-                              {translate(locale, 'admin.profile')}
-                            </Button>
-                            <Button
-                              disabled={pending !== undefined}
-                              onClick={() =>
-                                void changeStatus(
-                                  item.id,
-                                  item.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE',
-                                )
-                              }
-                              size="sm"
-                              variant="outline"
+        <AdminTabContent value="staff">
+          <Card>
+            <CardHeader>
+              <CardTitle>{translate(locale, 'admin.adminAccounts')}</CardTitle>
+              <CardDescription>{translate(locale, 'admin.legacyAdminHelp')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {items === undefined ? (
+                <p className="admin-state">{translate(locale, 'admin.loading')}</p>
+              ) : visibleItems?.length === 0 ? (
+                <p className="admin-state">{translate(locale, 'admin.noAccounts')}</p>
+              ) : (
+                <AdminDataTable variant="management" className="admin-accounts-table">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{translate(locale, 'admin.user')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.profile')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.department')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.status')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.sessions')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.action')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {visibleItems?.map((item) => {
+                        const draft = draftFor(item);
+                        return (
+                          <TableRow key={item.id}>
+                            <TableCell data-label={translate(locale, 'admin.user')}>
+                              <strong>{visibleDisplayName(item.displayName)}</strong>
+                              <br />
+                              <span className="admin-muted">{item.emailMasked}</span>
+                            </TableCell>
+                            <TableCell data-label={translate(locale, 'admin.profile')}>
+                              <span>
+                                {translate(
+                                  locale,
+                                  profileOptions.find((option) => option.value === draft.role)
+                                    ?.label ?? 'admin.roleRoomStatusViewer',
+                                )}
+                              </span>
+                              {item.profileCode === null ? (
+                                <Badge variant="destructive">
+                                  {translate(locale, 'admin.needsAssignment')}
+                                </Badge>
+                              ) : null}
+                            </TableCell>
+                            <TableCell data-label={translate(locale, 'admin.department')}>
+                              {item.departments.join(', ') ||
+                                translate(locale, 'account.notAvailable')}
+                            </TableCell>
+                            <TableCell data-label={translate(locale, 'admin.status')}>
+                              <AdminStatusBadge
+                                tone={item.status === 'ACTIVE' ? 'success' : 'danger'}
+                              >
+                                {translate(
+                                  locale,
+                                  item.status === 'ACTIVE'
+                                    ? 'admin.statusActive'
+                                    : 'admin.statusDisabled',
+                                )}
+                              </AdminStatusBadge>
+                            </TableCell>
+                            <TableCell data-label={translate(locale, 'admin.sessions')}>
+                              {item.activeSessionCount}
+                            </TableCell>
+                            <TableCell data-label={translate(locale, 'admin.action')}>
+                              <AccountActionsMenu
+                                disabled={pending !== undefined}
+                                emailMasked={item.emailMasked}
+                                hasActiveSessions={item.activeSessionCount > 0}
+                                locale={locale}
+                                onEdit={() => setEditAccountId(item.id)}
+                                onRevokeSessions={() => void revokeSessions(item.id)}
+                                onStatusChange={() =>
+                                  void changeStatus(
+                                    item.id,
+                                    item.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE',
+                                  )
+                                }
+                                status={item.status}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </AdminDataTable>
+              )}
+            </CardContent>
+          </Card>
+        </AdminTabContent>
+
+        <AdminTabContent value="customers">
+          <Card>
+            <CardHeader>
+              <CardTitle>{translate(locale, 'admin.customerAccounts')}</CardTitle>
+              <CardDescription>{translate(locale, 'admin.customerAccountsHelp')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {customers === undefined ? (
+                <p className="admin-state">{translate(locale, 'admin.loading')}</p>
+              ) : visibleCustomers?.length === 0 ? (
+                <p className="admin-state">{translate(locale, 'admin.noCustomerAccounts')}</p>
+              ) : (
+                <AdminDataTable variant="management" className="admin-customer-accounts-table">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{translate(locale, 'admin.reportCustomers')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.identityProviders')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.bookingCount')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.status')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.sessions')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.lastActivity')}</TableHead>
+                        <TableHead>{translate(locale, 'admin.action')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {visibleCustomers?.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell data-label={translate(locale, 'admin.reportCustomers')}>
+                            <strong>{visibleDisplayName(item.displayName)}</strong>
+                            <br />
+                            <span className="admin-muted">{item.emailMasked}</span>
+                          </TableCell>
+                          <TableCell data-label={translate(locale, 'admin.identityProviders')}>
+                            {item.providers.join(', ') || translate(locale, 'admin.notLinked')}
+                          </TableCell>
+                          <TableCell data-label={translate(locale, 'admin.bookingCount')}>
+                            {item.bookingCount}
+                          </TableCell>
+                          <TableCell data-label={translate(locale, 'admin.status')}>
+                            <AdminStatusBadge
+                              tone={item.status === 'ACTIVE' ? 'success' : 'danger'}
                             >
                               {translate(
                                 locale,
                                 item.status === 'ACTIVE'
-                                  ? 'admin.lockAccount'
-                                  : 'admin.unlockAccount',
+                                  ? 'admin.statusActive'
+                                  : 'admin.statusDisabled',
                               )}
-                            </Button>
-                            <Button
-                              disabled={pending !== undefined || item.activeSessionCount === 0}
-                              onClick={() => void revokeSessions(item.id)}
-                              size="sm"
-                              variant="ghost"
-                            >
-                              {translate(locale, 'admin.revokeSessions')}
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </AdminDataTable>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card id="customer-accounts">
-        <CardHeader>
-          <CardTitle>{translate(locale, 'admin.customerAccounts')}</CardTitle>
-          <CardDescription>{translate(locale, 'admin.customerAccountsHelp')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {customers === undefined ? (
-            <p className="admin-state">{translate(locale, 'admin.loading')}</p>
-          ) : visibleCustomers?.length === 0 ? (
-            <p className="admin-state">{translate(locale, 'admin.noCustomerAccounts')}</p>
-          ) : (
-            <AdminDataTable variant="management" className="admin-customer-accounts-table">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{translate(locale, 'admin.reportCustomers')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.identityProviders')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.bookingCount')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.status')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.sessions')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.lastActivity')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.action')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visibleCustomers?.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell data-label={translate(locale, 'admin.reportCustomers')}>
-                        <strong>{visibleDisplayName(item.displayName)}</strong>
-                        <br />
-                        <span className="admin-muted">{item.emailMasked}</span>
-                      </TableCell>
-                      <TableCell data-label={translate(locale, 'admin.identityProviders')}>
-                        {item.providers.join(', ') || translate(locale, 'admin.notLinked')}
-                      </TableCell>
-                      <TableCell data-label={translate(locale, 'admin.bookingCount')}>
-                        {item.bookingCount}
-                      </TableCell>
-                      <TableCell data-label={translate(locale, 'admin.status')}>
-                        <AdminStatusBadge tone={item.status === 'ACTIVE' ? 'success' : 'danger'}>
-                          {translate(
-                            locale,
-                            item.status === 'ACTIVE'
-                              ? 'admin.statusActive'
-                              : 'admin.statusDisabled',
-                          )}
-                        </AdminStatusBadge>
-                      </TableCell>
-                      <TableCell data-label={translate(locale, 'admin.sessions')}>
-                        {item.activeSessionCount}
-                      </TableCell>
-                      <TableCell data-label={translate(locale, 'admin.lastActivity')}>
-                        {item.lastActivityAt === null
-                          ? translate(locale, 'admin.noActivity')
-                          : formatDateTime(locale, item.lastActivityAt)}
-                      </TableCell>
-                      <TableCell data-label={translate(locale, 'admin.action')}>
-                        <div className="admin-row-actions">
-                          <Button
-                            disabled={pending !== undefined}
-                            onClick={() =>
-                              void changeStatus(
-                                item.id,
-                                item.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE',
-                                true,
-                              )
-                            }
-                            size="sm"
-                            variant="outline"
-                          >
-                            {translate(
-                              locale,
-                              item.status === 'ACTIVE'
-                                ? 'admin.lockAccount'
-                                : 'admin.unlockAccount',
-                            )}
-                          </Button>
-                          <Button
-                            disabled={pending !== undefined || item.activeSessionCount === 0}
-                            onClick={() => void revokeSessions(item.id, true)}
-                            size="sm"
-                            variant="ghost"
-                          >
-                            {translate(locale, 'admin.revokeSessions')}
-                          </Button>
-                          <Link
-                            href={`/admin/bookings?customerUserId=${encodeURIComponent(item.id)}`}
-                          >
-                            {translate(locale, 'admin.viewBookings')}
-                          </Link>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </AdminDataTable>
-          )}
-        </CardContent>
-      </Card>
+                            </AdminStatusBadge>
+                          </TableCell>
+                          <TableCell data-label={translate(locale, 'admin.sessions')}>
+                            {item.activeSessionCount}
+                          </TableCell>
+                          <TableCell data-label={translate(locale, 'admin.lastActivity')}>
+                            {item.lastActivityAt === null
+                              ? translate(locale, 'admin.noActivity')
+                              : formatDateTime(locale, item.lastActivityAt)}
+                          </TableCell>
+                          <TableCell data-label={translate(locale, 'admin.action')}>
+                            <AccountActionsMenu
+                              bookingsHref={`/admin/bookings?customerUserId=${encodeURIComponent(item.id)}`}
+                              disabled={pending !== undefined}
+                              emailMasked={item.emailMasked}
+                              hasActiveSessions={item.activeSessionCount > 0}
+                              locale={locale}
+                              onRevokeSessions={() => void revokeSessions(item.id, true)}
+                              onStatusChange={() =>
+                                void changeStatus(
+                                  item.id,
+                                  item.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE',
+                                  true,
+                                )
+                              }
+                              status={item.status}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </AdminDataTable>
+              )}
+            </CardContent>
+          </Card>
+        </AdminTabContent>
+      </AdminTabs>
     </div>
   );
 }
