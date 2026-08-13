@@ -16,12 +16,14 @@
   },
   "dependencies": {
     "@room/database": "workspace:*",
-    "libphonenumber-js": "1.13.9"
+    "libphonenumber-js": "1.13.9",
+    "qrcode": "1.5.4"
   },
   "devDependencies": {
     "@room/eslint-config": "workspace:*",
     "@room/typescript-config": "workspace:*",
     "@types/node": "24.1.0",
-    "@types/pg": "8.15.6"
+    "@types/pg": "8.15.6",
+    "@types/qrcode": "1.5.5"
   }
 }

@@ -2,9 +2,11 @@ import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  ArrivalAccessCrypto,
   applyVerifiedPaymentEvent,
   createBookingHoldWithRetry,
   createPaymentAttempt,
+  deriveArrivalAccessEncryptionKey,
   normalizeContact,
 } from '@room/booking';
 import {
@@ -42,6 +44,7 @@ import {
 import { AdminBookingLifecycleService } from '../../src/booking/services/admin-booking-lifecycle.service.js';
 import { BookingAccessPassService } from '../../src/booking/services/booking-access-pass.service.js';
 import { BookingDetailService } from '../../src/booking/services/booking-detail.service.js';
+import { ArrivalAccessConfigService } from '../../src/booking/services/arrival-access-config.service.js';
 import { GuestSessionService } from '../../src/booking/services/guest-session.service.js';
 import type { ActorContext } from '../../src/auth/actor-context.js';
 
@@ -111,6 +114,7 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
   let availability: AvailabilityService;
   let quotes: QuoteService;
   let policyService: PricingPolicyService;
+  let arrivalAccess: ArrivalAccessConfigService;
 
   beforeAll(async () => {
     const url = process.env.TEST_DATABASE_URL;
@@ -151,6 +155,49 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
        VALUES ($1, $2, $3, 'B0-101'), ($4, $2, $3, 'B0-102')`,
       [ids.roomA, ids.property, ids.roomType, ids.roomB],
     );
+    const arrivalCrypto = new ArrivalAccessCrypto(deriveArrivalAccessEncryptionKey(sessionSecret));
+    await database.pool.query(
+      `INSERT INTO property_arrival_access_configs
+         (property_id, gate_pass_encrypted, wifi_ssid, wifi_password_encrypted, support_contact,
+          default_arrival_instruction, preparation_note)
+       VALUES ($1, $2, 'B0 Guest Wi-Fi', $3, '0900 000 000', 'Follow check-in signs.',
+               'Bring a valid ID.')`,
+      [
+        ids.property,
+        arrivalCrypto.encrypt('B0-GATE-PASS', {
+          scope: 'property',
+          id: ids.property,
+          field: 'gatePass',
+        }),
+        arrivalCrypto.encrypt('b0-wifi-password', {
+          scope: 'property',
+          id: ids.property,
+          field: 'wifiPassword',
+        }),
+      ],
+    );
+    await database.pool.query(
+      `INSERT INTO room_arrival_access_configs
+         (room_id, property_id, room_pass_encrypted, room_location, arrival_instruction)
+       VALUES ($1, $3, $2, 'Floor 1', 'Use the east elevator.'),
+              ($4, $3, $5, 'Floor 1', 'Use the east elevator.')`,
+      [
+        ids.roomA,
+        arrivalCrypto.encrypt('B0-ROOM-A', {
+          scope: 'room',
+          id: ids.roomA,
+          field: 'roomPass',
+        }),
+        ids.property,
+        ids.roomB,
+        arrivalCrypto.encrypt('B0-ROOM-B', {
+          scope: 'room',
+          id: ids.roomB,
+          field: 'roomPass',
+        }),
+      ],
+    );
+    arrivalAccess = new ArrivalAccessConfigService(client, undefined as never, arrivalCrypto);
     await database.pool.query(
       `INSERT INTO rate_plans
        (id, property_id, code, name, status, included_duration_minutes, priority, is_base_plan,
@@ -515,6 +562,7 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
         sessionSecret,
         ipDigestSecret: sessionSecret,
       }),
+      arrivalAccess,
     );
     const middle = new Date(new Date(input.checkIn).getTime() + 36 * 60 * 60 * 1000);
     await expect(
@@ -668,12 +716,13 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
         sessionSecret,
         ipDigestSecret: sessionSecret,
       }),
+      arrivalAccess,
     );
     const access = new BookingAccessPassService(sessionSecret);
     const cancellationTime = new Date('2027-03-01T00:00:00.000Z');
     await expect(
       customer.getAccessPass(hold.bookingCode, customerToken, cancellationTime, access),
-    ).resolves.toMatchObject({ bookingCode: hold.bookingCode });
+    ).rejects.toMatchObject({ code: 'BOOKING_ACCESS_PASS_INVALID' });
 
     const before = await database.pool.query<{
       check_in: Date;

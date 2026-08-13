@@ -4,217 +4,74 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { AvailabilitySearchForm } from '../src/components/availability-search-form';
 import { PublicLanding } from '../src/components/public-landing';
-import { publicApi } from '../src/lib/admin-api';
 import { LocaleProvider } from '../src/components/locale-provider';
 
-const push = vi.fn();
-vi.mock('../src/lib/admin-api', () => ({
-  publicApi: { searchAvailability: vi.fn() },
-}));
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
 
 describe('public booking entry', () => {
-  it('keeps landing discovery separate until a search and directs room browsing to /rooms', async () => {
-    // Phase 2 catalog truthfulness: when no catalog is provided the landing
-    // page renders an explicit empty / unavailable state instead of falling
-    // back to the static hospitality room copy. No fabricated room cards
-    // and no "Chi tiết hạng phòng" links should appear.
+  it('keeps landing discovery truthful when the catalog is unavailable', () => {
     render(
       <LocaleProvider locale="vi">
         <PublicLanding />
       </LocaleProvider>,
     );
-    expect(screen.queryByRole('heading', { name: 'Hạng phòng còn trống' })).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Xem tất cả phòng' }).length).toBeGreaterThanOrEqual(
-      1,
-    );
-    expect(screen.queryAllByRole('link', { name: 'Chi tiết hạng phòng' })).toHaveLength(0);
+
     expect(screen.getByTestId('landing-featured-empty')).toBeVisible();
+    expect(screen.queryAllByRole('link', { name: /Chi tiết hạng phòng/i })).toHaveLength(0);
   });
 
-  it('uses one selected hourly tab to serialize only its interval', async () => {
-    const user = userEvent.setup();
-    render(<AvailabilitySearchForm onSearch={vi.fn()} variant="home" />);
-    await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
-    expect(screen.getByRole('button', { name: 'Theo giờ' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: 'Qua đêm' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-    expect(screen.queryByLabelText('Nhận phòng')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
-    fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '11:00' } });
-    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
-    expect(push).not.toHaveBeenCalled();
-  });
-
-  it('keeps a visible hourly end time synchronized with shortcuts and submits that interval', async () => {
+  it('submits a complete future interval without a client-selected mode', async () => {
     const onSearch = vi.fn();
     const user = userEvent.setup();
     render(<AvailabilitySearchForm onSearch={onSearch} variant="home" />);
 
-    await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
+    fireEvent.change(screen.getByTestId('availability-check-in-date'), {
+      target: { value: '2099-04-10' },
+    });
+    fireEvent.change(screen.getByTestId('availability-check-in-time'), {
+      target: { value: '10:00' },
+    });
+    fireEvent.change(screen.getByTestId('availability-check-out-date'), {
+      target: { value: '2099-04-11' },
+    });
+    fireEvent.change(screen.getByTestId('availability-check-out-time'), {
+      target: { value: '11:30' },
+    });
+    fireEvent.change(screen.getByTestId('availability-adults'), { target: { value: '2' } });
+    fireEvent.change(screen.getByTestId('availability-children'), { target: { value: '1' } });
+    await user.click(screen.getByTestId('availability-submit'));
 
-    const endTime = screen.getByLabelText('Giờ kết thúc');
-    expect(endTime).toBeVisible();
-
-    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
-    fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '10:00' } });
-    expect(endTime).toHaveValue('13:00:00');
-
-    await user.click(screen.getByRole('button', { name: '5 giờ' }));
-    expect(endTime).toHaveValue('15:00:00');
-
-    fireEvent.change(endTime, { target: { value: '15:30' } });
-    expect(screen.getByRole('button', { name: 'Tùy chỉnh' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-
-    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
     expect(onSearch).toHaveBeenCalledWith({
-      mode: 'hourly',
       checkIn: '2099-04-10T10:00:00+07:00',
-      checkOut: '2099-04-10T15:30:00+07:00',
-      adults: 1,
-      children: 0,
+      checkOut: '2099-04-11T11:30:00+07:00',
+      adults: 2,
+      children: 1,
     });
   });
 
-  it('submits arbitrary hourly minutes and seconds exactly', async () => {
+  it('rejects a past interval before requesting availability', async () => {
     const onSearch = vi.fn();
     const user = userEvent.setup();
     render(<AvailabilitySearchForm onSearch={onSearch} variant="home" />);
 
-    await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
-    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
-    fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '05:00:17' } });
-    fireEvent.change(screen.getByLabelText('Giờ kết thúc'), { target: { value: '08:15:46' } });
-    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
-
-    expect(onSearch).toHaveBeenCalledWith({
-      mode: 'hourly',
-      checkIn: '2099-04-10T05:00:17+07:00',
-      checkOut: '2099-04-10T08:15:46+07:00',
-      adults: 1,
-      children: 0,
+    fireEvent.change(screen.getByTestId('availability-check-in-date'), {
+      target: { value: '2020-04-10' },
     });
-  });
-
-  it('submits a cross-midnight interval when an hourly shortcut crosses midnight', async () => {
-    const user = userEvent.setup();
-    const onSearch = vi.fn();
-    render(<AvailabilitySearchForm onSearch={onSearch} variant="home" />);
-
-    await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
-    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
-    fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '23:00' } });
-    await user.click(screen.getByRole('button', { name: '3 giờ' }));
-    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
-
-    expect(onSearch).toHaveBeenCalledWith({
-      mode: 'hourly',
-      checkIn: '2099-04-10T23:00:00+07:00',
-      checkOut: '2099-04-11T02:00:00+07:00',
-      adults: 1,
-      children: 0,
+    fireEvent.change(screen.getByTestId('availability-check-in-time'), {
+      target: { value: '10:00' },
     });
-  });
-
-  it('rejects an hourly interval that is already in the past', async () => {
-    const user = userEvent.setup();
-    render(<AvailabilitySearchForm onSearch={vi.fn()} variant="home" />);
-
-    await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
-    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2020-04-10' } });
-    fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '10:00' } });
-    fireEvent.change(screen.getByLabelText('Giờ kết thúc'), { target: { value: '13:00' } });
-    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
-
-    expect(screen.getByRole('alert')).toHaveTextContent('trong tương lai');
-  });
-
-  it('offers only fixed 21:00-09:00 and 22:00-10:00 overnight windows, always spanning one night', async () => {
-    const onSearch = vi.fn();
-    const user = userEvent.setup();
-    render(<AvailabilitySearchForm onSearch={onSearch} variant="home" />);
-
-    fireEvent.change(screen.getByLabelText('Nhận phòng'), { target: { value: '2099-04-10' } });
-    await user.click(screen.getByRole('button', { name: '22:00 - 10:00' }));
-    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
-
-    expect(onSearch).toHaveBeenCalledWith({
-      mode: 'overnight',
-      checkIn: '2099-04-10T22:00:00+07:00',
-      checkOut: '2099-04-11T10:00:00+07:00',
-      adults: 1,
-      children: 0,
+    fireEvent.change(screen.getByTestId('availability-check-out-date'), {
+      target: { value: '2020-04-10' },
     });
-  });
-
-  it('switches to overnight without retaining hourly fields in the search payload', async () => {
-    const onSearch = vi.fn();
-    const user = userEvent.setup();
-    render(<AvailabilitySearchForm onSearch={onSearch} variant="home" />);
-
-    await user.click(screen.getByRole('button', { name: 'Theo giờ' }));
-    fireEvent.change(screen.getByLabelText('Ngày'), { target: { value: '2099-04-10' } });
-    fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), { target: { value: '11:00' } });
-    await user.click(screen.getByRole('button', { name: 'Qua đêm' }));
-
-    expect(screen.getByRole('button', { name: 'Qua đêm' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.queryByLabelText('Ngày')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Nhận phòng'), {
-      target: { value: '2099-04-10' },
+    fireEvent.change(screen.getByTestId('availability-check-out-time'), {
+      target: { value: '13:00' },
     });
-    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
+    await user.click(screen.getByTestId('availability-submit'));
 
-    expect(onSearch).toHaveBeenCalledWith({
-      mode: 'overnight',
-      checkIn: '2099-04-10T21:00:00+07:00',
-      checkOut: '2099-04-11T09:00:00+07:00',
-      adults: 1,
-      children: 0,
-    });
-  });
-
-  it('keeps a valid landing search inline and renders the server offer', async () => {
-    vi.mocked(publicApi.searchAvailability).mockResolvedValue({
-      items: [
-        {
-          roomTypeId: '550e8400-e29b-41d4-a716-446655440010',
-          roomTypeName: 'Deluxe',
-          maxAdults: 2,
-          maxChildren: 1,
-          maxOccupancy: 3,
-          amenities: ['Wi-Fi'],
-          availableRoomCount: 1,
-          offer: { planLabel: '3 giờ', amountVnd: 300000 },
-        },
-      ],
-    });
-    const user = userEvent.setup();
-    render(
-      <LocaleProvider locale="vi">
-        <PublicLanding />
-      </LocaleProvider>,
-    );
-    fireEvent.change(screen.getByLabelText('Nhận phòng'), {
-      target: { value: '2099-04-10' },
-    });
-    await user.click(screen.getByRole('button', { name: 'Tìm phòng' }));
-    expect(push).not.toHaveBeenCalled();
-    expect(await screen.findByRole('heading', { name: 'Hạng phòng còn trống' })).toBeVisible();
-    expect(screen.getByText('Giá đúng khung giờ đã chọn: 300.000 ₫')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Mở trang kết quả đầy đủ' })).toHaveAttribute(
-      'href',
-      expect.stringContaining('/booking/search?mode=overnight'),
-    );
+    expect(onSearch).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 });

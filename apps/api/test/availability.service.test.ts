@@ -8,6 +8,7 @@ import {
 import { PricingRuleNotFoundError } from '../src/pricing/pricing-engine.js';
 
 const request = {
+  mode: 'hourly' as const,
   checkIn: '2026-07-23T04:00:00.000Z',
   checkOut: '2026-07-23T07:00:00.000Z',
   adults: 2,
@@ -19,6 +20,7 @@ describe('AvailabilityService', () => {
       search: async () => [
         {
           roomTypeId: '550e8400-e29b-41d4-a716-446655440010',
+          roomTypeCode: 'DELUXE',
           roomTypeName: 'Deluxe',
           maxAdults: 2,
           maxChildren: 1,
@@ -32,6 +34,7 @@ describe('AvailabilityService', () => {
     const service = new AvailabilityService(repository);
     const result = await service.search(request);
     expect(result.items).toHaveLength(1);
+    expect(result.items[0]?.roomTypeCode).toBe('DELUXE');
     expect(JSON.stringify(result)).not.toMatch(/roomNumber|roomId|room_id/i);
   });
 
@@ -75,5 +78,23 @@ describe('AvailabilityService', () => {
     expect(result.state).toBe('SERVICE_UNAVAILABLE');
     expect(repository.search).not.toHaveBeenCalled();
     expect(repository.searchWithState).not.toHaveBeenCalled();
+  });
+
+  it('routes a mode-free Customer interval through the flexible pricing resolver', async () => {
+    const repository: AvailabilityRepositoryPort = { search: vi.fn() };
+    const multiNight = {
+      search: vi.fn().mockResolvedValue({
+        state: 'AVAILABLE',
+        requestedInterval: { checkIn: request.checkIn, checkOut: request.checkOut },
+        items: [],
+      }),
+    };
+
+    const { mode: _legacyMode, ...customerRequest } = request;
+    void _legacyMode;
+    await new AvailabilityService(repository, multiNight).search(customerRequest);
+
+    expect(multiNight.search).toHaveBeenCalledWith(customerRequest);
+    expect(repository.search).not.toHaveBeenCalled();
   });
 });

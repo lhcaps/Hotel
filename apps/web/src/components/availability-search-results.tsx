@@ -197,7 +197,6 @@ export function AvailabilitySearchResults({
     setExactFetchError(undefined);
     void publicApi
       .searchAvailability({
-        mode: state.mode,
         checkIn: state.checkIn,
         checkOut: state.checkOut,
         adults: state.adults,
@@ -208,7 +207,7 @@ export function AvailabilitySearchResults({
     return () => {
       active = false;
     };
-  }, [isControlled, state?.checkIn, state?.checkOut, state?.adults, state?.children, state?.mode]);
+  }, [isControlled, state?.checkIn, state?.checkOut, state?.adults, state?.children]);
 
   if (!state) {
     return (
@@ -251,17 +250,10 @@ export function AvailabilitySearchResults({
   if (exactStatus === 'unavailable') {
     const unavailableState = (controlledExactResponse ?? exactResponse)?.state;
     const responseCopy = responseStateCopy(locale, unavailableState);
-    const invalidOvernight = state.mode === 'overnight' && unavailableState === 'INVALID_INTERVAL';
     return (
       <Alert className="availability-results__error" variant="destructive">
-        <AlertTitle>
-          {invalidOvernight
-            ? translate(locale, 'search.overnightOneNightTitle')
-            : responseCopy.title}
-        </AlertTitle>
-        <AlertDescription>
-          {invalidOvernight ? translate(locale, 'search.overnightOneNightHelp') : responseCopy.help}
-        </AlertDescription>
+        <AlertTitle>{responseCopy.title}</AlertTitle>
+        <AlertDescription>{responseCopy.help}</AlertDescription>
         {onRetry ? (
           <Button onClick={onRetry} size="sm" type="button">
             {translate(locale, 'search.retry')}
@@ -292,24 +284,27 @@ export function AvailabilitySearchResults({
           ) : null}
         </header>
         <div className="availability-results__grid">
-          {items.map((room) => (
-            <ResultCard
-              badge={translate(locale, 'search.nearbyExact')}
-              badgeVariant="exact"
-              imageSrc={publicRoomImage(room.roomTypeId)}
-              key={room.roomTypeId}
-              roomTypeId={room.roomTypeId}
-              roomTypeName={room.roomTypeName}
-              {...(room.propertyName === undefined ? {} : { propertyName: room.propertyName })}
-              state={state}
-              amenities={room.amenities}
-              availableRoomCount={room.availableRoomCount}
-              maxOccupancy={room.maxOccupancy}
-              {...(room.offer !== undefined || room.offers !== undefined
-                ? { offer: room.offers?.[0] ?? room.offer }
-                : {})}
-            />
-          ))}
+          {items.map((room) => {
+            const imageSrc = publicRoomImage(room.roomTypeCode);
+            return (
+              <ResultCard
+                badge={translate(locale, 'search.nearbyExact')}
+                badgeVariant="exact"
+                key={room.roomTypeId}
+                roomTypeId={room.roomTypeId}
+                roomTypeName={room.roomTypeName}
+                {...(imageSrc === undefined ? {} : { imageSrc })}
+                {...(room.propertyName === undefined ? {} : { propertyName: room.propertyName })}
+                state={state}
+                amenities={room.amenities}
+                availableRoomCount={room.availableRoomCount}
+                maxOccupancy={room.maxOccupancy}
+                {...(room.offer !== undefined || room.offers !== undefined
+                  ? { offer: room.offers?.[0] ?? room.offer }
+                  : {})}
+              />
+            );
+          })}
         </div>
       </section>
     );
@@ -352,7 +347,7 @@ function ResultCard({
   availableRoomCount: number;
   maxOccupancy: number;
   offer?: { planLabel: string; amountVnd: number } | null;
-  imageSrc: string;
+  imageSrc?: string;
   state: BookingSearchState;
   badge: string;
   badgeVariant: 'exact' | 'nearby';
@@ -366,7 +361,9 @@ function ResultCard({
         : translate(locale, 'search.soldOut');
   return (
     <Card className="availability-results__room" data-testid={`availability-room-${roomTypeId}`}>
-      <img alt="" className="availability-results__room-image" src={imageSrc} />
+      {imageSrc === undefined ? null : (
+        <img alt="" className="availability-results__room-image" src={imageSrc} />
+      )}
       <CardHeader>
         <div className="availability-results__badges">
           <Badge variant={badgeVariant === 'exact' ? 'secondary' : 'outline'}>{badge}</Badge>
@@ -376,14 +373,7 @@ function ResultCard({
         {propertyName === undefined ? null : <CardDescription>{propertyName}</CardDescription>}
         <CardDescription>
           {translate(locale, 'search.capacity', { count: maxOccupancy })} ·{' '}
-          {translate(
-            locale,
-            state.mode === 'hourly'
-              ? 'search.modeHourly'
-              : state.mode === 'multi_night'
-                ? 'search.modeMultiNight'
-                : 'search.modeOvernight',
-          )}
+          {formatDateTime(locale, state.checkIn)} – {formatDateTime(locale, state.checkOut)}
         </CardDescription>
       </CardHeader>
       <CardContent className="availability-results__room-content">
@@ -520,7 +510,6 @@ function NearbyCandidateGroup({
   const locale = useLocale();
   const isExact = candidate.shiftMinutes === 0;
   const intervalState: BookingSearchState = {
-    mode: state.mode,
     checkIn: candidate.checkIn,
     checkOut: candidate.checkOut,
     adults: state.adults,
@@ -542,28 +531,31 @@ function NearbyCandidateGroup({
         </p>
       </header>
       <div className="availability-results__grid">
-        {candidate.roomTypes.map((room) => (
-          <ResultCard
-            badge={
-              isExact
-                ? translate(locale, 'search.nearbyExact')
-                : translate(locale, 'search.nearbyShift', { minutes: candidate.shiftMinutes })
-            }
-            badgeVariant="nearby"
-            imageSrc={publicRoomImage(room.roomTypeId)}
-            key={room.roomTypeId}
-            roomTypeId={room.roomTypeId}
-            roomTypeName={room.roomTypeName}
-            state={intervalState}
-            {...(room.description !== undefined ? { description: room.description } : {})}
-            amenities={room.amenities}
-            availableRoomCount={room.availableRoomCount}
-            maxOccupancy={room.maxOccupancy}
-            {...(room.offer !== undefined || room.offers !== undefined
-              ? { offer: room.offers?.[0] ?? room.offer }
-              : {})}
-          />
-        ))}
+        {candidate.roomTypes.map((room) => {
+          const imageSrc = publicRoomImage(room.roomTypeCode);
+          return (
+            <ResultCard
+              badge={
+                isExact
+                  ? translate(locale, 'search.nearbyExact')
+                  : translate(locale, 'search.nearbyShift', { minutes: candidate.shiftMinutes })
+              }
+              badgeVariant="nearby"
+              key={room.roomTypeId}
+              roomTypeId={room.roomTypeId}
+              roomTypeName={room.roomTypeName}
+              {...(imageSrc === undefined ? {} : { imageSrc })}
+              state={intervalState}
+              {...(room.description !== undefined ? { description: room.description } : {})}
+              amenities={room.amenities}
+              availableRoomCount={room.availableRoomCount}
+              maxOccupancy={room.maxOccupancy}
+              {...(room.offer !== undefined || room.offers !== undefined
+                ? { offer: room.offers?.[0] ?? room.offer }
+                : {})}
+            />
+          );
+        })}
       </div>
     </article>
   );

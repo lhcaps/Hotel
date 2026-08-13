@@ -28,6 +28,8 @@ import { AdminBookingLifecycleService } from './services/admin-booking-lifecycle
 import { AdminBookingAccessPassService } from './services/admin-booking-access-pass.service.js';
 import { BookingDetailService } from './services/booking-detail.service.js';
 import { BookingAccessPassService } from './services/booking-access-pass.service.js';
+import { ArrivalAccessConfigService } from './services/arrival-access-config.service.js';
+import { ArrivalAccessConfigController } from './arrival-access-config.controller.js';
 import { BookingHoldService } from './services/booking-hold.service.js';
 import { BookingHoldStatusService } from './services/booking-hold-status.service.js';
 import { GuestAccessOtpRequestService } from './services/guest-access-otp-request.service.js';
@@ -36,6 +38,7 @@ import { GuestLogoutService } from './services/guest-logout.service.js';
 import { CouponDeliveryService } from './services/coupon-delivery.service.js';
 import { GuestSessionService } from './services/guest-session.service.js';
 import { loadGuestSecrets, type GuestSecrets } from './secrets.js';
+import { ArrivalAccessCrypto, deriveArrivalAccessEncryptionKey } from '@room/booking';
 
 export const GUEST_SECRETS = Symbol('GUEST_SECRETS');
 export const GUEST_RATE_LIMIT_CONFIG = Symbol('GUEST_RATE_LIMIT_CONFIG');
@@ -46,6 +49,7 @@ export const GUEST_RATE_LIMIT_CONFIG = Symbol('GUEST_RATE_LIMIT_CONFIG');
     BookingHoldController,
     GuestAccessOtpController,
     BookingDetailController,
+    ArrivalAccessConfigController,
     BookingHoldStatusController,
     GuestAccessLogoutController,
     AdminBookingOperationsController,
@@ -139,17 +143,35 @@ export const GUEST_RATE_LIMIT_CONFIG = Symbol('GUEST_RATE_LIMIT_CONFIG');
     },
     {
       provide: BookingDetailService,
-      inject: [BookingDetailRepository, GuestSessionService],
+      inject: [BookingDetailRepository, GuestSessionService, ArrivalAccessConfigService],
       useFactory: (
         repository: BookingDetailRepository,
         session: GuestSessionService,
-      ): BookingDetailService => new BookingDetailService(repository, session),
+        arrivalAccess: ArrivalAccessConfigService,
+      ): BookingDetailService => new BookingDetailService(repository, session, arrivalAccess),
     },
     {
       provide: BookingAccessPassService,
       useFactory: (): BookingAccessPassService =>
         new BookingAccessPassService(
           Buffer.from(requireApiEnvironment().BOOKING_ACCESS_QR_SECRET, 'utf8'),
+        ),
+    },
+    {
+      provide: ArrivalAccessConfigService,
+      inject: [DatabaseProvider, PropertyContextService],
+      useFactory: (
+        database: DatabaseProvider,
+        propertyContext: PropertyContextService,
+      ): ArrivalAccessConfigService =>
+        new ArrivalAccessConfigService(
+          database.client,
+          propertyContext,
+          new ArrivalAccessCrypto(
+            deriveArrivalAccessEncryptionKey(
+              Buffer.from(requireApiEnvironment().BOOKING_ACCESS_QR_SECRET, 'utf8'),
+            ),
+          ),
         ),
     },
     {
@@ -219,6 +241,7 @@ export const GUEST_RATE_LIMIT_CONFIG = Symbol('GUEST_RATE_LIMIT_CONFIG');
   exports: [
     BookingDetailRepository,
     BookingAccessPassService,
+    ArrivalAccessConfigService,
     GuestSessionService,
     AdminBookingLifecycleService,
     AdminBookingRepository,

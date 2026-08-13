@@ -1,3 +1,13 @@
+import type { Buffer } from 'node:buffer';
+
+export interface SMTPAttachment {
+  readonly filename: string;
+  readonly content: Buffer;
+  readonly contentType: 'image/png';
+  readonly cid: string;
+  readonly contentDisposition: 'inline';
+}
+
 export interface SMTPMessage {
   readonly from: string;
   readonly to: string;
@@ -5,6 +15,7 @@ export interface SMTPMessage {
   readonly text: string;
   readonly html: string;
   readonly messageId: string;
+  readonly attachments?: readonly SMTPAttachment[];
 }
 
 export interface SMTPTransport {
@@ -65,6 +76,7 @@ export function createSMTPTransport(
         text: message.text,
         html: message.html,
         messageId: message.messageId,
+        attachments: message.attachments === undefined ? undefined : [...message.attachments],
         envelope: {
           from: message.from,
           to: [message.to],

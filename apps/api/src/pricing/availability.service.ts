@@ -14,6 +14,7 @@ export interface MultiNightAvailabilityPort {
 
 export interface AvailabilitySearchRoomType {
   readonly roomTypeId: string;
+  readonly roomTypeCode: string;
   readonly roomTypeName: string;
   readonly maxAdults: number;
   readonly maxChildren: number;
@@ -84,7 +85,7 @@ export class AvailabilityService {
       });
     }
     const request = parsed.success ? parsed.data : availabilitySearchRequestSchema.parse(input);
-    if (request.mode === 'multi_night') {
+    if (request.mode === undefined || request.mode === 'multi_night') {
       if (this.multiNight === undefined) {
         return availabilitySearchResponseSchema.parse({
           state: 'SERVICE_UNAVAILABLE',

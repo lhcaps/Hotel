@@ -1,16 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  ArrowRight,
-  BedDouble,
-  Clock3,
-  Coffee,
-  MapPin,
-  ShieldCheck,
-  Sparkles,
-  Users,
-} from 'lucide-react';
+import { ArrowRight, Clock3, Coffee, MapPin, ShieldCheck, Sparkles, Users } from 'lucide-react';
 
 import type { PublicRoomCatalogResponse } from '@room/contracts/public-room-catalog';
 
@@ -39,7 +30,7 @@ export function PublicLanding({
         <img alt="" className="hospitality-hero__image" src={peaceHomeCommonImages[0]} />
         <div className="hospitality-hero__shade" />
         <div className="hospitality-hero__content">
-          <p className="hospitality-hero__kicker">Room Management</p>
+          <p className="hospitality-hero__kicker">PeaceNest</p>
           <h1 id="landing-heading">{translate(locale, 'landing.heading')}</h1>
           <p>{translate(locale, 'landing.description')}</p>
           <Link className="hospitality-hero__browse" href="/rooms">
@@ -107,10 +98,13 @@ export function PublicLanding({
           <div className="hospitality-rooms" data-testid="landing-featured-rooms">
             {catalogRooms.slice(0, 3).map((room) => (
               <article className="hospitality-room" key={room.slug}>
-                <img alt={room.name} src={room.gallery[0].replace('-hero.webp', '-card.webp')} />
+                <img
+                  alt={room.roomType.name}
+                  src={room.gallery[0].replace('-hero.webp', '-card.webp')}
+                />
                 <div className="hospitality-room__body">
                   <div className="hospitality-room__title-row">
-                    <h3>{room.name}</h3>
+                    <h3>{room.roomType.name}</h3>
                     <span>
                       <Users aria-hidden="true" size={15} />
                       {translate(locale, 'search.capacity', { count: room.roomType.maxOccupancy })}
@@ -168,35 +162,6 @@ export function PublicLanding({
       </section>
 
       <section
-        className="hospitality-section hospitality-section--modes"
-        aria-labelledby="stay-heading"
-      >
-        <div className="hospitality-section__intro">
-          <p>{translate(locale, 'landing.stayKicker')}</p>
-          <h2 id="stay-heading">{translate(locale, 'landing.stayHeading')}</h2>
-          <p>{translate(locale, 'landing.stayDescription')}</p>
-        </div>
-        <div className="hospitality-mode-list">
-          <article>
-            <Clock3 aria-hidden="true" />
-            <div>
-              <strong>{translate(locale, 'landing.hourlyTitle')}</strong>
-              <p>{translate(locale, 'landing.hourlyDescription')}</p>
-              <span>{translate(locale, 'landing.hourlyOptions')}</span>
-            </div>
-          </article>
-          <article>
-            <BedDouble aria-hidden="true" />
-            <div>
-              <strong>{translate(locale, 'landing.overnightTitle')}</strong>
-              <p>{translate(locale, 'landing.overnightDescription')}</p>
-              <span>{translate(locale, 'landing.overnightOptions')}</span>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section
         className="hospitality-section hospitality-section--offers"
         id="offers"
         aria-labelledby="offers-heading"
@@ -206,14 +171,7 @@ export function PublicLanding({
           <h2 id="offers-heading">{translate(locale, 'landing.offerHeading')}</h2>
           <p>{translate(locale, 'landing.offerDescription')}</p>
         </div>
-        <ul className="hospitality-plan-list">
-          <li>{translate(locale, 'landing.planThreeHours')}</li>
-          <li>{translate(locale, 'landing.planFiveHours')}</li>
-          <li>{translate(locale, 'landing.planMidday')}</li>
-          <li>{translate(locale, 'landing.planEvening')}</li>
-          <li>{translate(locale, 'landing.planOvernight')}</li>
-          <li>{translate(locale, 'landing.planAllDay')}</li>
-        </ul>
+        <p className="hospitality-section__offer-note">{translate(locale, 'search.emptyHelp')}</p>
       </section>
 
       <section className="hospitality-story" id="about" aria-labelledby="story-heading">
@@ -255,7 +213,7 @@ export function PublicLanding({
 
       <footer className="hospitality-footer">
         <div>
-          <strong>Room Management</strong>
+          <strong>PeaceNest</strong>
           <p>{translate(locale, 'landing.footerCopy')}</p>
         </div>
         <nav aria-label={translate(locale, 'public.navigation')}>

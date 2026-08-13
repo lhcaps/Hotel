@@ -4,6 +4,7 @@ export interface BookingDetailRecord {
   readonly bookingId: string;
   readonly customerUserId: string | null;
   readonly propertyId: string;
+  readonly roomId: string;
   readonly roomTypeId: string;
   readonly bookingCode: string;
   readonly status:
@@ -50,6 +51,7 @@ interface DetailRow {
   booking_id: string;
   customer_user_id: string | null;
   property_id: string;
+  room_id: string;
   room_type_id: string;
   booking_code: string;
   status: BookingDetailRecord['status'];
@@ -127,6 +129,7 @@ export function toBookingDetailRecord(row: DetailRow): BookingDetailRecord {
     bookingId: row.booking_id,
     customerUserId: row.customer_user_id,
     propertyId: row.property_id,
+    roomId: row.room_id,
     roomTypeId: row.room_type_id,
     bookingCode: row.booking_code,
     status: row.status,
@@ -167,6 +170,7 @@ export class BookingDetailRepository {
       sql`SELECT b.id            AS booking_id,
                 b.customer_user_id AS customer_user_id,
                 b.property_id   AS property_id,
+                b.room_id       AS room_id,
                 b.room_type_id  AS room_type_id,
                 b.booking_code  AS booking_code,
                 b.status        AS status,

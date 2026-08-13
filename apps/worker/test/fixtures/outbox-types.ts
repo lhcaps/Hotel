@@ -5,6 +5,7 @@ export interface OutboxEventSeed {
   readonly eventType:
     | 'booking.hold.created'
     | 'booking.hold.expired'
+    | 'booking.confirmed'
     | 'booking.otp.requested'
     | 'access.credential.issued';
   readonly availableAt?: Date;

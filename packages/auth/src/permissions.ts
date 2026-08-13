@@ -96,6 +96,8 @@ export const PERMISSIONS = [
   'admin.department.read',
   'admin.department.manage',
   'admin.audit.read',
+  'arrival.access.read',
+  'arrival.access.manage',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

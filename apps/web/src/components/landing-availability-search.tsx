@@ -22,8 +22,17 @@ export function LandingAvailabilitySearch() {
   const [nearbyResponse, setNearbyResponse] = useState<NearbyAvailabilityResponse>();
   const [nearbyError, setNearbyError] = useState<unknown>();
   const resultsRef = useRef<HTMLDivElement>(null);
+  const searchSequence = useRef(0);
+  const exactAbort = useRef<AbortController | undefined>(undefined);
+  const nearbyAbort = useRef<AbortController | undefined>(undefined);
 
   async function searchExact(nextState: BookingSearchState) {
+    const sequence = searchSequence.current + 1;
+    searchSequence.current = sequence;
+    exactAbort.current?.abort();
+    nearbyAbort.current?.abort();
+    const controller = new AbortController();
+    exactAbort.current = controller;
     setState(nextState);
     setExactStatus('loading');
     setExactResponse(undefined);
@@ -32,13 +41,16 @@ export function LandingAvailabilitySearch() {
     setNearbyResponse(undefined);
     setNearbyError(undefined);
     try {
-      const nextResponse = await publicApi.searchAvailability({
-        mode: nextState.mode,
-        checkIn: nextState.checkIn,
-        checkOut: nextState.checkOut,
-        adults: nextState.adults,
-        children: nextState.children,
-      });
+      const nextResponse = await publicApi.searchAvailability(
+        {
+          checkIn: nextState.checkIn,
+          checkOut: nextState.checkOut,
+          adults: nextState.adults,
+          children: nextState.children,
+        },
+        { signal: controller.signal },
+      );
+      if (sequence !== searchSequence.current) return;
       setExactResponse(nextResponse);
       setExactStatus(
         nextResponse.state === 'PRICING_CONFIGURATION_UNAVAILABLE' ||
@@ -57,27 +69,36 @@ export function LandingAvailabilitySearch() {
             : 'success',
       );
     } catch (cause) {
+      if (controller.signal.aborted || sequence !== searchSequence.current) return;
       setExactError(cause);
       setExactStatus('error');
     }
   }
 
   async function searchNearby(nextState: BookingSearchState) {
+    const sequence = searchSequence.current;
+    nearbyAbort.current?.abort();
+    const controller = new AbortController();
+    nearbyAbort.current = controller;
     setNearbyStatus('loading');
     setNearbyError(undefined);
     try {
-      const nextResponse = await publicApi.searchNearbyAvailability({
-        mode: nextState.mode,
-        checkIn: nextState.checkIn,
-        checkOut: nextState.checkOut,
-        adults: nextState.adults,
-        children: nextState.children,
-        expandMinutes: 60,
-        limit: 6,
-      });
+      const nextResponse = await publicApi.searchNearbyAvailability(
+        {
+          checkIn: nextState.checkIn,
+          checkOut: nextState.checkOut,
+          adults: nextState.adults,
+          children: nextState.children,
+          expandMinutes: 60,
+          limit: 6,
+        },
+        { signal: controller.signal },
+      );
+      if (controller.signal.aborted || sequence !== searchSequence.current) return;
       setNearbyResponse(nextResponse);
       setNearbyStatus(nextResponse.candidates.length === 0 ? 'empty' : 'success');
     } catch (cause) {
+      if (controller.signal.aborted || sequence !== searchSequence.current) return;
       setNearbyError(cause);
       setNearbyStatus('error');
     }

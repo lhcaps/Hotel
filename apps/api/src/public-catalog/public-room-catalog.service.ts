@@ -4,6 +4,7 @@ export interface PublicRoomCatalogRepositoryPort {
   list(): Promise<
     readonly {
       readonly id: string;
+      readonly code: string;
       readonly name: string;
       readonly description: string | null;
       readonly maxAdults: number;

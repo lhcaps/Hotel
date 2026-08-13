@@ -224,6 +224,7 @@ export const availabilityRoomTypeSchema = z
     propertyId: uuidSchema.optional(),
     propertyName: z.string().trim().min(1).max(160).optional(),
     roomTypeId: uuidSchema,
+    roomTypeCode: z.string().trim().min(1).max(64),
     roomTypeName: z.string().trim().min(1).max(160),
     maxAdults: z.number().int().min(1),
     maxChildren: z.number().int().min(0),

@@ -8,7 +8,7 @@ import { resolveLocale } from '../lib/i18n/messages';
 import { pathnameHeader } from '../middleware';
 
 export const metadata: Metadata = {
-  title: 'Room Management',
+  title: 'PeaceNest',
   description: 'Book a room, manage a booking, or access your customer account.',
 };
 

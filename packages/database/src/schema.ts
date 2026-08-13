@@ -59,6 +59,10 @@ export const accessCredentialStatus = pgEnum('access_credential_status', [
   'REVOKED',
   'FAILED',
 ]);
+export const bookingConfirmationDeliveryStatus = pgEnum('booking_confirmation_delivery_status', [
+  'PENDING',
+  'DELIVERED',
+]);
 export const auditActorType = pgEnum('audit_actor_type', ['GUEST', 'CUSTOMER', 'ADMIN', 'SYSTEM']);
 export const outboxStatus = pgEnum('outbox_status', ['PENDING', 'PUBLISHED', 'FAILED']);
 export const userRole = pgEnum('user_role', [
@@ -355,6 +359,57 @@ export const properties = pgTable(
   ],
 );
 
+/**
+ * Property-wide arrival information. Secret values are authenticated
+ * ciphertext only; normal Admin reads expose configuration state, never the
+ * ciphertext or plaintext.
+ */
+export const propertyArrivalAccessConfigs = pgTable(
+  'property_arrival_access_configs',
+  {
+    propertyId: uuid('property_id').primaryKey(),
+    gatePassEncrypted: text('gate_pass_encrypted'),
+    wifiSsid: text('wifi_ssid'),
+    wifiPasswordEncrypted: text('wifi_password_encrypted'),
+    supportContact: text('support_contact'),
+    defaultArrivalInstruction: text('default_arrival_instruction'),
+    preparationNote: text('preparation_note'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'property_arrival_access_configs_property_fk',
+      columns: [table.propertyId],
+      foreignColumns: [properties.id],
+    }).onDelete('cascade'),
+    check(
+      'property_arrival_access_configs_gate_pass_nonempty_ck',
+      sql`${table.gatePassEncrypted} IS NULL OR btrim(${table.gatePassEncrypted}) <> ''`,
+    ),
+    check(
+      'property_arrival_access_configs_wifi_ssid_nonempty_ck',
+      sql`${table.wifiSsid} IS NULL OR btrim(${table.wifiSsid}) <> ''`,
+    ),
+    check(
+      'property_arrival_access_configs_wifi_password_nonempty_ck',
+      sql`${table.wifiPasswordEncrypted} IS NULL OR btrim(${table.wifiPasswordEncrypted}) <> ''`,
+    ),
+    check(
+      'property_arrival_access_configs_support_nonempty_ck',
+      sql`${table.supportContact} IS NULL OR btrim(${table.supportContact}) <> ''`,
+    ),
+    check(
+      'property_arrival_access_configs_instruction_nonempty_ck',
+      sql`${table.defaultArrivalInstruction} IS NULL OR btrim(${table.defaultArrivalInstruction}) <> ''`,
+    ),
+    check(
+      'property_arrival_access_configs_preparation_nonempty_ck',
+      sql`${table.preparationNote} IS NULL OR btrim(${table.preparationNote}) <> ''`,
+    ),
+  ],
+);
+
 // Explicit per-property authorization scope for admin users.
 // property_id = NULL means explicit ALL-PROPERTY authority (still a deliberate row).
 // SUPER_ADMIN derives global authority from ROLE_PERMISSIONS, not from rows here.
@@ -506,6 +561,39 @@ export const rooms = pgTable(
       sql`${table.notes} IS NULL OR btrim(${table.notes}) = ${table.notes}`,
     ),
     check('rooms_notes_length_ck', sql`${table.notes} IS NULL OR length(${table.notes}) <= 2000`),
+  ],
+);
+
+/** Physical-room-specific arrival information, intentionally separate from room types. */
+export const roomArrivalAccessConfigs = pgTable(
+  'room_arrival_access_configs',
+  {
+    roomId: uuid('room_id').primaryKey(),
+    propertyId: uuid('property_id').notNull(),
+    roomPassEncrypted: text('room_pass_encrypted'),
+    roomLocation: text('room_location'),
+    arrivalInstruction: text('arrival_instruction'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'room_arrival_access_configs_room_fk',
+      columns: [table.propertyId, table.roomId],
+      foreignColumns: [rooms.propertyId, rooms.id],
+    }).onDelete('cascade'),
+    check(
+      'room_arrival_access_configs_room_pass_nonempty_ck',
+      sql`${table.roomPassEncrypted} IS NULL OR btrim(${table.roomPassEncrypted}) <> ''`,
+    ),
+    check(
+      'room_arrival_access_configs_location_nonempty_ck',
+      sql`${table.roomLocation} IS NULL OR btrim(${table.roomLocation}) <> ''`,
+    ),
+    check(
+      'room_arrival_access_configs_instruction_nonempty_ck',
+      sql`${table.arrivalInstruction} IS NULL OR btrim(${table.arrivalInstruction}) <> ''`,
+    ),
   ],
 );
 
@@ -1519,6 +1607,40 @@ export const accessCredentials = pgTable(
   ],
 );
 
+/**
+ * A booking-scoped ledger prevents repeated `booking.confirmed` outbox rows
+ * from delivering multiple customer confirmation emails. It contains no
+ * recipient address, rendered content, or payment credentials.
+ */
+export const bookingConfirmationDeliveries = pgTable(
+  'booking_confirmation_deliveries',
+  {
+    bookingId: uuid('booking_id').primaryKey(),
+    status: bookingConfirmationDeliveryStatus('status').notNull().default('PENDING'),
+    messageId: text('message_id').notNull(),
+    deliveredAt: timestamptz('delivered_at'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'booking_confirmation_deliveries_booking_fk',
+      columns: [table.bookingId],
+      foreignColumns: [bookings.id],
+    }).onDelete('restrict'),
+    uniqueIndex('booking_confirmation_deliveries_message_id_uq').on(table.messageId),
+    check(
+      'booking_confirmation_deliveries_message_id_nonempty_ck',
+      sql`btrim(${table.messageId}) <> ''`,
+    ),
+    check(
+      'booking_confirmation_deliveries_status_fields_ck',
+      sql`(${table.status} = 'PENDING' AND ${table.deliveredAt} IS NULL)
+          OR (${table.status} = 'DELIVERED' AND ${table.deliveredAt} IS NOT NULL)`,
+    ),
+  ],
+);
+
 export const bookingCouponApplications = pgTable(
   'booking_coupon_applications',
   {
@@ -2396,6 +2518,7 @@ export const databaseSchema = {
   amenities,
   auditEvents,
   bookingContacts,
+  bookingConfirmationDeliveries,
   bookingCouponApplications,
   bookings,
   couponDeliveryRequests,
@@ -2414,6 +2537,7 @@ export const databaseSchema = {
   payments,
   priceTiers,
   properties,
+  propertyArrivalAccessConfigs,
   quotes,
   pricingPolicyComponentEdges,
   pricingPolicyComponentPrices,
@@ -2422,6 +2546,7 @@ export const databaseSchema = {
   ratePlanPrices,
   ratePlans,
   roomInventoryBlocks,
+  roomArrivalAccessConfigs,
   rooms,
   sessions,
   roomTypeAmenities,

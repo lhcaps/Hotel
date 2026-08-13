@@ -57,4 +57,18 @@ describe('BookingAccessPassService', () => {
     expect(svg).toContain('<svg');
     expect(svg).not.toMatch(/<script\b/i);
   });
+
+  it('renders a PNG for mail-safe CID delivery', async () => {
+    const service = new BookingAccessPassService(secret);
+    const png = await service.toPng(
+      service.issue({
+        bookingId: randomUUID(),
+        version: 1,
+        expiresAt: new Date('2027-02-11T07:00:00.000Z'),
+      }),
+    );
+    expect(png.subarray(0, 8)).toEqual(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
+  });
 });

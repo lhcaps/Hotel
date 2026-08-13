@@ -2,6 +2,7 @@ import {
   Controller,
   Body,
   Get,
+  Header,
   Headers,
   HttpException,
   HttpStatus,
@@ -119,6 +120,7 @@ export class CustomerBookingsController {
 
   @Get(':bookingCode/access-pass')
   @Version('1')
+  @Header('Cache-Control', 'no-store')
   public async accessPass(@Req() request: RequestLike, @Param('bookingCode') bookingCode: string) {
     const actor = await this.sessions.requireCustomer(request);
     try {

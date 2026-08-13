@@ -48,10 +48,9 @@ export default async function PublicRoomDetailPage({
         </p>
       ) : (
         <section className="room-detail" data-testid="room-detail">
-          <img alt={room.name} src={room.gallery[0]} />
+          <img alt={room.roomType.name} src={room.gallery[0]} />
           <div>
-            <p>{room.roomType.name}</p>
-            <h1>{room.name}</h1>
+            <h1>{room.roomType.name}</h1>
             <p className="room-detail__capacity">
               {translate(locale, 'search.capacity', { count: room.roomType.maxOccupancy })}
             </p>
@@ -100,10 +99,10 @@ export default async function PublicRoomDetailPage({
               </>
             )}
           </div>
-          <div aria-label={`${room.name} gallery`} className="room-detail__gallery">
+          <div aria-label={`${room.roomType.name} gallery`} className="room-detail__gallery">
             {room.gallery.slice(1).map((image, index) => (
               <img
-                alt={`${room.name} ${index + 2}`}
+                alt={`${room.roomType.name} ${index + 2}`}
                 key={image}
                 src={image.replace('-hero.webp', '-thumb.webp')}
               />

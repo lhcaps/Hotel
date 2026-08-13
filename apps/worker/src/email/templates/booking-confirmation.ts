@@ -34,19 +34,24 @@ function formatMoney(amountVnd: number, currency: string): string {
   if (currency !== 'VND') {
     throw new Error('Only VND currency is supported in booking-confirmation template');
   }
-  return `${amountVnd.toLocaleString('en-US')} VND`;
+  return `${amountVnd.toLocaleString('vi-VN')} VND`;
+}
+
+function formatDateTime(value: Date): string {
+  return new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    dateStyle: 'full',
+    timeStyle: 'short',
+  }).format(value);
 }
 
 function formatStay(checkIn: Date, checkOut: Date): string {
-  return `${checkIn.toISOString()} → ${checkOut.toISOString()}`;
+  return `${formatDateTime(checkIn)} → ${formatDateTime(checkOut)}`;
 }
 
 function formatGuests(adults: number, children: number): string {
-  const adultPart = `${adults} adult${adults === 1 ? '' : 's'}`;
-  if (children === 0) {
-    return adultPart;
-  }
-  return `${adultPart}, ${children} child${children === 1 ? '' : 'ren'}`;
+  const adultPart = `${adults} người lớn`;
+  return children === 0 ? adultPart : `${adultPart}, ${children} trẻ em`;
 }
 
 const PROVIDER_LABEL: Record<'MOMO' | 'VNPAY', string> = {
@@ -55,54 +60,56 @@ const PROVIDER_LABEL: Record<'MOMO' | 'VNPAY', string> = {
 };
 
 export function renderBookingConfirmationSubject(context: BookingConfirmationContext): string {
-  return `Booking confirmed: ${context.bookingCode}`;
+  return `PeaceNest xác nhận đặt phòng · ${context.bookingCode}`;
 }
 
 export function renderBookingConfirmationText(context: BookingConfirmationContext): string {
-  const lines = [
-    `Hello,`,
-    ``,
-    `Your reservation has been confirmed.`,
-    ``,
-    `Booking code: ${context.bookingCode}`,
-    `Property: ${context.propertyName}`,
-    `Room type: ${context.roomTypeName}`,
-    `Stay: ${formatStay(context.checkIn, context.checkOut)}`,
-    `Guests: ${formatGuests(context.adults, context.children)}`,
-    `Total paid: ${formatMoney(context.finalAmountVnd, context.currency)}`,
-    `Payment provider: ${PROVIDER_LABEL[context.provider]}`,
-    `Confirmed at: ${context.confirmedAt.toISOString()}`,
-    ``,
-    `Please keep this email for your records. No payment or login links are included.`,
-  ];
-  return lines.join('\n');
+  return [
+    'Xin chào,',
+    '',
+    'Đặt phòng của bạn đã được xác nhận sau khi thanh toán thành công.',
+    '',
+    `Mã đặt phòng: ${context.bookingCode}`,
+    `Nơi lưu trú: ${context.propertyName}`,
+    `Hạng phòng: ${context.roomTypeName}`,
+    `Thời gian lưu trú: ${formatStay(context.checkIn, context.checkOut)}`,
+    `Số khách: ${formatGuests(context.adults, context.children)}`,
+    `Tổng thanh toán: ${formatMoney(context.finalAmountVnd, context.currency)}`,
+    `Thanh toán qua: ${PROVIDER_LABEL[context.provider]}`,
+    `Xác nhận lúc: ${formatDateTime(context.confirmedAt)}`,
+    '',
+    'Vui lòng lưu lại email này. Thông tin nhận phòng sẽ được gửi khi đến thời điểm phù hợp.',
+    '',
+    'Your booking is confirmed. Please keep this email for your records.',
+  ].join('\n');
 }
 
 export function renderBookingConfirmationHtml(context: BookingConfirmationContext): string {
   const safeBookingCode = escapeHtml(context.bookingCode);
   const safePropertyName = escapeHtml(context.propertyName);
   const safeRoomTypeName = escapeHtml(context.roomTypeName);
-  const safeCheckIn = escapeHtml(context.checkIn.toISOString());
-  const safeCheckOut = escapeHtml(context.checkOut.toISOString());
-  const safeAdults = escapeHtml(String(context.adults));
-  const safeChildren = escapeHtml(String(context.children));
+  const safeStay = escapeHtml(formatStay(context.checkIn, context.checkOut));
+  const safeGuests = escapeHtml(formatGuests(context.adults, context.children));
   const safeAmount = escapeHtml(formatMoney(context.finalAmountVnd, context.currency));
   const safeProvider = escapeHtml(PROVIDER_LABEL[context.provider]);
-  const safeConfirmedAt = escapeHtml(context.confirmedAt.toISOString());
+  const safeConfirmedAt = escapeHtml(formatDateTime(context.confirmedAt));
   return [
-    `<p>Hello,</p>`,
-    `<p>Your reservation has been confirmed.</p>`,
-    `<table cellpadding="6" cellspacing="0" border="0">`,
-    `<tr><td><strong>Booking code</strong></td><td>${safeBookingCode}</td></tr>`,
-    `<tr><td><strong>Property</strong></td><td>${safePropertyName}</td></tr>`,
-    `<tr><td><strong>Room type</strong></td><td>${safeRoomTypeName}</td></tr>`,
-    `<tr><td><strong>Stay</strong></td><td>${safeCheckIn} &rarr; ${safeCheckOut}</td></tr>`,
-    `<tr><td><strong>Guests</strong></td><td>${safeAdults} adults, ${safeChildren} children</td></tr>`,
-    `<tr><td><strong>Total paid</strong></td><td>${safeAmount}</td></tr>`,
-    `<tr><td><strong>Payment provider</strong></td><td>${safeProvider}</td></tr>`,
-    `<tr><td><strong>Confirmed at</strong></td><td>${safeConfirmedAt}</td></tr>`,
-    `</table>`,
-    `<p>Please keep this email for your records. No payment or login links are included.</p>`,
+    '<div style="margin:0;padding:24px;background:#f4f1ea;font-family:Arial,sans-serif;color:#1f2b23">',
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">',
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden">',
+    '<tr><td style="padding:28px 32px;background:#173d2d;color:#ffffff"><strong style="font-size:22px">PeaceNest</strong><br><span style="font-size:14px">Xác nhận đặt phòng</span></td></tr>',
+    '<tr><td style="padding:28px 32px"><p style="margin:0 0 12px">Xin chào,</p><p style="margin:0 0 24px">Đặt phòng của bạn đã được xác nhận sau khi thanh toán thành công.</p>',
+    `<p style="margin:0 0 20px;padding:14px 16px;background:#edf5ef;border-radius:10px"><strong>Mã đặt phòng</strong><br>${safeBookingCode}</p>`,
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse">',
+    `<tr><td style="padding:10px 0;border-bottom:1px solid #e7e2d8"><strong>Nơi lưu trú</strong></td><td style="padding:10px 0;border-bottom:1px solid #e7e2d8;text-align:right">${safePropertyName}</td></tr>`,
+    `<tr><td style="padding:10px 0;border-bottom:1px solid #e7e2d8"><strong>Hạng phòng</strong></td><td style="padding:10px 0;border-bottom:1px solid #e7e2d8;text-align:right">${safeRoomTypeName}</td></tr>`,
+    `<tr><td style="padding:10px 0;border-bottom:1px solid #e7e2d8"><strong>Thời gian lưu trú</strong></td><td style="padding:10px 0;border-bottom:1px solid #e7e2d8;text-align:right">${safeStay}</td></tr>`,
+    `<tr><td style="padding:10px 0;border-bottom:1px solid #e7e2d8"><strong>Số khách</strong></td><td style="padding:10px 0;border-bottom:1px solid #e7e2d8;text-align:right">${safeGuests}</td></tr>`,
+    `<tr><td style="padding:10px 0;border-bottom:1px solid #e7e2d8"><strong>Tổng thanh toán</strong></td><td style="padding:10px 0;border-bottom:1px solid #e7e2d8;text-align:right">${safeAmount}</td></tr>`,
+    `<tr><td style="padding:10px 0"><strong>Thanh toán qua</strong></td><td style="padding:10px 0;text-align:right">${safeProvider}</td></tr>`,
+    '</table>',
+    `<p style="margin:24px 0 0;color:#5f675f;font-size:13px">Xác nhận lúc ${safeConfirmedAt}. Vui lòng lưu lại email này; thông tin nhận phòng sẽ được gửi khi đến thời điểm phù hợp.</p></td></tr>`,
+    '</table></td></tr></table></div>',
   ].join('\n');
 }
 

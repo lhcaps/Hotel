@@ -88,6 +88,7 @@ function evaluateRoomType(
   const offer = cheapestOffer(input, catalog);
   return {
     roomTypeId: roomType.id,
+    roomTypeCode: roomType.code,
     roomTypeName: roomType.name,
     description: roomType.description,
     maxAdults: roomType.maxAdults,

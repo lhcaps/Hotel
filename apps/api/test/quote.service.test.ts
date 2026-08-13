@@ -7,6 +7,7 @@ import {
   type QuoteRepositoryPort,
 } from '../src/pricing/quote.service.js';
 const request = {
+  mode: 'hourly' as const,
   roomTypeId: '550e8400-e29b-41d4-a716-446655440010',
   checkIn: '2026-07-23T04:00:00.000Z',
   checkOut: '2026-07-23T07:00:00.000Z',
@@ -105,6 +106,25 @@ describe('QuoteService', () => {
     await expect(new QuoteService(repo).issue(multiNightRequest)).rejects.toThrow();
     expect(repo.catalogFor).not.toHaveBeenCalled();
     expect(repo.issue).not.toHaveBeenCalled();
+  });
+
+  it('routes a mode-free Customer quote to the server-owned flexible resolver', async () => {
+    const repo: QuoteRepositoryPort = { catalogFor: vi.fn(), issue: vi.fn(), get: vi.fn() };
+    const multiNight = {
+      quote: vi.fn().mockResolvedValue(undefined),
+      search: vi.fn().mockResolvedValue({ state: 'NO_VALID_PRICING', items: [] }),
+    };
+    const { mode: _legacyMode, ...customerRequest } = request;
+    void _legacyMode;
+
+    await expect(
+      new QuoteService(repo, { multiNight }).issue(customerRequest),
+    ).rejects.toMatchObject({
+      code: 'NO_VALID_PRICING',
+    });
+
+    expect(multiNight.quote).toHaveBeenCalledWith(customerRequest);
+    expect(repo.catalogFor).not.toHaveBeenCalled();
   });
 
   it('preserves server-owned multi-night availability states at quote time', async () => {

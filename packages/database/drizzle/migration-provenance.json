@@ -274,6 +274,20 @@
       "sha256": "3dd59f3fd86ffe6a77f048b300661091940c01a203f4262235eee3d6dd661d1a",
       "phase": "Operations V3 STAFF_MANAGER RBAC profile",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 39,
+      "fileName": "0039_customer_v2_confirmation_delivery.sql",
+      "sha256": "5f2755ca6cd708328be5fe0921806ba026f748ff8f9ab37203a37f9cc028dfb9",
+      "phase": "PeaceNest Customer V2 confirmation delivery idempotency",
+      "previousIntroductionReference": null
+    },
+    {
+      "index": 40,
+      "fileName": "0040_colossal_human_torch.sql",
+      "sha256": "ff8d4364bfce3459c092818d88fe4384b8a55d551f5ce133c15ea1284174982e",
+      "phase": "PeaceNest Customer V2 encrypted arrival access configuration",
+      "previousIntroductionReference": null
     }
   ]
 }

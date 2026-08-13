@@ -70,6 +70,7 @@ export class PublicRoomCatalogRepository implements PublicRoomCatalogRepositoryP
 
     return types.map((type) => ({
       id: type.id,
+      code: type.code,
       name: type.name,
       description: type.description,
       maxAdults: type.maxAdults,

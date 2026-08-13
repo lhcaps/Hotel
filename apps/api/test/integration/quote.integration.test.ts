@@ -62,6 +62,7 @@ describe('immutable quote issuance', () => {
   afterAll(async () => database?.dispose());
   it('returns only active, priced eligible offers without creating a quote', async () => {
     const input = {
+      mode: 'hourly' as const,
       roomTypeId: ids.type,
       checkIn: '2027-01-10T03:00:00.000Z',
       checkOut: '2027-01-10T06:00:00.000Z',
@@ -88,6 +89,7 @@ describe('immutable quote issuance', () => {
 
   it('issues a persisted immutable snapshot with database-time 15-minute expiry and no inventory reservation', async () => {
     const input = {
+      mode: 'hourly' as const,
       roomTypeId: ids.type,
       checkIn: '2027-01-10T03:00:00.000Z',
       checkOut: '2027-01-10T06:00:00.000Z',
@@ -151,6 +153,7 @@ describe('immutable quote issuance', () => {
 
   it('rejects incomplete pricing and unavailable inventory without writing a quote', async () => {
     const input = {
+      mode: 'hourly' as const,
       roomTypeId: ids.type,
       checkIn: '2027-01-11T03:00:00.000Z',
       checkOut: '2027-01-11T06:00:00.000Z',

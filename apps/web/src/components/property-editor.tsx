@@ -10,6 +10,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Field, FieldError, FieldGroup, FieldLabel } from './ui/field';
 import { AdminFormSection, AdminLoadingState, AdminPageHeader } from './admin/admin-ui';
+import { PropertyArrivalAccessEditor } from './arrival-access-config-editors';
 
 export function PropertyEditor() {
   const locale = useLocale();
@@ -206,6 +207,7 @@ export function PropertyEditor() {
           <AlertTitle>{message}</AlertTitle>
         </Alert>
       )}
+      <PropertyArrivalAccessEditor />
     </section>
   );
 }

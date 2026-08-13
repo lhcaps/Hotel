@@ -360,6 +360,7 @@ const apiEnvironmentSchema = sharedEnvironmentSchema
         'GUEST_CHALLENGE_REF_SECRET',
         'GUEST_SESSION_SECRET',
         'BOOKING_IP_DIGEST_SECRET',
+        'BOOKING_ACCESS_QR_SECRET',
       ] as const) {
         if (
           value[key] === 'test-guest-otp-secret-32-chars-min-aaaaaa' ||
@@ -887,6 +888,7 @@ const workerEnvironmentSchema = sharedEnvironmentSchema
     GUEST_CHALLENGE_REF_SECRET: z.string().min(32),
     GUEST_SESSION_SECRET: z.string().min(32),
     BOOKING_IP_DIGEST_SECRET: z.string().min(32),
+    BOOKING_ACCESS_QR_SECRET: z.string().min(32),
     PAYMENT_DEMO_ENABLED: enabledSchema,
     PAYMENT_DEMO_INTERNAL_BASE_URL: z.string().url().optional(),
     PAYMENT_DEMO_CONTROL_TOKEN: z.string().min(32).max(512).optional(),
@@ -932,6 +934,7 @@ const workerEnvironmentSchema = sharedEnvironmentSchema
         'GUEST_CHALLENGE_REF_SECRET',
         'GUEST_SESSION_SECRET',
         'BOOKING_IP_DIGEST_SECRET',
+        'BOOKING_ACCESS_QR_SECRET',
       ] as const) {
         if (
           value[key] === 'test-guest-otp-secret-32-chars-min-aaaaaa' ||

@@ -170,6 +170,7 @@ export class AvailabilityRepository implements AvailabilityRepositoryPort {
       return [
         {
           roomTypeId: type.id,
+          roomTypeCode: type.code,
           roomTypeName: type.name,
           maxAdults: type.maxAdults,
           maxChildren: type.maxChildren,

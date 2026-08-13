@@ -150,7 +150,7 @@ export function PublicHeader({
                   }
                 >
                   <Avatar>
-                    <AvatarFallback>RM</AvatarFallback>
+                    <AvatarFallback>PN</AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

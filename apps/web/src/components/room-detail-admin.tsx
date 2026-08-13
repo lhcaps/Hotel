@@ -13,6 +13,7 @@ import {
   AdminPageHeader,
   AdminStatusBadge,
 } from './admin/admin-ui';
+import { RoomArrivalAccessEditor } from './arrival-access-config-editors';
 
 export function RoomDetailAdmin({ id }: { readonly id: string }) {
   const locale = useLocale();
@@ -102,6 +103,7 @@ export function RoomDetailAdmin({ id }: { readonly id: string }) {
           </dl>
         </section>
       </div>
+      <RoomArrivalAccessEditor roomId={room.id} />
     </section>
   );
 }

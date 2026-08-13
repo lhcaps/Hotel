@@ -9,7 +9,10 @@ import {
   GuestSessionRequiredError,
   GuestSessionService,
 } from '../../src/booking/services/guest-session.service.js';
-import { BookingAccessPassService } from '../../src/booking/services/booking-access-pass.service.js';
+import {
+  BookingAccessPassError,
+  BookingAccessPassService,
+} from '../../src/booking/services/booking-access-pass.service.js';
 import type { BookingDetailRecord } from '../../src/booking/repositories/booking-detail.repository.js';
 
 function record(overrides: Partial<BookingDetailRecord> = {}): BookingDetailRecord {
@@ -17,6 +20,7 @@ function record(overrides: Partial<BookingDetailRecord> = {}): BookingDetailReco
     bookingId: '00000000-0000-0000-0000-000000000001',
     customerUserId: null,
     propertyId: '00000000-0000-0000-0000-000000000010',
+    roomId: '00000000-0000-0000-0000-000000000015',
     roomTypeId: '00000000-0000-0000-0000-000000000020',
     bookingCode: 'RM-AB12-CD34-EF56',
     status: 'HOLD',
@@ -56,10 +60,22 @@ function services(overrides: {
       .fn()
       .mockImplementation(overrides.requireForBooking ?? (async () => undefined)),
   } as unknown as GuestSessionService;
+  const arrivalAccess = {
+    resolveCustomerPackage: vi.fn().mockResolvedValue({
+      gatePass: 'test-gate-pass',
+      roomPass: 'test-room-pass',
+      wifi: { ssid: 'PeaceNest-Test', password: 'test-wifi-password' },
+      location: 'Test floor',
+      instructions: 'Test instructions',
+      preparationNote: 'Test preparation',
+      supportContact: 'Test support',
+    }),
+  };
   return {
-    service: new BookingDetailService(repository as never, session),
+    service: new BookingDetailService(repository as never, session, arrivalAccess as never),
     repository,
     session,
+    arrivalAccess,
   };
 }
 
@@ -101,6 +117,30 @@ describe('BookingDetailService', () => {
       confirmed.bookingId,
       new Date('2027-01-01T00:00:00.000Z'),
     );
+  });
+
+  it('withholds a QR access pass until the T-30 arrival window opens', async () => {
+    const confirmed = record({
+      status: 'CONFIRMED',
+      holdExpiresAt: null,
+      checkIn: new Date('2027-01-01T01:00:00.000Z'),
+      checkOut: new Date('2027-01-01T04:00:00.000Z'),
+    });
+    const { service } = services({
+      find: async () => confirmed,
+      requireForBooking: async () => ({ bookingId: confirmed.bookingId }),
+    });
+
+    await expect(
+      service.getAccessPass(
+        confirmed.bookingCode,
+        Buffer.alloc(32),
+        new Date('2027-01-01T00:29:59.999Z'),
+        new BookingAccessPassService(
+          Buffer.from('booking-detail-access-pass-test-secret-at-least-32-bytes', 'utf8'),
+        ),
+      ),
+    ).rejects.toBeInstanceOf(BookingAccessPassError);
   });
 
   it('throws when the booking code is unknown', async () => {

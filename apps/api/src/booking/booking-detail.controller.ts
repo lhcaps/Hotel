@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Param, Req, Version } from '@nestjs/common';
+import { Controller, Get, Header, Inject, Param, Req, Version } from '@nestjs/common';
 
 import { BookingDetailService } from './services/booking-detail.service.js';
 import { BookingAccessPassService } from './services/booking-access-pass.service.js';
@@ -33,6 +33,7 @@ export class BookingDetailController {
 
   @Get(':bookingCode/access-pass')
   @Version('1')
+  @Header('Cache-Control', 'no-store')
   public async accessPass(@Param('bookingCode') bookingCode: string, @Req() request: RequestLike) {
     const raw = request.cookies?.['rm_guest_session_v1'];
     const token = raw === undefined || raw === '' ? null : parseGuestSessionCookie(raw);

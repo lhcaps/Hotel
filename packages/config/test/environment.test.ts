@@ -40,6 +40,7 @@ const workerValid = {
   GUEST_CHALLENGE_REF_SECRET: 'b'.repeat(48),
   GUEST_SESSION_SECRET: 'c'.repeat(48),
   BOOKING_IP_DIGEST_SECRET: 'd'.repeat(48),
+  BOOKING_ACCESS_QR_SECRET: 'e'.repeat(48),
 };
 
 const placeholderSecrets = {

@@ -57,6 +57,22 @@ export const bookingAccessPassResponseSchema = z
     bookingCode: z.string().regex(/^[A-Z0-9-]{4,32}$/),
     expiresAt: instantSchema,
     svg: z.string().min(1),
+    arrival: z
+      .object({
+        gatePass: z.string().trim().min(1).max(512),
+        roomPass: z.string().trim().min(1).max(512),
+        wifi: z
+          .object({
+            ssid: z.string().trim().min(1).max(2_000),
+            password: z.string().trim().min(1).max(512),
+          })
+          .strict(),
+        location: z.string().trim().min(1).max(2_000),
+        instructions: z.string().trim().min(1).max(2_000),
+        preparationNote: z.string().trim().min(1).max(2_000),
+        supportContact: z.string().trim().min(1).max(2_000),
+      })
+      .strict(),
   })
   .strict();
 

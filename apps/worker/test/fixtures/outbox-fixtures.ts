@@ -42,6 +42,39 @@ export interface SeededBookingHold {
   readonly recipientEmail: string;
 }
 
+export async function seedSettledPayment(
+  pool: DatabasePool,
+  booking: Pick<SeededBookingHold, 'bookingId' | 'propertyId'>,
+): Promise<{ paymentId: string; attemptId: string }> {
+  const paymentId = randomUUID();
+  const attemptId = randomUUID();
+  const settledAt = new Date('2027-01-10T03:30:00.000Z');
+  await pool.query(
+    `INSERT INTO payments
+       (id, property_id, booking_id, status, amount_vnd, currency, confirmation_source,
+        succeeded_at, created_at, updated_at)
+     VALUES ($1, $2, $3, 'SUCCEEDED', 1000000, 'VND', 'PROVIDER_EVENT', $4, $4, $4)`,
+    [paymentId, booking.propertyId, booking.bookingId, settledAt],
+  );
+  await pool.query(
+    `INSERT INTO payment_attempts
+       (id, property_id, payment_id, provider, status, idempotency_key, provider_order_id,
+        provider_transaction_id, amount_vnd, currency, initiated_at, completed_at, updated_at,
+        created_at)
+     VALUES ($1, $2, $3, 'MOMO', 'SUCCEEDED', $4, $5, $6, 1000000, 'VND', $7, $7, $7, $7)`,
+    [
+      attemptId,
+      booking.propertyId,
+      paymentId,
+      `confirmation-attempt:${booking.bookingId}`,
+      `confirmation-order:${booking.bookingId}`,
+      `confirmation-transaction:${booking.bookingId}`,
+      settledAt,
+    ],
+  );
+  return { paymentId, attemptId };
+}
+
 export async function createOutboxFixture(): Promise<OutboxFixture> {
   const baseUrl = process.env.TEST_DATABASE_URL;
   if (baseUrl === undefined) {

@@ -24,13 +24,18 @@ export async function loadPublicRoomType(roomTypeId: string): Promise<PublicRoom
   return catalog?.items.find((room) => room.id === roomTypeId) ?? null;
 }
 
-const roomImages = [
-  '/images/peace-home/rose/rose-066-card.webp',
-  '/images/peace-home/nami/nami-030-card.webp',
-  '/images/peace-home/wabi/wabi-124-card.webp',
-] as const;
+const roomImagesByCode: Readonly<Record<string, string>> = {
+  ROSE: '/images/peace-home/rose/rose-066-card.webp',
+  NAMI: '/images/peace-home/nami/nami-030-card.webp',
+  PHU_VAN: '/images/peace-home/phu-van/phu-van-062-card.webp',
+  SUNSET: '/images/peace-home/sunset/sunset-020-card.webp',
+  YUKI: '/images/peace-home/yuki/yuki-057-card.webp',
+  SABI: '/images/peace-home/sabi/sabi-041-card.webp',
+  SUDAL: '/images/peace-home/sudal/sudal-028-card.webp',
+  WABI: '/images/peace-home/wabi/wabi-124-card.webp',
+  HAVEN: '/images/peace-home/haven/haven-049-card.webp',
+};
 
-export function publicRoomImage(roomTypeId: string): string {
-  const index = [...roomTypeId].reduce((sum, character) => sum + character.charCodeAt(0), 0);
-  return roomImages[index % roomImages.length] ?? roomImages[0];
+export function publicRoomImage(roomTypeCode: string): string | undefined {
+  return roomImagesByCode[roomTypeCode];
 }

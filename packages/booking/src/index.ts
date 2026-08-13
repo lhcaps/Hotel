@@ -43,6 +43,20 @@ export {
 
 export { DIGEST_DOMAIN_LABELS, type DigestDomainLabel } from './domain-labels.js';
 
+export {
+  ArrivalAccessCrypto,
+  ArrivalAccessCryptoError,
+  deriveArrivalAccessEncryptionKey,
+  type ArrivalAccessCryptoContext,
+  type ArrivalAccessScope,
+} from './arrival-access-crypto.js';
+
+export {
+  BookingAccessPassError,
+  BookingAccessPassService,
+  isAccessPassWithinArrivalWindow,
+} from './booking-access-pass.js';
+
 // Domain errors
 export {
   QuoteNotFoundError,

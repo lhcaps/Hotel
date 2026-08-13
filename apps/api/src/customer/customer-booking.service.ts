@@ -34,7 +34,12 @@ import { QuoteService } from '../pricing/quote.service.js';
 import {
   BookingAccessPassError,
   BookingAccessPassService,
+  isAccessPassWithinArrivalWindow,
 } from '../booking/services/booking-access-pass.service.js';
+import {
+  ArrivalAccessConfigService,
+  ArrivalAccessConfigurationIncompleteError,
+} from '../booking/services/arrival-access-config.service.js';
 import { readBookingStayRepresentation } from '../booking/stay-representation.js';
 
 export interface CustomerBookingSummary {
@@ -101,6 +106,7 @@ export class CustomerBookingService {
     private readonly database: DatabaseClient,
     private readonly quotes?: QuoteService,
     private readonly accessPasses?: BookingAccessPassService,
+    private readonly arrivalAccess?: ArrivalAccessConfigService,
   ) {}
 
   public async listForCustomer(
@@ -467,7 +473,11 @@ export class CustomerBookingService {
   ): Promise<BookingAccessPassResponse> {
     if (this.accessPasses === undefined) throw new BookingAccessPassError();
     const booking = await this.findCustomerBooking(userId, bookingCode);
-    if (booking.status !== 'CONFIRMED' || booking.accessPassRevokedAt !== null) {
+    if (
+      booking.status !== 'CONFIRMED' ||
+      booking.accessPassRevokedAt !== null ||
+      !isAccessPassWithinArrivalWindow(booking.checkIn, new Date())
+    ) {
       throw new BookingAccessPassError();
     }
     const expiresAt = new Date(booking.checkOut.getTime() + 60 * 60 * 1000);
@@ -476,17 +486,31 @@ export class CustomerBookingService {
       version: booking.accessPassVersion,
       expiresAt,
     });
-    return bookingAccessPassResponseSchema.parse({
-      bookingCode: booking.bookingCode,
-      expiresAt: expiresAt.toISOString(),
-      svg: await this.accessPasses.toSvg(pass),
-    });
+    if (this.arrivalAccess === undefined) throw new BookingAccessPassError();
+    try {
+      return bookingAccessPassResponseSchema.parse({
+        bookingCode: booking.bookingCode,
+        expiresAt: expiresAt.toISOString(),
+        svg: await this.accessPasses.toSvg(pass),
+        arrival: await this.arrivalAccess.resolveCustomerPackage({
+          propertyId: booking.propertyId,
+          roomId: booking.roomId,
+        }),
+      });
+    } catch (error) {
+      if (error instanceof ArrivalAccessConfigurationIncompleteError) {
+        throw new BookingAccessPassError();
+      }
+      throw error;
+    }
   }
 
   private async findCustomerBooking(userId: string, bookingCode: string) {
     const rows = await this.database
       .select({
         id: bookings.id,
+        propertyId: bookings.propertyId,
+        roomId: bookings.roomId,
         bookingCode: bookings.bookingCode,
         status: bookings.status,
         checkIn: bookings.checkIn,

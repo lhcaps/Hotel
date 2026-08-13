@@ -1,7 +1,4 @@
-export type BookingMode = 'hourly' | 'overnight' | 'multi_night';
-
 export interface BookingSearchState {
-  readonly mode: BookingMode;
   readonly checkIn: string;
   readonly checkOut: string;
   readonly adults: number;
@@ -133,7 +130,6 @@ function normalizeBrowserDateTime(value: string) {
 
 export function toBookingSearchQuery(state: BookingSearchState) {
   const query = new URLSearchParams({
-    mode: state.mode,
     checkIn: state.checkIn,
     checkOut: state.checkOut,
     adults: String(state.adults),
@@ -149,7 +145,7 @@ export function readBookingSearchQuery(input: URLSearchParams): BookingSearchSta
   const adults = Number(input.get('adults'));
   const children = Number(input.get('children'));
   if (
-    (mode !== 'hourly' && mode !== 'overnight' && mode !== 'multi_night') ||
+    (mode !== null && mode !== 'hourly' && mode !== 'overnight' && mode !== 'multi_night') ||
     checkIn === null ||
     checkOut === null ||
     !Number.isInteger(adults) ||
@@ -160,7 +156,6 @@ export function readBookingSearchQuery(input: URLSearchParams): BookingSearchSta
     return undefined;
   }
   return {
-    mode,
     checkIn: normalizeBrowserDateTime(checkIn),
     checkOut: normalizeBrowserDateTime(checkOut),
     adults,

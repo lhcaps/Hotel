@@ -17,7 +17,15 @@ import {
   type BookingDetailRepository,
 } from '../repositories/booking-detail.repository.js';
 import { GuestSessionService } from './guest-session.service.js';
-import { BookingAccessPassError, BookingAccessPassService } from './booking-access-pass.service.js';
+import {
+  BookingAccessPassError,
+  BookingAccessPassService,
+  isAccessPassWithinArrivalWindow,
+} from './booking-access-pass.service.js';
+import {
+  ArrivalAccessConfigService,
+  ArrivalAccessConfigurationIncompleteError,
+} from './arrival-access-config.service.js';
 
 export class BookingNotFoundError extends Error {
   public readonly code = 'BOOKING_NOT_FOUND';
@@ -97,6 +105,7 @@ export class BookingDetailService {
   public constructor(
     private readonly repository: BookingDetailRepository,
     private readonly session: GuestSessionService,
+    private readonly arrivalAccess?: ArrivalAccessConfigService,
   ) {}
 
   public async getByBookingCode(
@@ -121,7 +130,11 @@ export class BookingDetailService {
     const record = await this.repository.findByBookingCodeForSession(bookingCode);
     if (record === null) throw new BookingNotFoundError();
     await this.session.requireForBooking(sessionToken, record.bookingId, now);
-    if (record.status !== 'CONFIRMED' || record.accessPassRevokedAt !== null) {
+    if (
+      record.status !== 'CONFIRMED' ||
+      record.accessPassRevokedAt !== null ||
+      !isAccessPassWithinArrivalWindow(record.checkIn, now)
+    ) {
       throw new BookingAccessPassError();
     }
     const expiresAt = new Date(record.checkOut.getTime() + 60 * 60 * 1000);
@@ -130,10 +143,22 @@ export class BookingDetailService {
       version: record.accessPassVersion,
       expiresAt,
     });
-    return bookingAccessPassResponseSchema.parse({
-      bookingCode: record.bookingCode,
-      expiresAt: expiresAt.toISOString(),
-      svg: await passes.toSvg(pass),
-    });
+    if (this.arrivalAccess === undefined) throw new BookingAccessPassError();
+    try {
+      return bookingAccessPassResponseSchema.parse({
+        bookingCode: record.bookingCode,
+        expiresAt: expiresAt.toISOString(),
+        svg: await passes.toSvg(pass),
+        arrival: await this.arrivalAccess.resolveCustomerPackage({
+          propertyId: record.propertyId,
+          roomId: record.roomId,
+        }),
+      });
+    } catch (error) {
+      if (error instanceof ArrivalAccessConfigurationIncompleteError) {
+        throw new BookingAccessPassError();
+      }
+      throw error;
+    }
   }
 }

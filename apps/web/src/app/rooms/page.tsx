@@ -60,7 +60,7 @@ export default async function PublicRoomsPage({
             .filter((room) => {
               const tier = resolvedSearchParams.tier;
               if (typeof tier !== 'string' || tier === '') return true;
-              return room.tierCode === tier.toUpperCase() || room.roomType.priceTier?.code === tier;
+              return room.roomType.priceTier?.code === tier.toUpperCase();
             })
             .map((room, index) => {
               const detailsHref = `/rooms/${room.slug}`;
@@ -70,10 +70,13 @@ export default async function PublicRoomsPage({
                   key={room.slug}
                   data-room-index={index}
                 >
-                  <img alt={room.name} src={room.gallery[0].replace('-hero.webp', '-card.webp')} />
+                  <img
+                    alt={room.roomType.name}
+                    src={room.gallery[0].replace('-hero.webp', '-card.webp')}
+                  />
                   <div>
                     <p className="room-catalog-list__eyebrow">{room.roomType.name}</p>
-                    <h2>{room.name}</h2>
+                    <h2>{room.roomType.name}</h2>
                     <p className="room-catalog-list__capacity">
                       {translate(locale, 'search.capacity', { count: room.roomType.maxOccupancy })}
                     </p>

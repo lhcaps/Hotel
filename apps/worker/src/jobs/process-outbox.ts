@@ -7,19 +7,12 @@ import {
   finalizeOutboxSuccess,
   type OutboxErrorCategory,
 } from '../outbox/finalize-outbox.js';
-import { buildOutboxMessageId } from '../email/message-id.js';
-import {
-  decideSkipForEvent,
-  type BookingHoldContext,
-  type SkipReason,
-} from '../email/skip-rules.js';
+import { buildBookingConfirmationMessageId, buildOutboxMessageId } from '../email/message-id.js';
+import { type BookingHoldContext, type SkipReason } from '../email/skip-rules.js';
 import { decideOtpSkip, type OtpChallengeLookupRow } from '../email/otp-skip-rules.js';
 import { loadOtpContext } from '../email/otp-context.js';
-import type { SMTPMessage, SMTPTransport } from '../email/smtp-transport.js';
-import {
-  renderHoldConfirmation,
-  type HoldConfirmationContext,
-} from '../email/templates/hold-confirmation.js';
+import type { SMTPAttachment, SMTPMessage, SMTPTransport } from '../email/smtp-transport.js';
+import { type HoldConfirmationContext } from '../email/templates/hold-confirmation.js';
 import { renderOtpChallenge } from '../email/templates/otp-challenge.js';
 import { renderCouponDelivery } from '../email/templates/coupon-delivery.js';
 import { renderAccessCredentialDelivery } from '../email/templates/access-credential-delivery.js';
@@ -27,7 +20,11 @@ import {
   renderBookingConfirmation,
   type BookingConfirmationContext,
 } from '../email/templates/booking-confirmation.js';
-import { deriveOtpForChallenge } from '@room/booking';
+import {
+  ArrivalAccessCrypto,
+  BookingAccessPassService,
+  deriveOtpForChallenge,
+} from '@room/booking';
 
 export interface ProcessOutboxOptions {
   readonly pool: DatabasePool;
@@ -38,6 +35,10 @@ export interface ProcessOutboxOptions {
   readonly baseBackoffMs: number;
   readonly maxBackoffMs: number;
   readonly otpSecret: Buffer;
+  /** Present in the live worker to decrypt T-30 arrival configuration only at delivery time. */
+  readonly arrivalAccessCrypto?: ArrivalAccessCrypto;
+  /** Present in the live worker to attach the short-lived signed QR at T-30. */
+  readonly bookingAccessPasses?: BookingAccessPassService;
 }
 
 export interface OutboxIterationSummary {
@@ -200,9 +201,11 @@ export async function renderAndSend(
   logger: {
     info: (record: Record<string, unknown>, message: string) => void;
   },
+  arrivalAccessCrypto?: ArrivalAccessCrypto,
+  bookingAccessPasses?: BookingAccessPassService,
 ): Promise<RenderAndSendOutcome> {
   if (row.eventType === 'booking.hold.created') {
-    return renderAndSendHoldCreated(transport, row, pool, fromAddress, logger);
+    return { outcome: 'skipped', skipReason: 'HOLD_EMAIL_DISABLED' };
   }
   if (row.eventType === 'booking.otp.requested') {
     return renderAndSendOtpChallenge(transport, row, pool, fromAddress, otpSecret, logger);
@@ -214,7 +217,15 @@ export async function renderAndSend(
     return renderAndSendBookingConfirmed(transport, row, pool, fromAddress, logger);
   }
   if (row.eventType === 'access.credential.issued') {
-    return renderAndSendAccessCredentialDelivery(transport, row, pool, fromAddress, logger);
+    return renderAndSendAccessCredentialDelivery(
+      transport,
+      row,
+      pool,
+      fromAddress,
+      logger,
+      arrivalAccessCrypto,
+      bookingAccessPasses,
+    );
   }
   return { outcome: 'skipped', skipReason: 'UNSUPPORTED_EVENT_TYPE' };
 }
@@ -223,8 +234,21 @@ interface AccessCredentialDeliveryRow {
   readonly credential_status: 'PENDING' | 'ISSUED' | 'DELIVERED' | 'REVOKED' | 'FAILED';
   readonly booking_status: string;
   readonly booking_code: string;
+  readonly access_pass_version: number;
+  readonly check_out: Date | string;
   readonly normalized_email: string | null;
   readonly property_name: string;
+  readonly property_id: string;
+  readonly room_id: string;
+  readonly gate_pass_encrypted: string | null;
+  readonly wifi_ssid: string | null;
+  readonly wifi_password_encrypted: string | null;
+  readonly support_contact: string | null;
+  readonly default_arrival_instruction: string | null;
+  readonly preparation_note: string | null;
+  readonly room_pass_encrypted: string | null;
+  readonly room_location: string | null;
+  readonly room_arrival_instruction: string | null;
 }
 
 function extractCredentialId(row: OutboxClaimRow): string | null {
@@ -242,6 +266,8 @@ async function renderAndSendAccessCredentialDelivery(
   pool: DatabasePool,
   fromAddress: string,
   logger: { info: (record: Record<string, unknown>, message: string) => void },
+  arrivalAccessCrypto: ArrivalAccessCrypto | undefined,
+  bookingAccessPasses: BookingAccessPassService | undefined,
 ): Promise<RenderAndSendOutcome> {
   const credentialId = extractCredentialId(row);
   const bookingId = extractBookingId(row);
@@ -253,12 +279,27 @@ async function renderAndSendAccessCredentialDelivery(
     `SELECT ac.status AS credential_status,
             b.status AS booking_status,
             b.booking_code,
+            b.access_pass_version,
+            b.check_out,
             bc.normalized_email,
-            p.name AS property_name
+            p.name AS property_name,
+            p.id AS property_id,
+            b.room_id,
+            pac.gate_pass_encrypted,
+            pac.wifi_ssid,
+            pac.wifi_password_encrypted,
+            pac.support_contact,
+            pac.default_arrival_instruction,
+            pac.preparation_note,
+            rac.room_pass_encrypted,
+            rac.room_location,
+            rac.arrival_instruction AS room_arrival_instruction
        FROM access_credentials ac
        JOIN bookings b ON b.id = ac.booking_id
        JOIN properties p ON p.id = ac.property_id
        LEFT JOIN booking_contacts bc ON bc.booking_id = b.id
+       LEFT JOIN property_arrival_access_configs pac ON pac.property_id = b.property_id
+       LEFT JOIN room_arrival_access_configs rac ON rac.property_id = b.property_id AND rac.room_id = b.room_id
       WHERE ac.id = $1
         AND ac.booking_id = $2`,
     [credentialId, bookingId],
@@ -276,15 +317,30 @@ async function renderAndSendAccessCredentialDelivery(
   if (context.normalized_email === null) {
     return { outcome: 'skipped', skipReason: 'CONTACT_MISSING' };
   }
+  const arrival = resolveArrivalDeliveryContext(context, arrivalAccessCrypto);
+  if (arrival === null) {
+    return { outcome: 'skipped', skipReason: 'ARRIVAL_CONFIG_INCOMPLETE' };
+  }
+  const qrAttachment = await createAccessQrAttachment(
+    bookingAccessPasses,
+    bookingId,
+    context.access_pass_version,
+    parseSqlTimestamp(context.check_out, 'check_out'),
+    row.id,
+  );
+  const rendered = renderAccessCredentialDelivery({
+    bookingCode: context.booking_code,
+    propertyName: context.property_name,
+    ...(arrival === undefined ? {} : { arrival }),
+    ...(qrAttachment === undefined ? {} : { qrCid: qrAttachment.cid }),
+  });
 
   await transport.send({
     from: fromAddress,
     to: context.normalized_email,
-    ...renderAccessCredentialDelivery({
-      bookingCode: context.booking_code,
-      propertyName: context.property_name,
-    }),
+    ...rendered,
     messageId: buildOutboxMessageId(row.id),
+    ...(qrAttachment === undefined ? {} : { attachments: [qrAttachment] }),
   });
   const delivered = await pool.query<{ id: string }>(
     `WITH delivered AS (
@@ -318,6 +374,84 @@ async function renderAndSendAccessCredentialDelivery(
     'Access credential delivery notification sent',
   );
   return { outcome: 'sent', skipReason: null };
+}
+
+async function createAccessQrAttachment(
+  passes: BookingAccessPassService | undefined,
+  bookingId: string,
+  version: number,
+  expiresAt: Date,
+  eventId: string,
+): Promise<SMTPAttachment | undefined> {
+  // Unit-only callers may omit the signer. The live worker always supplies it.
+  if (passes === undefined) return undefined;
+  const pass = passes.issue({ bookingId, version, expiresAt });
+  return {
+    filename: 'peacenest-check-in-qr.png',
+    content: await passes.toPng(pass),
+    contentType: 'image/png',
+    cid: `peacenest-check-in-${eventId}@mail`,
+    contentDisposition: 'inline',
+  };
+}
+
+function resolveArrivalDeliveryContext(
+  context: AccessCredentialDeliveryRow,
+  crypto: ArrivalAccessCrypto | undefined,
+):
+  | {
+      readonly gatePass: string;
+      readonly roomPass: string;
+      readonly wifiSsid: string;
+      readonly wifiPassword: string;
+      readonly roomLocation: string;
+      readonly instructions: string;
+      readonly preparationNote: string;
+      readonly supportContact: string;
+    }
+  | undefined
+  | null {
+  // Existing test harnesses may omit the crypto dependency. The production
+  // worker always supplies it and consequently refuses unconfigured stays.
+  if (crypto === undefined) return undefined;
+  if (
+    context.gate_pass_encrypted === null ||
+    context.wifi_ssid === null ||
+    context.wifi_password_encrypted === null ||
+    context.support_contact === null ||
+    context.default_arrival_instruction === null ||
+    context.preparation_note === null ||
+    context.room_pass_encrypted === null ||
+    context.room_location === null
+  ) {
+    return null;
+  }
+  try {
+    return {
+      gatePass: crypto.decrypt(context.gate_pass_encrypted, {
+        scope: 'property',
+        id: context.property_id,
+        field: 'gatePass',
+      }),
+      roomPass: crypto.decrypt(context.room_pass_encrypted, {
+        scope: 'room',
+        id: context.room_id,
+        field: 'roomPass',
+      }),
+      wifiSsid: context.wifi_ssid,
+      wifiPassword: crypto.decrypt(context.wifi_password_encrypted, {
+        scope: 'property',
+        id: context.property_id,
+        field: 'wifiPassword',
+      }),
+      roomLocation: context.room_location,
+      instructions: context.room_arrival_instruction ?? context.default_arrival_instruction,
+      preparationNote: context.preparation_note,
+      supportContact: context.support_contact,
+    };
+  } catch {
+    return null;
+  }
 }
 
 interface BookingConfirmationRow {
@@ -412,8 +546,12 @@ async function renderAndSendBookingConfirmed(
   if (recipient === null) {
     return { outcome: 'skipped', skipReason: 'CONTACT_MISSING' };
   }
+  const messageId = buildBookingConfirmationMessageId(bookingId);
+  const reserved = await reserveBookingConfirmationDelivery(pool, bookingId, messageId);
+  if (!reserved) {
+    return { outcome: 'skipped', skipReason: 'ALREADY_SENT' };
+  }
   const rendered = renderBookingConfirmation(context);
-  const messageId = buildOutboxMessageId(row.id);
   const finalMessage: SMTPMessage = {
     from: fromAddress,
     to: recipient,
@@ -422,7 +560,18 @@ async function renderAndSendBookingConfirmed(
     html: rendered.html,
     messageId,
   };
-  await transport.send(finalMessage);
+  try {
+    await transport.send(finalMessage);
+    const delivered = await markBookingConfirmationDelivered(pool, bookingId, messageId);
+    if (!delivered) {
+      throw new Error(
+        'Booking confirmation delivery reservation was not available for finalization',
+      );
+    }
+  } catch (error) {
+    await releaseBookingConfirmationDelivery(pool, bookingId, messageId).catch(() => undefined);
+    throw error;
+  }
   logger.info(
     {
       eventId: row.id,
@@ -434,6 +583,55 @@ async function renderAndSendBookingConfirmed(
     'Booking confirmation email sent',
   );
   return { outcome: 'sent', skipReason: null };
+}
+
+async function reserveBookingConfirmationDelivery(
+  pool: DatabasePool,
+  bookingId: string,
+  messageId: string,
+): Promise<boolean> {
+  const result = await pool.query<{ booking_id: string }>(
+    `INSERT INTO booking_confirmation_deliveries
+       (booking_id, status, message_id, created_at, updated_at)
+     VALUES ($1, 'PENDING', $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+     ON CONFLICT (booking_id) DO NOTHING
+     RETURNING booking_id`,
+    [bookingId, messageId],
+  );
+  return result.rows[0] !== undefined;
+}
+
+async function markBookingConfirmationDelivered(
+  pool: DatabasePool,
+  bookingId: string,
+  messageId: string,
+): Promise<boolean> {
+  const result = await pool.query<{ booking_id: string }>(
+    `UPDATE booking_confirmation_deliveries
+        SET status = 'DELIVERED',
+            delivered_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+      WHERE booking_id = $1
+        AND message_id = $2
+        AND status = 'PENDING'
+      RETURNING booking_id`,
+    [bookingId, messageId],
+  );
+  return result.rows[0] !== undefined;
+}
+
+async function releaseBookingConfirmationDelivery(
+  pool: DatabasePool,
+  bookingId: string,
+  messageId: string,
+): Promise<void> {
+  await pool.query(
+    `DELETE FROM booking_confirmation_deliveries
+      WHERE booking_id = $1
+        AND message_id = $2
+        AND status = 'PENDING'`,
+    [bookingId, messageId],
+  );
 }
 
 async function renderAndSendCouponDelivery(
@@ -482,56 +680,6 @@ async function renderAndSendCouponDelivery(
     [deliveryId],
   );
   logger.info({ eventId: row.id, eventType: row.eventType, deliveryId }, 'Coupon delivery sent');
-  return { outcome: 'sent', skipReason: null };
-}
-
-async function renderAndSendHoldCreated(
-  transport: SMTPTransport,
-  row: OutboxClaimRow,
-  pool: DatabasePool,
-  fromAddress: string,
-  logger: {
-    info: (record: Record<string, unknown>, message: string) => void;
-  },
-): Promise<RenderAndSendOutcome> {
-  const bookingId = extractBookingId(row);
-  if (bookingId === null) {
-    return { outcome: 'skipped', skipReason: 'CONTEXT_MISSING' };
-  }
-
-  const contextRow = await loadBookingHoldContext(pool, bookingId);
-  if (contextRow === null) {
-    return { outcome: 'skipped', skipReason: 'BOOKING_GONE' };
-  }
-
-  const currentTime = await loadCurrentDatabaseTime(pool);
-  const decision = decideSkipForEvent(row.eventType, contextRow, currentTime);
-  if (decision.skip) {
-    return { outcome: 'skipped', skipReason: decision.reason };
-  }
-
-  const detail = await loadHoldConfirmationContext(pool, bookingId);
-  if (detail === null) {
-    return { outcome: 'skipped', skipReason: 'CONTEXT_MISSING' };
-  }
-
-  const recipient = await loadRecipientAddress(pool, bookingId);
-  if (recipient === null) {
-    return { outcome: 'skipped', skipReason: 'CONTACT_MISSING' };
-  }
-
-  const rendered = renderHoldConfirmation(detail);
-  const messageId = buildOutboxMessageId(row.id);
-  const finalMessage: SMTPMessage = {
-    from: fromAddress,
-    to: recipient,
-    subject: rendered.subject,
-    text: rendered.text,
-    html: rendered.html,
-    messageId,
-  };
-  await transport.send(finalMessage);
-  logger.info({ eventId: row.id, eventType: row.eventType, messageId }, 'Outbox SMTP message sent');
   return { outcome: 'sent', skipReason: null };
 }
 
@@ -694,6 +842,8 @@ export async function processOutbox(
         options.fromAddress,
         options.otpSecret,
         logger,
+        options.arrivalAccessCrypto,
+        options.bookingAccessPasses,
       );
       const finalize = await finalizeOutboxSuccess({
         pool: options.pool,

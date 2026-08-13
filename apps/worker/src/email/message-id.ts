@@ -6,3 +6,10 @@ export function buildOutboxMessageId(outboxEventId: string): string {
   }
   return `<${outboxEventId}@${MESSAGE_ID_DOMAIN}>`;
 }
+
+export function buildBookingConfirmationMessageId(bookingId: string): string {
+  if (typeof bookingId !== 'string' || bookingId.trim() === '') {
+    throw new Error('buildBookingConfirmationMessageId requires a non-empty booking id');
+  }
+  return `<booking-confirmed-${bookingId}@peacenest.local>`;
+}

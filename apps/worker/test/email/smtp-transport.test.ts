@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { Buffer } from 'node:buffer';
 
 import { describe, expect, it } from 'vitest';
 
@@ -87,5 +88,56 @@ describe('createSMTPTransport', () => {
     );
     expect(transport).toBeDefined();
     await transport.close();
+  });
+
+  it('forwards inline PNG CID attachments to the SMTP transport', async () => {
+    const sent: unknown[] = [];
+    const transport = createSMTPTransport(
+      {
+        host: '127.0.0.1',
+        port: 1025,
+        secure: false,
+        requireAuth: false,
+      },
+      {
+        createTransport: () => ({
+          sendMail: async (message: unknown) => {
+            sent.push(message);
+          },
+          close: () => undefined,
+        }),
+      } as unknown as typeof nodemailer,
+    );
+
+    await transport.send({
+      from: 'no-reply@peacenest.test',
+      to: 'guest@example.test',
+      subject: 'Check-in',
+      text: 'Check-in information',
+      html: '<img src="cid:access-qr@test" alt="Check-in QR" />',
+      messageId: '<access@test>',
+      attachments: [
+        {
+          filename: 'peacenest-check-in-qr.png',
+          content: Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+          contentType: 'image/png',
+          cid: 'access-qr@test',
+          contentDisposition: 'inline',
+        },
+      ],
+    });
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({
+      html: '<img src="cid:access-qr@test" alt="Check-in QR" />',
+      attachments: [
+        {
+          filename: 'peacenest-check-in-qr.png',
+          contentType: 'image/png',
+          cid: 'access-qr@test',
+          contentDisposition: 'inline',
+        },
+      ],
+    });
   });
 });

@@ -9,6 +9,7 @@ export const publicRoomAmenitySchema = z
 export const publicRoomTypeSchema = z
   .object({
     id: uuidSchema,
+    code: z.string().trim().min(1).max(64),
     name: z.string().trim().min(1).max(160),
     description: z.string().trim().min(1).max(2_000).nullable(),
     maxAdults: z.number().int().min(1),

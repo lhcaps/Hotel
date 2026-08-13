@@ -131,6 +131,7 @@ describe('coupon-aware quote issuance', () => {
 
   it('issues a quote without a coupon when no code is supplied', async () => {
     const quote = await quotes.issue({
+      mode: 'hourly',
       roomTypeId: ids.type,
       checkIn: '2027-02-10T03:00:00.000Z',
       checkOut: '2027-02-10T06:00:00.000Z',
@@ -143,6 +144,7 @@ describe('coupon-aware quote issuance', () => {
   it('applies a fixed discount provisionally without creating an application row', async () => {
     await insertFixedCoupon(database, 'FIXED-50K', 50_000, ids.fixedCoupon1);
     const quote = await quotes.issue({
+      mode: 'hourly',
       roomTypeId: ids.type,
       checkIn: '2027-02-11T03:00:00.000Z',
       checkOut: '2027-02-11T06:00:00.000Z',
@@ -166,6 +168,7 @@ describe('coupon-aware quote issuance', () => {
   it('applies a percentage discount with a maximum cap', async () => {
     await insertPercentCoupon(database, 'PCT-25PCT', 2500); // 25%
     const quote = await quotes.issue({
+      mode: 'hourly',
       roomTypeId: ids.type,
       checkIn: '2027-02-12T03:00:00.000Z',
       checkOut: '2027-02-12T06:00:00.000Z',
@@ -181,6 +184,7 @@ describe('coupon-aware quote issuance', () => {
   it('rejects an unknown coupon code with a safe public error', async () => {
     await expect(
       quotes.issue({
+        mode: 'hourly',
         roomTypeId: ids.type,
         checkIn: '2027-02-13T03:00:00.000Z',
         checkOut: '2027-02-13T06:00:00.000Z',
@@ -201,6 +205,7 @@ describe('coupon-aware quote issuance', () => {
     );
     await expect(
       quotes.issue({
+        mode: 'hourly',
         roomTypeId: ids.otherType,
         checkIn: '2027-02-14T03:00:00.000Z',
         checkOut: '2027-02-14T06:00:00.000Z',
@@ -214,6 +219,7 @@ describe('coupon-aware quote issuance', () => {
   it('persists the coupon snapshot in the quote row for later HOLD revalidation', async () => {
     await insertFixedCoupon(database, 'SNAP-10K', 10_000, ids.fixedCoupon2);
     const quote = await quotes.issue({
+      mode: 'hourly',
       roomTypeId: ids.type,
       checkIn: '2027-02-15T03:00:00.000Z',
       checkOut: '2027-02-15T06:00:00.000Z',

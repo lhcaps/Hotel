@@ -5,7 +5,7 @@ import { availabilitySearchRequestSchema } from '@room/contracts/pricing';
 import { readBookingSearchQuery, toBookingSearchQuery } from './booking-search-state';
 
 describe('readBookingSearchQuery', () => {
-  it('normalizes a browser-native datetime-local query into the API instant format', () => {
+  it('normalizes a browser-native datetime-local query without exposing a booking mode', () => {
     expect(
       readBookingSearchQuery(
         new URLSearchParams({
@@ -17,7 +17,6 @@ describe('readBookingSearchQuery', () => {
         }),
       ),
     ).toEqual({
-      mode: 'overnight',
       checkIn: '2027-01-10T11:00:00+07:00',
       checkOut: '2027-01-10T14:00:00+07:00',
       adults: 2,
@@ -25,9 +24,8 @@ describe('readBookingSearchQuery', () => {
     });
   });
 
-  it('round-trips an hourly state into the exact shared availability request', () => {
+  it('round-trips a universal interval into the exact shared availability request without mode', () => {
     const query = toBookingSearchQuery({
-      mode: 'hourly',
       checkIn: '2027-01-10T23:00:00+07:00',
       checkOut: '2027-01-11T02:00:00+07:00',
       adults: 2,
@@ -35,8 +33,8 @@ describe('readBookingSearchQuery', () => {
     });
     const state = readBookingSearchQuery(new URLSearchParams(query));
 
+    expect(query).not.toContain('mode=');
     expect(state).toEqual({
-      mode: 'hourly',
       checkIn: '2027-01-10T23:00:00+07:00',
       checkOut: '2027-01-11T02:00:00+07:00',
       adults: 2,

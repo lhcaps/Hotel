@@ -50,7 +50,6 @@ describe('AvailabilitySearchResults', () => {
             checkOut: '2027-01-10T06:00:00.000Z',
             adults: 2,
             children: 0,
-            mode: 'hourly',
           }}
         />
       </LocaleProvider>,
@@ -73,7 +72,6 @@ describe('AvailabilitySearchResults', () => {
             checkOut: '2027-01-11T09:00:00.000Z',
             adults: 2,
             children: 0,
-            mode: 'overnight',
           }}
         />
       </LocaleProvider>,
@@ -93,7 +91,6 @@ describe('AvailabilitySearchResults', () => {
             checkOut: '2027-01-10T06:00:00.000Z',
             adults: 2,
             children: 0,
-            mode: 'hourly',
           }}
         />
       </LocaleProvider>,
@@ -102,7 +99,7 @@ describe('AvailabilitySearchResults', () => {
     expect(screen.getByText('Pricing is not available for this interval')).toBeInTheDocument();
   });
 
-  it('shows the one-night message for a crafted invalid overnight response', () => {
+  it('shows a customer-safe message for an invalid server interval response', () => {
     render(
       <LocaleProvider locale="en">
         <AvailabilitySearchResults
@@ -120,16 +117,12 @@ describe('AvailabilitySearchResults', () => {
             checkOut: '2027-01-12T09:00:00+07:00',
             adults: 2,
             children: 0,
-            mode: 'overnight',
           }}
         />
       </LocaleProvider>,
     );
 
-    expect(screen.getByText('One-night stays only')).toBeInTheDocument();
-    expect(
-      screen.getByText('This system currently supports one-night stays. Please choose one night.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Invalid stay interval')).toBeInTheDocument();
   });
 
   it('falls back to the generic load-error message for unrecognized errors', () => {
@@ -143,7 +136,6 @@ describe('AvailabilitySearchResults', () => {
             checkOut: '2027-01-10T06:00:00.000Z',
             adults: 2,
             children: 0,
-            mode: 'hourly',
           }}
         />
       </LocaleProvider>,

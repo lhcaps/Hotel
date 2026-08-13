@@ -20,6 +20,7 @@ export interface NearbyPropertyContext {
 
 export interface NearbyRoomTypeRow {
   readonly id: string;
+  readonly code: string;
   readonly name: string;
   readonly description: string | null;
   readonly maxAdults: number;
@@ -192,6 +193,7 @@ export class NearbyAvailabilityRepository {
       property: { id: property.id, timezone: property.timezone },
       roomTypes: roomTypes.map((type) => ({
         id: type.id,
+        code: type.code,
         name: type.name,
         description: type.description,
         maxAdults: type.maxAdults,

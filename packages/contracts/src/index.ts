@@ -2,6 +2,7 @@ export * from './admin-booking-operations.js';
 export * from './admin-operational-reporting.js';
 export * from './admin-room-operations.js';
 export * from './admin-payment-reconciliation.js';
+export * from './arrival-access-config.js';
 export * from './admin.js';
 export * from './coupon.js';
 export * from './customer.js';

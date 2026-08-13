@@ -28,6 +28,8 @@ import type {
   RoomType,
   Coupon,
   RatePlan,
+  PropertyArrivalAccessConfig,
+  RoomArrivalAccessConfig,
   RatePlanCreateCommand,
   RatePlanSelectionRuleCommand,
   AvailabilityOfferResponse,
@@ -315,6 +317,14 @@ export const adminApi = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     }),
+  getPropertyArrivalAccessConfig: () =>
+    request<PropertyArrivalAccessConfig>('/admin/arrival-access-config/property'),
+  updatePropertyArrivalAccessConfig: (body: unknown) =>
+    request<PropertyArrivalAccessConfig>('/admin/arrival-access-config/property', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
   listPriceTiers: () => request<CatalogPage<PriceTier>>('/admin/price-tiers'),
   createPriceTier: (body: { code: string; name: string; sortOrder: number }) =>
     request<PriceTier>('/admin/price-tiers', {
@@ -422,6 +432,14 @@ export const adminApi = {
     body: { roomNumber?: string; roomTypeId?: string; notes?: string | null },
   ) =>
     request<Room>(`/admin/rooms/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  getRoomArrivalAccessConfig: (id: string) =>
+    request<RoomArrivalAccessConfig>(`/admin/arrival-access-config/rooms/${id}`),
+  updateRoomArrivalAccessConfig: (id: string, body: unknown) =>
+    request<RoomArrivalAccessConfig>(`/admin/arrival-access-config/rooms/${id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
@@ -650,19 +668,24 @@ export const adminApi = {
 };
 
 export const publicApi = {
-  searchAvailability: (body: unknown) =>
+  searchAvailability: (body: unknown, options: Pick<RequestInit, 'signal'> = {}) =>
     request<unknown>('/availability/search', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
+      ...options,
     }).then((response): AvailabilitySearchResponse =>
       availabilitySearchResponseSchema.parse(response),
     ),
-  searchNearbyAvailability: (body: NearbyAvailabilityRequest) =>
+  searchNearbyAvailability: (
+    body: NearbyAvailabilityRequest,
+    options: Pick<RequestInit, 'signal'> = {},
+  ) =>
     request<unknown>('/public/availability/nearby', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(nearbyAvailabilityRequestSchema.parse(body)),
+      ...options,
     }).then((response): NearbyAvailabilityResponse =>
       nearbyAvailabilityResponseSchema.parse(response),
     ),

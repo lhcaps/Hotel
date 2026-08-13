@@ -111,7 +111,7 @@ export class QuoteService {
   ) {}
   public async eligibleOffers(input: unknown) {
     const request = availabilityOfferRequestSchema.parse(input);
-    if (request.mode === 'multi_night') {
+    if (request.mode === undefined || request.mode === 'multi_night') {
       if (this.options.multiNight === undefined) throw new QuoteServiceUnavailableError();
       const source = await this.options.multiNight.quote({
         ...request,
@@ -189,11 +189,11 @@ export class QuoteService {
       throw new QuoteMultiNightStateError(rawMultiNightValidationState(input, parsed.error));
     }
     const request = parsed.success ? parsed.data : createQuoteRequestSchema.parse(input);
-    if (request.mode === 'multi_night') {
+    if (request.mode === undefined || request.mode === 'multi_night') {
       if (this.options.multiNight === undefined) throw new QuoteServiceUnavailableError();
       const source = await this.options.multiNight.quote(request);
       if (source === undefined || !source.available) {
-        const state = await this.multiNightState({ ...request, mode: 'multi_night' });
+        const state = await this.multiNightState(request);
         if (state !== undefined) {
           throw new QuoteMultiNightStateError(state);
         }
@@ -298,7 +298,7 @@ export class QuoteService {
   }
 
   private async multiNightState(
-    request: CreateQuoteRequest & { readonly mode: 'multi_night' },
+    request: CreateQuoteRequest,
   ): Promise<MultiNightQuoteState | undefined> {
     if (this.options.multiNight?.search === undefined) return undefined;
     const result = await this.options.multiNight.search(request);

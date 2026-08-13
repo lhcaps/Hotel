@@ -6,6 +6,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import { BookingModule } from '../booking/booking.module.js';
 import { PaymentModule } from '../payment/payment.module.js';
 import { BookingAccessPassService } from '../booking/services/booking-access-pass.service.js';
+import { ArrivalAccessConfigService } from '../booking/services/arrival-access-config.service.js';
 import { CouponRepository as QuoteCouponRepository } from '../pricing/coupon.repository.js';
 import { QuoteRepository } from '../pricing/quote.repository.js';
 import { QuoteService } from '../pricing/quote.service.js';
@@ -45,10 +46,11 @@ export const CUSTOMER_AUDIT_ADAPTER = Symbol('CUSTOMER_AUDIT_ADAPTER');
     },
     {
       provide: CustomerBookingService,
-      inject: [DatabaseProvider, BookingAccessPassService],
+      inject: [DatabaseProvider, BookingAccessPassService, ArrivalAccessConfigService],
       useFactory: (
         database: DatabaseProvider,
         accessPasses: BookingAccessPassService,
+        arrivalAccess: ArrivalAccessConfigService,
       ): CustomerBookingService =>
         new CustomerBookingService(
           database.client,
@@ -56,6 +58,7 @@ export const CUSTOMER_AUDIT_ADAPTER = Symbol('CUSTOMER_AUDIT_ADAPTER');
             couponRepository: new QuoteCouponRepository(database.client),
           }),
           accessPasses,
+          arrivalAccess,
         ),
     },
   ],

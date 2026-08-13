@@ -73,8 +73,8 @@ export class MultiNightOfferService {
   public constructor(private readonly options: MultiNightOfferServiceOptions) {}
 
   public async search(input: AvailabilitySearchRequest): Promise<AvailabilitySearchResponse> {
-    if (input.mode !== 'multi_night') {
-      throw new Error('MultiNightOfferService only accepts multi_night requests.');
+    if (input.mode !== undefined && input.mode !== 'multi_night') {
+      throw new Error('MultiNightOfferService only accepts flexible or multi_night requests.');
     }
     if (!this.options.publicGate.enabled || !this.options.pricingGate.enabled) {
       return availabilitySearchResponseSchema.parse({
@@ -266,6 +266,7 @@ export class MultiNightOfferService {
             propertyId: property.id,
             propertyName: property.name,
             roomTypeId: roomType.id,
+            roomTypeCode: roomType.code,
             roomTypeName: roomType.name,
             maxAdults: roomType.maxAdults,
             maxChildren: roomType.maxChildren,
@@ -308,7 +309,7 @@ export class MultiNightOfferService {
   public async quoteInternal(
     input: CreateQuoteRequest,
   ): Promise<MultiNightQuoteSource | undefined> {
-    if (input.mode !== 'multi_night') return undefined;
+    if (input.mode !== undefined && input.mode !== 'multi_night') return undefined;
     this.options.pricingGate.assertEnabled();
     const roomType = await this.options.database.query.roomTypes.findFirst({
       where: (row, operators) =>

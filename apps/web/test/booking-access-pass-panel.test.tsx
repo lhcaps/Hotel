@@ -69,7 +69,11 @@ describe('BookingAccessPassPanel', () => {
       </LocaleProvider>,
     );
 
-    expect(await screen.findByText('Access pass unavailable')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Check-in information becomes available about 30 minutes before arrival.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: 'Booking access QR code' })).not.toBeInTheDocument();
   });
 });

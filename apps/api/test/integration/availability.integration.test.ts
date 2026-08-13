@@ -87,6 +87,7 @@ describe('availability inventory search', () => {
   });
   afterAll(async () => database?.dispose());
   const request = {
+    mode: 'hourly' as const,
     checkIn: '2027-01-10T04:00:00.000Z',
     checkOut: '2027-01-10T07:00:00.000Z',
     adults: 2,

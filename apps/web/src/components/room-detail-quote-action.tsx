@@ -22,7 +22,6 @@ export function RoomDetailQuoteAction({
   const [offers, setOffers] = useState<
     Awaited<ReturnType<typeof publicApi.eligibleOffers>> | undefined
   >();
-  const [selectedPlanCode, setSelectedPlanCode] = useState<string>();
   const state = readBookingSearchQuery(new URLSearchParams(search));
 
   useEffect(() => {
@@ -32,7 +31,6 @@ export function RoomDetailQuoteAction({
     setOffers(undefined);
     void publicApi
       .eligibleOffers({
-        mode: state.mode,
         roomTypeId,
         checkIn: state.checkIn,
         checkOut: state.checkOut,
@@ -42,7 +40,6 @@ export function RoomDetailQuoteAction({
       .then((result) => {
         if (cancelled) return;
         setOffers(result);
-        setSelectedPlanCode(result.items[0]?.planCode);
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
@@ -53,22 +50,18 @@ export function RoomDetailQuoteAction({
   }, [roomTypeId, state?.adults, state?.checkIn, state?.checkOut, state?.children]);
 
   async function issueQuote() {
-    if (!state || pending || !selectedPlanCode) return;
+    if (!state || pending) return;
     setPending(true);
     setFailed(false);
     try {
       const quote = await publicApi.issueQuote({
-        mode: state.mode,
         roomTypeId,
         checkIn: state.checkIn,
         checkOut: state.checkOut,
         adults: state.adults,
         children: state.children,
-        selectedPlanCode,
       });
-      const params = new URLSearchParams(search);
-      params.set('selectedPlanCode', selectedPlanCode);
-      router.push(`/booking/quote/${quote.id}?roomTypeId=${roomTypeId}&${params.toString()}`);
+      router.push(`/booking/quote/${quote.id}?roomTypeId=${roomTypeId}&${search}`);
     } catch {
       setFailed(true);
     } finally {
@@ -86,30 +79,22 @@ export function RoomDetailQuoteAction({
           <AlertDescription>{translate(locale, 'catalog.quoteUnavailableHelp')}</AlertDescription>
         </Alert>
       ) : null}
-      {offers?.items.map((offer) => (
-        <button
-          aria-pressed={selectedPlanCode === offer.planCode}
-          className="rounded-md border p-4 text-left"
-          data-plan-code={offer.planCode}
-          data-testid="room-detail-plan"
-          key={offer.planCode}
-          onClick={() => setSelectedPlanCode(offer.planCode)}
-          type="button"
-        >
-          <strong>{translatePlanLabel(locale, offer.planCode)}</strong>
+      {offers?.items[0] === undefined ? null : (
+        <div className="rounded-md border p-4" data-testid="room-detail-composed-price">
+          <strong>{translatePlanLabel(locale, offers.items[0].planCode)}</strong>
           <span className="block text-sm">
-            {offer.nightCount !== undefined
-              ? `${offer.nightCount} ${translate(locale, 'quote.nightCount').toLowerCase()}`
+            {offers.items[0].nightCount !== undefined
+              ? `${offers.items[0].nightCount} ${translate(locale, 'quote.nightCount').toLowerCase()}`
               : translate(locale, 'ratePlan.includeDuration', {
-                  minutes: offer.includedDurationMinutes,
+                  minutes: offers.items[0].includedDurationMinutes,
                 })}
-            {offer.nightCount === undefined && offer.extraUnits > 0
-              ? `, ${translate(locale, 'ratePlan.extraHourCopy', { count: offer.extraUnits })}`
+            {offers.items[0].nightCount === undefined && offers.items[0].extraUnits > 0
+              ? `, ${translate(locale, 'ratePlan.extraHourCopy', { count: offers.items[0].extraUnits })}`
               : ''}
           </span>
-          <span className="block text-sm">{formatVnd(locale, offer.totalAmountVnd)}</span>
-        </button>
-      ))}
+          <span className="block text-sm">{formatVnd(locale, offers.items[0].totalAmountVnd)}</span>
+        </div>
+      )}
       {offers !== undefined && offers.items.length > 0 ? (
         pending ? (
           <Skeleton className="h-11 w-48" />

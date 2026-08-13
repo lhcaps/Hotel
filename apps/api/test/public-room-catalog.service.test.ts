@@ -11,6 +11,7 @@ describe('PublicRoomCatalogService', () => {
       list: vi.fn().mockResolvedValue([
         {
           id: '550e8400-e29b-41d4-a716-446655440010',
+          code: 'NAMI',
           name: 'Deluxe',
           description: 'A quiet, comfortable room.',
           maxAdults: 2,
@@ -26,6 +27,7 @@ describe('PublicRoomCatalogService', () => {
     expect(result.items).toEqual([
       {
         id: '550e8400-e29b-41d4-a716-446655440010',
+        code: 'NAMI',
         name: 'Deluxe',
         description: 'A quiet, comfortable room.',
         maxAdults: 2,

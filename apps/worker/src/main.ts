@@ -1,4 +1,9 @@
 import { Buffer } from 'node:buffer';
+import {
+  ArrivalAccessCrypto,
+  BookingAccessPassService,
+  deriveArrivalAccessEncryptionKey,
+} from '@room/booking';
 import { requireWorkerEnvironment } from '@room/config';
 import { createDatabasePool } from '@room/database';
 import { createLogger } from '@room/observability';
@@ -83,6 +88,14 @@ async function bootstrap(): Promise<number> {
           baseBackoffMs: 1_000,
           maxBackoffMs: 5 * 60_000,
           otpSecret: Buffer.from(environment.GUEST_OTP_SECRET, 'utf8'),
+          arrivalAccessCrypto: new ArrivalAccessCrypto(
+            deriveArrivalAccessEncryptionKey(
+              Buffer.from(environment.BOOKING_ACCESS_QR_SECRET, 'utf8'),
+            ),
+          ),
+          bookingAccessPasses: new BookingAccessPassService(
+            Buffer.from(environment.BOOKING_ACCESS_QR_SECRET, 'utf8'),
+          ),
         },
         logger,
       ),
