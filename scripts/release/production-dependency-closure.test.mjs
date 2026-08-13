@@ -22,7 +22,7 @@ test('production dependency overrides meet every RM-504 advisory patch floor', (
     undici: '7.29.0',
     'brace-expansion': '5.0.9',
     'js-yaml': '4.3.1',
-    nanoid: '3.3.17',
+    nanoid: '3.3.18',
   });
 });
 
