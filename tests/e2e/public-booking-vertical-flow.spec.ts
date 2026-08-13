@@ -123,8 +123,11 @@ async function createQuote(): Promise<QuoteResponse> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       roomTypeId: ROOM_TYPE_ID,
-      checkIn: '2027-02-10T04:00:00.000Z',
-      checkOut: '2027-02-10T07:00:00.000Z',
+      // Keep this real inventory interval distinct from the admin and
+      // multi-night acceptance fixtures that deliberately write 2027-02 data,
+      // while remaining inside the seeded public booking horizon.
+      checkIn: '2027-04-13T04:00:00.000Z',
+      checkOut: '2027-04-13T07:00:00.000Z',
       adults: 2,
       children: 0,
     }),
@@ -383,8 +386,8 @@ test.describe('public booking vertical flow', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         roomTypeId: ROOM_TYPE_ID,
-        checkIn: '2027-02-11T04:00:00.000Z',
-        checkOut: '2027-02-11T07:00:00.000Z',
+        checkIn: '2027-04-14T04:00:00.000Z',
+        checkOut: '2027-04-14T07:00:00.000Z',
         adults: 2,
         children: 0,
       }),
