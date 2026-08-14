@@ -23,10 +23,12 @@
 ### Task 1: Capture baseline production and local truth
 
 **Files:**
+
 - Create: `docs/operations-v3/HOUSEKEEPING_STATE_AUDIT.md`
 - Test/fixtures only if needed: `apps/api/test/booking/room-operations.service.test.ts`
 
 **Interfaces:**
+
 - Consumes: current production PostgreSQL read-only data, `CLIENT_ROOM_MANIFEST`, current room-operations response and housekeeping task rows.
 - Produces: explicit `SOURCE_FACT`, `DB_FACT`, `DERIVED_FACT`, and `DEFECT` sections plus baseline contradiction counts.
 
@@ -39,6 +41,7 @@
 ### Task 2: Make room-operation derivation and contracts semantically correct
 
 **Files:**
+
 - Modify: `apps/api/src/booking/services/room-operations.service.ts`
 - Modify: `apps/api/src/booking/repositories/room-operations.repository.ts`
 - Modify: `packages/contracts/src/admin-room-operations.ts`
@@ -47,6 +50,7 @@
 - Test: `apps/api/test/booking/room-operations.repository.integration.test.ts` or the existing repository integration analogue
 
 **Interfaces:**
+
 - Consumes: `RoomOperationRow` and separate housekeeping task rows.
 - Produces: `deriveRoomDisplayGroup()` that maps vacant DIRTY to `needs_cleaning`, vacant CLEANING to `cleaning`, vacant CLEAN+arrival to `arrival`, and vacant CLEAN to `ready`; diagnostics expose impossible task/room combinations instead of hiding them.
 
@@ -59,6 +63,7 @@
 ### Task 3: Add task-first housekeeping contracts, repository transactions, and API
 
 **Files:**
+
 - Modify: `packages/contracts/src/admin.ts`
 - Modify: `packages/contracts/src/admin-room-operations.ts`
 - Modify: `apps/api/src/catalog/catalog.service.ts`
@@ -70,6 +75,7 @@
 - Test: `apps/api/test/catalog/housekeeping.integration.test.ts`
 
 **Interfaces:**
+
 - Consumes: `housekeeping_tasks` rows and actor/property context.
 - Produces: task-addressed list/get/assign/start/complete/verify/reopen operations keyed by `taskId`, with room-level endpoints delegating only when a unique task is explicitly resolved.
 
@@ -84,6 +90,7 @@
 ### Task 4: Implement manual housekeeping override and RBAC/audit guarantees
 
 **Files:**
+
 - Modify: `packages/contracts/src/admin.ts`
 - Modify: `apps/api/src/catalog/catalog.service.ts`
 - Modify: `apps/api/src/catalog/catalog.repository.ts`
@@ -94,6 +101,7 @@
 - Test: `apps/api/test/catalog/housekeeping.rbac.integration.test.ts`
 
 **Interfaces:**
+
 - Consumes: actor profile, property scope, room id, target condition, required reason, and optional related task id.
 - Produces: `PATCH /api/v1/admin/rooms/:id/housekeeping/override` that atomically reconciles TURNOVER work and writes a complete audit event.
 
@@ -107,6 +115,7 @@
 ### Task 5: Replace the room-centric workboard and clean room-operation presentation
 
 **Files:**
+
 - Modify: `apps/web/src/components/housekeeping-workboard.tsx`
 - Modify: `apps/web/src/components/room-operations-board.tsx`
 - Modify: `apps/web/src/components/room-housekeeping-manager.tsx`
@@ -118,6 +127,7 @@
 - Test: `tests/e2e/housekeeping-workboard.spec.ts`
 
 **Interfaces:**
+
 - Consumes: task-first API rows and room-operation rows with independent axes/diagnostics.
 - Produces: task-first responsive board with separate TURNOVER/ARRIVAL_PREP filtering and non-duplicative room labels.
 
@@ -131,10 +141,12 @@
 ### Task 6: Run full verification and post-change local audit
 
 **Files:**
+
 - Modify: `docs/operations-v3/HOUSEKEEPING_STATE_AUDIT.md`
 - Create if needed: `docs/operations-v3/HOUSEKEEPING_STATE_AUDIT_AFTER.md`
 
 **Interfaces:**
+
 - Consumes: all changed source, tests, generated OpenAPI, local PostgreSQL integration database, and the same production read-only audit query.
 - Produces: green local gates and before/after integrity report; production remains untouched.
 
@@ -146,9 +158,11 @@
 ### Task 7: Commit, push, and verify CI without deployment
 
 **Files:**
+
 - Exact-path staging only for changed implementation, tests, docs, and generated contract artifacts.
 
 **Interfaces:**
+
 - Consumes: verified local implementation and audit artifacts.
 - Produces: one main commit, exact `origin/main` SHA, hosted CI success, and final report with `PRODUCTION_DEPLOYED=NO`.
 
