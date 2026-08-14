@@ -76,7 +76,7 @@ export function HousekeepingWorkboard() {
     setStale(false);
     return Promise.all([adminApi.listHousekeepingTasks(), adminApi.me()])
       .then(async ([list, actor]: [HousekeepingTaskList, AdminMe]) => {
-        setTasks(list.items);
+        setTasks(list?.items ?? []);
         setMe(actor);
         if (canManageTask(actor.permissions)) {
           setAssignees(await adminApi.listHousekeepingAssignees());
@@ -109,7 +109,7 @@ export function HousekeepingWorkboard() {
 
   const visibleTasks = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase(locale);
-    return tasks
+    return (tasks ?? [])
       .filter((task) => statusFilter === 'ALL' || task.status === statusFilter)
       .filter((task) => typeFilter === 'ALL' || task.type === typeFilter)
       .filter((task) => {

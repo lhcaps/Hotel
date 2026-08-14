@@ -366,6 +366,19 @@ describe('HousekeepingWorkboard task-first', () => {
     expect(api.listHousekeepingTasks).toHaveBeenCalled();
   });
 
+  it('does not crash when listHousekeepingTasks resolves with undefined items', async () => {
+    setupSuperAdmin();
+    api.listHousekeepingAssignees.mockResolvedValue([]);
+    api.listHousekeepingTasks.mockResolvedValue(undefined as unknown as never);
+
+    renderWorkboard();
+
+    await waitFor(() => {
+      expect(api.listHousekeepingTasks).toHaveBeenCalled();
+    });
+    expect(api.me).toHaveBeenCalled();
+  });
+
   it('manager can verify a DONE TURNOVER task', async () => {
     setupSuperAdmin();
     api.listHousekeepingAssignees.mockResolvedValue([
