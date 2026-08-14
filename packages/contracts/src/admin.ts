@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { publicContactSchema } from './public-contact.js';
+
 const uuidSchema = z.uuid();
 const catalogCodeSchema = z
   .string()
@@ -171,6 +173,7 @@ export const propertySchema = z
     minimumLeadTimeMinutes: z.number().int().min(0).max(44_640).optional(),
     maximumAdvanceBookingDays: z.number().int().min(0).max(3_650).optional(),
     defaultOvernightDurationMinutes: z.number().int().min(1).max(44_640).optional(),
+    publicContact: publicContactSchema.optional(),
     createdAt: instantSchema,
     updatedAt: instantSchema,
   })
