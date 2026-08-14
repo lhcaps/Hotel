@@ -121,14 +121,18 @@ export function HousekeepingWorkboard() {
   };
 
   const handleTaskAction = useCallback(
-    async (roomId: string, action: 'start' | 'complete', expectedVersion: number) => {
+    async (
+      taskId: string,
+      roomId: string,
+      action: 'start' | 'complete',
+      expectedVersion: number,
+    ) => {
       setPending((current) => ({ ...current, [roomId]: true }));
       setActionError((current) => ({ ...current, [roomId]: '' }));
       try {
-        await adminApi.updateRoomHousekeeping(roomId, {
-          status: action === 'start' ? 'CLEANING' : 'CLEAN',
-          expectedVersion,
-        });
+        const body = { expectedVersion };
+        if (action === 'start') await adminApi.startHousekeepingTask(taskId, body);
+        else await adminApi.completeHousekeepingTask(taskId, body);
         await refresh();
       } catch (cause: unknown) {
         setActionError((current) => ({
@@ -144,13 +148,13 @@ export function HousekeepingWorkboard() {
   );
 
   const handleAssignment = useCallback(
-    async (roomId: string, expectedVersion: number) => {
+    async (taskId: string, roomId: string, expectedVersion: number) => {
       const assigneeId = assignmentDrafts[roomId];
       if (assigneeId === undefined || assigneeId === '') return;
       setPending((current) => ({ ...current, [roomId]: true }));
       setActionError((current) => ({ ...current, [roomId]: '' }));
       try {
-        await adminApi.assignRoomHousekeeping(roomId, { assigneeId, expectedVersion });
+        await adminApi.assignHousekeepingTask(taskId, { assigneeId, expectedVersion });
         await refresh();
       } catch (cause: unknown) {
         setActionError((current) => ({
@@ -166,12 +170,17 @@ export function HousekeepingWorkboard() {
   );
 
   const handleManagerAction = useCallback(
-    async (roomId: string, action: 'verify' | 'reopen', expectedVersion: number) => {
+    async (
+      taskId: string,
+      roomId: string,
+      action: 'verify' | 'reopen',
+      expectedVersion: number,
+    ) => {
       setPending((current) => ({ ...current, [roomId]: true }));
       setActionError((current) => ({ ...current, [roomId]: '' }));
       try {
         if (action === 'verify') {
-          await adminApi.verifyRoomHousekeeping(roomId, { expectedVersion });
+          await adminApi.verifyHousekeepingTask(taskId, { expectedVersion });
         } else {
           if (reopenReason.trim() === '') {
             setActionError((current) => ({
@@ -180,7 +189,7 @@ export function HousekeepingWorkboard() {
             }));
             return;
           }
-          await adminApi.reopenRoomHousekeeping(roomId, {
+          await adminApi.reopenHousekeepingTask(taskId, {
             expectedVersion,
             reason: reopenReason.trim(),
           });
@@ -377,7 +386,9 @@ export function HousekeepingWorkboard() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => void handleAssignment(room.roomId, task.version)}
+                                  onClick={() =>
+                                    void handleAssignment(task.taskId, room.roomId, task.version)
+                                  }
                                   disabled={
                                     pending[room.roomId] === true ||
                                     (assignmentDrafts[room.roomId] ?? task.assigneeId) === null ||
@@ -392,7 +403,12 @@ export function HousekeepingWorkboard() {
                               <Button
                                 size="sm"
                                 onClick={() =>
-                                  void handleTaskAction(room.roomId, 'start', task.version)
+                                  void handleTaskAction(
+                                    task.taskId,
+                                    room.roomId,
+                                    'start',
+                                    task.version,
+                                  )
                                 }
                                 disabled={pending[room.roomId] === true}
                               >
@@ -403,7 +419,12 @@ export function HousekeepingWorkboard() {
                               <Button
                                 size="sm"
                                 onClick={() =>
-                                  void handleTaskAction(room.roomId, 'complete', task.version)
+                                  void handleTaskAction(
+                                    task.taskId,
+                                    room.roomId,
+                                    'complete',
+                                    task.version,
+                                  )
                                 }
                                 disabled={pending[room.roomId] === true}
                               >
@@ -415,7 +436,12 @@ export function HousekeepingWorkboard() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() =>
-                                  void handleManagerAction(room.roomId, 'verify', task.version)
+                                  void handleManagerAction(
+                                    task.taskId,
+                                    room.roomId,
+                                    'verify',
+                                    task.version,
+                                  )
                                 }
                                 disabled={pending[room.roomId] === true}
                               >
@@ -476,7 +502,7 @@ export function HousekeepingWorkboard() {
                   const taskRoom = roomsWithTasks.find((room) => room.roomId === reopenRoomId);
                   const task = taskRoom?.activeHousekeepingTask ?? taskRoom?.latestTurnoverTask;
                   if (task === undefined || task === null) return;
-                  void handleManagerAction(reopenRoomId, 'reopen', task.version);
+                  void handleManagerAction(task.taskId, reopenRoomId, 'reopen', task.version);
                 }}
               >
                 {translate(locale, 'admin.apply')}
