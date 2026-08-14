@@ -52,7 +52,14 @@ export interface RoomOperationsRepositoryPort {
 }
 
 export type RoomDisplayGroup =
-  'occupied' | 'checkout' | 'arrival' | 'cleaning' | 'ready' | 'maintenance' | 'inactive';
+  | 'occupied'
+  | 'checkout'
+  | 'arrival'
+  | 'cleaning'
+  | 'needs_cleaning'
+  | 'ready'
+  | 'maintenance'
+  | 'inactive';
 
 const NEXT_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -98,9 +105,8 @@ export function deriveRoomDisplayGroup(
   if (room.nextBookingCheckIn !== null && isWithinNextDay(room.nextBookingCheckIn, nowMs)) {
     return 'arrival';
   }
-  if (room.housekeepingStatus !== 'CLEAN' || room.activeHousekeepingTask !== null) {
-    return 'cleaning';
-  }
+  if (room.housekeepingStatus === 'DIRTY') return 'needs_cleaning';
+  if (room.housekeepingStatus === 'CLEANING') return 'cleaning';
   return 'ready';
 }
 

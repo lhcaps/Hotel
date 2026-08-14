@@ -443,6 +443,41 @@ export const housekeepingAssigneeListSchema = z
   .object({ items: z.array(housekeepingAssigneeSchema).max(100).readonly() })
   .strict();
 
+export const housekeepingTaskCommandVersionSchema = z
+  .object({ expectedVersion: z.number().int().min(0) })
+  .strict();
+
+export const housekeepingTaskRecordSchema = z
+  .object({
+    taskId: uuidSchema,
+    roomId: uuidSchema,
+    roomNumber: z.string().min(1).max(64),
+    physicalRoomCode: z.string().min(1).max(128),
+    roomConcept: z.string().min(1).max(200),
+    roomTier: z.string().min(1).max(160),
+    housekeepingStatus: roomHousekeepingStatusSchema,
+    type: z.enum(['ARRIVAL_PREP', 'TURNOVER']),
+    status: z.enum(['SCHEDULED', 'DUE', 'IN_PROGRESS', 'DONE', 'CANCELLED']),
+    dueAt: instantSchema,
+    assigneeId: uuidSchema.nullable(),
+    assigneeName: z.string().nullable(),
+    version: z.number().int().min(0),
+    verifiedAt: instantSchema.nullable(),
+  })
+  .strict();
+
+export const housekeepingTaskListSchema = z
+  .object({ items: z.array(housekeepingTaskRecordSchema).readonly() })
+  .strict();
+
+export const housekeepingOverrideCommandSchema = z
+  .object({
+    status: roomHousekeepingStatusSchema,
+    expectedVersion: z.number().int().min(0),
+    reason: z.string().trim().min(1).max(1_000),
+  })
+  .strict();
+
 export const maintenanceBlockSchema = z
   .object({
     id: uuidSchema,
@@ -507,5 +542,7 @@ export type HousekeepingTaskVersionCommand = z.infer<typeof housekeepingTaskVers
 export type HousekeepingTaskReopenCommand = z.infer<typeof housekeepingTaskReopenCommandSchema>;
 export type HousekeepingTaskAction = z.infer<typeof housekeepingTaskActionSchema>;
 export type HousekeepingAssignee = z.infer<typeof housekeepingAssigneeSchema>;
+export type HousekeepingTaskRecord = z.infer<typeof housekeepingTaskRecordSchema>;
+export type HousekeepingOverrideCommand = z.infer<typeof housekeepingOverrideCommandSchema>;
 export type MaintenanceBlock = z.infer<typeof maintenanceBlockSchema>;
 export type MaintenanceBlockCommand = z.infer<typeof maintenanceBlockCommandSchema>;

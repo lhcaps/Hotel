@@ -37,9 +37,14 @@ import type {
   HousekeepingTaskAction,
   HousekeepingTaskAssignment,
   HousekeepingAssignee,
+  HousekeepingTaskRecord,
   NearbyAvailabilityRequest,
   NearbyAvailabilityResponse,
 } from '@room/contracts';
+
+export interface HousekeepingTaskList {
+  readonly items: readonly HousekeepingTaskRecord[];
+}
 
 export interface CatalogPage<T> {
   readonly page: number;
@@ -477,6 +482,46 @@ export const adminApi = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     }),
+  listHousekeepingTasks: () => request<HousekeepingTaskList>('/admin/housekeeping/tasks'),
+  assignHousekeepingTask: (taskId: string, body: { assigneeId: string; expectedVersion: number }) =>
+    request<HousekeepingTaskAssignment>(`/admin/housekeeping/tasks/${taskId}/assignment`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  startHousekeepingTask: (taskId: string, body: { expectedVersion: number }) =>
+    request<HousekeepingTaskAction>(`/admin/housekeeping/tasks/${taskId}/start`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  completeHousekeepingTask: (taskId: string, body: { expectedVersion: number }) =>
+    request<HousekeepingTaskAction>(`/admin/housekeeping/tasks/${taskId}/complete`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  verifyHousekeepingTask: (taskId: string, body: { expectedVersion: number }) =>
+    request<HousekeepingTaskAction>(`/admin/housekeeping/tasks/${taskId}/verification`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  reopenHousekeepingTask: (taskId: string, body: { expectedVersion: number; reason: string }) =>
+    request<HousekeepingTaskAction>(`/admin/housekeeping/tasks/${taskId}/reopen`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  overrideRoomHousekeeping: (
+    roomId: string,
+    body: { status: 'CLEAN' | 'DIRTY' | 'CLEANING'; expectedVersion: number; reason: string },
+  ) =>
+    request<Room>(`/admin/rooms/${roomId}/housekeeping/override`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
   listMaintenanceBlocks: () => request<CatalogPage<MaintenanceBlock>>('/admin/maintenance-blocks'),
   createMaintenanceBlock: (body: {
     roomId: string;
@@ -750,7 +795,14 @@ export interface AdminRoomOperationsResponse {
     readonly maintenanceState: 'ACTIVE' | 'NONE';
     readonly currentOccupancy: 'OCCUPIED' | 'VACANT';
     readonly displayGroup:
-      'occupied' | 'checkout' | 'arrival' | 'cleaning' | 'ready' | 'maintenance' | 'inactive';
+      | 'occupied'
+      | 'checkout'
+      | 'arrival'
+      | 'cleaning'
+      | 'needs_cleaning'
+      | 'ready'
+      | 'maintenance'
+      | 'inactive';
     readonly nextBookingWindow: { readonly checkIn: string; readonly checkOut: string } | null;
     readonly freeWindows: readonly { readonly startsAt: string; readonly endsAt: string }[];
     readonly activeHousekeepingTask: {

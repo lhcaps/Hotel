@@ -222,6 +222,79 @@ export class CatalogController {
     return this.catalog.listHousekeepingAssignees(request.actor);
   }
 
+  @Get('housekeeping/tasks')
+  @Version('1')
+  @RequirePermissions('housekeeping.task.read')
+  public housekeepingTasks(@Req() request: { actor: ActorContext }) {
+    return this.catalog.listHousekeepingTasks(request.actor);
+  }
+
+  @Patch('housekeeping/tasks/:taskId/assignment')
+  @Version('1')
+  @RequirePermissions('housekeeping.task.manage')
+  public assignHousekeepingTask(
+    @Req() request: { actor: ActorContext },
+    @Param('taskId') taskId: string,
+    @Body() body: unknown,
+  ) {
+    return this.catalog.assignHousekeepingTask(request.actor, taskId, body);
+  }
+
+  @Patch('housekeeping/tasks/:taskId/start')
+  @Version('1')
+  @RequirePermissions('housekeeping.task.update')
+  public startHousekeepingTask(
+    @Req() request: { actor: ActorContext },
+    @Param('taskId') taskId: string,
+    @Body() body: unknown,
+  ) {
+    return this.catalog.startHousekeepingTask(request.actor, taskId, body);
+  }
+
+  @Patch('housekeeping/tasks/:taskId/complete')
+  @Version('1')
+  @RequirePermissions('housekeeping.task.update')
+  public completeHousekeepingTask(
+    @Req() request: { actor: ActorContext },
+    @Param('taskId') taskId: string,
+    @Body() body: unknown,
+  ) {
+    return this.catalog.completeHousekeepingTask(request.actor, taskId, body);
+  }
+
+  @Patch('housekeeping/tasks/:taskId/verification')
+  @Version('1')
+  @RequirePermissions('housekeeping.task.manage')
+  public verifyHousekeepingTask(
+    @Req() request: { actor: ActorContext },
+    @Param('taskId') taskId: string,
+    @Body() body: unknown,
+  ) {
+    return this.catalog.verifyHousekeepingTask(request.actor, taskId, body);
+  }
+
+  @Patch('housekeeping/tasks/:taskId/reopen')
+  @Version('1')
+  @RequirePermissions('housekeeping.task.manage')
+  public reopenHousekeepingTask(
+    @Req() request: { actor: ActorContext },
+    @Param('taskId') taskId: string,
+    @Body() body: unknown,
+  ) {
+    return this.catalog.reopenHousekeepingTask(request.actor, taskId, body);
+  }
+
+  @Patch('rooms/:id/housekeeping/override')
+  @Version('1')
+  @RequirePermissions('housekeeping.task.manage')
+  public overrideRoomHousekeeping(
+    @Req() request: { actor: ActorContext },
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.catalog.overrideRoomHousekeeping(request.actor, id, body);
+  }
+
   @Patch('rooms/:id/housekeeping/verification')
   @Version('1')
   @RequirePermissions('housekeeping.task.manage')

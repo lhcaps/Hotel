@@ -64,6 +64,7 @@ export const roomDisplayGroupSchema = z.enum([
   'checkout',
   'arrival',
   'cleaning',
+  'needs_cleaning',
   'ready',
   'maintenance',
   'inactive',

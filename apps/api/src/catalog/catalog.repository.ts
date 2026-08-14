@@ -32,6 +32,7 @@ import type {
   HousekeepingTaskAssignmentCommand,
   HousekeepingTaskReopenCommand,
   HousekeepingTaskVersionCommand,
+  HousekeepingOverrideCommand,
   MaintenanceBlockCommand,
 } from '@room/contracts';
 
@@ -46,6 +47,7 @@ import type {
   CatalogMaintenanceRecord,
   CatalogHousekeepingTaskAssignmentRecord,
   CatalogHousekeepingTaskActionRecord,
+  CatalogHousekeepingTaskRecord,
   CatalogHousekeepingAssigneeRecord,
   RoomCommitmentSummary,
   RoomTypeDependencySummary,
@@ -512,9 +514,9 @@ export class CatalogRepository implements CatalogRepositoryPort {
                     AND due_at <= CURRENT_TIMESTAMP
                     AND assigned_to = ${actorId}
                     AND version = ${command.expectedVersion}
-                  ORDER BY due_at ASC, id ASC
-                  FOR UPDATE
-                  LIMIT 1
+                 ORDER BY due_at ASC, id ASC
+                 FOR UPDATE
+                 LIMIT 1
                )
               RETURNING id
             )
@@ -695,6 +697,183 @@ export class CatalogRepository implements CatalogRepositoryPort {
       id: String(row.id),
       displayName: String(row.displayName),
     }));
+  }
+
+  public async listHousekeepingTasks(
+    propertyId: string,
+  ): Promise<readonly CatalogHousekeepingTaskRecord[]> {
+    const result = await this.database.execute(sql`
+      SELECT ht.id AS "taskId", r.id AS "roomId", r.room_number AS "roomNumber",
+             r.physical_room_code AS "physicalRoomCode", COALESCE(rt.name, rt.code, r.room_number) AS "roomConcept",
+             COALESCE(pt.name, pt.code, 'Unknown') AS "roomTier", r.housekeeping_status AS "housekeepingStatus",
+             ht.type, ht.status, ht.due_at AS "dueAt", ht.assigned_to AS "assigneeId",
+             u.name AS "assigneeName", ht.version, ht.verified_at AS "verifiedAt"
+        FROM housekeeping_tasks ht
+        JOIN rooms r ON r.id = ht.room_id AND r.property_id = ht.property_id
+        JOIN room_types rt ON rt.id = r.room_type_id
+        JOIN price_tiers pt ON pt.id = rt.price_tier_id
+        LEFT JOIN users u ON u.id = ht.assigned_to
+       WHERE ht.property_id = ${propertyId}
+       ORDER BY ht.due_at ASC, ht.id ASC
+    `);
+    return result.rows.map((row) => ({
+      taskId: String(row.taskId),
+      roomId: String(row.roomId),
+      roomNumber: String(row.roomNumber),
+      physicalRoomCode: String(row.physicalRoomCode),
+      roomConcept: String(row.roomConcept),
+      roomTier: String(row.roomTier),
+      housekeepingStatus: row.housekeepingStatus as 'CLEAN' | 'DIRTY' | 'CLEANING',
+      type: row.type as 'ARRIVAL_PREP' | 'TURNOVER',
+      status: row.status as 'SCHEDULED' | 'DUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED',
+      dueAt: new Date(row.dueAt as string | Date),
+      assigneeId: row.assigneeId === null ? null : String(row.assigneeId),
+      assigneeName: row.assigneeName === null ? null : String(row.assigneeName),
+      version: Number(row.version),
+      verifiedAt: row.verifiedAt === null ? null : new Date(row.verifiedAt as string | Date),
+    }));
+  }
+
+  public async assignHousekeepingTask(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    command: HousekeepingTaskAssignmentCommand,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskAssignmentRecord | undefined> {
+    const database = asCatalogDatabase(transaction, this.database);
+    const result = await database.execute(sql`
+      UPDATE housekeeping_tasks ht
+         SET assigned_to = ${command.assigneeId}, assigned_by = ${actorId}, assigned_at = CURRENT_TIMESTAMP,
+             version = version + 1, updated_at = CURRENT_TIMESTAMP
+       WHERE ht.id = ${taskId} AND ht.property_id = ${propertyId}
+         AND ht.status IN ('SCHEDULED','DUE') AND ht.version = ${command.expectedVersion}
+         AND EXISTS (SELECT 1 FROM users u JOIN admin_memberships am ON am.user_id=u.id AND am.status='ACTIVE' AND am.role='HOUSEKEEPING_STAFF'
+                      JOIN admin_property_memberships apm ON apm.user_id=u.id AND apm.property_id=${propertyId} AND apm.status='ACTIVE'
+                     WHERE u.id=${command.assigneeId} AND u.status='ACTIVE')
+      RETURNING id, room_id, assigned_to, assigned_by, assigned_at, version
+    `);
+    const row = result.rows[0] as
+      | {
+          id: string;
+          room_id: string;
+          assigned_to: string;
+          assigned_by: string;
+          assigned_at: string | Date;
+          version: number;
+        }
+      | undefined;
+    return row === undefined
+      ? undefined
+      : {
+          id: String(row.id),
+          roomId: String(row.room_id),
+          assignedTo: String(row.assigned_to),
+          assignedBy: String(row.assigned_by),
+          assignedAt: new Date(row.assigned_at),
+          version: Number(row.version),
+        };
+  }
+
+  public async startHousekeepingTask(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    expectedVersion: number,
+    actorId: string,
+  ) {
+    const database = asCatalogDatabase(transaction, this.database);
+    const result = await database.execute(sql`
+      WITH task AS (
+        UPDATE housekeeping_tasks ht SET status='IN_PROGRESS', started_at=CURRENT_TIMESTAMP, started_by=${actorId}, version=version+1, updated_at=CURRENT_TIMESTAMP
+         WHERE ht.id=${taskId} AND ht.property_id=${propertyId} AND ht.status IN ('SCHEDULED','DUE') AND ht.version=${expectedVersion}
+           AND (ht.type='ARRIVAL_PREP' OR EXISTS (SELECT 1 FROM rooms r WHERE r.id=ht.room_id AND r.housekeeping_status='DIRTY'))
+           AND (ht.assigned_to=${actorId} OR EXISTS (SELECT 1 FROM admin_memberships am WHERE am.user_id=${actorId} AND am.status='ACTIVE' AND am.role IN ('HOUSEKEEPING_MANAGER','SUPER_ADMIN')))
+        RETURNING id, room_id, type, version
+      ), room AS (
+        UPDATE rooms r SET housekeeping_status='CLEANING', updated_at=CURRENT_TIMESTAMP
+         WHERE r.id=(SELECT room_id FROM task WHERE type='TURNOVER') AND r.property_id=${propertyId} AND r.housekeeping_status='DIRTY'
+      ) SELECT id, room_id, version FROM task
+    `);
+    return toHousekeepingTaskAction(result.rows[0]);
+  }
+
+  public async completeHousekeepingTask(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    expectedVersion: number,
+    actorId: string,
+  ) {
+    const database = asCatalogDatabase(transaction, this.database);
+    const result = await database.execute(sql`
+      WITH task AS (
+        UPDATE housekeeping_tasks ht SET status='DONE', completed_at=CURRENT_TIMESTAMP, completed_by=${actorId}, version=version+1, updated_at=CURRENT_TIMESTAMP
+         WHERE ht.id=${taskId} AND ht.property_id=${propertyId} AND ht.status='IN_PROGRESS' AND ht.version=${expectedVersion}
+           AND (ht.assigned_to=${actorId} OR EXISTS (SELECT 1 FROM admin_memberships am WHERE am.user_id=${actorId} AND am.status='ACTIVE' AND am.role IN ('HOUSEKEEPING_MANAGER','SUPER_ADMIN')))
+        RETURNING id, room_id, type, version
+      ), room AS (
+        UPDATE rooms r SET housekeeping_status='CLEAN', updated_at=CURRENT_TIMESTAMP
+         WHERE r.id=(SELECT room_id FROM task WHERE type='TURNOVER') AND r.property_id=${propertyId} AND r.housekeeping_status='CLEANING'
+      ) SELECT id, room_id, version FROM task
+    `);
+    return toHousekeepingTaskAction(result.rows[0]);
+  }
+
+  public async verifyHousekeepingTask(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    expectedVersion: number,
+    actorId: string,
+  ) {
+    const database = asCatalogDatabase(transaction, this.database);
+    const result = await database.execute(
+      sql`UPDATE housekeeping_tasks SET verified_at=CURRENT_TIMESTAMP, verified_by=${actorId}, version=version+1, updated_at=CURRENT_TIMESTAMP WHERE id=${taskId} AND property_id=${propertyId} AND status='DONE' AND verified_at IS NULL AND version=${expectedVersion} RETURNING id, room_id, version`,
+    );
+    return toHousekeepingTaskAction(result.rows[0]);
+  }
+
+  public async reopenHousekeepingTask(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    expectedVersion: number,
+    reason: string,
+    actorId: string,
+  ) {
+    const database = asCatalogDatabase(transaction, this.database);
+    const result = await database.execute(sql`
+      WITH task AS (UPDATE housekeeping_tasks SET status='DUE', completed_at=NULL, completed_by=NULL, reopened_at=CURRENT_TIMESTAMP, reopened_by=${actorId}, reopen_reason=${reason}, version=version+1, updated_at=CURRENT_TIMESTAMP WHERE id=${taskId} AND property_id=${propertyId} AND status='DONE' AND version=${expectedVersion} RETURNING id, room_id, type, version), room AS (UPDATE rooms SET housekeeping_status='DIRTY', updated_at=CURRENT_TIMESTAMP WHERE id=(SELECT room_id FROM task WHERE type='TURNOVER') AND property_id=${propertyId}) SELECT id, room_id, version FROM task
+    `);
+    return toHousekeepingTaskAction(result.rows[0]);
+  }
+
+  public async overrideRoomHousekeeping(
+    transaction: unknown,
+    propertyId: string,
+    roomId: string,
+    command: HousekeepingOverrideCommand,
+    actorId: string,
+  ) {
+    const database = asCatalogDatabase(transaction, this.database);
+    const result = await database.execute(sql`
+      WITH reconciled AS (
+        UPDATE housekeeping_tasks
+           SET status = CASE ${command.status} WHEN 'DIRTY' THEN 'DUE' WHEN 'CLEANING' THEN 'IN_PROGRESS' ELSE 'DONE' END,
+               completed_at = CASE WHEN ${command.status} = 'CLEAN' THEN CURRENT_TIMESTAMP ELSE NULL END,
+               completed_by = CASE WHEN ${command.status} = 'CLEAN' THEN ${actorId} ELSE NULL END,
+               started_at = CASE WHEN ${command.status} = 'CLEANING' THEN COALESCE(started_at, CURRENT_TIMESTAMP) ELSE started_at END,
+               started_by = CASE WHEN ${command.status} = 'CLEANING' THEN COALESCE(started_by, ${actorId}) ELSE started_by END,
+               version = version + 1, updated_at = CURRENT_TIMESTAMP
+         WHERE property_id=${propertyId} AND room_id=${roomId} AND type='TURNOVER'
+           AND status IN ('SCHEDULED','DUE','IN_PROGRESS','DONE') AND version=${command.expectedVersion}
+      )
+      UPDATE rooms SET housekeeping_status=${command.status}, updated_at=CURRENT_TIMESTAMP
+       WHERE id=${roomId} AND property_id=${propertyId} AND housekeeping_status IS NOT NULL
+      RETURNING id, property_id AS "propertyId", room_type_id AS "roomTypeId", room_number AS "roomNumber", physical_room_code AS "physicalRoomCode", notes, status, housekeeping_status AS "housekeepingStatus", created_at AS "createdAt", updated_at AS "updatedAt"
+    `);
+    return toCatalogRoomRecord(result.rows[0]);
   }
   public async reopenRoomHousekeeping(
     transaction: unknown,

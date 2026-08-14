@@ -81,18 +81,18 @@ describe('deriveRoomDisplayGroup (ORIG-C-005)', () => {
     expect(deriveRoomDisplayGroup(room, NOW)).toBe('arrival');
   });
 
-  it('returns cleaning when housekeepingStatus is DIRTY', () => {
+  it('returns needs_cleaning when housekeepingStatus is DIRTY', () => {
     expect(deriveRoomDisplayGroup({ ...baseRoom(), housekeepingStatus: 'DIRTY' }, NOW)).toBe(
-      'cleaning',
+      'needs_cleaning',
     );
   });
 
-  it('returns cleaning when housekeepingStatus is CLEAN but there is an active task', () => {
+  it('keeps a clean room ready when an ARRIVAL_PREP task is active', () => {
     const room = {
       ...baseRoom(),
       activeHousekeepingTask: {
         taskId: '10000000-0000-4000-8000-000000000201',
-        type: 'TURNOVER' as const,
+        type: 'ARRIVAL_PREP' as const,
         status: 'IN_PROGRESS' as const,
         dueAt: NOW,
         assigneeId: '10000000-0000-4000-8000-000000000202',
@@ -100,7 +100,13 @@ describe('deriveRoomDisplayGroup (ORIG-C-005)', () => {
         verifiedAt: null,
       },
     };
-    expect(deriveRoomDisplayGroup(room, NOW)).toBe('cleaning');
+    expect(deriveRoomDisplayGroup(room, NOW)).toBe('ready');
+  });
+
+  it('returns cleaning only for CLEANING housekeeping state', () => {
+    expect(deriveRoomDisplayGroup({ ...baseRoom(), housekeepingStatus: 'CLEANING' }, NOW)).toBe(
+      'cleaning',
+    );
   });
 
   it('returns ready when clean, vacant, no upcoming booking, no active task', () => {

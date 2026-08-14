@@ -14,6 +14,8 @@ import {
   type HousekeepingAssignee,
   type HousekeepingTaskReopenCommand,
   type HousekeepingTaskVersionCommand,
+  type HousekeepingTaskRecord,
+  type HousekeepingOverrideCommand,
   type MaintenanceBlockCommand,
   amenityCommandSchema,
   amenitySchema,
@@ -37,6 +39,9 @@ import {
   housekeepingAssigneeListSchema,
   housekeepingTaskReopenCommandSchema,
   housekeepingTaskVersionCommandSchema,
+  housekeepingTaskCommandVersionSchema,
+  housekeepingTaskListSchema,
+  housekeepingOverrideCommandSchema,
   roomSchema,
   maintenanceBlockCommandSchema,
   maintenanceBlockSchema,
@@ -139,6 +144,23 @@ export interface CatalogHousekeepingTaskActionRecord {
 export interface CatalogHousekeepingAssigneeRecord {
   readonly id: string;
   readonly displayName: string;
+}
+
+export interface CatalogHousekeepingTaskRecord {
+  readonly taskId: string;
+  readonly roomId: string;
+  readonly roomNumber: string;
+  readonly physicalRoomCode: string;
+  readonly roomConcept: string;
+  readonly roomTier: string;
+  readonly housekeepingStatus: 'CLEAN' | 'DIRTY' | 'CLEANING';
+  readonly type: 'ARRIVAL_PREP' | 'TURNOVER';
+  readonly status: 'SCHEDULED' | 'DUE' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+  readonly dueAt: Date;
+  readonly assigneeId: string | null;
+  readonly assigneeName: string | null;
+  readonly version: number;
+  readonly verifiedAt: Date | null;
 }
 
 export interface CancelMaintenanceResult {
@@ -324,6 +346,50 @@ export interface CatalogRepositoryPort {
   listHousekeepingAssignees?(
     propertyId: string,
   ): Promise<readonly CatalogHousekeepingAssigneeRecord[]>;
+  listHousekeepingTasks?(propertyId: string): Promise<readonly CatalogHousekeepingTaskRecord[]>;
+  assignHousekeepingTask?(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    command: HousekeepingTaskAssignmentCommand,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskAssignmentRecord | undefined>;
+  startHousekeepingTask?(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    expectedVersion: number,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskActionRecord | undefined>;
+  completeHousekeepingTask?(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    expectedVersion: number,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskActionRecord | undefined>;
+  verifyHousekeepingTask?(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    expectedVersion: number,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskActionRecord | undefined>;
+  reopenHousekeepingTask?(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    expectedVersion: number,
+    reason: string,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskActionRecord | undefined>;
+  overrideRoomHousekeeping?(
+    transaction: unknown,
+    propertyId: string,
+    roomId: string,
+    command: HousekeepingOverrideCommand,
+    actorId: string,
+  ): Promise<CatalogRoomRecord | undefined>;
   listRooms(
     propertyId: string,
     page: number,
@@ -999,6 +1065,215 @@ export class CatalogService {
       'reopenRoomHousekeeping',
       'ROOM_HOUSEKEEPING_REOPENED',
     );
+  }
+
+  public async listHousekeepingTasks(
+    actor: ActorContext,
+  ): Promise<readonly HousekeepingTaskRecord[]> {
+    const property = await this.repository.getCurrentProperty(actor);
+    if (property === undefined || this.repository.listHousekeepingTasks === undefined)
+      throw new CatalogNotFoundError();
+    const rows = await this.repository.listHousekeepingTasks(property.id);
+    return housekeepingTaskListSchema.parse({
+      items: rows.map((item) => ({
+        ...item,
+        dueAt: item.dueAt.toISOString(),
+        verifiedAt: item.verifiedAt?.toISOString() ?? null,
+      })),
+    }).items;
+  }
+
+  public async assignHousekeepingTask(actor: ActorContext, taskId: string, input: unknown) {
+    const command = housekeepingTaskAssignmentCommandSchema.parse(input);
+    return this.database.transaction(async (transaction) => {
+      const property = await this.repository.getCurrentProperty(actor, transaction);
+      if (property === undefined || this.repository.assignHousekeepingTask === undefined)
+        throw new CatalogNotFoundError();
+      const result = await this.repository.assignHousekeepingTask(
+        transaction,
+        property.id,
+        taskId,
+        command,
+        actor.userId,
+      );
+      if (result === undefined)
+        throw new CatalogConflictError(
+          'HOUSEKEEPING_TASK_ASSIGNMENT_CONFLICT',
+          'The task changed or the assignee is not eligible.',
+        );
+      await this.audit.write(transaction, {
+        propertyId: property.id,
+        aggregateType: 'HOUSEKEEPING_TASK',
+        aggregateId: result.id,
+        eventType: 'HOUSEKEEPING_TASK_ASSIGNED',
+        actorId: actor.userId,
+        payload: { taskId, roomId: result.roomId, version: result.version },
+      });
+      return housekeepingTaskAssignmentSchema.parse({
+        taskId: result.id,
+        roomId: result.roomId,
+        assigneeId: result.assignedTo,
+        assignedBy: result.assignedBy,
+        assignedAt: result.assignedAt.toISOString(),
+        version: result.version,
+      });
+    });
+  }
+
+  public async startHousekeepingTask(actor: ActorContext, taskId: string, input: unknown) {
+    return this.applyTaskLifecycle(
+      actor,
+      taskId,
+      housekeepingTaskCommandVersionSchema.parse(input),
+      'startHousekeepingTask',
+      'HOUSEKEEPING_TASK_STARTED',
+    );
+  }
+
+  public async completeHousekeepingTask(actor: ActorContext, taskId: string, input: unknown) {
+    return this.applyTaskLifecycle(
+      actor,
+      taskId,
+      housekeepingTaskCommandVersionSchema.parse(input),
+      'completeHousekeepingTask',
+      'HOUSEKEEPING_TASK_COMPLETED',
+    );
+  }
+
+  public async verifyHousekeepingTask(actor: ActorContext, taskId: string, input: unknown) {
+    if (actor.permissions.includes('housekeeping.task.manage') !== true)
+      throw new CatalogConflictError('HOUSEKEEPING_TASK_FORBIDDEN', 'Manager permission required.');
+    return this.applyTaskLifecycle(
+      actor,
+      taskId,
+      housekeepingTaskCommandVersionSchema.parse(input),
+      'verifyHousekeepingTask',
+      'HOUSEKEEPING_TASK_VERIFIED',
+    );
+  }
+
+  public async reopenHousekeepingTask(actor: ActorContext, taskId: string, input: unknown) {
+    if (actor.permissions.includes('housekeeping.task.manage') !== true)
+      throw new CatalogConflictError('HOUSEKEEPING_TASK_FORBIDDEN', 'Manager permission required.');
+    const command = housekeepingTaskReopenCommandSchema.parse(input);
+    return this.database.transaction(async (transaction) => {
+      const property = await this.repository.getCurrentProperty(actor, transaction);
+      const action = this.repository.reopenHousekeepingTask;
+      if (property === undefined || action === undefined) throw new CatalogNotFoundError();
+      const result = await action.call(
+        this.repository,
+        transaction,
+        property.id,
+        taskId,
+        command.expectedVersion,
+        command.reason,
+        actor.userId,
+      );
+      if (result === undefined)
+        throw new CatalogConflictError(
+          'HOUSEKEEPING_TASK_REOPEN_CONFLICT',
+          'The task changed before reopen.',
+        );
+      await this.audit.write(transaction, {
+        propertyId: property.id,
+        aggregateType: 'HOUSEKEEPING_TASK',
+        aggregateId: result.id,
+        eventType: 'HOUSEKEEPING_TASK_REOPENED',
+        actorId: actor.userId,
+        payload: { taskId, reason: command.reason, version: result.version },
+      });
+      return housekeepingTaskActionSchema.parse({
+        taskId: result.id,
+        roomId: result.roomId,
+        version: result.version,
+      });
+    });
+  }
+
+  public async overrideRoomHousekeeping(actor: ActorContext, roomId: string, input: unknown) {
+    if (actor.permissions.includes('housekeeping.task.manage') !== true)
+      throw new CatalogConflictError(
+        'HOUSEKEEPING_OVERRIDE_FORBIDDEN',
+        'Manager permission required.',
+      );
+    const command = housekeepingOverrideCommandSchema.parse(input);
+    return this.database.transaction(async (transaction) => {
+      const property = await this.repository.getCurrentProperty(actor, transaction);
+      const override = this.repository.overrideRoomHousekeeping;
+      if (property === undefined || override === undefined) throw new CatalogNotFoundError();
+      const room = await override.call(
+        this.repository,
+        transaction,
+        property.id,
+        roomId,
+        command,
+        actor.userId,
+      );
+      if (room === undefined)
+        throw new CatalogConflictError(
+          'HOUSEKEEPING_OVERRIDE_CONFLICT',
+          'The room changed before override.',
+        );
+      await this.audit.write(transaction, {
+        propertyId: property.id,
+        aggregateType: 'ROOM',
+        aggregateId: room.id,
+        eventType: 'ROOM_HOUSEKEEPING_OVERRIDE',
+        actorId: actor.userId,
+        payload: {
+          roomId,
+          status: command.status,
+          reason: command.reason,
+          expectedVersion: command.expectedVersion,
+        },
+      });
+      return toRoom(room);
+    });
+  }
+
+  private async applyTaskLifecycle(
+    actor: ActorContext,
+    taskId: string,
+    command: { expectedVersion: number },
+    operation: 'startHousekeepingTask' | 'completeHousekeepingTask' | 'verifyHousekeepingTask',
+    eventType: string,
+  ) {
+    if (
+      operation === 'verifyHousekeepingTask' &&
+      actor.permissions.includes('housekeeping.task.manage') !== true
+    )
+      throw new CatalogConflictError('HOUSEKEEPING_TASK_FORBIDDEN', 'Manager permission required.');
+    return this.database.transaction(async (transaction) => {
+      const property = await this.repository.getCurrentProperty(actor, transaction);
+      const action = this.repository[operation];
+      if (property === undefined || action === undefined) throw new CatalogNotFoundError();
+      const result = await action.call(
+        this.repository,
+        transaction,
+        property.id,
+        taskId,
+        command.expectedVersion,
+        actor.userId,
+      );
+      if (result === undefined)
+        throw new CatalogConflictError(
+          'HOUSEKEEPING_TASK_CONFLICT',
+          'The task is no longer actionable for this actor.',
+        );
+      await this.audit.write(transaction, {
+        propertyId: property.id,
+        aggregateType: 'HOUSEKEEPING_TASK',
+        aggregateId: result.id,
+        eventType,
+        actorId: actor.userId,
+        payload: { taskId, version: result.version },
+      });
+      return housekeepingTaskActionSchema.parse({
+        taskId: result.id,
+        roomId: result.roomId,
+        version: result.version,
+      });
+    });
   }
   private async applyHousekeepingTaskAction(
     actor: ActorContext,

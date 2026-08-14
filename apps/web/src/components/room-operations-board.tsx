@@ -56,6 +56,7 @@ const groupLabels = {
   checkout: 'admin.roomGroupCheckout',
   arrival: 'admin.roomGroupArrival',
   cleaning: 'admin.roomGroupCleaning',
+  needs_cleaning: 'admin.roomGroupNeedsCleaning',
   ready: 'admin.roomGroupReady',
   maintenance: 'admin.roomGroupMaintenance',
   inactive: 'admin.roomGroupInactive',

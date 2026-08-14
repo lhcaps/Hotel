@@ -4919,6 +4919,7 @@
                     "checkout",
                     "arrival",
                     "cleaning",
+                    "needs_cleaning",
                     "ready",
                     "maintenance",
                     "inactive"
