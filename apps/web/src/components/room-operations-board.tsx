@@ -5,9 +5,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { AdminApiError, adminApi, type AdminRoomOperationsResponse } from '../lib/admin-api';
 import { compareRoomDisplayOrder } from '../lib/admin-natural-sort';
+import type { AdminMe } from '@room/contracts';
 import { translate, type MessageKey } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import {
@@ -20,6 +22,7 @@ import {
 } from './ui/select';
 import {
   AdminDataTable,
+  AdminDetailSheet,
   AdminPageHeader,
   AdminStatusBadge,
   AdminTab,
@@ -38,6 +41,7 @@ import { MoreHorizontalIcon } from 'lucide-react';
 type RoomOperation = AdminRoomOperationsResponse['items'][number];
 type RoomStatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
 type RoomGroup = RoomOperation['displayGroup'];
+type HousekeepingCondition = 'CLEAN' | 'DIRTY' | 'CLEANING';
 
 const roomStatusLabels = {
   ACTIVE: 'admin.roomStatusActive',
@@ -50,6 +54,12 @@ const housekeepingLabels = {
   DIRTY: 'admin.housekeepingDirty',
   CLEANING: 'admin.housekeepingCleaning',
 } as const satisfies Record<string, MessageKey>;
+
+const overrideLabels = {
+  CLEAN: 'admin.overrideToClean',
+  DIRTY: 'admin.overrideToDirty',
+  CLEANING: 'admin.overrideToCleaning',
+} as const satisfies Record<HousekeepingCondition, MessageKey>;
 
 const groupLabels = {
   occupied: 'admin.roomGroupOccupied',
@@ -88,23 +98,42 @@ function groupStatusTone(group: RoomGroup): 'neutral' | 'success' | 'warning' | 
   return 'neutral';
 }
 
+function housekeepingConditionTone(
+  condition: HousekeepingCondition,
+): 'success' | 'warning' | 'danger' {
+  if (condition === 'CLEAN') return 'success';
+  if (condition === 'DIRTY') return 'danger';
+  return 'warning';
+}
+
 export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMode?: boolean }>) {
   const locale = useLocale();
   const [date, setDate] = useState(() => localDate(new Date()));
   const [data, setData] = useState<AdminRoomOperationsResponse>();
+  const [me, setMe] = useState<AdminMe>();
   const [error, setError] = useState<string>();
   const [stale, setStale] = useState(false);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<RoomStatusFilter>('ALL');
   const [groupFilter, setGroupFilter] = useState<RoomGroup | 'all'>('all');
+  const [overrideRoom, setOverrideRoom] = useState<RoomOperation | null>(null);
+  const [overrideTarget, setOverrideTarget] = useState<HousekeepingCondition>('CLEAN');
+  const [overrideReason, setOverrideReason] = useState('');
+  const [overrideError, setOverrideError] = useState<string>();
+  const [overridePending, setOverridePending] = useState(false);
   const includeInactive = statusFilter === 'INACTIVE' || statusFilter === 'MAINTENANCE';
 
   const refresh = useCallback(() => {
     setError(undefined);
     setStale(false);
-    return adminApi
-      .getRoomOperations({ ...dateRange(date), includeInactive })
-      .then(setData)
+    return Promise.all([
+      adminApi.getRoomOperations({ ...dateRange(date), includeInactive }),
+      adminApi.me(),
+    ])
+      .then(([operations, actor]) => {
+        setData(operations);
+        setMe(actor);
+      })
       .catch((cause: unknown) => {
         setError(
           cause instanceof AdminApiError
@@ -119,9 +148,12 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
   }, [refresh]);
 
   useEffect(() => {
+    if (data === undefined) return;
     const timer = window.setTimeout(() => setStale(true), 60_000);
     return () => window.clearTimeout(timer);
   }, [data?.generatedAt]);
+
+  const canManage = me !== undefined && me.permissions.includes('housekeeping.task.manage');
 
   const visibleItems = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase(locale);
@@ -144,6 +176,33 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
       counts.set(room.displayGroup, (counts.get(room.displayGroup) ?? 0) + 1);
     return counts;
   }, [data?.items]);
+
+  const handleOverride = useCallback(async () => {
+    if (overrideRoom === null) return;
+    if (overrideReason.trim() === '') {
+      setOverrideError(translate(locale, 'admin.reasonRequired'));
+      return;
+    }
+    setOverridePending(true);
+    setOverrideError(undefined);
+    try {
+      await adminApi.overrideRoomHousekeeping(overrideRoom.roomId, {
+        status: overrideTarget,
+        expectedVersion: 0,
+        reason: overrideReason.trim(),
+      });
+      setOverrideRoom(null);
+      setOverrideReason('');
+      setOverrideTarget('CLEAN');
+      await refresh();
+    } catch (cause: unknown) {
+      setOverrideError(
+        cause instanceof AdminApiError ? cause.message : translate(locale, 'admin.actionError'),
+      );
+    } finally {
+      setOverridePending(false);
+    }
+  }, [overrideRoom, overrideTarget, overrideReason, locale, refresh]);
 
   return (
     <section className="room-operations-board" aria-labelledby="room-board-heading">
@@ -279,7 +338,7 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
                     <TableHead>{translate(locale, 'admin.room')}</TableHead>
                     <TableHead>{translate(locale, 'admin.roomConcept')}</TableHead>
                     <TableHead>{translate(locale, 'admin.status')}</TableHead>
-                    <TableHead>{translate(locale, 'admin.housekeeping')}</TableHead>
+                    <TableHead>{translate(locale, 'admin.housekeepingCondition')}</TableHead>
                     <TableHead>{translate(locale, 'admin.nextSchedule')}</TableHead>
                     {!viewerMode ? (
                       <TableHead>{translate(locale, 'admin.action')}</TableHead>
@@ -288,36 +347,52 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
                 </TableHeader>
                 <TableBody>
                   {visibleItems.map((room) => (
-                    <TableRow key={room.roomId}>
+                    <TableRow key={room.roomId} data-room-id={room.roomId}>
                       <TableCell data-label={translate(locale, 'admin.room')}>
-                        <strong>
-                          {translate(locale, 'admin.roomNumber', { number: room.roomNumber })}
-                        </strong>
-                        <span className="admin-muted room-code">{room.physicalRoomCode}</span>
+                        <div className="admin-room-label">
+                          <span className="admin-room-label__number">
+                            {translate(locale, 'admin.roomNumber', {
+                              number: room.roomNumber,
+                            })}
+                          </span>
+                          <span className="admin-muted admin-room-label__physical">
+                            {room.physicalRoomCode}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell data-label={translate(locale, 'admin.roomConcept')}>
-                        <span>{room.roomConcept}</span>
-                        <span className="admin-muted">{room.roomTier}</span>
+                        <div className="admin-room-label admin-room-label--concept">
+                          <span className="admin-room-label__concept">{room.roomConcept}</span>
+                          <span className="admin-muted admin-room-label__tier">
+                            {room.roomTier}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell data-label={translate(locale, 'admin.status')}>
-                        <AdminStatusBadge tone={groupStatusTone(room.displayGroup)}>
-                          {translate(locale, groupLabels[room.displayGroup])}
-                        </AdminStatusBadge>
-                        <span className="admin-muted">
-                          {room.currentOccupancy === 'OCCUPIED'
-                            ? translate(locale, 'admin.occupied')
-                            : translate(locale, 'admin.vacant')}
-                        </span>
+                        <div className="admin-workboard-cell-stack">
+                          <AdminStatusBadge tone={groupStatusTone(room.displayGroup)}>
+                            {translate(locale, groupLabels[room.displayGroup])}
+                          </AdminStatusBadge>
+                          <span className="admin-muted">
+                            {room.currentOccupancy === 'OCCUPIED'
+                              ? translate(locale, 'admin.occupied')
+                              : translate(locale, 'admin.vacant')}
+                          </span>
+                        </div>
                       </TableCell>
-                      <TableCell data-label={translate(locale, 'admin.housekeeping')}>
-                        <span>
-                          {translate(locale, housekeepingLabels[room.housekeepingStatus])}
-                        </span>
-                        <span className="admin-muted">
-                          {room.maintenanceState === 'ACTIVE'
-                            ? translate(locale, 'admin.maintenanceActive')
-                            : translate(locale, 'admin.maintenanceNone')}
-                        </span>
+                      <TableCell data-label={translate(locale, 'admin.housekeepingCondition')}>
+                        <div className="admin-workboard-cell-stack">
+                          <AdminStatusBadge
+                            tone={housekeepingConditionTone(room.housekeepingStatus)}
+                          >
+                            {translate(locale, housekeepingLabels[room.housekeepingStatus])}
+                          </AdminStatusBadge>
+                          <span className="admin-muted">
+                            {room.maintenanceState === 'ACTIVE'
+                              ? translate(locale, 'admin.maintenanceActive')
+                              : translate(locale, 'admin.maintenanceNone')}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell data-label={translate(locale, 'admin.nextSchedule')}>
                         {room.nextBookingWindow === null ? (
@@ -331,26 +406,42 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
                       </TableCell>
                       {!viewerMode ? (
                         <TableCell data-label={translate(locale, 'admin.action')}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              render={
-                                <Button
-                                  aria-label={translate(locale, 'admin.otherActions')}
-                                  size="icon-sm"
-                                  variant="outline"
-                                />
-                              }
-                            >
-                              <MoreHorizontalIcon aria-hidden="true" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                render={<Link href={`/admin/rooms/${room.roomId}`} />}
+                          <div className="admin-workboard-cell-stack">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                render={
+                                  <Button
+                                    aria-label={translate(locale, 'admin.otherActions')}
+                                    size="icon-sm"
+                                    variant="outline"
+                                  />
+                                }
                               >
-                                {translate(locale, 'admin.open')}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                <MoreHorizontalIcon aria-hidden="true" />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  render={<Link href={`/admin/rooms/${room.roomId}`} />}
+                                >
+                                  {translate(locale, 'admin.open')}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            {canManage ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setOverrideRoom(room);
+                                  setOverrideTarget(room.housekeepingStatus);
+                                  setOverrideReason('');
+                                  setOverrideError(undefined);
+                                }}
+                              >
+                                {translate(locale, 'admin.overrideHousekeeping')}
+                              </Button>
+                            ) : null}
+                          </div>
                         </TableCell>
                       ) : null}
                     </TableRow>
@@ -361,6 +452,79 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
           </div>
         </div>
       </div>
+      <AdminDetailSheet
+        open={overrideRoom !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setOverrideRoom(null);
+            setOverrideReason('');
+            setOverrideError(undefined);
+          }
+        }}
+        title={translate(locale, 'admin.overrideHousekeeping')}
+        description={translate(locale, 'admin.overrideHousekeepingHelp')}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setOverrideRoom(null);
+                setOverrideReason('');
+                setOverrideError(undefined);
+              }}
+            >
+              {translate(locale, 'admin.cancel')}
+            </Button>
+            <Button
+              type="button"
+              disabled={overrideRoom === null || overridePending}
+              onClick={() => void handleOverride()}
+            >
+              {translate(locale, 'admin.apply')}
+            </Button>
+          </>
+        }
+      >
+        <div className="admin-workboard-cell-stack">
+          <p className="admin-helper-text">
+            {overrideRoom === null
+              ? ''
+              : translate(locale, 'admin.roomNumber', { number: overrideRoom.roomNumber })}
+          </p>
+          <Select
+            value={overrideTarget}
+            onValueChange={(value) => {
+              if (value !== null) setOverrideTarget(value as HousekeepingCondition);
+            }}
+          >
+            <SelectTrigger aria-label={translate(locale, 'admin.overrideHousekeeping')}>
+              <SelectValue>{translate(locale, overrideLabels[overrideTarget])}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="CLEAN">{translate(locale, overrideLabels.CLEAN)}</SelectItem>
+              <SelectItem value="DIRTY">{translate(locale, overrideLabels.DIRTY)}</SelectItem>
+              <SelectItem value="CLEANING">{translate(locale, overrideLabels.CLEANING)}</SelectItem>
+            </SelectContent>
+          </Select>
+          <label className="admin-field-stack">
+            <span>{translate(locale, 'admin.reasonRequired')}</span>
+            <Textarea
+              rows={5}
+              required
+              value={overrideReason}
+              onChange={(event) => setOverrideReason(event.target.value)}
+              placeholder={translate(locale, 'admin.reasonPlaceholder')}
+              aria-invalid={overrideReason.trim() === '' ? 'true' : undefined}
+            />
+          </label>
+          {overrideError !== undefined ? (
+            <p className="admin-alert admin-alert--error" role="alert">
+              {overrideError}
+            </p>
+          ) : null}
+        </div>
+      </AdminDetailSheet>
     </section>
   );
 }

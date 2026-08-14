@@ -8048,3 +8048,74 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Housekeeping workboard visual layout.
+ * Room and concept/tier cells MUST render as separate stacked lines.
+ * The previous implementation concatenated text nodes visually because
+ * nested <span> children stayed inline. Make every cell label explicit. */
+.admin-room-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.admin-room-label__number {
+  font-weight: 650;
+  color: inherit;
+  line-height: 1.2;
+}
+.admin-room-label__physical {
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.admin-room-label--concept {
+  white-space: normal;
+}
+.admin-room-label__concept {
+  font-weight: 600;
+  line-height: 1.2;
+}
+.admin-room-label__tier {
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+/* Action cell stack — vertically separates Assign row, lifecycle row, and
+ * manager-only row so the table never gets a single horizontal line. */
+.admin-workboard-cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 14rem;
+}
+.admin-workboard-cell-stack__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+.admin-workboard-assignee-trigger {
+  min-width: 12rem;
+}
+.admin-workboard-empty-assignees {
+  margin: 0;
+  font-weight: 600;
+  color: #1f7a36;
+}
+.admin-workboard-error {
+  margin-top: 0.4rem;
+}
+
+.admin-link {
+  color: #1b5e87;
+  font-weight: 650;
+  text-decoration: underline;
+}
+
+/* Admin "no operations" inline message next to the override sheet. */
+.admin-helper-text {
+  color: var(--admin-muted);
+  margin: 0;
+}

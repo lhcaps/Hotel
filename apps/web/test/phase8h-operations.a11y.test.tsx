@@ -6,17 +6,34 @@ import { LocaleProvider } from '../src/components/locale-provider';
 import { OperationalReportDashboard } from '../src/components/operational-report-dashboard';
 import { RoomOperationsBoard } from '../src/components/room-operations-board';
 
-const { getOperationalReport, getRoomOperations } = vi.hoisted(() => ({
+const { getOperationalReport, getRoomOperations, me } = vi.hoisted(() => ({
   getOperationalReport: vi.fn(),
   getRoomOperations: vi.fn(),
+  me: vi.fn(),
 }));
 
 vi.mock('../src/lib/admin-api', () => ({
   AdminApiError: class AdminApiError extends Error {},
-  adminApi: { getOperationalReport, getRoomOperations },
+  adminApi: { getOperationalReport, getRoomOperations, me },
 }));
 
 describe('Phase 8H operational accessibility', () => {
+  beforeEach(() => {
+    me.mockReset();
+    me.mockResolvedValue({
+      id: '00000000-0000-4000-8000-000000000099',
+      emailMasked: 's•••@peacenest.vn',
+      displayName: 'Super Admin',
+      role: 'SUPER_ADMIN',
+      profileCode: 'SUPER_ADMIN',
+      profileLabelVi: 'Tổng quản trị',
+      accountStatus: 'ACTIVE',
+      department: null,
+      permissions: ['room_operations.read'],
+      sessionExpiresAt: '2026-08-14T18:00:00.000Z',
+    });
+  });
+
   it('measures no axe critical or serious violations on the room operations board', async () => {
     getRoomOperations.mockResolvedValue({
       generatedAt: '2026-07-30T00:00:00.000Z',

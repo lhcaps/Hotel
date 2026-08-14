@@ -513,6 +513,12 @@ export const adminApi = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     }),
+  cancelHousekeepingTask: (taskId: string, body: { expectedVersion: number; reason: string }) =>
+    request<HousekeepingTaskAction>(`/admin/housekeeping/tasks/${taskId}/cancel`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
   overrideRoomHousekeeping: (
     roomId: string,
     body: { status: 'CLEAN' | 'DIRTY' | 'CLEANING'; expectedVersion: number; reason: string },
