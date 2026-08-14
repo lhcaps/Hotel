@@ -14,13 +14,18 @@ import type { ActorContext } from '../auth/actor-context.js';
 export class PublicContactService {
   public constructor(@Inject('DATABASE_CLIENT') private readonly database: DatabaseClient) {}
 
-  public async getByCode(code: string): Promise<PublicContact | null> {
+  public async getByCode(code: string): Promise<PublicContact> {
     const row = await this.database.query.properties.findFirst({
       where: (fields, { eq: e }) => e(fields.code, code),
       columns: { publicContact: true, status: true },
     });
-    if (row === undefined || row.status !== 'ACTIVE') return null;
-    return parsePersistedContact(row.publicContact);
+    if (row === undefined || row.status !== 'ACTIVE') {
+      // Returning null/undefined causes Nest's underlying adapter to reply 404.
+      // Surface an explicit empty object so the public landing page can render
+      // without spurious 404 console noise.
+      return {};
+    }
+    return parsePersistedContact(row.publicContact) ?? {};
   }
 
   public async setById(actor: ActorContext, id: string, input: unknown): Promise<PublicContact> {

@@ -355,7 +355,7 @@ export function PropertyEditor() {
           <Button disabled={loading || contactPending} type="submit">
             {contactPending
               ? translate(locale, 'profile.saving')
-              : translate(locale, 'property.save')}
+              : translate(locale, 'admin.publicContact.save')}
           </Button>
         </FieldGroup>
       </form>

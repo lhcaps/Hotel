@@ -24,7 +24,7 @@ export class PublicContactController {
 
   @Get('public/properties/:code/contact')
   @Version('1')
-  public async get(@Param('code') code: string): Promise<PublicContact | null> {
+  public async get(@Param('code') code: string): Promise<PublicContact> {
     return this.service.getByCode(code);
   }
 
