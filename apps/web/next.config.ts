@@ -7,8 +7,7 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@room/config', '@room/contracts'],
   allowedDevOrigins: ['127.0.0.1'],
   async rewrites() {
-    const apiBase =
-      process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:3001/api/v1';
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:3001/api/v1';
     const apiOrigin = (() => {
       try {
         return new URL(apiBase).origin;
