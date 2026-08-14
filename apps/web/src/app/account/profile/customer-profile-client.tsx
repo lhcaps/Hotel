@@ -12,7 +12,7 @@ import {
   fromUnknownError,
   type FieldErrorState,
 } from '../../../lib/form-error';
-import { customerProfileUpdateSchema, type CustomerProfileUpdate } from '@room/contracts';
+import { customerProfileUpdateSchema } from '@room/contracts';
 
 interface ProfilePayload {
   readonly userId: string;
@@ -58,18 +58,18 @@ export function CustomerProfileClient({ initialProfile, apiBase }: CustomerProfi
     setPending(true);
     setErrors({ fieldErrors: {} });
     setInfo(undefined);
-    const body: CustomerProfileUpdate = {
+    const formEntries = {
       name: String(form.get('name') ?? ''),
-      phone: readNullableField(form.get('phone')),
-      addressLine1: readNullableField(form.get('addressLine1')),
-      addressLine2: readNullableField(form.get('addressLine2')),
-      ward: readNullableField(form.get('ward')),
-      district: readNullableField(form.get('district')),
-      province: readNullableField(form.get('province')),
-      postalCode: readNullableField(form.get('postalCode')),
+      phone: readField(form.get('phone')),
+      addressLine1: readField(form.get('addressLine1')),
+      addressLine2: readField(form.get('addressLine2')),
+      ward: readField(form.get('ward')),
+      district: readField(form.get('district')),
+      province: readField(form.get('province')),
+      postalCode: readField(form.get('postalCode')),
       countryCode: String(form.get('countryCode') ?? profile.countryCode).toUpperCase(),
     };
-    const parsed = customerProfileUpdateSchema.safeParse(body);
+    const parsed = customerProfileUpdateSchema.safeParse(formEntries);
     if (!parsed.success) {
       const zodErrors: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
@@ -308,10 +308,9 @@ export function CustomerProfileClient({ initialProfile, apiBase }: CustomerProfi
   );
 }
 
-function readNullableField(value: FormDataEntryValue | null): string | null {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
+function readField(value: FormDataEntryValue | null): string {
+  if (typeof value !== 'string') return '';
+  return value.trim();
 }
 
 async function safeReadProblem(response: Response): Promise<ProblemDetail | undefined> {
