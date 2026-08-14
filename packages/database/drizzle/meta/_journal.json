@@ -288,6 +288,13 @@
       "when": 1786641719249,
       "tag": "0040_colossal_human_torch",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1786732860300,
+      "tag": "0041_property_public_contact",
+      "breakpoints": true
     }
   ]
 }
