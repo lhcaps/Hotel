@@ -392,41 +392,102 @@ export class AdminAccessService {
     if (command.propertyIds !== undefined) {
       await this.assertActivePropertyIds(command.propertyIds);
     }
-    const created = await createAuthAdminUser(this.auth, {
-      email: command.email,
-      name: command.displayName,
-      password: command.password,
-      // Users table only supports base auth roles; profile codes live in memberships
-      role:
-        command.role === 'SUPER_ADMIN' || command.role === 'ROOM_STATUS_VIEWER'
-          ? command.role
-          : 'ROOM_STATUS_VIEWER',
+    const existing = await this.database.query.users.findFirst({
+      where: (fields, { eq }) => eq(fields.email, command.email.toLocaleLowerCase('en-US')),
+      columns: { id: true },
     });
-    await this.database.transaction(async (transaction) => {
-      if (command.departmentIds.length > 0) {
-        await transaction.insert(adminMemberships).values(
-          command.departmentIds.map((departmentId) => ({
-            userId: created.id,
-            departmentId,
-            role: command.role,
-          })),
-        );
+    if (existing !== undefined) {
+      throw new ConflictException({ code: 'ADMIN_EMAIL_CONFLICT' });
+    }
+    const auth = this.auth;
+    if (auth === undefined) {
+      throw new BadRequestException({ code: 'AUTH_ACCOUNT_CREATION_UNAVAILABLE' });
+    }
+    const created = await (async () => {
+      try {
+        return await createAuthAdminUser(auth, {
+          email: command.email,
+          name: command.displayName,
+          password: command.password,
+          // Users table only supports base auth roles; profile codes live in memberships
+          role:
+            command.role === 'SUPER_ADMIN' || command.role === 'ROOM_STATUS_VIEWER'
+              ? command.role
+              : 'ROOM_STATUS_VIEWER',
+        });
+      } catch (cause) {
+        // Best-effort rollback so the user account created by Better Auth does not
+        // become an orphan if a downstream insert (department/property membership)
+        // or audit write fails.
+        const errorCode =
+          typeof cause === 'object' &&
+          cause !== null &&
+          'code' in cause &&
+          typeof (cause as { readonly code?: unknown }).code === 'string'
+            ? (cause as { readonly code: string }).code
+            : undefined;
+        if (
+          (errorCode === undefined ||
+            errorCode === 'USER_ALREADY_EXISTS' ||
+            errorCode === 'USER_EMAIL_ALREADY_EXISTS' ||
+            errorCode === 'EMAIL_ALREADY_EXISTS') &&
+          existing === undefined
+        ) {
+          // Re-check whether the cause is a duplicate email — race with another
+          // concurrent creation. Better Auth may also surface raw driver errors.
+          const racer = await this.database.query.users.findFirst({
+            where: (fields, { eq }) => eq(fields.email, command.email.toLocaleLowerCase('en-US')),
+            columns: { id: true },
+          });
+          if (racer !== undefined) {
+            throw new ConflictException({ code: 'ADMIN_EMAIL_CONFLICT' });
+          }
+        }
+        if (errorCode === 'INVALID_EMAIL' || errorCode === 'INVALID_PASSWORD') {
+          throw new BadRequestException({ code: errorCode });
+        }
+        throw new BadRequestException({ code: 'AUTH_ACCOUNT_CREATION_FAILED' });
       }
-      if (command.propertyIds !== undefined) {
-        await transaction.insert(adminPropertyMemberships).values(
-          command.propertyIds.map((propertyId) => ({
-            userId: created.id,
-            propertyId,
-            status: 'ACTIVE' as const,
-          })),
-        );
-      }
-      await this.writeAudit(transaction, actor, created.id, 'ADMIN_ACCOUNT_CREATED', {
-        role: command.role,
-        departmentIds: command.departmentIds,
-        propertyIds: command.propertyIds ?? [],
+    })();
+    try {
+      await this.database.transaction(async (transaction) => {
+        if (command.departmentIds.length > 0) {
+          await transaction.insert(adminMemberships).values(
+            command.departmentIds.map((departmentId) => ({
+              userId: created.id,
+              departmentId,
+              role: command.role,
+            })),
+          );
+        }
+        if (command.propertyIds !== undefined) {
+          await transaction.insert(adminPropertyMemberships).values(
+            command.propertyIds.map((propertyId) => ({
+              userId: created.id,
+              propertyId,
+              status: 'ACTIVE' as const,
+            })),
+          );
+        }
+        await this.writeAudit(transaction, actor, created.id, 'ADMIN_ACCOUNT_CREATED', {
+          role: command.role,
+          departmentIds: command.departmentIds,
+          propertyIds: command.propertyIds ?? [],
+        });
       });
-    });
+    } catch (cause) {
+      // Compensate: remove the orphan user we just created via Better Auth so
+      // a downstream membership failure does not leave an un-bootstrapped
+      // account in the system.
+      try {
+        await this.database.delete(users).where(eq(users.id, created.id));
+        await this.database.delete(sessions).where(eq(sessions.userId, created.id));
+        await this.database.delete(accounts).where(eq(accounts.userId, created.id));
+      } catch {
+        // Best-effort cleanup; surface the original failure to the caller.
+      }
+      throw cause;
+    }
     return this.accountById(created.id);
   }
 

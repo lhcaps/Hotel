@@ -339,6 +339,12 @@ export const properties = pgTable(
       .notNull()
       .default(720),
     status: catalogStatus('status').notNull().default('ACTIVE'),
+    publicContact: jsonb('public_contact').$type<{
+      phone?: string;
+      zalo?: string;
+      address?: string;
+      facebook?: string;
+    }>(),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
     updatedAt: timestamptz('updated_at').notNull().defaultNow(),
   },

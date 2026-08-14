@@ -86,7 +86,7 @@ const messages = {
     'landing.storyHeading': 'Một khoảng dừng vừa đủ cho ngày của bạn',
     'landing.storyDescription':
       'Không gian riêng tư, quy trình rõ ràng và thời gian linh hoạt để bạn chủ động mỗi lần lưu trú.',
-    'landing.contactHeading': 'Cần tra cứu một đặt phòng?',
+    'landing.contactHeading': 'Cần tra cứu đơn đặt phòng?',
     'landing.contactDescription':
       'Dùng mã đặt phòng và email đã đăng ký để xem thông tin, xác nhận hoặc thanh toán.',
     'landing.startBooking': 'Bắt đầu đặt phòng',
@@ -1241,6 +1241,78 @@ const messages = {
     'pricingPolicy.validationHeading': 'Kết quả validation',
     'pricingPolicy.ready': 'Sẵn sàng publication.',
     'pricingPolicy.notReady': 'Chưa sẵn sàng publication.',
+    'admin.errors.emailConflict': 'Email đã được sử dụng.',
+    'admin.errors.accountNotFound': 'Không tìm thấy tài khoản quản trị.',
+    'admin.errors.authUnavailable':
+      'Không thể tạo tài khoản qua máy chủ xác thực. Vui lòng thử lại.',
+    'admin.errors.departmentNotFound': 'Không tìm thấy phòng ban đã chọn.',
+    'admin.errors.propertyNotFound': 'Không tìm thấy cơ sở đã chọn.',
+    'admin.errors.propertyScopeRequired': 'Vui lòng chọn ít nhất một cơ sở.',
+    'admin.errors.superAdminPropertyImplicit': 'Tổng quản trị không được gán cơ sở cụ thể.',
+    'admin.errors.superAdminRequired': 'Chỉ tổng quản trị mới có quyền thực hiện thao tác này.',
+    'admin.errors.superAdminTargetForbidden': 'Không thể chỉnh sửa tài khoản tổng quản trị.',
+    'admin.errors.staffManagerNotDelegable': 'Bạn không thể quản lý hồ sơ quản trị cấp này.',
+    'admin.errors.staffManagerScopeViolation': 'Bạn không có quyền với cơ sở đang được chỉnh.',
+    'admin.errors.staffManagerSuperAdminForbidden': 'Không thể tác động tới tổng quản trị.',
+    'admin.errors.staffManagerGrantSelf': 'Không thể tự cấp quyền quản lý nhân sự cho mình.',
+    'admin.errors.staffManagerEscalationForbidden': 'Không thể nâng cấp lên quản lý vận hành.',
+    'admin.errors.staffManagerPropertyGrant': 'Bạn không thể thay đổi phạm vi cơ sở của nhân viên.',
+    'admin.errors.selfDisableForbidden': 'Bạn không thể tự khoá tài khoản của mình.',
+    'admin.errors.selfProfileChangeForbidden': 'Bạn không thể tự đổi vai trò của mình.',
+    'admin.errors.selfMembershipChangeForbidden': 'Bạn không thể tự đổi phòng ban của mình.',
+    'admin.errors.selfPropertyScopeChangeForbidden': 'Bạn không thể tự đổi phạm vi cơ sở của mình.',
+    'admin.errors.lastSuperAdminForbidden':
+      'Không thể hạ cấp tổng quản trị cuối cùng của hệ thống.',
+    'admin.errors.adminProfileRequired': 'Mỗi hồ sơ quản trị phải được gán một vai trò rõ ràng.',
+    'admin.errors.departmentRequired': 'Vui lòng chọn ít nhất một phòng ban.',
+    'admin.errors.invalidDepartmentId': 'Mã phòng ban không hợp lệ.',
+    'admin.errors.customerAccountNotFound': 'Không tìm thấy tài khoản khách hàng.',
+    'admin.errors.sessionsRevoked': 'Đã thu hồi các phiên đăng nhập.',
+    'admin.errors.validationError': 'Một số trường chưa hợp lệ.',
+    'admin.errors.requestIdSuffix': 'Mã yêu cầu: {id}',
+    'admin.errors.unexpected': 'Không thể hoàn tất thao tác do lỗi hệ thống. Vui lòng thử lại.',
+    'admin.errors.passwordTooShort': 'Mật khẩu cần ít nhất 8 ký tự.',
+    'admin.errors.passwordTooLong': 'Mật khẩu tối đa 128 ký tự.',
+    'admin.errors.displayNameRequired': 'Vui lòng nhập tên hiển thị.',
+    'admin.errors.emailInvalid': 'Vui lòng nhập email hợp lệ.',
+    'admin.errors.roleRequired': 'Vui lòng chọn vai trò.',
+    'admin.errors.departmentRequiredField': 'Vui lòng chọn phòng ban.',
+    'admin.createSuccess': 'Đã tạo tài khoản',
+    'admin.createAnother': 'Tạo thêm',
+    'admin.closeSheet': 'Đóng',
+    'admin.passwordHelp': 'Mật khẩu cần từ 8 đến 128 ký tự.',
+    'public.contact.phoneLabel': 'Số điện thoại',
+    'public.contact.zaloLabel': 'Zalo',
+    'public.contact.addressLabel': 'Địa chỉ',
+    'public.contact.facebookLabel': 'Facebook',
+    'public.contact.empty': 'Chưa có thông tin liên hệ công khai.',
+    'public.footer.discover': 'Khám phá',
+    'public.footer.discover.booking': 'Đặt phòng',
+    'public.footer.discover.rooms': 'Phòng & giá',
+    'public.footer.discover.offers': 'Ưu đãi',
+    'public.footer.discover.manage': 'Tra cứu đơn đặt phòng',
+    'public.footer.contactHeading': 'Liên hệ',
+    'public.footer.connectHeading': 'Kết nối',
+    'public.footer.copyright': 'Bản quyền © {year} PeaceNest. Mọi quyền được bảo lưu.',
+    'admin.publicContact.heading': 'Liên hệ công khai',
+    'admin.publicContact.help':
+      'Thông tin liên hệ hiển thị trên trang công khai. Các trường trống sẽ được ẩn.',
+    'admin.publicContact.phone': 'Số điện thoại',
+    'admin.publicContact.zalo': 'Liên kết Zalo',
+    'admin.publicContact.address': 'Địa chỉ',
+    'admin.publicContact.facebook': 'Liên kết Facebook',
+    'admin.publicContact.saved': 'Đã lưu thông tin liên hệ công khai.',
+    'admin.publicContact.saveError': 'Không thể lưu thông tin liên hệ. Vui lòng thử lại.',
+    'admin.publicContact.invalidUrl': 'Vui lòng nhập đường dẫn hợp lệ (https://…).',
+    'admin.publicContact.invalidPhone': 'Vui lòng nhập số điện thoại hợp lệ.',
+    'search.unavailableFriendlyTitle': 'Khung giờ này vừa hết phòng',
+    'search.unavailableFriendlyHelp':
+      'Chưa có phòng trống xuyên suốt đúng thời gian bạn chọn. Chúng tôi đã tìm những khung giờ gần nhất còn phòng cho bạn.',
+    'search.nearbyEmptyFriendly': 'Chưa có lựa chọn gần thời gian này',
+    'search.nearbyEmptyFriendlyHelp':
+      'Chưa tìm thấy phòng trống trong vòng 2 giờ quanh thời gian bạn chọn.',
+    'search.nearby.changeTime': 'Đổi thời gian',
+    'search.nearby.browseAll': 'Xem tất cả phòng',
   },
   en: {
     'profile.accountStatus': 'Account status',
@@ -2929,6 +3001,78 @@ const variableMessages = {
     'otp.codeInvalid': 'Enter exactly six digits.',
     'otp.invalidOrExpired': 'The verification code is invalid or has expired. Try again.',
     'otp.verifyError': 'The code could not be verified. Try again.',
+    'admin.errors.emailConflict': 'This email address is already in use.',
+    'admin.errors.accountNotFound': 'Admin account not found.',
+    'admin.errors.authUnavailable': 'The auth server could not create the account. Try again.',
+    'admin.errors.departmentNotFound': 'The selected department was not found.',
+    'admin.errors.propertyNotFound': 'The selected property was not found.',
+    'admin.errors.propertyScopeRequired': 'Please choose at least one property.',
+    'admin.errors.superAdminPropertyImplicit':
+      'A super admin cannot be assigned a specific property.',
+    'admin.errors.superAdminRequired': 'Only super admins can perform this action.',
+    'admin.errors.superAdminTargetForbidden': 'A super admin account cannot be modified here.',
+    'admin.errors.staffManagerNotDelegable': 'You cannot manage this admin profile.',
+    'admin.errors.staffManagerScopeViolation': 'You are not authorized for the target property.',
+    'admin.errors.staffManagerSuperAdminForbidden': 'Staff managers cannot modify a super admin.',
+    'admin.errors.staffManagerGrantSelf': 'You cannot grant yourself staff-manager rights.',
+    'admin.errors.staffManagerEscalationForbidden': 'You cannot escalate to operations manager.',
+    'admin.errors.staffManagerPropertyGrant':
+      'You cannot change property scope for this staff member.',
+    'admin.errors.selfDisableForbidden': 'You cannot disable your own account.',
+    'admin.errors.selfProfileChangeForbidden': 'You cannot change your own role.',
+    'admin.errors.selfMembershipChangeForbidden': 'You cannot change your own department.',
+    'admin.errors.selfPropertyScopeChangeForbidden': 'You cannot change your own property scope.',
+    'admin.errors.lastSuperAdminForbidden': 'The last active super admin cannot be demoted.',
+    'admin.errors.adminProfileRequired': 'Every admin profile needs a clear role assignment.',
+    'admin.errors.departmentRequired': 'Please choose at least one department.',
+    'admin.errors.invalidDepartmentId': 'Invalid department identifier.',
+    'admin.errors.customerAccountNotFound': 'Customer account not found.',
+    'admin.errors.sessionsRevoked': 'Sessions have been revoked.',
+    'admin.errors.validationError': 'Some fields are not valid.',
+    'admin.errors.requestIdSuffix': 'Request id: {id}',
+    'admin.errors.unexpected':
+      'The action could not be completed due to a server error. Please try again.',
+    'admin.errors.passwordTooShort': 'Password must be at least 8 characters.',
+    'admin.errors.passwordTooLong': 'Password must be at most 128 characters.',
+    'admin.errors.displayNameRequired': 'Please enter a display name.',
+    'admin.errors.emailInvalid': 'Please enter a valid email address.',
+    'admin.errors.roleRequired': 'Please choose a role.',
+    'admin.errors.departmentRequiredField': 'Please choose a department.',
+    'admin.createSuccess': 'Account created',
+    'admin.createAnother': 'Create another',
+    'admin.closeSheet': 'Close',
+    'admin.passwordHelp': 'Password must be 8–128 characters.',
+    'public.contact.phoneLabel': 'Phone',
+    'public.contact.zaloLabel': 'Zalo',
+    'public.contact.addressLabel': 'Address',
+    'public.contact.facebookLabel': 'Facebook',
+    'public.contact.empty': 'No public contact information configured.',
+    'public.footer.discover': 'Discover',
+    'public.footer.discover.booking': 'Book',
+    'public.footer.discover.rooms': 'Rooms & pricing',
+    'public.footer.discover.offers': 'Offers',
+    'public.footer.discover.manage': 'Find a booking',
+    'public.footer.contactHeading': 'Contact',
+    'public.footer.connectHeading': 'Connect',
+    'public.footer.copyright': 'Copyright © {year} PeaceNest. All rights reserved.',
+    'admin.publicContact.heading': 'Public contact',
+    'admin.publicContact.help':
+      'Information displayed on the public website. Empty fields are hidden.',
+    'admin.publicContact.phone': 'Phone',
+    'admin.publicContact.zalo': 'Zalo link',
+    'admin.publicContact.address': 'Address',
+    'admin.publicContact.facebook': 'Facebook link',
+    'admin.publicContact.saved': 'Public contact information saved.',
+    'admin.publicContact.saveError': 'Could not save public contact. Try again.',
+    'admin.publicContact.invalidUrl': 'Please enter a valid URL (https://…).',
+    'admin.publicContact.invalidPhone': 'Please enter a valid phone number.',
+    'search.unavailableFriendlyTitle': 'This window just filled up',
+    'search.unavailableFriendlyHelp':
+      'No room is free for the full window you picked. We searched nearby windows so you can still book.',
+    'search.nearbyEmptyFriendly': 'No nearby options',
+    'search.nearbyEmptyFriendlyHelp': 'No rooms were free within two hours of your chosen window.',
+    'search.nearby.changeTime': 'Change time',
+    'search.nearby.browseAll': 'Browse all rooms',
   },
 } as const;
 
@@ -2943,11 +3087,16 @@ export function resolveLocale(value: string | undefined): Locale {
 }
 
 function lookup(locale: Locale, key: MessageKey): string {
-  if (key in variableMessages[locale]) {
-    return variableMessages[locale][key as keyof (typeof variableMessages)['vi']];
+  const variableEntry = (variableMessages[locale] as Readonly<Record<string, string>>)[key];
+  if (variableEntry !== undefined) {
+    return variableEntry;
   }
 
-  return messages[locale][key as keyof (typeof messages)['vi']];
+  const entry = (messages[locale] as Readonly<Record<string, string>>)[key];
+  if (entry === undefined) {
+    return key;
+  }
+  return entry;
 }
 
 export function translate(

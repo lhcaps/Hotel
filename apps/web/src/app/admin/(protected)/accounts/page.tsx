@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from '../../../../components/ui/card';
 import { Input } from '../../../../components/ui/input';
-import { Field, FieldLabel } from '../../../../components/ui/field';
+import { Field, FieldError, FieldLabel } from '../../../../components/ui/field';
 import {
   Select,
   SelectContent,
@@ -47,8 +47,13 @@ import {
   TableRow,
 } from '../../../../components/ui/table';
 import { useLocale } from '../../../../components/locale-provider';
-import { adminApi } from '../../../../lib/admin-api';
+import { AdminApiError, adminApi } from '../../../../lib/admin-api';
 import { formatDateTime, translate, type MessageKey } from '../../../../lib/i18n/messages';
+import {
+  fromProblemDetails,
+  fromUnknownError,
+  type FieldErrorState,
+} from '../../../../lib/form-error';
 import {
   AdminDataTable,
   AdminFilterToolbar,
@@ -61,6 +66,7 @@ import {
   AdminPageHeader,
   AdminStatusBadge,
 } from '../../../../components/admin/admin-ui';
+import { Alert, AlertDescription, AlertTitle } from '../../../../components/ui/alert';
 import { MoreHorizontalIcon } from 'lucide-react';
 
 type AdminProfileCode =
@@ -236,9 +242,15 @@ export default function AdminAccountsPage() {
     departmentIds: [],
     propertyIds: [],
   });
-  const [createMessage, setCreateMessage] = useState<string>();
+  const [createErrors, setCreateErrors] = useState<FieldErrorState>({ fieldErrors: {} });
+  const [createResult, setCreateResult] = useState<{
+    displayName: string;
+    roleLabel: string;
+    propertyLabel: string | null;
+  } | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editAccountId, setEditAccountId] = useState<string>();
+  const [editErrors, setEditErrors] = useState<FieldErrorState>({ fieldErrors: {} });
   const [query, setQuery] = useState('');
 
   const load = useCallback(async () => {
@@ -284,33 +296,58 @@ export default function AdminAccountsPage() {
     void load();
   }, [load]);
 
+  function resetCreateForm() {
+    setCreateForm({
+      displayName: '',
+      email: '',
+      password: '',
+      role: 'ROOM_STATUS_VIEWER',
+      departmentIds: [],
+      propertyIds: [],
+    });
+    setCreateErrors({ fieldErrors: {} });
+  }
+
+  function closeCreateSheet() {
+    setCreateOpen(false);
+    setCreateResult(null);
+    resetCreateForm();
+  }
+
   async function createAccount(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (createForm.role !== 'SUPER_ADMIN' && createForm.propertyIds.length === 0) {
-      setError(translate(locale, 'admin.propertyScopeRequired'));
+      setCreateErrors({
+        fieldErrors: { propertyIds: translate(locale, 'admin.errors.propertyScopeRequired') },
+      });
       return;
     }
     setPending('create');
-    setCreateMessage(undefined);
+    setCreateErrors({ fieldErrors: {} });
     try {
-      await adminApi.createAdminAccount(
+      const created = await adminApi.createAdminAccount(
         createForm.role === 'SUPER_ADMIN' ? { ...createForm, propertyIds: undefined } : createForm,
       );
-      setCreateForm({
-        displayName: '',
-        email: '',
-        password: '',
-        role: 'ROOM_STATUS_VIEWER',
-        departmentIds: [],
-        propertyIds: [],
+      const propertyLabel =
+        created.propertyIds.length > 0
+          ? accountProperties
+              .filter((property) => created.propertyIds.includes(property.id))
+              .map((property) => property.code)
+              .join(', ')
+          : null;
+      const roleKey = profileOptions.find((option) => option.value === created.profileCode)?.label;
+      setCreateResult({
+        displayName: created.displayName,
+        roleLabel: roleKey === undefined ? (created.profileCode ?? '') : translate(locale, roleKey),
+        propertyLabel,
       });
-      setCreateMessage(translate(locale, 'admin.accountCreated'));
-      setCreateOpen(false);
       await load();
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : translate(locale, 'admin.loadErrorHeading'),
-      );
+      if (cause instanceof AdminApiError) {
+        setCreateErrors(fromProblemDetails(cause.problem));
+      } else {
+        setCreateErrors(fromUnknownError(cause, translate(locale, 'admin.errors.unexpected')));
+      }
     } finally {
       setPending(undefined);
     }
@@ -338,12 +375,21 @@ export default function AdminAccountsPage() {
     const item = items?.find((candidate) => candidate.id === id);
     if (item === undefined) return false;
     const draft = draftFor(item);
+    setEditErrors({ fieldErrors: {} });
     if (draft.departmentIds.length === 0) {
-      setError(translate(locale, 'admin.departmentsRequired'));
+      setEditErrors({
+        fieldErrors: {
+          departmentIds: translate(locale, 'admin.errors.departmentRequired'),
+        },
+      });
       return false;
     }
     if (draft.role !== 'SUPER_ADMIN' && draft.propertyIds.length === 0) {
-      setError(translate(locale, 'admin.propertyScopeRequired'));
+      setEditErrors({
+        fieldErrors: {
+          propertyIds: translate(locale, 'admin.errors.propertyScopeRequired'),
+        },
+      });
       return false;
     }
     setPending(id);
@@ -360,10 +406,13 @@ export default function AdminAccountsPage() {
         delete next[id];
         return next;
       });
+      setEditAccountId(undefined);
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : translate(locale, 'admin.loadErrorHeading'),
-      );
+      if (cause instanceof AdminApiError) {
+        setEditErrors(fromProblemDetails(cause.problem));
+      } else {
+        setEditErrors(fromUnknownError(cause, translate(locale, 'admin.errors.unexpected')));
+      }
       return false;
     } finally {
       setPending(undefined);
@@ -476,116 +525,246 @@ export default function AdminAccountsPage() {
         {me?.profileCode === 'SUPER_ADMIN' ? (
           <AdminFormSheet
             open={createOpen}
-            onOpenChange={setCreateOpen}
+            onOpenChange={(open) => {
+              if (!open) {
+                closeCreateSheet();
+                return;
+              }
+              setCreateOpen(true);
+            }}
             title={translate(locale, 'admin.createAccount')}
             description={translate(locale, 'admin.createAccountHelp')}
-            footer={createMessage ? <span role="status">{createMessage}</span> : null}
           >
-            <form
-              autoComplete="off"
-              className="admin-form-stack"
-              onSubmit={(event) => void createAccount(event)}
-            >
-              <label>
-                {translate(locale, 'admin.displayName')}
-                <Input
-                  autoComplete="off"
-                  name="new-admin-display-name"
-                  required
-                  value={createForm.displayName}
-                  onChange={(event) =>
-                    setCreateForm((current) => ({ ...current, displayName: event.target.value }))
-                  }
-                />
-              </label>
-              <label>
-                Email
-                <Input
-                  autoComplete="off"
-                  name="new-admin-email"
-                  required
-                  type="email"
-                  value={createForm.email}
-                  onChange={(event) =>
-                    setCreateForm((current) => ({ ...current, email: event.target.value }))
-                  }
-                />
-              </label>
-              <label>
-                {translate(locale, 'admin.password')}
-                <Input
-                  autoComplete="new-password"
-                  name="new-admin-password"
-                  required
-                  minLength={8}
-                  type="password"
-                  value={createForm.password}
-                  onChange={(event) =>
-                    setCreateForm((current) => ({ ...current, password: event.target.value }))
-                  }
-                />
-              </label>
-              <label>
-                {translate(locale, 'admin.profile')}
-                <Select
-                  value={createForm.role}
-                  onValueChange={(value) => {
-                    if (value === null) return;
-                    setCreateForm((current) => ({ ...current, role: value as AdminProfileCode }));
-                  }}
+            {createResult !== null ? (
+              <div className="admin-form-stack" data-testid="admin-create-success">
+                <Alert>
+                  <AlertTitle>{translate(locale, 'admin.createSuccess')}</AlertTitle>
+                  <AlertDescription>
+                    <strong>{createResult.displayName}</strong>
+                    <br />
+                    {createResult.roleLabel}
+                    {createResult.propertyLabel !== null ? ` · ${createResult.propertyLabel}` : ''}
+                  </AlertDescription>
+                </Alert>
+                <div className="admin-form-stack__actions">
+                  <Button
+                    onClick={() => {
+                      resetCreateForm();
+                      setCreateResult(null);
+                    }}
+                    type="button"
+                    variant="outline"
+                  >
+                    {translate(locale, 'admin.createAnother')}
+                  </Button>
+                  <Button onClick={() => closeCreateSheet()} type="button">
+                    {translate(locale, 'admin.closeSheet')}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form
+                autoComplete="off"
+                className="admin-form-stack"
+                noValidate
+                onSubmit={(event) => void createAccount(event)}
+              >
+                {createErrors.formError !== undefined ? (
+                  <Alert variant="destructive" data-testid="admin-create-error">
+                    <AlertTitle>{createErrors.formError}</AlertTitle>
+                    {createErrors.requestId !== undefined ? (
+                      <AlertDescription>
+                        {translate(locale, 'admin.errors.requestIdSuffix', {
+                          id: createErrors.requestId,
+                        })}
+                      </AlertDescription>
+                    ) : null}
+                  </Alert>
+                ) : null}
+                <Field
+                  data-invalid={createErrors.fieldErrors.displayName !== undefined}
+                  data-testid="admin-create-field-displayName"
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {profileOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {translate(locale, option.label)}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </label>
-              <label>
-                {translate(locale, 'admin.department')}
-                <AdminMultiSelect
-                  ariaLabel={translate(locale, 'admin.department')}
-                  options={departments.map((department) => ({
-                    value: department.id,
-                    label: department.name,
-                  }))}
-                  value={createForm.departmentIds}
-                  onChange={(departmentIds) =>
-                    setCreateForm((current) => ({ ...current, departmentIds: [...departmentIds] }))
-                  }
-                  placeholder={translate(locale, 'admin.department')}
-                />
-              </label>
-              {createForm.role !== 'SUPER_ADMIN' ? (
-                <label>
-                  {translate(locale, 'admin.property')}
-                  <AdminMultiSelect
-                    ariaLabel={translate(locale, 'admin.property')}
-                    options={accountProperties.map((property) => ({
-                      value: property.id,
-                      label: `${property.code} · ${property.name}`,
-                    }))}
-                    value={createForm.propertyIds}
-                    onChange={(propertyIds) =>
-                      setCreateForm((current) => ({ ...current, propertyIds: [...propertyIds] }))
+                  <FieldLabel htmlFor="new-admin-display-name">
+                    {translate(locale, 'admin.displayName')}
+                  </FieldLabel>
+                  <Input
+                    aria-describedby={
+                      createErrors.fieldErrors.displayName !== undefined
+                        ? 'new-admin-display-name-error'
+                        : undefined
                     }
-                    placeholder={translate(locale, 'admin.property')}
+                    aria-invalid={createErrors.fieldErrors.displayName !== undefined}
+                    autoComplete="off"
+                    disabled={pending !== undefined}
+                    id="new-admin-display-name"
+                    maxLength={160}
+                    name="new-admin-display-name"
+                    onChange={(event) =>
+                      setCreateForm((current) => ({ ...current, displayName: event.target.value }))
+                    }
+                    required
+                    value={createForm.displayName}
                   />
-                </label>
-              ) : null}
-              <Button disabled={pending !== undefined} type="submit">
-                {pending === 'create'
-                  ? translate(locale, 'admin.creating')
-                  : translate(locale, 'admin.create')}
-              </Button>
-            </form>
+                  {createErrors.fieldErrors.displayName !== undefined ? (
+                    <FieldError id="new-admin-display-name-error">
+                      {createErrors.fieldErrors.displayName}
+                    </FieldError>
+                  ) : null}
+                </Field>
+                <Field
+                  data-invalid={createErrors.fieldErrors.email !== undefined}
+                  data-testid="admin-create-field-email"
+                >
+                  <FieldLabel htmlFor="new-admin-email">Email</FieldLabel>
+                  <Input
+                    aria-describedby={
+                      createErrors.fieldErrors.email !== undefined
+                        ? 'new-admin-email-error'
+                        : undefined
+                    }
+                    aria-invalid={createErrors.fieldErrors.email !== undefined}
+                    autoComplete="off"
+                    disabled={pending !== undefined}
+                    id="new-admin-email"
+                    name="new-admin-email"
+                    onChange={(event) =>
+                      setCreateForm((current) => ({ ...current, email: event.target.value }))
+                    }
+                    required
+                    type="email"
+                    value={createForm.email}
+                  />
+                  {createErrors.fieldErrors.email !== undefined ? (
+                    <FieldError id="new-admin-email-error">
+                      {createErrors.fieldErrors.email}
+                    </FieldError>
+                  ) : null}
+                </Field>
+                <Field
+                  data-invalid={
+                    createErrors.fieldErrors.password !== undefined ||
+                    createErrors.fieldErrors.password === undefined
+                      ? createErrors.fieldErrors.password !== undefined
+                      : false
+                  }
+                  data-testid="admin-create-field-password"
+                >
+                  <FieldLabel htmlFor="new-admin-password">
+                    {translate(locale, 'admin.password')}
+                  </FieldLabel>
+                  <Input
+                    aria-describedby={
+                      createErrors.fieldErrors.password !== undefined
+                        ? 'new-admin-password-error'
+                        : 'new-admin-password-help'
+                    }
+                    aria-invalid={createErrors.fieldErrors.password !== undefined}
+                    autoComplete="new-password"
+                    disabled={pending !== undefined}
+                    id="new-admin-password"
+                    maxLength={128}
+                    minLength={8}
+                    name="new-admin-password"
+                    onChange={(event) =>
+                      setCreateForm((current) => ({ ...current, password: event.target.value }))
+                    }
+                    required
+                    type="password"
+                    value={createForm.password}
+                  />
+                  {createErrors.fieldErrors.password !== undefined ? (
+                    <FieldError id="new-admin-password-error">
+                      {createErrors.fieldErrors.password}
+                    </FieldError>
+                  ) : (
+                    <small className="admin-field-hint" id="new-admin-password-help">
+                      {translate(locale, 'admin.passwordHelp')}
+                    </small>
+                  )}
+                </Field>
+                <Field
+                  data-invalid={createErrors.fieldErrors.role !== undefined}
+                  data-testid="admin-create-field-role"
+                >
+                  <FieldLabel htmlFor="new-admin-role">
+                    {translate(locale, 'admin.profile')}
+                  </FieldLabel>
+                  <Select
+                    value={createForm.role}
+                    onValueChange={(value) => {
+                      if (value === null) return;
+                      setCreateForm((current) => ({ ...current, role: value as AdminProfileCode }));
+                    }}
+                  >
+                    <SelectTrigger className="w-full" id="new-admin-role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {profileOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {translate(locale, option.label)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field
+                  data-invalid={createErrors.fieldErrors.departmentIds !== undefined}
+                  data-testid="admin-create-field-departments"
+                >
+                  <FieldLabel>{translate(locale, 'admin.department')}</FieldLabel>
+                  <AdminMultiSelect
+                    ariaLabel={translate(locale, 'admin.department')}
+                    options={departments.map((department) => ({
+                      value: department.id,
+                      label: department.name,
+                    }))}
+                    value={createForm.departmentIds}
+                    onChange={(departmentIds) =>
+                      setCreateForm((current) => ({
+                        ...current,
+                        departmentIds: [...departmentIds],
+                      }))
+                    }
+                    placeholder={translate(locale, 'admin.department')}
+                  />
+                  {createErrors.fieldErrors.departmentIds !== undefined ? (
+                    <FieldError>{createErrors.fieldErrors.departmentIds}</FieldError>
+                  ) : null}
+                </Field>
+                {createForm.role !== 'SUPER_ADMIN' ? (
+                  <Field
+                    data-invalid={createErrors.fieldErrors.propertyIds !== undefined}
+                    data-testid="admin-create-field-properties"
+                  >
+                    <FieldLabel>{translate(locale, 'admin.property')}</FieldLabel>
+                    <AdminMultiSelect
+                      ariaLabel={translate(locale, 'admin.property')}
+                      options={accountProperties.map((property) => ({
+                        value: property.id,
+                        label: `${property.code} · ${property.name}`,
+                      }))}
+                      value={createForm.propertyIds}
+                      onChange={(propertyIds) =>
+                        setCreateForm((current) => ({ ...current, propertyIds: [...propertyIds] }))
+                      }
+                      placeholder={translate(locale, 'admin.property')}
+                    />
+                    {createErrors.fieldErrors.propertyIds !== undefined ? (
+                      <FieldError>{createErrors.fieldErrors.propertyIds}</FieldError>
+                    ) : null}
+                  </Field>
+                ) : null}
+                <Button disabled={pending !== undefined} type="submit">
+                  {pending === 'create'
+                    ? translate(locale, 'admin.creating')
+                    : translate(locale, 'admin.create')}
+                </Button>
+              </form>
+            )}
           </AdminFormSheet>
         ) : null}
 
@@ -598,18 +777,17 @@ export default function AdminAccountsPage() {
                 <AdminFormSheet
                   open
                   onOpenChange={(open) => {
-                    if (!open) setEditAccountId(undefined);
+                    if (!open) {
+                      setEditAccountId(undefined);
+                      setEditErrors({ fieldErrors: {} });
+                    }
                   }}
                   title={translate(locale, 'admin.profile')}
                   description={item.emailMasked}
                   footer={
                     <Button
                       disabled={pending !== undefined}
-                      onClick={() =>
-                        void saveAssignment(item.id).then((saved) => {
-                          if (saved) setEditAccountId(undefined);
-                        })
-                      }
+                      onClick={() => void saveAssignment(item.id)}
                     >
                       {pending === item.id
                         ? translate(locale, 'admin.saving')
@@ -618,8 +796,25 @@ export default function AdminAccountsPage() {
                   }
                 >
                   <div className="admin-form-stack">
-                    <label>
-                      {translate(locale, 'admin.profile')}
+                    {editErrors.formError !== undefined ? (
+                      <Alert variant="destructive" data-testid="admin-edit-error">
+                        <AlertTitle>{editErrors.formError}</AlertTitle>
+                        {editErrors.requestId !== undefined ? (
+                          <AlertDescription>
+                            {translate(locale, 'admin.errors.requestIdSuffix', {
+                              id: editErrors.requestId,
+                            })}
+                          </AlertDescription>
+                        ) : null}
+                      </Alert>
+                    ) : null}
+                    <Field
+                      data-invalid={editErrors.fieldErrors.role !== undefined}
+                      data-testid="admin-edit-field-role"
+                    >
+                      <FieldLabel htmlFor={`edit-role-${item.id}`}>
+                        {translate(locale, 'admin.profile')}
+                      </FieldLabel>
                       <Select
                         value={draft.role}
                         onValueChange={(value) => {
@@ -627,7 +822,7 @@ export default function AdminAccountsPage() {
                             updateDraft(item.id, { role: value as AdminProfileCode });
                         }}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full" id={`edit-role-${item.id}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -640,9 +835,15 @@ export default function AdminAccountsPage() {
                           </SelectGroup>
                         </SelectContent>
                       </Select>
-                    </label>
-                    <label>
-                      {translate(locale, 'admin.department')}
+                      {editErrors.fieldErrors.role !== undefined ? (
+                        <FieldError>{editErrors.fieldErrors.role}</FieldError>
+                      ) : null}
+                    </Field>
+                    <Field
+                      data-invalid={editErrors.fieldErrors.departmentIds !== undefined}
+                      data-testid="admin-edit-field-departments"
+                    >
+                      <FieldLabel>{translate(locale, 'admin.department')}</FieldLabel>
                       <AdminMultiSelect
                         ariaLabel={translate(locale, 'admin.departmentFor', {
                           email: item.emailMasked,
@@ -655,10 +856,16 @@ export default function AdminAccountsPage() {
                         onChange={(departmentIds) => updateDraft(item.id, { departmentIds })}
                         placeholder={translate(locale, 'admin.department')}
                       />
-                    </label>
+                      {editErrors.fieldErrors.departmentIds !== undefined ? (
+                        <FieldError>{editErrors.fieldErrors.departmentIds}</FieldError>
+                      ) : null}
+                    </Field>
                     {draft.role !== 'SUPER_ADMIN' ? (
-                      <label>
-                        {translate(locale, 'admin.property')}
+                      <Field
+                        data-invalid={editErrors.fieldErrors.propertyIds !== undefined}
+                        data-testid="admin-edit-field-properties"
+                      >
+                        <FieldLabel>{translate(locale, 'admin.property')}</FieldLabel>
                         <AdminMultiSelect
                           ariaLabel={translate(locale, 'admin.property')}
                           options={accountProperties.map((property) => ({
@@ -669,7 +876,10 @@ export default function AdminAccountsPage() {
                           onChange={(propertyIds) => updateDraft(item.id, { propertyIds })}
                           placeholder={translate(locale, 'admin.property')}
                         />
-                      </label>
+                        {editErrors.fieldErrors.propertyIds !== undefined ? (
+                          <FieldError>{editErrors.fieldErrors.propertyIds}</FieldError>
+                        ) : null}
+                      </Field>
                     ) : null}
                   </div>
                 </AdminFormSheet>

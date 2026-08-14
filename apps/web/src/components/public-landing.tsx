@@ -1,9 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Clock3, Coffee, MapPin, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import {
+  ArrowRight,
+  Clock3,
+  Coffee,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Sparkles,
+  Users,
+} from 'lucide-react';
 
 import type { PublicRoomCatalogResponse } from '@room/contracts/public-room-catalog';
+import type { PublicContact } from '@room/contracts';
 
 import {
   peaceHomeCommonImages,
@@ -18,11 +28,17 @@ import { useLocale } from './locale-provider';
 
 export function PublicLanding({
   catalog = null,
-}: Readonly<{ catalog?: PublicRoomCatalogResponse | null }>) {
+  contact = null,
+}: Readonly<{
+  catalog?: PublicRoomCatalogResponse | null;
+  contact?: PublicContact | null;
+}>) {
   const locale = useLocale();
   const state = toPublicCatalogState(catalog);
   const catalogRooms = state.kind === 'ready' ? presentPhysicalRooms(state.catalog) : [];
   const tierSummaries = state.kind === 'ready' ? presentTierSummaries(state.catalog) : [];
+  const contactEntries = contactToEntries(contact);
+  const year = new Date().getFullYear();
 
   return (
     <main id="main-content">
@@ -204,6 +220,32 @@ export function PublicLanding({
             <p>{translate(locale, 'public.contact')}</p>
             <h2 id="contact-heading">{translate(locale, 'landing.contactHeading')}</h2>
             <p>{translate(locale, 'landing.contactDescription')}</p>
+            {contactEntries.length === 0 ? (
+              <p className="hospitality-contact__empty">
+                {translate(locale, 'public.contact.empty')}
+              </p>
+            ) : (
+              <ul className="hospitality-contact__list" data-testid="landing-public-contact">
+                {contactEntries.map((entry) => (
+                  <li key={`${entry.kind}-${entry.href ?? entry.label}`}>
+                    {entry.kind === 'phone' ? (
+                      <Phone aria-hidden="true" size={16} />
+                    ) : entry.kind === 'address' ? (
+                      <MapPin aria-hidden="true" size={16} />
+                    ) : (
+                      <ArrowRight aria-hidden="true" size={16} />
+                    )}
+                    {entry.href !== undefined ? (
+                      <a href={entry.href} rel="noopener noreferrer" target="_blank">
+                        {entry.label}
+                      </a>
+                    ) : (
+                      <span>{entry.label}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
         <Link className="hospitality-button" href="/booking/manage">
@@ -211,18 +253,82 @@ export function PublicLanding({
         </Link>
       </section>
 
-      <footer className="hospitality-footer">
+      <footer className="hospitality-footer" data-testid="landing-footer">
         <div>
           <strong>PeaceNest</strong>
           <p>{translate(locale, 'landing.footerCopy')}</p>
+          <p className="hospitality-footer__copy">
+            {translate(locale, 'public.footer.copyright', { year })}
+          </p>
         </div>
         <nav aria-label={translate(locale, 'public.navigation')}>
-          <Link href="/#booking">{translate(locale, 'public.booking')}</Link>
-          <Link href="/rooms">{translate(locale, 'public.roomsPricing')}</Link>
-          <Link href="/#offers">{translate(locale, 'public.offers')}</Link>
-          <Link href="/booking/manage">{translate(locale, 'public.guestAccess')}</Link>
+          <p>{translate(locale, 'public.footer.discover')}</p>
+          <Link href="/#booking">{translate(locale, 'public.footer.discover.booking')}</Link>
+          <Link href="/rooms">{translate(locale, 'public.footer.discover.rooms')}</Link>
+          <Link href="/#offers">{translate(locale, 'public.footer.discover.offers')}</Link>
+          <Link href="/booking/manage">{translate(locale, 'public.footer.discover.manage')}</Link>
         </nav>
+        <div>
+          <p>{translate(locale, 'public.footer.contactHeading')}</p>
+          {contactEntries.length === 0 ? (
+            <p className="hospitality-footer__empty">{translate(locale, 'public.contact.empty')}</p>
+          ) : (
+            <ul className="hospitality-footer__contact">
+              {contactEntries.map((entry) => (
+                <li key={`footer-${entry.kind}-${entry.href ?? entry.label}`}>
+                  {entry.href !== undefined ? (
+                    <a href={entry.href} rel="noopener noreferrer" target="_blank">
+                      {entry.label}
+                    </a>
+                  ) : (
+                    <span>{entry.label}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </footer>
     </main>
   );
+}
+
+interface ContactEntry {
+  readonly kind: 'phone' | 'zalo' | 'address' | 'facebook';
+  readonly label: string;
+  readonly href: string | undefined;
+}
+
+function contactToEntries(contact: PublicContact | null): ContactEntry[] {
+  if (contact === null) return [];
+  const entries: ContactEntry[] = [];
+  if (typeof contact.phone === 'string' && contact.phone.trim().length > 0) {
+    entries.push({
+      kind: 'phone',
+      label: contact.phone.trim(),
+      href: `tel:${contact.phone.trim()}`,
+    });
+  }
+  if (typeof contact.zalo === 'string' && contact.zalo.trim().length > 0) {
+    entries.push({
+      kind: 'zalo',
+      label: 'Zalo',
+      href: contact.zalo.trim(),
+    });
+  }
+  if (typeof contact.facebook === 'string' && contact.facebook.trim().length > 0) {
+    entries.push({
+      kind: 'facebook',
+      label: 'Facebook',
+      href: contact.facebook.trim(),
+    });
+  }
+  if (typeof contact.address === 'string' && contact.address.trim().length > 0) {
+    entries.push({
+      kind: 'address',
+      label: contact.address.trim(),
+      href: undefined,
+    });
+  }
+  return entries;
 }

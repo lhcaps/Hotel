@@ -21,6 +21,7 @@ import type {
   PriceTier,
   ProblemDetails,
   Property,
+  PublicContact,
   Quote,
   RecommendationRequest,
   RecommendationResponse,
@@ -318,6 +319,12 @@ export const adminApi = {
   property: () => request<Property>('/admin/property'),
   updateProperty: (body: unknown) =>
     request<Property>('/admin/property', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  updatePropertyPublicContact: (id: string, body: PublicContact) =>
+    request<PublicContact>(`/admin/properties/${encodeURIComponent(id)}/contact`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),

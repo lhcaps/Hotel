@@ -2,6 +2,7 @@ import type { PublicRoomCatalogResponse } from '@room/contracts/public-room-cata
 
 import { PublicLanding } from '../components/public-landing';
 import { loadPublicRoomCatalog } from '../lib/public-room-catalog';
+import { loadPublicContact } from '../lib/public-contact';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,8 @@ interface HomePageProps {
 export default async function HomePage({ searchParams }: HomePageProps) {
   const catalog = await loadPublicRoomCatalog();
   const params = await searchParams;
+  const defaultPropertyCode = process.env.NEXT_PUBLIC_DEFAULT_PROPERTY_CODE ?? '';
+  const contact = defaultPropertyCode === '' ? null : await loadPublicContact(defaultPropertyCode);
 
   // Test helper: ?__catalog=error and ?__catalog=empty simulate catalog
   // failure states. These are strictly disabled outside NODE_ENV=test so an
@@ -25,5 +28,5 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     }
   }
 
-  return <PublicLanding catalog={effectiveCatalog} />;
+  return <PublicLanding catalog={effectiveCatalog} contact={contact ?? null} />;
 }

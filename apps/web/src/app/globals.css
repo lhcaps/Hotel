@@ -1673,6 +1673,7 @@ a:focus {
     flex-direction: column;
   }
   .hospitality-rooms,
+  .hospitality-tier-summary,
   .hospitality-section--modes,
   .hospitality-section--story {
     grid-template-columns: 1fr;

@@ -178,18 +178,17 @@ export function AvailabilitySearchResults({
           responseState === 'BELOW_MINIMUM_STAY' ||
           responseState === 'ABOVE_MAXIMUM_STAY' ||
           responseState === 'INVALID_GUEST_COUNT' ||
-          responseState === 'NO_CONTINUOUS_ROOM' ||
           responseState === 'NO_VALID_PRICING' ||
           responseState === 'POLICY_NOT_CONFIGURED' ||
           responseState === 'SERVICE_UNAVAILABLE'
         ? 'unavailable'
-        : items
-          ? items.length === 0
-            ? 'empty'
-            : 'success'
-          : state
-            ? 'loading'
-            : undefined;
+        : responseState === 'NO_CONTINUOUS_ROOM' || (items !== undefined && items.length === 0)
+          ? 'empty'
+          : items
+            ? 'success'
+            : state
+              ? 'loading'
+              : undefined;
 
   useEffect(() => {
     if (isControlled || !state) return;

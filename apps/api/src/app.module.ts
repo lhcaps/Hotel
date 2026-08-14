@@ -36,6 +36,8 @@ import { RecommendationController } from './pricing/recommendation.controller.js
 import { PublicRoomCatalogController } from './public-catalog/public-room-catalog.controller.js';
 import { PublicRoomCatalogRepository } from './public-catalog/public-room-catalog.repository.js';
 import { PublicRoomCatalogService } from './public-catalog/public-room-catalog.service.js';
+import { PublicContactController } from './public-catalog/public-contact.controller.js';
+import { PublicContactService } from './public-catalog/public-contact.service.js';
 import { BookingModule } from './booking/booking.module.js';
 import { CustomerModule } from './customer/customer.module.js';
 import { PaymentModule } from './payment/payment.module.js';
@@ -78,6 +80,7 @@ import { MultiNightOfferService } from './pricing/multi-night-offer.service.js';
     RecommendationController,
     NearbyAvailabilityController,
     PublicRoomCatalogController,
+    PublicContactController,
     PricingPolicyAdminController,
   ],
   providers: [
@@ -141,6 +144,11 @@ import { MultiNightOfferService } from './pricing/multi-night-offer.service.js';
       inject: [DatabaseProvider],
       useFactory: (database: DatabaseProvider) =>
         new PublicRoomCatalogService(new PublicRoomCatalogRepository(database.client)),
+    },
+    {
+      provide: PublicContactService,
+      inject: [DatabaseProvider],
+      useFactory: (database: DatabaseProvider) => new PublicContactService(database.client),
     },
     {
       provide: QuoteService,

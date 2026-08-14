@@ -135,7 +135,13 @@ describe('AdminAccessService', () => {
           findFirst: vi.fn().mockResolvedValue({ name: 'Housekeeping' }),
         },
         properties: { findMany: vi.fn().mockResolvedValue([{ id: propertyId }]) },
-        users: { findFirst: vi.fn().mockResolvedValue(createdUser) },
+        users: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValueOnce(undefined)
+            .mockResolvedValueOnce(createdUser)
+            .mockResolvedValueOnce(createdUser),
+        },
         adminMemberships: {
           findMany: vi
             .fn()
@@ -189,5 +195,93 @@ describe('AdminAccessService', () => {
       }),
     ).resolves.toMatchObject({ id: createdId, propertyIds: [propertyId] });
     expect(inserted).toContainEqual([{ userId: createdId, propertyId, status: 'ACTIVE' }]);
+  });
+
+  it('rejects duplicate admin emails with ADMIN_EMAIL_CONFLICT before calling Better Auth', async () => {
+    const departmentId = '550e8400-e29b-41d4-a716-446655440020';
+    const database = {
+      query: {
+        users: {
+          findFirst: vi.fn().mockResolvedValue({ id: 'existing-id' }),
+        },
+        adminDepartments: { findMany: vi.fn().mockResolvedValue([]) },
+        properties: { findMany: vi.fn().mockResolvedValue([]) },
+      },
+    };
+    const createUser = vi.fn();
+    const service = new AdminAccessService(database as never, { api: { createUser } } as never);
+    const actor = {
+      userId: 'super-admin-id',
+      email: 'admin@example.test',
+      displayName: 'Super Admin',
+      role: 'SUPER_ADMIN' as const,
+      profileCode: 'SUPER_ADMIN' as const,
+      permissions: [],
+      departments: [],
+      propertyIds: 'ALL' as const,
+      sessionId: 'session-id',
+      sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+      requestId: 'request-id',
+    };
+
+    await expect(
+      service.createAccount(actor, {
+        displayName: 'Duplicate',
+        email: 'dup@example.test',
+        password: 'Aa1-strong-password',
+        role: 'SUPER_ADMIN',
+        departmentIds: [departmentId],
+      }),
+    ).rejects.toMatchObject({ response: { code: 'ADMIN_EMAIL_CONFLICT' } });
+    expect(createUser).not.toHaveBeenCalled();
+  });
+
+  it('translates Better Auth USER_ALREADY_EXISTS into ADMIN_EMAIL_CONFLICT without orphan rows', async () => {
+    const departmentId = '550e8400-e29b-41d4-a716-446655440021';
+    const database = {
+      query: {
+        users: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValueOnce(undefined)
+            .mockResolvedValueOnce({ id: 'racer-id' }),
+        },
+        adminDepartments: {
+          findMany: vi.fn().mockResolvedValue([{ id: departmentId }]),
+        },
+        properties: { findMany: vi.fn().mockResolvedValue([]) },
+      },
+      delete: vi.fn(() => ({
+        where: vi.fn().mockResolvedValue(undefined),
+      })),
+    };
+    const createUser = vi.fn().mockRejectedValue({
+      code: 'USER_ALREADY_EXISTS',
+      message: 'email in use',
+    });
+    const service = new AdminAccessService(database as never, { api: { createUser } } as never);
+    const actor = {
+      userId: 'super-admin-id',
+      email: 'admin@example.test',
+      displayName: 'Super Admin',
+      role: 'SUPER_ADMIN' as const,
+      profileCode: 'SUPER_ADMIN' as const,
+      permissions: [],
+      departments: [],
+      propertyIds: 'ALL' as const,
+      sessionId: 'session-id',
+      sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+      requestId: 'request-id',
+    };
+
+    await expect(
+      service.createAccount(actor, {
+        displayName: 'Race',
+        email: 'race@example.test',
+        password: 'Aa1-strong-password',
+        role: 'SUPER_ADMIN',
+        departmentIds: [departmentId],
+      }),
+    ).rejects.toMatchObject({ response: { code: 'ADMIN_EMAIL_CONFLICT' } });
   });
 });
