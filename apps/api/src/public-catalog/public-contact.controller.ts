@@ -5,6 +5,8 @@ import {
   Inject,
   Patch,
   Body,
+  HttpCode,
+  HttpStatus,
   UseGuards,
   Req,
   Version,
@@ -24,6 +26,7 @@ export class PublicContactController {
 
   @Get('public/properties/:code/contact')
   @Version('1')
+  @HttpCode(HttpStatus.OK)
   public async get(@Param('code') code: string): Promise<PublicContact> {
     return this.service.getByCode(code);
   }
