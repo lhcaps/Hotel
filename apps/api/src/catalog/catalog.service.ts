@@ -64,12 +64,15 @@ export interface CatalogPropertyRecord {
   readonly minimumLeadTimeMinutes?: number;
   readonly maximumAdvanceBookingDays?: number;
   readonly defaultOvernightDurationMinutes?: number;
-  readonly publicContact?: {
-    readonly phone?: string;
-    readonly zalo?: string;
-    readonly address?: string;
-    readonly facebook?: string;
-  } | null;
+  readonly publicContact?:
+    | {
+        readonly phone?: string;
+        readonly zalo?: string;
+        readonly address?: string;
+        readonly facebook?: string;
+      }
+    | null
+    | undefined;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
