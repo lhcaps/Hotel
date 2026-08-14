@@ -3076,7 +3076,10 @@ const variableMessages = {
   },
 } as const;
 
-export type MessageKey = keyof (typeof messages)['vi'] | keyof (typeof messages)['en'] | keyof (typeof variableMessages)['vi'];
+export type MessageKey =
+  | keyof (typeof messages)['vi']
+  | keyof (typeof messages)['en']
+  | keyof (typeof variableMessages)['vi'];
 
 export function isLocale(value: string | undefined): value is Locale {
   return value === 'vi' || value === 'en';
