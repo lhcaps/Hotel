@@ -284,6 +284,17 @@ export class CatalogController {
     return this.catalog.reopenHousekeepingTask(request.actor, taskId, body);
   }
 
+  @Patch('housekeeping/tasks/:taskId/cancel')
+  @Version('1')
+  @RequirePermissions('housekeeping.task.manage')
+  public cancelHousekeepingTask(
+    @Req() request: { actor: ActorContext },
+    @Param('taskId') taskId: string,
+    @Body() body: unknown,
+  ) {
+    return this.catalog.cancelHousekeepingTask(request.actor, taskId, body);
+  }
+
   @Patch('rooms/:id/housekeeping/override')
   @Version('1')
   @RequirePermissions('housekeeping.task.manage')

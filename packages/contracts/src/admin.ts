@@ -427,6 +427,10 @@ export const housekeepingTaskReopenCommandSchema = housekeepingTaskVersionComman
   reason: z.string().trim().min(1).max(1_000),
 });
 
+export const housekeepingTaskCancelCommandSchema = housekeepingTaskVersionCommandSchema.extend({
+  reason: z.string().trim().min(1).max(1_000),
+});
+
 export const housekeepingTaskActionSchema = z
   .object({
     taskId: uuidSchema,
@@ -540,6 +544,7 @@ export type HousekeepingTaskAssignmentCommand = z.infer<
 export type HousekeepingTaskAssignment = z.infer<typeof housekeepingTaskAssignmentSchema>;
 export type HousekeepingTaskVersionCommand = z.infer<typeof housekeepingTaskVersionCommandSchema>;
 export type HousekeepingTaskReopenCommand = z.infer<typeof housekeepingTaskReopenCommandSchema>;
+export type HousekeepingTaskCancelCommand = z.infer<typeof housekeepingTaskCancelCommandSchema>;
 export type HousekeepingTaskAction = z.infer<typeof housekeepingTaskActionSchema>;
 export type HousekeepingAssignee = z.infer<typeof housekeepingAssigneeSchema>;
 export type HousekeepingTaskRecord = z.infer<typeof housekeepingTaskRecordSchema>;

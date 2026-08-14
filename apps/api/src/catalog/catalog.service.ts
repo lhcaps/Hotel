@@ -38,6 +38,7 @@ import {
   housekeepingTaskActionSchema,
   housekeepingAssigneeListSchema,
   housekeepingTaskReopenCommandSchema,
+  housekeepingTaskCancelCommandSchema,
   housekeepingTaskVersionCommandSchema,
   housekeepingTaskCommandVersionSchema,
   housekeepingTaskListSchema,
@@ -376,6 +377,15 @@ export interface CatalogRepositoryPort {
     actorId: string,
   ): Promise<CatalogHousekeepingTaskActionRecord | undefined>;
   reopenHousekeepingTask?(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    expectedVersion: number,
+    reason: string,
+    actorId: string,
+  ): Promise<CatalogHousekeepingTaskActionRecord | undefined>;
+
+  cancelHousekeepingTask?(
     transaction: unknown,
     propertyId: string,
     taskId: string,
@@ -1179,6 +1189,44 @@ export class CatalogService {
         aggregateType: 'HOUSEKEEPING_TASK',
         aggregateId: result.id,
         eventType: 'HOUSEKEEPING_TASK_REOPENED',
+        actorId: actor.userId,
+        payload: { taskId, reason: command.reason, version: result.version },
+      });
+      return housekeepingTaskActionSchema.parse({
+        taskId: result.id,
+        roomId: result.roomId,
+        version: result.version,
+      });
+    });
+  }
+
+  public async cancelHousekeepingTask(actor: ActorContext, taskId: string, input: unknown) {
+    if (actor.permissions.includes('housekeeping.task.manage') !== true)
+      throw new CatalogConflictError('HOUSEKEEPING_TASK_FORBIDDEN', 'Manager permission required.');
+    const command = housekeepingTaskCancelCommandSchema.parse(input);
+    return this.database.transaction(async (transaction) => {
+      const property = await this.repository.getCurrentProperty(actor, transaction);
+      const action = this.repository.cancelHousekeepingTask;
+      if (property === undefined || action === undefined) throw new CatalogNotFoundError();
+      const result = await action.call(
+        this.repository,
+        transaction,
+        property.id,
+        taskId,
+        command.expectedVersion,
+        command.reason,
+        actor.userId,
+      );
+      if (result === undefined)
+        throw new CatalogConflictError(
+          'HOUSEKEEPING_TASK_CANCEL_CONFLICT',
+          'The task cannot be cancelled or has already changed.',
+        );
+      await this.audit.write(transaction, {
+        propertyId: property.id,
+        aggregateType: 'HOUSEKEEPING_TASK',
+        aggregateId: result.id,
+        eventType: 'HOUSEKEEPING_TASK_CANCELLED',
         actorId: actor.userId,
         payload: { taskId, reason: command.reason, version: result.version },
       });

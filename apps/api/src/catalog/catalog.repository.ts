@@ -849,6 +849,32 @@ export class CatalogRepository implements CatalogRepositoryPort {
     return toHousekeepingTaskAction(result.rows[0]);
   }
 
+  public async cancelHousekeepingTask(
+    transaction: unknown,
+    propertyId: string,
+    taskId: string,
+    expectedVersion: number,
+    reason: string,
+    actorId: string,
+  ) {
+    const database = asCatalogDatabase(transaction, this.database);
+    const result = await database.execute(sql`
+      UPDATE housekeeping_tasks
+         SET status='CANCELLED',
+             cancelled_at=CURRENT_TIMESTAMP,
+             cancelled_by=${actorId},
+             cancellation_reason=${reason},
+             version=version+1,
+             updated_at=CURRENT_TIMESTAMP
+       WHERE id=${taskId}
+         AND property_id=${propertyId}
+         AND status IN ('SCHEDULED', 'DUE')
+         AND version=${expectedVersion}
+     RETURNING id, room_id, version
+    `);
+    return toHousekeepingTaskAction(result.rows[0]);
+  }
+
   public async overrideRoomHousekeeping(
     transaction: unknown,
     propertyId: string,
