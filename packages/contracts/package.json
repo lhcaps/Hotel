@@ -4,11 +4,26 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./pricing": "./src/pricing.ts",
-    "./public-room-catalog": "./src/public-room-catalog.ts",
-    "./admin": "./src/admin.ts",
-    "./admin-payment-reconciliation": "./src/admin-payment-reconciliation.ts"
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./pricing": {
+      "types": "./dist/src/pricing.d.ts",
+      "default": "./dist/src/pricing.js"
+    },
+    "./public-room-catalog": {
+      "types": "./dist/src/public-room-catalog.d.ts",
+      "default": "./dist/src/public-room-catalog.js"
+    },
+    "./admin": {
+      "types": "./dist/src/admin.d.ts",
+      "default": "./dist/src/admin.js"
+    },
+    "./admin-payment-reconciliation": {
+      "types": "./dist/src/admin-payment-reconciliation.d.ts",
+      "default": "./dist/src/admin-payment-reconciliation.js"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

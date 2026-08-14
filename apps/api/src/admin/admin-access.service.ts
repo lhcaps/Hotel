@@ -373,6 +373,13 @@ export class AdminAccessService {
     if (this.auth === undefined) {
       throw new BadRequestException({ code: 'AUTH_ACCOUNT_CREATION_UNAVAILABLE' });
     }
+    const existing = await this.database.query.users.findFirst({
+      where: (fields, { eq }) => eq(fields.email, command.email.toLocaleLowerCase('en-US')),
+      columns: { id: true },
+    });
+    if (existing !== undefined) {
+      throw new ConflictException({ code: 'ADMIN_EMAIL_CONFLICT' });
+    }
     if (command.departmentIds.length > 0) {
       const departments = await this.database.query.adminDepartments.findMany({
         where: (fields, { and, eq }) =>
@@ -391,13 +398,6 @@ export class AdminAccessService {
     }
     if (command.propertyIds !== undefined) {
       await this.assertActivePropertyIds(command.propertyIds);
-    }
-    const existing = await this.database.query.users.findFirst({
-      where: (fields, { eq }) => eq(fields.email, command.email.toLocaleLowerCase('en-US')),
-      columns: { id: true },
-    });
-    if (existing !== undefined) {
-      throw new ConflictException({ code: 'ADMIN_EMAIL_CONFLICT' });
     }
     const auth = this.auth;
     if (auth === undefined) {

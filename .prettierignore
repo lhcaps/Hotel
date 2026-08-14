@@ -29,3 +29,101 @@ output/
 .prettierignore
 # pnpm owns the lockfile serialization; do not rewrite it with Prettier.
 pnpm-lock.yaml
+# Root-level operator scripts (not part of a workspace package) are not
+# formatted by Prettier to keep CI green without rewriting hand-rolled
+# debug tooling.
+.release-candidate-*/
+release-*.tar
+release-*.tar.gz
+# Hand-authored root-level status reports live alongside release artifacts
+# and use the project's documentation formatting conventions, not Prettier.
+*_REPORT.md
+*_SUMMARY.txt
+*_STATUS.txt
+PEACENEST_DEFINITION_OF_DONE.md
+HOUSEKEEPING_PRODUCTION_DEPLOYMENT_FINAL_REPORT*.md
+HOUSEKEEPING_PRODUCTION_REPAIR_PLAN.md
+HOUSEKEEPING_HANDOFF_FINAL_REPORT.md
+PEACENEST_*.md
+# Operator scripts and one-off SQL probes written for production debugging
+# are not part of the curated source tree.
+check-*.sql
+find-*.sql
+verify-*.sql
+verify-*.sh
+final-verify.sh
+final-verification.sql
+count-contacts.sh
+check-db-schema.sh
+check-gates.sql
+check-migrations.sql
+check-policy-counts.sql
+check-policy-tables.sql
+check-pricing-policy*.sh
+check-pricing-policy*.sql
+check-pricing-policy.mjs
+check-pricing-tables.ps1
+check-prod-*.sh
+check-prod-*.sql
+check-production*.sql
+check-room-number-normalization.sql
+check-room-status-enum.sql
+check-supersession-state.sql
+check-tier-columns.sql
+check-v1-components.sql
+compute-email-digest.js
+compute-source-fingerprint.sql
+create-huyle-booking.js
+create-synthetic-booking.js
+create-synthetic-otp-test-booking.sql
+describe-booking-contacts.sql
+describe-bookings.sql
+describe-outbox.sql
+get-*.sql
+initiate-payment-huyle.js
+investigate-extra-rooms.sql
+list-*.sql
+otp-*.js
+pre-deploy-audit.sql
+prod-verify-v1.sql
+production-data-repair*.sql
+production-policy-data.txt
+query*.sql
+reconstruct-policy.sql
+stage1-acceptance.mjs
+test-*.js
+test-*.mjs
+test-*.sh
+test-*.json
+b0-*.js
+b0-*.mjs
+b0-*.ps1
+b0-*.sh
+b0-*.sql
+b0-*.txt
+backup-prod.sh
+build-release.sh
+canary-*.txt
+package-release.sh
+baseline-home.txt
+restart-services.sh
+e087bce.tar
+Caddyfile-correct
+Caddyfile-fixed
+current-Caddyfile.txt
+deploy-*.sh
+deploy-release.sh
+rebuild-*.sh
+update-and-check.sh
+test-api-health.js
+update-*.sh
+update-*.sql
+*.tar
+*.tar.gz
+*.zip
+# Root-level debug operator scripts are intentionally not Prettier-formatted.
+/*.js
+/*.mjs
+/*.ps1
+/*.sh
+/*.sql
