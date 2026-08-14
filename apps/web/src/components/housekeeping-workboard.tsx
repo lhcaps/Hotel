@@ -54,6 +54,7 @@ function canExecuteTask(permissions: readonly string[]): boolean {
 export function HousekeepingWorkboard() {
   const locale = useLocale();
   const [tasks, setTasks] = useState<readonly HousekeepingTaskRecord[]>([]);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
   const [me, setMe] = useState<AdminMe>();
   const [assignees, setAssignees] = useState<
     Awaited<ReturnType<typeof adminApi.listHousekeepingAssignees>>
@@ -77,6 +78,7 @@ export function HousekeepingWorkboard() {
     return Promise.all([adminApi.listHousekeepingTasks(), adminApi.me()])
       .then(async ([list, actor]: [HousekeepingTaskList, AdminMe]) => {
         setTasks(list?.items ?? []);
+        setTasksLoaded(true);
         setMe(actor);
         if (canManageTask(actor.permissions)) {
           setAssignees(await adminApi.listHousekeepingAssignees());
@@ -484,7 +486,7 @@ export function HousekeepingWorkboard() {
               </p>
             </div>
             <div className="admin-live-state" aria-live="polite">
-              {tasks.length === 0
+              {!tasksLoaded
                 ? translate(locale, 'admin.roomBoardLoading')
                 : `${translate(locale, 'admin.activeTasksSummary', { count: visibleTasks.length })}${stale ? ` · ${translate(locale, 'admin.roomBoardStale')}` : ''}`}
             </div>
