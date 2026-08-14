@@ -288,6 +288,13 @@
       "sha256": "ff8d4364bfce3459c092818d88fe4384b8a55d551f5ce133c15ea1284174982e",
       "phase": "PeaceNest Customer V2 encrypted arrival access configuration",
       "previousIntroductionReference": null
+    },
+    {
+      "index": 41,
+      "fileName": "0041_property_public_contact.sql",
+      "sha256": "c5adaa8fbaf4eea21b80c05f8c5fb7bcfd87732a61b78e7980af8e109a705f86",
+      "phase": "PeaceNest customer-facing public contact configuration",
+      "previousIntroductionReference": null
     }
   ]
 }
