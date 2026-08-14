@@ -188,8 +188,8 @@ export const availabilityOfferSummarySchema = z
     planLabel: z.string().trim().min(1).max(160),
     amountVnd: amountVndSchema,
     nightCount: z.number().int().min(1).max(31).optional(),
-    leadingExtraUnits: z.number().int().min(0).max(5).optional(),
-    trailingExtraUnits: z.number().int().min(0).max(5).optional(),
+    leadingExtraUnits: z.number().int().min(0).max(24).optional(),
+    trailingExtraUnits: z.number().int().min(0).max(24).optional(),
     summary: z.string().trim().min(1).max(280).optional(),
   })
   .strict();

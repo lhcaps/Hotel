@@ -738,8 +738,8 @@
                           "maximum": 9007199254740991
                         },
                         "nightCount": { "type": "integer", "minimum": 1, "maximum": 31 },
-                        "leadingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
-                        "trailingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
+                        "leadingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 24 },
+                        "trailingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 24 },
                         "summary": { "type": "string", "minLength": 1, "maxLength": 280 }
                       },
                       "required": ["planLabel", "amountVnd"],
@@ -757,8 +757,8 @@
                       "planLabel": { "type": "string", "minLength": 1, "maxLength": 160 },
                       "amountVnd": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
                       "nightCount": { "type": "integer", "minimum": 1, "maximum": 31 },
-                      "leadingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
-                      "trailingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
+                      "leadingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 24 },
+                      "trailingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 24 },
                       "summary": { "type": "string", "minLength": 1, "maxLength": 280 }
                     },
                     "required": ["planLabel", "amountVnd"],
@@ -2380,12 +2380,12 @@
                               "leadingExtraUnits": {
                                 "type": "integer",
                                 "minimum": 0,
-                                "maximum": 5
+                                "maximum": 24
                               },
                               "trailingExtraUnits": {
                                 "type": "integer",
                                 "minimum": 0,
-                                "maximum": 5
+                                "maximum": 24
                               },
                               "summary": { "type": "string", "minLength": 1, "maxLength": 280 }
                             },
@@ -2408,8 +2408,12 @@
                               "maximum": 9007199254740991
                             },
                             "nightCount": { "type": "integer", "minimum": 1, "maximum": 31 },
-                            "leadingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
-                            "trailingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 5 },
+                            "leadingExtraUnits": { "type": "integer", "minimum": 0, "maximum": 24 },
+                            "trailingExtraUnits": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 24
+                            },
                             "summary": { "type": "string", "minLength": 1, "maxLength": 280 }
                           },
                           "required": ["planLabel", "amountVnd"],

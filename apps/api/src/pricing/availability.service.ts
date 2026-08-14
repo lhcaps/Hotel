@@ -161,6 +161,25 @@ function selectFlexibleState(
   catalog: AvailabilityState | undefined,
   policy: AvailabilityState | undefined,
 ): AvailabilityState {
+  // The policy producer owns stay constraints for mode-free requests. The
+  // legacy catalog reports every failed stay-policy check as INVALID_INTERVAL,
+  // which must not mask actionable minimum/maximum/continuous-room states.
+  const policyConstraint = [
+    'SERVICE_UNAVAILABLE',
+    'CATALOG_UNAVAILABLE',
+    'NO_CONTINUOUS_ROOM',
+    'POLICY_NOT_CONFIGURED',
+    'ABOVE_MAXIMUM_STAY',
+    'BELOW_MINIMUM_STAY',
+    'INVALID_GUEST_COUNT',
+    'INVALID_INTERVAL',
+  ] as const;
+  if (
+    policy !== undefined &&
+    policyConstraint.includes(policy as (typeof policyConstraint)[number])
+  ) {
+    return policy;
+  }
   const candidates = [catalog, policy].filter(
     (state): state is AvailabilityState => state !== undefined,
   );

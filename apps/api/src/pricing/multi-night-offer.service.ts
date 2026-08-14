@@ -230,12 +230,14 @@ export class MultiNightOfferService {
       ]);
     const amenityNames = new Map(amenities.map((amenity) => [amenity.id, amenity.name]));
     let hadUnavailableEligibleRoomType = false;
+    let hadCapacityMismatch = false;
     const items = roomTypes.flatMap((roomType) => {
       if (
         roomType.maxAdults < input.adults ||
         roomType.maxChildren < input.children ||
         roomType.maxOccupancy < input.adults + input.children
       ) {
+        hadCapacityMismatch = true;
         return [];
       }
       const tier = tiers.find((candidate) => candidate.id === roomType.priceTierId);
@@ -290,7 +292,9 @@ export class MultiNightOfferService {
         ? 'AVAILABLE'
         : hadUnavailableEligibleRoomType
           ? 'NO_CONTINUOUS_ROOM'
-          : 'NO_VALID_PRICING';
+          : hadCapacityMismatch
+            ? 'NO_EXACT_AVAILABILITY'
+            : 'NO_VALID_PRICING';
     return availabilitySearchResponseSchema.parse({
       state,
       policy,

@@ -22,6 +22,15 @@ import { PricingPolicyEventWriter } from './pricing-policy.events.js';
 import { PricingPolicyRepository, type PricingPolicyHeader } from './pricing-policy.repository.js';
 import { validatePricingPolicyAggregate } from './pricing-policy.validator.js';
 
+/**
+ * Universal customer intervals may begin or end at any local instant. The
+ * overnight window is the only fixed anchor, so a boundary can span at most
+ * one full elapsed day before the next/previous anchor. These are bootstrap
+ * defaults for new policy releases; historical releases remain immutable.
+ */
+export const UNIVERSAL_BOUNDARY_MAX_DURATION_MINUTES = 1_440;
+export const UNIVERSAL_BOUNDARY_MAX_BILLING_UNITS = 24;
+
 export interface PricingPolicyTransactionManager {
   transaction<T>(operation: (transaction: unknown) => Promise<T>): Promise<T>;
 }
@@ -150,10 +159,10 @@ function bootstrapAggregate(input: {
     localEndDayOffset: null,
     boundaryPosition: 'LEADING',
     boundaryMinDurationMinutes: 15,
-    boundaryMaxDurationMinutes: 300,
+    boundaryMaxDurationMinutes: UNIVERSAL_BOUNDARY_MAX_DURATION_MINUTES,
     billingUnitMinutes: 60,
     minimumBillingUnits: 1,
-    maximumBillingUnits: 5,
+    maximumBillingUnits: UNIVERSAL_BOUNDARY_MAX_BILLING_UNITS,
     maximumOccurrencesPerCandidate: 1,
     legacyProvenance: {
       sourceKind: 'V1_RATE_PLAN',
@@ -226,10 +235,10 @@ function bootstrapAggregate(input: {
     localEndDayOffset: null,
     boundaryPosition: 'TRAILING',
     boundaryMinDurationMinutes: 15,
-    boundaryMaxDurationMinutes: 300,
+    boundaryMaxDurationMinutes: UNIVERSAL_BOUNDARY_MAX_DURATION_MINUTES,
     billingUnitMinutes: 60,
     minimumBillingUnits: 1,
-    maximumBillingUnits: 5,
+    maximumBillingUnits: UNIVERSAL_BOUNDARY_MAX_BILLING_UNITS,
     maximumOccurrencesPerCandidate: 1,
     legacyProvenance: {
       sourceKind: 'V1_RATE_PLAN',

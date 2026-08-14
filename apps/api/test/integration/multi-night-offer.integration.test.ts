@@ -60,10 +60,14 @@ const ids = {
   otherRoom: '00000000-0000-4000-8000-000000008403',
   nightPlan: '00000000-0000-4000-8000-000000008501',
   extraPlan: '00000000-0000-4000-8000-000000008502',
+  threeHourPlan: '00000000-0000-4000-8000-000000008505',
+  fiveHourPlan: '00000000-0000-4000-8000-000000008506',
   otherNightPlan: '00000000-0000-4000-8000-000000008503',
   otherExtraPlan: '00000000-0000-4000-8000-000000008504',
   nightPrice: '00000000-0000-4000-8000-000000008601',
   extraPrice: '00000000-0000-4000-8000-000000008602',
+  threeHourPrice: '00000000-0000-4000-8000-000000008605',
+  fiveHourPrice: '00000000-0000-4000-8000-000000008606',
   otherNightPrice: '00000000-0000-4000-8000-000000008603',
   otherExtraPrice: '00000000-0000-4000-8000-000000008604',
   admin: '00000000-0000-4000-8000-000000008901',
@@ -204,13 +208,30 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
          min_duration_minutes_inclusive, max_duration_minutes_inclusive)
        VALUES
         ($1, $3, 'NIGHT_COMBO', 'Night combo', 'ACTIVE', 720, 1, true, 60, 1440),
-        ($2, $3, 'EXTRA_HOUR', 'Extra hour', 'ACTIVE', 60, 2, false, NULL, NULL)`,
-      [ids.nightPlan, ids.extraPlan, ids.property],
+        ($2, $3, 'EXTRA_HOUR', 'Extra hour', 'ACTIVE', 60, 2, false, NULL, NULL),
+        ($4, $3, 'THREE_HOUR_COMBO', 'Three-hour combo', 'ACTIVE', 180, 3, true, 60, 240),
+        ($5, $3, 'FIVE_HOUR_COMBO', 'Five-hour combo', 'ACTIVE', 300, 4, true, 60, 360)`,
+      [ids.nightPlan, ids.extraPlan, ids.property, ids.threeHourPlan, ids.fiveHourPlan],
     );
     await database.pool.query(
       `INSERT INTO rate_plan_prices (id, property_id, rate_plan_id, price_tier_id, amount_vnd)
-       VALUES ($1, $4, $2, $3, 600000), ($5, $4, $6, $3, 100000)`,
-      [ids.nightPrice, ids.nightPlan, ids.tier, ids.property, ids.extraPrice, ids.extraPlan],
+       VALUES
+         ($1, $4, $2, $3, 600000),
+         ($5, $4, $6, $3, 100000),
+         ($7, $4, $8, $3, 300000),
+         ($9, $4, $10, $3, 450000)`,
+      [
+        ids.nightPrice,
+        ids.nightPlan,
+        ids.tier,
+        ids.property,
+        ids.extraPrice,
+        ids.extraPlan,
+        ids.threeHourPrice,
+        ids.threeHourPlan,
+        ids.fiveHourPrice,
+        ids.fiveHourPlan,
+      ],
     );
     await database.pool.query(
       `INSERT INTO users (id, email, name, role)
@@ -308,6 +329,126 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
       checkInAt: new Date(input.checkIn).toISOString(),
       checkOutAt: new Date(input.checkOut).toISOString(),
     });
+  });
+
+  it.each([
+    ['same-day 3h', '2027-03-10T14:15:00+07:00', '2027-03-10T17:15:00+07:00', 300000],
+    [
+      'same-day 5h arbitrary extension',
+      '2027-03-10T14:15:00+07:00',
+      '2027-03-10T19:45:00+07:00',
+      550000,
+    ],
+  ])(
+    'prices %s through the mode-free catalog producer',
+    async (_label, checkIn, checkOut, total) => {
+      const input = { checkIn, checkOut, adults: 2, children: 0 };
+      const result = await availability.search(input);
+      expect(result.state).toBe('AVAILABLE');
+      expect(result.items[0]?.offer?.amountVnd).toBe(total);
+
+      const quote = await quotes.issue({ ...input, roomTypeId: ids.roomType });
+      expect(quote.mode).toBeUndefined();
+      expect('displayNightCount' in quote.pricing).toBe(false);
+      expect(quote.pricing.totalAmountVnd).toBe(total);
+    },
+  );
+
+  it.each([
+    ['overnight 21-09', '2027-03-10T21:00:00+07:00', '2027-03-11T09:00:00+07:00', 600000],
+    ['overnight 22-10', '2027-03-10T22:00:00+07:00', '2027-03-11T10:00:00+07:00', 600000],
+    ['25h on the hour', '2027-03-10T09:00:00+07:00', '2027-03-11T10:00:00+07:00', 1900000],
+    ['25h arbitrary minutes', '2027-03-10T09:06:00+07:00', '2027-03-11T10:06:00+07:00', 2000000],
+    [
+      'one-night arbitrary boundary',
+      '2027-03-10T14:15:00+07:00',
+      '2027-03-11T11:00:00+07:00',
+      1500000,
+    ],
+    [
+      'two-night arbitrary boundary',
+      '2027-03-10T14:15:00+07:00',
+      '2027-03-12T11:00:00+07:00',
+      2100000,
+    ],
+    [
+      'three-night arbitrary boundary',
+      '2027-03-10T14:15:00+07:00',
+      '2027-03-13T11:00:00+07:00',
+      2700000,
+    ],
+    ['long trailing boundary', '2027-03-10T18:00:00+07:00', '2027-03-12T09:00:00+07:00', 1500000],
+    ['cross-month boundary', '2027-03-31T14:15:00+07:00', '2027-04-02T11:00:00+07:00', 2100000],
+    ['cross-year boundary', '2027-12-31T14:15:00+07:00', '2028-01-02T11:00:00+07:00', 2100000],
+    ['leap-day boundary', '2028-02-28T14:15:00+07:00', '2028-03-01T11:00:00+07:00', 2100000],
+  ])(
+    'prices %s through the mode-free policy producer',
+    async (_label, checkIn, checkOut, total) => {
+      const input = { checkIn, checkOut, adults: 2, children: 0 };
+      const result = await availability.search(input);
+      expect(result).toMatchObject({
+        state: 'AVAILABLE',
+        requestedInterval: { checkIn, checkOut },
+      });
+      expect(result.items[0]?.offer?.amountVnd).toBe(total);
+
+      const quote = await quotes.issue({ ...input, roomTypeId: ids.roomType });
+      expect(quote.mode).toBeUndefined();
+      expect(quote.pricing.totalAmountVnd).toBe(total);
+      if ('displayNightCount' in quote.pricing) {
+        expect(quote.pricing.finalAmountVnd).toBe(total);
+      }
+      if ('requestedInterval' in quote.pricing && 'lines' in quote.pricing) {
+        expect(quote.pricing.requestedInterval).toEqual({
+          checkInAt: new Date(checkIn).toISOString(),
+          checkOutAt: new Date(checkOut).toISOString(),
+        });
+        expect(quote.pricing.lines[0]?.startAt).toBe(new Date(checkIn).toISOString());
+        expect(quote.pricing.lines.at(-1)?.endAt).toBe(new Date(checkOut).toISOString());
+      }
+    },
+  );
+
+  it('enforces the configured minimum stay for a mode-free request', async () => {
+    const input = {
+      checkIn: '2027-03-10T14:15:00+07:00',
+      checkOut: '2027-03-10T14:45:00+07:00',
+      adults: 2,
+      children: 0,
+    };
+    const result = await availability.search(input);
+    expect(result).toMatchObject({ state: 'BELOW_MINIMUM_STAY', items: [] });
+  });
+
+  it('enforces the configured maximum stay for a mode-free request', async () => {
+    await database.pool.query(`UPDATE properties SET maximum_stay_minutes = 1440 WHERE id = $1`, [
+      ids.property,
+    ]);
+    try {
+      const input = {
+        checkIn: '2027-03-10T09:00:00+07:00',
+        checkOut: '2027-03-11T10:00:00+07:00',
+        adults: 2,
+        children: 0,
+      };
+      const result = await availability.search(input);
+      expect(result).toMatchObject({ state: 'ABOVE_MAXIMUM_STAY', items: [] });
+    } finally {
+      await database.pool.query(
+        `UPDATE properties SET maximum_stay_minutes = 44640 WHERE id = $1`,
+        [ids.property],
+      );
+    }
+  });
+
+  it('rejects a mode-free request that exceeds room capacity', async () => {
+    const result = await availability.search({
+      checkIn: '2027-03-10T14:15:00+07:00',
+      checkOut: '2027-03-10T17:15:00+07:00',
+      adults: 3,
+      children: 1,
+    });
+    expect(result).toMatchObject({ state: 'NO_EXACT_AVAILABILITY', items: [] });
   });
 
   it.each([
@@ -470,7 +611,8 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
   });
 
   it('creates one immutable HOLD for one room across the complete multi-night interval', async () => {
-    const input = stay(20, 3);
+    const { mode: _legacyMode, ...input } = stay(20, 3);
+    void _legacyMode;
     const quote = await quotes.issue({ ...input, roomTypeId: ids.roomType });
     if (!('displayNightCount' in quote.pricing)) {
       throw new Error('expected a multi-night pricing snapshot');
@@ -500,7 +642,7 @@ describe('B0 multi-night offer, quote, and HOLD runtime', () => {
        FROM bookings WHERE id = $1`,
       [hold.bookingId],
     );
-    expect(booking.rows[0]?.mode).toBe('multi_night');
+    expect(booking.rows[0]?.mode).toBeNull();
     expect([ids.roomA, ids.roomB]).toContain(booking.rows[0]?.room_id);
     expect(booking.rows[0]?.check_in).toEqual(new Date(input.checkIn));
     expect(booking.rows[0]?.check_out).toEqual(new Date(input.checkOut));

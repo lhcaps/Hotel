@@ -126,7 +126,7 @@ const messages = {
     'search.pending': 'Đang tìm…',
     'search.quote': 'Nhận báo giá',
     'search.unavailable': 'Không có hạng phòng phù hợp.',
-    'search.error': 'Không thể tìm phòng. Hãy kiểm tra thời gian theo mỗi 15 phút và số khách.',
+    'search.error': 'Không thể tìm phòng. Hãy kiểm tra khoảng thời gian và số khách.',
     'search.quoteError': 'Không thể lập báo giá cho hạng phòng này.',
     'search.invalidInterval': 'Vui lòng chọn khoảng thời gian hợp lệ.',
     'search.hourlyCrossesMidnight': 'Khung theo giờ không thể qua đêm. Hãy chọn Qua đêm.',
@@ -146,7 +146,7 @@ const messages = {
     'search.loadErrorHelp': 'Vui lòng thử lại hoặc chọn thời gian khác.',
     'search.invalidIntervalErrorTitle': 'Khoảng thời gian không hợp lệ',
     'search.invalidIntervalErrorHelp':
-      'Khoảng thời gian đã chọn không đúng định dạng (ví dụ vượt quá 24 giờ hoặc không đúng mốc 15 phút). Vui lòng chọn lại thời gian.',
+      'Khoảng thời gian đã chọn không hợp lệ (ví dụ vượt quá thời gian lưu trú cho phép). Vui lòng chọn lại thời gian.',
     'search.pricingUnavailableErrorTitle': 'Chưa thể tính giá cho khoảng thời gian này',
     'search.pricingUnavailableErrorHelp':
       'Hạng phòng này hiện chưa có cấu hình giá phù hợp cho khoảng thời gian đã chọn. Vui lòng chọn thời gian khác hoặc liên hệ lễ tân.',
@@ -1340,8 +1340,7 @@ const messages = {
     'search.pending': 'Searching…',
     'search.quote': 'Get a quote',
     'search.unavailable': 'No matching room type is available.',
-    'search.error':
-      'Rooms could not be found. Check that times are in 15-minute intervals and guest counts are valid.',
+    'search.error': 'Rooms could not be found. Check that the interval and guest counts are valid.',
     'search.quoteError': 'A quote could not be created for this room type.',
     'search.invalidInterval': 'Please choose a valid stay interval.',
     'search.hourlyCrossesMidnight': 'Hourly stays cannot cross midnight. Please choose Overnight.',
@@ -1362,7 +1361,7 @@ const messages = {
     'search.loadErrorHelp': 'Please try again or choose another time.',
     'search.invalidIntervalErrorTitle': 'Invalid stay interval',
     'search.invalidIntervalErrorHelp':
-      'The selected interval is not valid (for example it exceeds 24 hours or is not on a 15-minute mark). Please choose a different time.',
+      'The selected interval is not valid (for example it exceeds the allowed stay duration). Please choose a different time.',
     'search.pricingUnavailableErrorTitle': 'Pricing is not available for this interval',
     'search.pricingUnavailableErrorHelp':
       'This room type does not have a matching price configuration for the selected interval yet. Please choose another time or contact the front desk.',

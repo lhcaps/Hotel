@@ -52,6 +52,13 @@ describe('public booking entry', () => {
     });
   });
 
+  it('permits arbitrary customer minute selection without a fifteen-minute grid', () => {
+    render(<AvailabilitySearchForm onSearch={vi.fn()} variant="home" />);
+
+    expect(screen.getByTestId('availability-check-in-time')).toHaveAttribute('step', '60');
+    expect(screen.getByTestId('availability-check-out-time')).toHaveAttribute('step', '60');
+  });
+
   it('rejects a past interval before requesting availability', async () => {
     const onSearch = vi.fn();
     const user = userEvent.setup();

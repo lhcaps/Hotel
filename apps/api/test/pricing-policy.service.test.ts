@@ -109,6 +109,7 @@ function setup(overrides: Record<string, unknown> = {}) {
       versionNumber: 1n,
     }),
     getLineage: vi.fn().mockResolvedValue([]),
+    findIdempotentEvent: vi.fn().mockResolvedValue(undefined),
     getPriceTierIds: vi.fn().mockResolvedValue(new Set([tierId])),
     updateDraftRoot: vi.fn().mockResolvedValue(undefined),
     replaceDraftContents: vi.fn().mockResolvedValue(undefined),
@@ -148,6 +149,51 @@ describe('pricing policy lifecycle service', () => {
       expect.anything(),
       expect.objectContaining({ eventType: 'PRICING_POLICY_DRAFT_CREATED' }),
     );
+  });
+
+  it('bootstraps universal free-time boundaries across a full 24-hour partial segment', async () => {
+    const { service, repository } = setup({
+      getV1BootstrapSource: vi.fn().mockResolvedValue({
+        tiers: [{ id: tierId, code: 'STANDARD', name: 'Standard' }],
+        night: {
+          id: '00000000-0000-4000-8000-000000004001',
+          code: 'NIGHT_COMBO',
+          name: 'Night combo',
+          prices: new Map([[tierId, 500000n]]),
+        },
+        extraHour: {
+          id: '00000000-0000-4000-8000-000000004002',
+          code: 'EXTRA_HOUR',
+          name: 'Extra hour',
+          prices: new Map([[tierId, 50000n]]),
+        },
+      }),
+    });
+
+    await service.bootstrapDraft(actor, {
+      internalName: 'Universal free-time policy',
+      effectiveFrom: new Date('2027-01-01T00:00:00.000Z'),
+      overnightWindow: '21-09',
+      nightPlanCode: 'NIGHT_COMBO',
+      extraHourPlanCode: 'EXTRA_HOUR',
+      idempotencyKey: 'bootstrap-universal-2026',
+      dryRun: false,
+    });
+
+    const aggregate = (repository.replaceDraftContents as ReturnType<typeof vi.fn>).mock
+      .calls[0]?.[1] as DraftPricingPolicyAggregate;
+    expect(
+      aggregate.components
+        .filter((component) => component.boundaryPosition !== null)
+        .map((component) => ({
+          code: component.componentCode,
+          maxDuration: component.boundaryMaxDurationMinutes,
+          maxUnits: component.maximumBillingUnits,
+        })),
+    ).toEqual([
+      { code: 'B0_LEADING', maxDuration: 1_440, maxUnits: 24 },
+      { code: 'B0_TRAILING', maxDuration: 1_440, maxUnits: 24 },
+    ]);
   });
 
   it('previews without mutation and publishes only a validated initial release', async () => {

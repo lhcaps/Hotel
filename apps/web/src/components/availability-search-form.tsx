@@ -150,7 +150,7 @@ export function AvailabilitySearchForm({
               id="availability-check-in-time"
               onChange={(event) => setCheckInTime(event.target.value)}
               required
-              step={900}
+              step={60}
               type="time"
               value={checkInTime}
             />
@@ -180,7 +180,7 @@ export function AvailabilitySearchForm({
               id="availability-check-out-time"
               onChange={(event) => setCheckOutTime(event.target.value)}
               required
-              step={900}
+              step={60}
               type="time"
               value={checkOutTime}
             />
