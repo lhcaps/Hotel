@@ -27,7 +27,7 @@ describe('Phase 3 permissions', () => {
       SUPER_ADMIN: 'Tổng quản trị',
       ROOM_STATUS_VIEWER: 'Nhân viên theo dõi phòng',
       OPERATIONS_MANAGER: 'Quản lý vận hành',
-      HOUSEKEEPING_MANAGER: 'Quản lý buồng phòng',
+      HOUSEKEEPING_MANAGER: 'Bù phòng',
       HOUSEKEEPING_STAFF: 'Nhân viên buồng phòng',
       PAYMENT_STAFF: 'Nhân viên thanh toán',
       MAINTENANCE_MANAGER: 'Quản lý bảo trì',
