@@ -228,10 +228,11 @@ describe('housekeeping manual override invariants', () => {
 
     const bookingId = '550e8400-e29b-41d4-a716-446655440690';
     await database.pool.query(
-      `INSERT INTO bookings (id, property_id, room_id, customer_user_id, booking_code, status, check_in, check_out, adults, children, currency, gross_amount_vnd, discount_amount_vnd, final_amount_vnd, price_snapshot)
-       VALUES ($1,$2,$3,$4,'ARR-1','CONFIRMED',
-               CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 day', 1, 0, 'VND', 0, 0, 0, '{}'::jsonb)`,
-      [bookingId, propertyId, created.id, staffId],
+      `INSERT INTO bookings (id, property_id, room_type_id, room_id, customer_user_id, booking_code, status, check_in, check_out, adults, children, currency, gross_amount_vnd, discount_amount_vnd, final_amount_vnd, price_snapshot, hold_expires_at)
+       VALUES ($1,$2,$3,$4,$5,'ARR-1','CONFIRMED',
+               CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 day', 1, 0, 'VND', 0, 0, 0, '{}'::jsonb,
+               CURRENT_TIMESTAMP + INTERVAL '2 days')`,
+      [bookingId, propertyId, roomTypeId, created.id, staffId],
     );
     const inserted = await database.pool.query<{ id: string }>(
       `INSERT INTO housekeeping_tasks (property_id, room_id, booking_id, type, status, due_at)

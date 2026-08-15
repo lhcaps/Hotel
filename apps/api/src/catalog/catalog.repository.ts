@@ -933,21 +933,24 @@ export class CatalogRepository implements CatalogRepositoryPort {
 
       // 2b. Reconcile the chosen row to the requested state. When the requested
       //     state is DIRTY and the chosen row is DONE/CANCELLED, we reopen it.
+      //     The ELSE branches reference the existing columns so PostgreSQL can
+      //     infer the column types from the row instead of treating NULL as
+      //     text (which would break uuid columns like completed_by).
       await database.execute(sql`
         UPDATE housekeeping_tasks ht
            SET status = ${targetStatus},
                completed_at = CASE WHEN ${command.status} = 'CLEAN'
                                    THEN CURRENT_TIMESTAMP
-                                   ELSE NULL END,
+                                   ELSE ht.completed_at END,
                completed_by = CASE WHEN ${command.status} = 'CLEAN'
                                    THEN ${actorId}
-                                   ELSE NULL END,
+                                   ELSE ht.completed_by END,
                started_at = CASE WHEN ${command.status} = 'CLEANING'
                                  THEN COALESCE(ht.started_at, CURRENT_TIMESTAMP)
-                                 ELSE NULL END,
+                                 ELSE ht.started_at END,
                started_by = CASE WHEN ${command.status} = 'CLEANING'
                                  THEN COALESCE(ht.started_by, ${actorId})
-                                 ELSE NULL END,
+                                 ELSE ht.started_by END,
                reopened_at = CASE WHEN ${command.status} = 'DIRTY'
                                   AND ht.status IN ('DONE','CANCELLED')
                                   THEN CURRENT_TIMESTAMP
