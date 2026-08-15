@@ -15,9 +15,11 @@ function writeFixture(root, directory, exports) {
   const outputRoot = directory === 'packages/database' ? ['dist', 'database'] : ['dist'];
   mkdirSync(join(packageDirectory, ...outputRoot, 'src'), { recursive: true });
   writeFileSync(join(packageDirectory, 'package.json'), JSON.stringify({ exports }), 'utf8');
-  for (const target of Object.values(exports)) {
+  for (const rawTarget of Object.values(exports)) {
+    const sourceTarget =
+      typeof rawTarget === 'string' ? rawTarget : rawTarget.default ?? rawTarget.types;
     const outputPrefix = directory === 'packages/database' ? 'dist/database/src/' : 'dist/src/';
-    const compiled = target.replace(/^\.\/src\//u, outputPrefix).replace(/\.ts$/u, '.js');
+    const compiled = sourceTarget.replace(/^\.\/src\//u, outputPrefix).replace(/\.ts$/u, '.js');
     const file = join(packageDirectory, compiled);
     mkdirSync(file.slice(0, file.lastIndexOf('\\') + 1), { recursive: true });
     writeFileSync(file, 'export {};\n', 'utf8');
@@ -34,10 +36,13 @@ test('runtime manifests map every committed TypeScript export to compiled JavaSc
     const exportsByPackage = {
       'packages/config': { '.': './src/index.ts' },
       'packages/contracts': {
-        '.': './src/index.ts',
-        './pricing': './src/pricing.ts',
-        './public-room-catalog': './src/public-room-catalog.ts',
-        './admin': './src/admin.ts',
+        '.': { types: './src/index.ts', default: './src/index.ts' },
+        './pricing': { types: './src/pricing.ts', default: './src/pricing.ts' },
+        './public-room-catalog': {
+          types: './src/public-room-catalog.ts',
+          default: './src/public-room-catalog.ts',
+        },
+        './admin': { types: './src/admin.ts', default: './src/admin.ts' },
       },
       'packages/observability': { '.': './src/index.ts' },
       'packages/database': {

@@ -10,10 +10,17 @@ export const runtimePackageDirectories = [
   'packages/auth',
 ];
 
-function compiledExportTarget(packageDirectory, sourceTarget) {
-  if (!sourceTarget.startsWith('./src/') || !sourceTarget.endsWith('.ts')) {
+function compiledExportTarget(packageDirectory, subpath, rawTarget) {
+  const sourceTarget =
+    typeof rawTarget === 'string'
+      ? rawTarget
+      : typeof rawTarget === 'object' && rawTarget !== null
+        ? rawTarget.default ?? rawTarget.types
+        : rawTarget;
+
+  if (typeof sourceTarget !== 'string' || !sourceTarget.startsWith('./src/') || !sourceTarget.endsWith('.ts')) {
     throw new Error(
-      `${packageDirectory} export ${sourceTarget} is not a TypeScript source export.`,
+      `${packageDirectory} export ${subpath} is not a TypeScript source export.`,
     );
   }
 
@@ -34,9 +41,9 @@ export function writeRuntimePackageManifests(root) {
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 
     manifest.exports = Object.fromEntries(
-      Object.entries(manifest.exports ?? {}).map(([subpath, sourceTarget]) => [
+      Object.entries(manifest.exports ?? {}).map(([subpath, rawTarget]) => [
         subpath,
-        compiledExportTarget(packageDirectory, sourceTarget),
+        compiledExportTarget(packageDirectory, subpath, rawTarget),
       ]),
     );
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
