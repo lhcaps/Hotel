@@ -75,14 +75,12 @@ function classify(pathName) {
   if (lower === 'release_attestation_2026-08-15.md') {
     return {
       bucket: 'INVALID_HISTORICAL_EVIDENCE',
-      decision: 'PRESERVE as untrusted historical material; it cannot establish current attestation.',
+      decision:
+        'PRESERVE as untrusted historical material; it cannot establish current attestation.',
     };
   }
 
-  if (
-    !normalized.includes('/') &&
-    /\.(?:md|txt)$/iu.test(lower)
-  ) {
+  if (!normalized.includes('/') && /\.(?:md|txt)$/iu.test(lower)) {
     return {
       bucket: 'HISTORICAL_REPORT_OWNER_REVIEW',
       decision: 'PRESERVE pending owner review; do not promote to current evidence.',
@@ -96,7 +94,8 @@ function classify(pathName) {
   ) {
     return {
       bucket: 'ROOT_OR_DEPLOY_HELPER_OWNER_REVIEW',
-      decision: 'PRESERVE pending exact-path owner classification; never execute as governed tooling.',
+      decision:
+        'PRESERVE pending exact-path owner classification; never execute as governed tooling.',
     };
   }
 
@@ -108,11 +107,7 @@ function classify(pathName) {
 
 function listUntracked(repositoryRoot) {
   const output = git(repositoryRoot, ['ls-files', '--others', '--exclude-standard', '-z']);
-  return output
-    .split('\0')
-    .filter(Boolean)
-    .map(normalizePath)
-    .sort(compareStrings);
+  return output.split('\0').filter(Boolean).map(normalizePath).sort(compareStrings);
 }
 
 function render({ repositoryRoot, outputPath, snapshotDate }) {
@@ -194,12 +189,16 @@ if (import.meta.main) {
       snapshotDate,
     });
     if (process.argv.includes('--output')) {
-      process.stdout.write(`UNTRACKED_INVENTORY=PASS\nPATH_COUNT=${report.match(/^Untracked path count: \*\*(\d+)\*\*$/mu)?.[1] ?? 'unknown'}\n`);
+      process.stdout.write(
+        `UNTRACKED_INVENTORY=PASS\nPATH_COUNT=${report.match(/^Untracked path count: \*\*(\d+)\*\*$/mu)?.[1] ?? 'unknown'}\n`,
+      );
     } else {
       process.stdout.write(report);
     }
   } catch (error) {
-    process.stderr.write(`UNTRACKED_INVENTORY=FAIL\n${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(
+      `UNTRACKED_INVENTORY=FAIL\n${error instanceof Error ? error.message : String(error)}\n`,
+    );
     process.exit(1);
   }
 }
