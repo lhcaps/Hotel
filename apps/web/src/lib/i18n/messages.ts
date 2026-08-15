@@ -206,6 +206,18 @@ const messages = {
     'catalog.quoteUnavailable': 'Chưa thể lập báo giá',
     'catalog.quoteUnavailableHelp':
       'Hạng phòng có thể vừa thay đổi tình trạng. Hãy thử một khung giờ hoặc ngày khác.',
+    'catalog.quoteErrorIntervalField':
+      'Thời gian lưu trú không hợp lệ. Vui lòng chọn lại thời gian.',
+    'catalog.quoteErrorAdultsField': 'Số người lớn không hợp lệ.',
+    'catalog.quoteErrorChildrenField': 'Số trẻ em không hợp lệ.',
+    'catalog.quoteErrorRoomTypeField':
+      'Thông tin loại phòng không hợp lệ. Vui lòng quay lại chọn phòng.',
+    'catalog.quoteErrorGeneric': 'Không thể tính giá cho hạng phòng này. Vui lòng thử lại.',
+    'catalog.quoteSoldOutTitle': 'Hạng phòng này vừa hết phòng cho khung giờ bạn chọn',
+    'catalog.quoteSoldOutHelp':
+      'Bạn có thể chọn khung giờ khác gần với yêu cầu ban đầu hoặc quay lại trang kết quả để chọn hạng phòng khác.',
+    'catalog.quoteSystemErrorTitle': 'Không thể tải báo giá',
+    'catalog.quoteSystemErrorHelp': 'Đã có lỗi kết nối hoặc máy chủ. Vui lòng thử lại sau ít phút.',
     'admin.navigation': 'Quản trị',
     'admin.navReservations': 'Đặt chỗ',
     'admin.navOperations': 'Vận hành',
@@ -1510,6 +1522,17 @@ const messages = {
     'catalog.quoteUnavailable': 'A quote is not available yet',
     'catalog.quoteUnavailableHelp':
       'Room availability may have just changed. Try another time or date.',
+    'catalog.quoteErrorIntervalField': 'Stay interval is invalid. Please pick a new time.',
+    'catalog.quoteErrorAdultsField': 'Adult count is invalid.',
+    'catalog.quoteErrorChildrenField': 'Children count is invalid.',
+    'catalog.quoteErrorRoomTypeField': 'Room type details are invalid. Please pick a room again.',
+    'catalog.quoteErrorGeneric': 'We could not price this room type. Please try again.',
+    'catalog.quoteSoldOutTitle': 'This room type just sold out for your window',
+    'catalog.quoteSoldOutHelp':
+      'Pick a different window close to what you wanted, or go back to results to choose another room type.',
+    'catalog.quoteSystemErrorTitle': 'Could not load the quote',
+    'catalog.quoteSystemErrorHelp':
+      'There was a connection or server error. Please try again shortly.',
     'admin.navigation': 'Administration',
     'admin.navReservations': 'Reservations & revenue',
     'admin.navOperations': 'Property operations',
