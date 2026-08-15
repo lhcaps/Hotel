@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
 const SOURCE_SHA = /^[a-f0-9]{40,64}$/iu;
 
@@ -31,12 +31,12 @@ export function materializeReleaseFromGit({ repositoryRoot, sourceSha, destinati
   const identity = resolveCommit(root, sourceSha);
   mkdirSync(dirname(output), { recursive: true });
   mkdirSync(output);
+  let archiveRoot;
   try {
-    const archive = git(root, ['archive', '--format=tar', identity.sourceSha], {
-      encoding: 'buffer',
-    });
-    execFileSync('tar', ['-xf', '-', '-C', output], {
-      input: archive,
+    archiveRoot = mkdtempSync(join(dirname(output), '.room-release-archive-'));
+    const archivePath = resolve(archiveRoot, 'release.tar');
+    git(root, ['archive', '--format=tar', '--output', archivePath, identity.sourceSha]);
+    execFileSync('tar', ['-xf', archivePath, '-C', output], {
       windowsHide: true,
     });
     writeFileSync(
@@ -48,6 +48,8 @@ export function materializeReleaseFromGit({ repositoryRoot, sourceSha, destinati
   } catch (error) {
     rmSync(output, { recursive: true, force: true });
     throw error;
+  } finally {
+    if (archiveRoot !== undefined) rmSync(archiveRoot, { recursive: true, force: true });
   }
 }
 

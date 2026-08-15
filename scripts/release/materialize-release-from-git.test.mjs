@@ -62,3 +62,25 @@ test('materialization rejects an abbreviated or unknown source revision before c
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('materialization handles a committed archive larger than the child-process default buffer', () => {
+  const root = mkdtempSync(join(tmpdir(), 'room-release-archive-large-'));
+  const repositoryRoot = join(root, 'repository');
+  const destination = join(root, 'release');
+  const largeContent = Buffer.alloc(2 * 1024 * 1024, 0x61);
+  try {
+    execFileSync('git', ['init', '--quiet', repositoryRoot]);
+    git(repositoryRoot, ['config', 'user.email', 'release-test@example.test']);
+    git(repositoryRoot, ['config', 'user.name', 'Release Test']);
+    writeFileSync(join(repositoryRoot, 'large.bin'), largeContent);
+    git(repositoryRoot, ['add', 'large.bin']);
+    git(repositoryRoot, ['commit', '--quiet', '--message', 'large fixture']);
+    const sourceSha = git(repositoryRoot, ['rev-parse', 'HEAD']);
+
+    materializeReleaseFromGit({ repositoryRoot, sourceSha, destination });
+
+    assert.equal(readFileSync(join(destination, 'large.bin')).length, largeContent.length);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
