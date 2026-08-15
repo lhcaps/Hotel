@@ -16,10 +16,13 @@ function writeFixture(root, directory, exports) {
   mkdirSync(join(packageDirectory, ...outputRoot, 'src'), { recursive: true });
   writeFileSync(join(packageDirectory, 'package.json'), JSON.stringify({ exports }), 'utf8');
   for (const rawTarget of Object.values(exports)) {
-    const sourceTarget =
-      typeof rawTarget === 'string' ? rawTarget : (rawTarget.default ?? rawTarget.types);
     const outputPrefix = directory === 'packages/database' ? 'dist/database/src/' : 'dist/src/';
-    const compiled = sourceTarget.replace(/^\.\/src\//u, outputPrefix).replace(/\.ts$/u, '.js');
+    let compiled;
+    if (typeof rawTarget === 'string') {
+      compiled = rawTarget.replace(/^\.\/src\//u, outputPrefix).replace(/\.ts$/u, '.js');
+    } else {
+      compiled = rawTarget.default ?? rawTarget.types;
+    }
     const file = join(packageDirectory, compiled);
     mkdirSync(file.slice(0, file.lastIndexOf('\\') + 1), { recursive: true });
     writeFileSync(file, 'export {};\n', 'utf8');
@@ -36,13 +39,13 @@ test('runtime manifests map every committed TypeScript export to compiled JavaSc
     const exportsByPackage = {
       'packages/config': { '.': './src/index.ts' },
       'packages/contracts': {
-        '.': { types: './src/index.ts', default: './src/index.ts' },
-        './pricing': { types: './src/pricing.ts', default: './src/pricing.ts' },
+        '.': { types: './dist/src/index.d.ts', default: './dist/src/index.js' },
+        './pricing': { types: './dist/src/pricing.d.ts', default: './dist/src/pricing.js' },
         './public-room-catalog': {
-          types: './src/public-room-catalog.ts',
-          default: './src/public-room-catalog.ts',
+          types: './dist/src/public-room-catalog.d.ts',
+          default: './dist/src/public-room-catalog.js',
         },
-        './admin': { types: './src/admin.ts', default: './src/admin.ts' },
+        './admin': { types: './dist/src/admin.d.ts', default: './dist/src/admin.js' },
       },
       'packages/observability': { '.': './src/index.ts' },
       'packages/database': {

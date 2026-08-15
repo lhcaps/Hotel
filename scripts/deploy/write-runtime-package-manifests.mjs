@@ -11,17 +11,23 @@ export const runtimePackageDirectories = [
 ];
 
 function compiledExportTarget(packageDirectory, subpath, rawTarget) {
-  const sourceTarget =
-    typeof rawTarget === 'string'
-      ? rawTarget
-      : typeof rawTarget === 'object' && rawTarget !== null
-        ? (rawTarget.default ?? rawTarget.types)
-        : rawTarget;
+  if (typeof rawTarget === 'object' && rawTarget !== null) {
+    const target = rawTarget.default ?? rawTarget.types;
+    if (typeof target !== 'string') {
+      throw new Error(
+        `${packageDirectory} export ${subpath} is missing a string default/types target.`,
+      );
+    }
+    if (!existsSync(resolve(packageDirectory, target))) {
+      throw new Error(`${packageDirectory} is missing runtime export ${target}.`);
+    }
+    return target;
+  }
 
   if (
-    typeof sourceTarget !== 'string' ||
-    !sourceTarget.startsWith('./src/') ||
-    !sourceTarget.endsWith('.ts')
+    typeof rawTarget !== 'string' ||
+    !rawTarget.startsWith('./src/') ||
+    !rawTarget.endsWith('.ts')
   ) {
     throw new Error(`${packageDirectory} export ${subpath} is not a TypeScript source export.`);
   }
@@ -29,7 +35,7 @@ function compiledExportTarget(packageDirectory, subpath, rawTarget) {
   const outputRoot = packageDirectory.replaceAll('\\', '/').endsWith('/packages/database')
     ? './dist/database'
     : './dist';
-  const target = `${outputRoot}/${sourceTarget.slice(2).replace(/\.ts$/u, '.js')}`;
+  const target = `${outputRoot}/${rawTarget.slice(2).replace(/\.ts$/u, '.js')}`;
   if (!existsSync(resolve(packageDirectory, target))) {
     throw new Error(`${packageDirectory} is missing compiled runtime export ${target}.`);
   }
