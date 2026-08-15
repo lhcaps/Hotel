@@ -1,3 +1,6 @@
+ARCHIVED: Historical B0 Stage 3B report moved from repository root on 2026-08-16.
+Scope: point-in-time internal pricing report; not current production proof. See docs/HANDOFF.md.
+
 PEACENEST B0 — PRODUCTION STAGE 3B COMPLETION REPORT
 =====================================================
 

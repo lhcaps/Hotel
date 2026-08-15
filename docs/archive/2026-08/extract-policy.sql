@@ -1,3 +1,6 @@
+-- ARCHIVED: Historical read-only evidence moved from repository root on 2026-08-16.
+-- Scope: pricing-policy extraction query; not current production proof. See docs/HANDOFF.md.
+
 SELECT id, version_number, status, applicability_basis, timezone_snapshot, effective_from, effective_until
 FROM pricing_policy_versions 
 WHERE status = 'PUBLISHED' 

@@ -1,3 +1,6 @@
+# Archived: Historical failure ledger moved from repository root on 2026-08-16.
+# Scope: append-only historical failure records; not current production proof. See docs/KNOWN_ISSUES.md.
+
 # Project failure ledger
 
 This append-only ledger records every discovered failure, its evidence-based

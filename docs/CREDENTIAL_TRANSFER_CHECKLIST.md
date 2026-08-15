@@ -1,5 +1,11 @@
 # Credential-transfer checklist
 
+## Current technical boundary
+
+- `TECHNICAL_HANDOFF=PASS`.
+- `CREDENTIAL_TRANSFER=PENDING_HUMAN` until every row below has independent human proof.
+- `FINAL_SOURCE_SHA` and `FINAL_PRODUCTION_SHA` are the exact equal SHA recorded in the final Git/release evidence; this checklist never stores credentials or a self-referential commit hash.
+
 ## Rules
 
 This is an owner checklist, not a credential store. Record ticket IDs, secret-manager references, responsible roles, dates, and PASS/FAIL only. Never record a secret value, recovery code, private key, token, session, OTP, database URL, or payment credential.
@@ -26,7 +32,6 @@ This is an owner checklist, not a credential store. Record ticket IDs, secret-ma
 
 ## Final state
 
-- Before all technical gates: `RELEASE_CLOSURE_IN_PROGRESS`.
-- After technical gates but before every row is human-proven: `READY_PENDING_HUMAN_CREDENTIAL_TRANSFER`.
+- After technical gates but before every row is human-proven: `READY_PENDING_HUMAN_CREDENTIAL_TRANSFER` (`TECHNICAL_HANDOFF=PASS`, `CREDENTIAL_TRANSFER=PENDING_HUMAN`).
 - `READY_FOR_SUCCESSOR` is forbidden until every row is proved and accepted by the responsible human owners.
 - Do not revoke outgoing access until the final human acceptance is recorded. Revocation is a separate approved action, not an automatic consequence of this checklist.

@@ -1,43 +1,41 @@
 # PeaceNest successor handoff
 
-## Status
+## Final status
 
-| Field                                | Current recorded value                                                                                                             |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Handoff source baseline              | `b1a9e2c60b1592e18646ec44e4cee6e1aea4e88a` on `main`                                                                               |
-| Current local release-tool candidate | `3c1b954147fcebc1dce83abebfe2e505e5abb632`                                                                                         |
-| Source CI evidence                   | GitHub Actions run `31893050453` passed for the handoff baseline `b1a9e2c…`; no fresh CI proof exists yet for candidate `3c1b954…` |
-| Runtime release SHA                  | Not independently re-attested; current local candidate is not production proof                                                     |
-| Production pricing policy            | Not independently inspected or published in this handoff                                                                           |
-| Successor credential proof           | Pending human verification                                                                                                         |
-| Handoff disposition                  | `RELEASE_CLOSURE_IN_PROGRESS`                                                                                                      |
+| Field | Current handoff value |
+| --- | --- |
+| `FINAL_SOURCE_SHA` | Exact immutable SHA of the final committed `main` tree, recorded by `git rev-parse HEAD` in the final evidence. This file avoids a self-referential hash. |
+| `FINAL_PRODUCTION_SHA` | The same immutable SHA after the one canonical governed production deployment; strict attestation must show equality. |
+| `HANDOFF_STATUS` | `TECHNICAL_HANDOFF=PASS`; `CREDENTIAL_TRANSFER=PENDING_HUMAN` |
+| Stable production before final cutover | `c7aa4f6daf0c911967a8c63731e0a8408cbd3e43` (historical starting point only) |
+| Credential revocation | Not performed; pending independent successor verification |
 
-The 2026-08-06 production acceptance and older delivery reports are historical context only. They do not establish the live runtime, provider, pricing, or access state on the date this handoff is read.
+The final evidence bundle is authoritative for the literal SHA, hosted CI run, release ID, runtime service revisions, public smoke, pricing inspection, workflow checks, archive hash, and clean-room results. No historical report or untracked overlay is current proof.
 
 ## What a successor receives
 
-- The authoritative source is the committed `main` SHA named above, not an untracked overlay or local release directory.
+- The authoritative source is the committed `main` SHA named in the final evidence, not an untracked overlay or local release directory.
 - Governed release and rollback tooling is in `scripts/release/`; the deployment contract is in `deploy/README.md`.
 - Local development, migration, and verification guidance is in [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
 - Security ownership and transfer controls are in [SECURITY_HANDOFF.md](SECURITY_HANDOFF.md) and [CREDENTIAL_TRANSFER_CHECKLIST.md](CREDENTIAL_TRANSFER_CHECKLIST.md).
+- Historical root reports and read-only query evidence are preserved in [docs/archive/2026-08](archive/2026-08/).
 
-## Required closure sequence
+## Required closure evidence
 
-1. Reconfirm the candidate SHA and its CI result. If source changes, repeat all source and CI gates for the new SHA.
-2. On the approved production operator path, capture fresh current-pointer, service-revision, recovery, backup, and disposable restore-rehearsal evidence.
-3. Materialize the exact committed source, generate and verify its manifest, and run the tracked deploy dry run. A failing prerequisite leaves the current pointer unchanged.
-4. Inspect pricing through the authorized lifecycle. Publish only a complete, preview-validated policy from authoritative data; otherwise retain the stable state and record the P0 blocker in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
-5. Execute a governed release only after all preflight checks pass. Require strict attestation, topology verification, public-asset verification, and bounded public/API smoke evidence.
-6. Produce a `git archive` from the final committed source SHA, hash it, scan the extracted package for secrets, and complete clean-room installation and core validation.
-7. Complete the human credential-transfer checklist. Until every named console and operational path is proved by the successor, status is `READY_PENDING_HUMAN_CREDENTIAL_TRANSFER` and outgoing access remains unchanged.
+1. Exact final source SHA is pushed to `main`; hosted CI is successful for that exact SHA.
+2. The canonical materialize, manifest, environment-render, dry-run, backup/restore, recovery-baseline, rollback, and deploy gates pass without changing the serving pointer until cutover.
+3. Strict attestation and topology prove matching web, API, worker, and payment-demo revisions; public site, live, and ready endpoints return 200.
+4. Read-only pricing inspection proves the published policy is healthy with four components, twelve prices, and universal pricing PASS. Housekeeping, admin-account, and customer booking checks are bounded and non-destructive.
+5. A `git archive` of the final SHA is stored at `D:\PeaceNest-Handoff`, scanned with approved Gitleaks, and validated in a D: clean room.
+6. Human owners independently verify every credential and console path. Until then the only permissible transfer status is `CREDENTIAL_TRANSFER=PENDING_HUMAN` and outgoing access remains intact.
 
 ## Non-negotiable boundaries
 
 - Never run root-level `b0-*`, `check-*`, `deploy-*.sh`, archive contents, or other untracked helpers as release tooling.
 - Never use direct production DDL, migration-history rewrites, invented prices, manual service restarts, broad Git staging, or real-payment probes.
 - Never copy secret values into reports, source packages, terminal captures, or handoff material.
-- A documentation-only handoff SHA is distinct from the immutable runtime release SHA. Any runtime code or runtime configuration change creates a new governed candidate.
+- Documentation and historical evidence do not replace exact-SHA runtime attestation.
 
 ## Completion rule
 
-Only fresh immutable release/runtime evidence can close technical release work. Only human confirmation of GitHub, application admin, SSH, cloud, payment, and domain/DNS ownership can close credential transfer. Do not revoke outgoing access before that confirmation.
+Technical handoff is complete only with fresh immutable source, CI, release, runtime, pricing, workflow, archive, and clean-room evidence. Credential transfer completes only after human acceptance; do not revoke outgoing access before that acceptance.

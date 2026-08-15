@@ -1,3 +1,6 @@
+# Archived: Historical definition-of-done checklist moved from repository root on 2026-08-16.
+# Scope: 2026-08-15 code-ready checklist; not current production proof. See README.md and docs/HANDOFF.md.
+
 # PEACENEST — UX, FORM VALIDATION, ADMIN, PUBLIC WEBSITE — DEFINITION OF DONE
 
 **Date**: 2026-08-15

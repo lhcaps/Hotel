@@ -1,3 +1,6 @@
+ARCHIVED: Historical B0 Stage 3B report moved from repository root on 2026-08-16.
+Scope: point-in-time completion summary; not current production proof. See docs/HANDOFF.md.
+
 PEACENEST B0 — STAGE 3B COMPLETION SUMMARY
 ==========================================
 

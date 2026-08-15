@@ -1,5 +1,10 @@
 # Security handoff
 
+## Final handoff state
+
+- `TECHNICAL_HANDOFF=PASS` is supported by the exact-SHA CI, governed runtime attestation, read-only pricing/workflow checks, approved Gitleaks, and D: clean-room evidence returned with the handoff.
+- `CREDENTIAL_TRANSFER=PENDING_HUMAN`; no outgoing access is revoked until the successor independently proves access.
+
 ## Security posture for transfer
 
 This document inventories responsibility classes, not credentials. Do not place tokens, passwords, connection strings, private keys, cookies, OTPs, recovery codes, or provider secrets in this document, Git, terminal logs, archive manifests, or screenshots.

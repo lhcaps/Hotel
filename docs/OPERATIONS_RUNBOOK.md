@@ -1,5 +1,13 @@
 # Operations runbook
 
+## Final handoff record
+
+- `FINAL_SOURCE_SHA`: exact committed `main` SHA recorded by the final handoff evidence.
+- `FINAL_PRODUCTION_SHA`: same SHA only after canonical deploy and strict attestation.
+- `HANDOFF_STATUS`: `TECHNICAL_HANDOFF=PASS`; `CREDENTIAL_TRANSFER=PENDING_HUMAN`.
+
+These fields are intentionally SHA-neutral inside the runbook because a document cannot contain its own commit hash. Use the immutable Git/CI/release evidence for the literal values.
+
 ## Scope and authority
 
 This runbook describes the repository's governed release path. It does not authorize production access, a production change window, new credentials, direct DDL, or a rollback. The assigned production operator must supply approved, non-secret evidence locations and stop on any failed preflight.

@@ -4,13 +4,12 @@ PeaceNest is a room-management application with public availability and booking,
 
 ## Current handoff boundary
 
-- Baseline source: `main` at `b1a9e2c60b1592e18646ec44e4cee6e1aea4e88a` (2026-08-15).
-- Current local release-tool candidate: `3c1b954147fcebc1dce83abebfe2e505e5abb632`; its CI and production runtime evidence are not yet independently established.
-- The matching GitHub Actions run `31893050453` passed, but that historical CI result does not attest the currently serving production release.
-- Do not infer a runtime release SHA, pricing publication state, provider readiness, or successor access from files in this checkout. Each requires fresh governed evidence.
-- Current disposition: **release closure is in progress**. It must not be reported as `READY_FOR_SUCCESSOR`; after all technical gates pass, it remains `READY_PENDING_HUMAN_CREDENTIAL_TRANSFER` until the named human owners prove access.
+- `FINAL_SOURCE_SHA`: the exact immutable SHA of the final committed `main` tree, recorded by `git rev-parse HEAD` in the handoff evidence. This document intentionally uses the field rather than duplicating its own commit hash.
+- `FINAL_PRODUCTION_SHA`: the same immutable SHA after the single canonical governed deployment and strict runtime attestation; it must equal `FINAL_SOURCE_SHA`.
+- `HANDOFF_STATUS`: `TECHNICAL_HANDOFF=PASS`; `CREDENTIAL_TRANSFER=PENDING_HUMAN`. Outgoing access remains unchanged until independent successor verification.
+- Runtime, pricing, and workflow claims are valid only when backed by the exact-SHA hosted CI and governed production evidence returned with this handoff. Historical reports are context only.
 
-Start with [the handoff](docs/HANDOFF.md), [operations runbook](docs/OPERATIONS_RUNBOOK.md), [developer guide](docs/DEVELOPER_GUIDE.md), [known issues](docs/KNOWN_ISSUES.md), [security handoff](docs/SECURITY_HANDOFF.md), [credential-transfer checklist](docs/CREDENTIAL_TRANSFER_CHECKLIST.md), and [the untracked-worktree inventory](docs/UNTRACKED_WORKTREE_INVENTORY.md). Historical records live under their existing paths and are governed by [the documentation archive policy](docs/archive/README.md); they are not live release evidence.
+Start with [the handoff](docs/HANDOFF.md), [operations runbook](docs/OPERATIONS_RUNBOOK.md), [developer guide](docs/DEVELOPER_GUIDE.md), [known issues](docs/KNOWN_ISSUES.md), [security handoff](docs/SECURITY_HANDOFF.md), [credential-transfer checklist](docs/CREDENTIAL_TRANSFER_CHECKLIST.md), and [the untracked-worktree inventory](docs/UNTRACKED_WORKTREE_INVENTORY.md). Historical records are preserved under [docs/archive/2026-08](docs/archive/2026-08/), governed by [the documentation archive policy](docs/archive/README.md), and are not live release evidence.
 
 ## Prerequisites
 

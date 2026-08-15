@@ -1,3 +1,6 @@
+ARCHIVED: Historical Wave 1 summary moved from repository root on 2026-08-16.
+Scope: point-in-time release reconciliation; not current production proof. See docs/HANDOFF.md.
+
 WAVE0_STATUS=MIXED_AND_RECONCILIATION_REQUIRED
 WAVE1_STATUS=HOSTED_CI_CLOSURE_IN_PROGRESS
 

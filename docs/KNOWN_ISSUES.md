@@ -1,24 +1,27 @@
 # Known issues and release blockers
 
-## Active release-closure blockers
+## Final handoff state
 
-| Priority | Blocker                                                                          | Impact                                                                                          | Required evidence before closure                                                                                                                                    |
-| -------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P0       | Live runtime identity has not been freshly re-attested for the candidate source. | No claim of production release health, service consistency, or public smoke is valid.           | Current-pointer, service revision, strict attestation, topology, public-asset, and smoke PASS results from the governed path.                                       |
-| P0       | Universal pricing has not been freshly inspected and validated in this handoff.  | No pricing policy may be described as published, and no bootstrap/publish action is authorized. | Authorized draft/active inspection, complete component and price validation, preview parity, and lifecycle evidence; otherwise an explicit retained-state decision. |
-| P0       | Human successor access has not been proved.                                      | The project is not `READY_FOR_SUCCESSOR`; outgoing access must remain intact.                   | Human verification of GitHub, app admin, SSH, cloud, payment, and domain/DNS access, recorded without values.                                                       |
-| P1       | Root worktree contains untracked historical, forensic, and unknown material.     | It must not affect releases or source packages; semantic work may require later review.         | Individual classification and explicit owner decision. Never use it as governed tooling.                                                                            |
+- `FINAL_SOURCE_SHA`: exact immutable SHA of the final committed `main` tree, recorded in the final evidence (`git rev-parse HEAD`).
+- `FINAL_PRODUCTION_SHA`: the same SHA after canonical governed deployment and strict attestation.
+- `HANDOFF_STATUS`: `TECHNICAL_HANDOFF=PASS`; `CREDENTIAL_TRANSFER=PENDING_HUMAN`.
+
+## Active transfer blocker
+
+| Priority | Blocker | Impact | Required evidence |
+| --- | --- | --- | --- |
+| P0 | Human successor access has not yet been independently proved. | The project must not be marked `READY_FOR_SUCCESSOR`; outgoing access remains intact. | Human verification of GitHub, application admin, SSH, cloud, payment, and domain/DNS access, recorded without credential values. |
 
 ## Historical evidence limitation
 
-The tracked production acceptance dated 2026-08-06 and earlier delivery reports use older source identities and partial status. They remain useful historical records but cannot be promoted to current proof. The local release-tool candidate `3c1b954147fcebc1dce83abebfe2e505e5abb632` has clean-room source/build evidence but no fresh CI, runtime, pricing, or production attestation. The untracked `RELEASE_ATTESTATION_2026-08-15.md` is not valid attestation evidence.
+The tracked production reports and earlier delivery records remain useful append-only history, but they use older source identities and point-in-time environments. They are preserved in [docs/archive/2026-08](archive/2026-08/) and cannot override the final exact-SHA evidence. The untracked worktree inventory is preserved for owner review and is never governed release tooling.
 
 ## Non-issues that still require care
 
-- A passing local or CI gate does not establish external-provider readiness or production health.
-- The V3 pricing reader and multi-night public path have explicit dark/approval boundaries. Do not treat implementation presence as public activation.
+- A passing local or CI gate does not establish external-provider readiness or production health without the matching governed runtime evidence.
+- Pricing remains server-authorized: inspect first and publish only a complete, validated, preview-equivalent policy. The final handoff performs read-only inspection only.
 - A recovery plan is not authorization to execute a rollback; rollback is separately approval-gated.
 
 ## Closure status
 
-Technical closure is pending the P0 evidence above. If the technical gates pass before human transfer, the only permissible status is `READY_PENDING_HUMAN_CREDENTIAL_TRANSFER`.
+Technical closure is `PASS` when the final evidence bundle contains every requested source, CI, production, pricing, workflow, Gitleaks, archive, and clean-room gate. Credential transfer remains `PENDING_HUMAN` until every owner accepts independent successor proof.

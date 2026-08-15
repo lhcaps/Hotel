@@ -1,3 +1,6 @@
+-- ARCHIVED: Historical read-only evidence moved from repository root on 2026-08-16.
+-- Scope: pricing-count snapshot query; not current production proof. See docs/HANDOFF.md.
+
 SELECT 
   (SELECT COUNT(*) FROM pricing_policy_versions WHERE status = 'PUBLISHED') as versions,
   (SELECT COUNT(*) FROM pricing_policy_components WHERE policy_version_id = 'f9c8e7d6-b5a4-4321-9876-543210fedcba') as components,

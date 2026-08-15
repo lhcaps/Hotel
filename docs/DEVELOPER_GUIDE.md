@@ -1,5 +1,9 @@
 # Developer guide
 
+## Final handoff boundary
+
+The final source package is the exact committed `main` SHA recorded in the handoff evidence. `FINAL_PRODUCTION_SHA` must equal it after the one canonical governed deployment. Do not add generated runtime files, credentials, archives, or untracked incident helpers; historical root reports are preserved under `docs/archive/2026-08/`.
+
 ## Local prerequisites
 
 - Node 24 with Corepack and pnpm 10.
