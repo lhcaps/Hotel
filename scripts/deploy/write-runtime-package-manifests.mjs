@@ -15,13 +15,15 @@ function compiledExportTarget(packageDirectory, subpath, rawTarget) {
     typeof rawTarget === 'string'
       ? rawTarget
       : typeof rawTarget === 'object' && rawTarget !== null
-        ? rawTarget.default ?? rawTarget.types
+        ? (rawTarget.default ?? rawTarget.types)
         : rawTarget;
 
-  if (typeof sourceTarget !== 'string' || !sourceTarget.startsWith('./src/') || !sourceTarget.endsWith('.ts')) {
-    throw new Error(
-      `${packageDirectory} export ${subpath} is not a TypeScript source export.`,
-    );
+  if (
+    typeof sourceTarget !== 'string' ||
+    !sourceTarget.startsWith('./src/') ||
+    !sourceTarget.endsWith('.ts')
+  ) {
+    throw new Error(`${packageDirectory} export ${subpath} is not a TypeScript source export.`);
   }
 
   const outputRoot = packageDirectory.replaceAll('\\', '/').endsWith('/packages/database')

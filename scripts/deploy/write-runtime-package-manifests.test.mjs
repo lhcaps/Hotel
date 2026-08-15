@@ -17,7 +17,7 @@ function writeFixture(root, directory, exports) {
   writeFileSync(join(packageDirectory, 'package.json'), JSON.stringify({ exports }), 'utf8');
   for (const rawTarget of Object.values(exports)) {
     const sourceTarget =
-      typeof rawTarget === 'string' ? rawTarget : rawTarget.default ?? rawTarget.types;
+      typeof rawTarget === 'string' ? rawTarget : (rawTarget.default ?? rawTarget.types);
     const outputPrefix = directory === 'packages/database' ? 'dist/database/src/' : 'dist/src/';
     const compiled = sourceTarget.replace(/^\.\/src\//u, outputPrefix).replace(/\.ts$/u, '.js');
     const file = join(packageDirectory, compiled);
