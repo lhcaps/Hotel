@@ -230,7 +230,7 @@ describe('housekeeping manual override invariants', () => {
     await database.pool.query(
       `INSERT INTO bookings (id, property_id, room_type_id, room_id, customer_user_id, booking_code, status, check_in, check_out, adults, children, currency, gross_amount_vnd, discount_amount_vnd, final_amount_vnd, price_snapshot, hold_expires_at)
        VALUES ($1,$2,$3,$4,$5,'ARR-1','CONFIRMED',
-               CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 day', 1, 0, 'VND', 0, 0, 0, '{}'::jsonb,
+               CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '1 day', 1, 0, 'VND', 0, 0, 0, '{"source":"manual"}'::jsonb,
                CURRENT_TIMESTAMP + INTERVAL '2 days')`,
       [bookingId, propertyId, roomTypeId, created.id, staffId],
     );
