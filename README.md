@@ -1,6 +1,16 @@
 # Room Management
 
-Phase 4 adds server-authoritative pricing, public room-type availability, immutable fifteen-minute quotes, and ADMIN rate-plan management. Product, domain, architecture, and security rules remain in `docs/`; this is not a production rollout.
+PeaceNest is a room-management application with public availability and booking, immutable quotes, payments, customer access, and isolated administration for room operations and pricing. This repository contains the source and governed release tooling; it is not itself proof of a production deployment.
+
+## Current handoff boundary
+
+- Baseline source: `main` at `b1a9e2c60b1592e18646ec44e4cee6e1aea4e88a` (2026-08-15).
+- Current local release-tool candidate: `3c1b954147fcebc1dce83abebfe2e505e5abb632`; its CI and production runtime evidence are not yet independently established.
+- The matching GitHub Actions run `31893050453` passed, but that historical CI result does not attest the currently serving production release.
+- Do not infer a runtime release SHA, pricing publication state, provider readiness, or successor access from files in this checkout. Each requires fresh governed evidence.
+- Current disposition: **release closure is in progress**. It must not be reported as `READY_FOR_SUCCESSOR`; after all technical gates pass, it remains `READY_PENDING_HUMAN_CREDENTIAL_TRANSFER` until the named human owners prove access.
+
+Start with [the handoff](docs/HANDOFF.md), [operations runbook](docs/OPERATIONS_RUNBOOK.md), [developer guide](docs/DEVELOPER_GUIDE.md), [known issues](docs/KNOWN_ISSUES.md), [security handoff](docs/SECURITY_HANDOFF.md), [credential-transfer checklist](docs/CREDENTIAL_TRANSFER_CHECKLIST.md), and [the untracked-worktree inventory](docs/UNTRACKED_WORKTREE_INVENTORY.md). Historical records live under their existing paths and are governed by [the documentation archive policy](docs/archive/README.md); they are not live release evidence.
 
 ## Prerequisites
 
