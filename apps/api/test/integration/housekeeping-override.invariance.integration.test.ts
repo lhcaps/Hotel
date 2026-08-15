@@ -27,6 +27,8 @@ const propertyId = '550e8400-e29b-41d4-a716-446655440610';
 const tierId = '550e8400-e29b-41d4-a716-446655440611';
 const roomTypeId = '550e8400-e29b-41d4-a716-446655440612';
 const staffId = '550e8400-e29b-41d4-a716-446655440613';
+const departmentId = '550e8400-e29b-41d4-a716-446655440614';
+const managerMembershipId = '550e8400-e29b-41d4-a716-446655440615';
 
 async function countActiveTurnover(pool: GuardedTestDatabase['pool'], roomId: string) {
   const result = await pool.query<{ count: string }>(
@@ -88,7 +90,11 @@ describe('housekeeping manual override invariants', () => {
          INSERT INTO price_tiers (id, property_id, code, name, sort_order)
          VALUES ('${tierId}','${propertyId}','STD','Standard',0);
          INSERT INTO room_types (id, property_id, price_tier_id, code, name, max_adults, max_children, max_occupancy)
-         VALUES ('${roomTypeId}','${propertyId}','${tierId}','STD','Standard',2,0,2);`,
+         VALUES ('${roomTypeId}','${propertyId}','${tierId}','STD','Standard',2,0,2);
+         INSERT INTO admin_departments (id, code, name)
+         VALUES ('${departmentId}','HK','Housekeeping');
+         INSERT INTO admin_memberships (id, user_id, department_id, role, status)
+         VALUES ('${managerMembershipId}','${managerActor.userId}','${departmentId}','HOUSEKEEPING_MANAGER','ACTIVE');`,
       );
     });
   });
