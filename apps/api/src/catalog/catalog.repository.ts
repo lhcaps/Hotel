@@ -883,21 +883,121 @@ export class CatalogRepository implements CatalogRepositoryPort {
     actorId: string,
   ) {
     const database = asCatalogDatabase(transaction, this.database);
+    // The override must enforce the canonical invariants atomically:
+    //   DIRTY     => exactly one actionable TURNOVER (status DUE), room DIRTY.
+    //   CLEANING  => exactly one TURNOVER IN_PROGRESS, room CLEANING.
+    //   CLEAN     => active TURNOVER DONE, room CLEAN; no dangling actionable rows.
+    // We reconcile any existing TURNOVER first; if none exists (only for DIRTY
+    // and CLEANING) we create one with booking_id NULL (manager-created work).
     const result = await database.execute(sql`
-      WITH reconciled AS (
-        UPDATE housekeeping_tasks
-           SET status = CASE ${command.status} WHEN 'DIRTY' THEN 'DUE' WHEN 'CLEANING' THEN 'IN_PROGRESS' ELSE 'DONE' END,
-               completed_at = CASE WHEN ${command.status} = 'CLEAN' THEN CURRENT_TIMESTAMP ELSE NULL END,
-               completed_by = CASE WHEN ${command.status} = 'CLEAN' THEN ${actorId} ELSE NULL END,
-               started_at = CASE WHEN ${command.status} = 'CLEANING' THEN COALESCE(started_at, CURRENT_TIMESTAMP) ELSE started_at END,
-               started_by = CASE WHEN ${command.status} = 'CLEANING' THEN COALESCE(started_by, ${actorId}) ELSE started_by END,
-               version = version + 1, updated_at = CURRENT_TIMESTAMP
-         WHERE property_id=${propertyId} AND room_id=${roomId} AND type='TURNOVER'
-           AND status IN ('SCHEDULED','DUE','IN_PROGRESS','DONE') AND version=${command.expectedVersion}
-      )
-      UPDATE rooms SET housekeeping_status=${command.status}, updated_at=CURRENT_TIMESTAMP
-       WHERE id=${roomId} AND property_id=${propertyId} AND housekeeping_status IS NOT NULL
-      RETURNING id, property_id AS "propertyId", room_type_id AS "roomTypeId", room_number AS "roomNumber", physical_room_code AS "physicalRoomCode", notes, status, housekeeping_status AS "housekeepingStatus", created_at AS "createdAt", updated_at AS "updatedAt"
+      WITH
+        -- Pick the latest actionable TURNOVER (or latest DONE one) under lock.
+        chosen AS (
+          SELECT id, status, version
+            FROM housekeeping_tasks
+           WHERE property_id = ${propertyId}
+             AND room_id = ${roomId}
+             AND type = 'TURNOVER'
+           ORDER BY
+             CASE status WHEN 'IN_PROGRESS' THEN 0 WHEN 'DUE' THEN 1 WHEN 'SCHEDULED' THEN 2 WHEN 'DONE' THEN 3 ELSE 4 END,
+             version DESC, id DESC
+           LIMIT 1
+           FOR UPDATE
+        ),
+        -- Cancel any *other* open TURNOVERs that should not coexist with the chosen one.
+        deduped AS (
+          UPDATE housekeeping_tasks ht
+             SET status = 'CANCELLED',
+                 version = ht.version + 1,
+                 updated_at = CURRENT_TIMESTAMP
+           WHERE ht.property_id = ${propertyId}
+             AND ht.room_id = ${roomId}
+             AND ht.type = 'TURNOVER'
+             AND ht.id IS DISTINCT FROM (SELECT id FROM chosen)
+             AND ht.status IN ('SCHEDULED','DUE','IN_PROGRESS')
+          RETURNING id
+        ),
+        -- Reconcile the chosen row to the requested state. When the requested
+        -- state is DIRTY and the chosen row is DONE/CANCELLED, we reopen it.
+        reconciled AS (
+          UPDATE housekeeping_tasks ht
+             SET status = CASE ${command.status}
+                          WHEN 'DIRTY'    THEN 'DUE'
+                          WHEN 'CLEANING' THEN 'IN_PROGRESS'
+                          ELSE 'DONE'
+                        END,
+                 completed_at = CASE WHEN ${command.status} = 'CLEAN'
+                                     THEN CURRENT_TIMESTAMP
+                                     ELSE NULL END,
+                 completed_by = CASE WHEN ${command.status} = 'CLEAN'
+                                     THEN ${actorId}
+                                     ELSE NULL END,
+                 started_at = CASE WHEN ${command.status} = 'CLEANING'
+                                   THEN COALESCE(ht.started_at, CURRENT_TIMESTAMP)
+                                   ELSE NULL END,
+                 started_by = CASE WHEN ${command.status} = 'CLEANING'
+                                   THEN COALESCE(ht.started_by, ${actorId})
+                                   ELSE NULL END,
+                 reopened_at = CASE WHEN ${command.status} = 'DIRTY'
+                                    AND ht.status IN ('DONE','CANCELLED')
+                                    THEN CURRENT_TIMESTAMP
+                                    ELSE ht.reopened_at END,
+                 reopened_by = CASE WHEN ${command.status} = 'DIRTY'
+                                    AND ht.status IN ('DONE','CANCELLED')
+                                    THEN ${actorId}
+                                    ELSE ht.reopened_by END,
+                 reopen_reason = CASE WHEN ${command.status} = 'DIRTY'
+                                      AND ht.status IN ('DONE','CANCELLED')
+                                      THEN ${command.reason}
+                                      ELSE ht.reopen_reason END,
+                 version = ht.version + 1,
+                 updated_at = CURRENT_TIMESTAMP
+           WHERE ht.id IN (SELECT id FROM chosen)
+             AND ht.version = (SELECT version FROM chosen)
+          RETURNING id
+        ),
+        -- Create a fresh TURNOVER (booking_id NULL) if nothing existed.
+        created AS (
+          INSERT INTO housekeeping_tasks
+            (property_id, room_id, booking_id, type, status, due_at, version)
+          SELECT ${propertyId}, ${roomId}, NULL, 'TURNOVER',
+                 CASE ${command.status}
+                   WHEN 'DIRTY' THEN 'DUE'
+                   WHEN 'CLEANING' THEN 'IN_PROGRESS'
+                   ELSE 'DONE'
+                 END,
+                 CURRENT_TIMESTAMP, 0
+            WHERE NOT EXISTS (SELECT 1 FROM reconciled)
+              AND NOT EXISTS (SELECT 1 FROM chosen WHERE status IN ('SCHEDULED','DUE','IN_PROGRESS','DONE'))
+              AND ${command.status} IN ('DIRTY','CLEANING')
+          RETURNING id
+        ),
+        -- Always guarantee the post-condition: the active actionable TURNOVER
+        -- exists and room matches the requested status.
+        room_update AS (
+          UPDATE rooms r
+             SET housekeeping_status = ${command.status},
+                 updated_at = CURRENT_TIMESTAMP
+           WHERE r.id = ${roomId}
+             AND r.property_id = ${propertyId}
+             AND r.housekeeping_status IS NOT NULL
+             AND EXISTS (
+               SELECT 1 FROM housekeeping_tasks ht
+                WHERE ht.property_id = ${propertyId}
+                  AND ht.room_id = ${roomId}
+                  AND ht.type = 'TURNOVER'
+                  AND (
+                    (${command.status} = 'DIRTY'    AND ht.status = 'DUE')
+                 OR (${command.status} = 'CLEANING' AND ht.status = 'IN_PROGRESS')
+                 OR (${command.status} = 'CLEAN'    AND ht.status = 'DONE')
+                  )
+             )
+          RETURNING id, property_id AS "propertyId", room_type_id AS "roomTypeId",
+                    room_number AS "roomNumber", physical_room_code AS "physicalRoomCode",
+                    notes, status, housekeeping_status AS "housekeepingStatus",
+                    created_at AS "createdAt", updated_at AS "updatedAt"
+        )
+      SELECT * FROM room_update
     `);
     return toCatalogRoomRecord(result.rows[0]);
   }

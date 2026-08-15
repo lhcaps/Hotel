@@ -7,6 +7,7 @@ import type { ProblemDetails } from '@room/contracts';
 
 import { AdminApiError, publicApi } from '../lib/admin-api';
 import { readBookingSearchQuery } from '../lib/booking-search-state';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import {
   formatVnd,
   translate,
@@ -39,6 +40,17 @@ function fieldFromProblem(problem: ProblemDetails): QuoteFieldError {
   if (fields.includes('adults')) return 'adults';
   if (fields.includes('children')) return 'children';
   if (fields.includes('checkIn') || fields.includes('checkOut')) return 'interval';
+  // Shared adapter fall-through — same priority order, single source of truth.
+  const shared = fromProblemDetails(problem);
+  if (pickFieldError(shared, 'roomTypeId') !== undefined) return 'roomTypeId';
+  if (pickFieldError(shared, 'adults') !== undefined) return 'adults';
+  if (pickFieldError(shared, 'children') !== undefined) return 'children';
+  if (
+    pickFieldError(shared, 'checkIn') !== undefined ||
+    pickFieldError(shared, 'checkOut') !== undefined
+  ) {
+    return 'interval';
+  }
   return 'unknown';
 }
 

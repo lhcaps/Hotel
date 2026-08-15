@@ -11,6 +11,7 @@ import {
   type PricingPolicyStatus,
 } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { useLocale } from './locale-provider';
 import { Alert, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
@@ -98,8 +99,15 @@ function editorFromAggregate(aggregate: AdminPricingPolicyAggregate): AggregateE
   };
 }
 
-function actionError(cause: unknown, fallback: string): string {
-  if (cause instanceof AdminApiError) return cause.problem.detail;
+function actionError(cause: unknown, fallback: string, fields: readonly string[] = []): string {
+  if (cause instanceof AdminApiError) {
+    const problemState = fromProblemDetails(cause.problem);
+    for (const field of fields) {
+      const fieldError = pickFieldError(problemState, field);
+      if (fieldError !== undefined) return fieldError;
+    }
+    return cause.problem.detail;
+  }
   if (cause instanceof Error) return cause.message;
   return fallback;
 }
@@ -271,7 +279,15 @@ export function PricingPolicyManager() {
         if (result.created) await refresh(result.policyId);
       }
     } catch (cause) {
-      setMessage(actionError(cause, translate(locale, 'pricingPolicy.bootstrapError')));
+      setMessage(
+        actionError(cause, translate(locale, 'pricingPolicy.bootstrapError'), [
+          'internalName',
+          'effectiveFrom',
+          'effectiveUntil',
+          'overnightWindow',
+          'nightPlanCode',
+        ]),
+      );
     } finally {
       setPending(false);
     }
@@ -293,7 +309,13 @@ export function PricingPolicyManager() {
       setMessage(translate(locale, 'pricingPolicy.saved'));
       await refresh(result.policyId);
     } catch (cause) {
-      setMessage(actionError(cause, translate(locale, 'pricingPolicy.createError')));
+      setMessage(
+        actionError(cause, translate(locale, 'pricingPolicy.createError'), [
+          'internalName',
+          'effectiveFrom',
+          'effectiveUntil',
+        ]),
+      );
     } finally {
       setPending(false);
     }
@@ -319,7 +341,17 @@ export function PricingPolicyManager() {
       setMessage(translate(locale, 'pricingPolicy.saved'));
       await refresh(selectedId);
     } catch (cause) {
-      setMessage(actionError(cause, translate(locale, 'pricingPolicy.saveError')));
+      setMessage(
+        actionError(cause, translate(locale, 'pricingPolicy.saveError'), [
+          'internalName',
+          'effectiveFrom',
+          'effectiveUntil',
+          'maximumComponentLines',
+          'components',
+          'prices',
+          'edges',
+        ]),
+      );
     } finally {
       setPending(false);
     }
@@ -369,7 +401,9 @@ export function PricingPolicyManager() {
       setMessage(translate(locale, 'pricingPolicy.cancelled'));
       await refresh(selectedId);
     } catch (cause) {
-      setMessage(actionError(cause, translate(locale, 'pricingPolicy.cancelError')));
+      setMessage(
+        actionError(cause, translate(locale, 'pricingPolicy.cancelError'), ['cancelReason']),
+      );
     } finally {
       setPending(false);
     }
@@ -388,7 +422,12 @@ export function PricingPolicyManager() {
       setMessage(translate(locale, 'pricingPolicy.superseded'));
       await refresh(selectedId);
     } catch (cause) {
-      setMessage(actionError(cause, translate(locale, 'pricingPolicy.supersedeError')));
+      setMessage(
+        actionError(cause, translate(locale, 'pricingPolicy.supersedeError'), [
+          'successorId',
+          'cutover',
+        ]),
+      );
     } finally {
       setPending(false);
     }

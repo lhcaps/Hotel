@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -63,6 +64,19 @@ export function CouponForm() {
       const coupon = await adminApi.createCoupon(raw);
       globalThis.location.href = `/admin/coupons/${coupon.id}`;
     } catch (reason) {
+      if (reason instanceof AdminApiError) {
+        const problemState = fromProblemDetails(reason.problem);
+        const fieldError =
+          pickFieldError(problemState, 'code') ??
+          pickFieldError(problemState, 'fixedAmountVnd') ??
+          pickFieldError(problemState, 'percentageBasisPoints') ??
+          pickFieldError(problemState, 'validFrom') ??
+          pickFieldError(problemState, 'validUntil');
+        if (fieldError !== undefined) {
+          setError(fieldError);
+          return;
+        }
+      }
       setError(
         reason instanceof AdminApiError && reason.problem.status === 409
           ? translate(locale, 'coupon.duplicateCode')

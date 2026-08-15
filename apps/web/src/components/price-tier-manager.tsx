@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useState } from 'react';
 
 import { AdminApiError, adminApi, type CatalogPage } from '../lib/admin-api';
 import type { PriceTier } from '@room/contracts';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Alert, AlertTitle } from './ui/alert';
@@ -74,11 +75,19 @@ export function PriceTierManager() {
       setEditingId(undefined);
       setFormOpen(false);
     } catch (cause) {
-      setMessage(
-        cause instanceof AdminApiError
-          ? translate(locale, 'priceTier.saveError')
-          : translate(locale, 'priceTier.saveError'),
-      );
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError =
+          pickFieldError(problemState, 'code') ??
+          pickFieldError(problemState, 'name') ??
+          pickFieldError(problemState, 'sortOrder');
+        if (fieldError !== undefined) {
+          setMessage(fieldError);
+          setPending(false);
+          return;
+        }
+      }
+      setMessage(translate(locale, 'priceTier.saveError'));
     } finally {
       setPending(false);
     }

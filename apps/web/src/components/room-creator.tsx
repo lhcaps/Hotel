@@ -2,6 +2,7 @@
 import type { RoomType } from '@room/contracts';
 import { type FormEvent, useEffect, useState } from 'react';
 import { AdminApiError, adminApi } from '../lib/admin-api';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
@@ -45,6 +46,15 @@ export function RoomCreator() {
       setRoomNumber('');
       setNotes('');
     } catch (cause) {
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError =
+          pickFieldError(problemState, 'roomTypeId') ?? pickFieldError(problemState, 'roomNumber');
+        if (fieldError !== undefined) {
+          setMessage(fieldError);
+          return;
+        }
+      }
       setMessage(
         cause instanceof AdminApiError
           ? translate(locale, 'room.createError')

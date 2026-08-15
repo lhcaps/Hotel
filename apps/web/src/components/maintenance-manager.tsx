@@ -2,6 +2,7 @@
 import type { MaintenanceBlock, Room } from '@room/contracts';
 import { type FormEvent, useEffect, useState } from 'react';
 import { AdminApiError, adminApi } from '../lib/admin-api';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { formatDateTime, translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
@@ -89,6 +90,18 @@ export function MaintenanceManager() {
       setCreateAttempted(false);
       setCreateOpen(false);
     } catch (cause) {
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError =
+          pickFieldError(problemState, 'roomId') ??
+          pickFieldError(problemState, 'startsAt') ??
+          pickFieldError(problemState, 'endsAt') ??
+          pickFieldError(problemState, 'reason');
+        if (fieldError !== undefined) {
+          setMessage(fieldError);
+          return;
+        }
+      }
       setMessage(
         cause instanceof AdminApiError
           ? translate(locale, 'maintenance.createError')

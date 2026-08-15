@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
 import type { GuestAccessOtpRequestResponse } from '@room/contracts';
 
 import { bookingApi, BookingApiError } from '../lib/booking-api';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { translate, type Locale } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 
@@ -35,6 +36,10 @@ function validate(locale: Locale, values: { bookingCode: string; email: string }
 
 function problemToMessage(locale: Locale, error: unknown): string {
   if (error instanceof BookingApiError) {
+    const problemState = fromProblemDetails(error.problem);
+    const fieldError =
+      pickFieldError(problemState, 'bookingCode') ?? pickFieldError(problemState, 'email');
+    if (fieldError !== undefined) return fieldError;
     if (error.status === 429) {
       return translate(locale, 'otp.rateLimited');
     }

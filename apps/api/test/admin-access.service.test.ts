@@ -1,4 +1,8 @@
-import { NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AdminAccessService } from '../src/admin/admin-access.service.js';
@@ -283,5 +287,195 @@ describe('AdminAccessService', () => {
         departmentIds: [departmentId],
       }),
     ).rejects.toMatchObject({ response: { code: 'ADMIN_EMAIL_CONFLICT' } });
+  });
+
+  it('returns HTTP 403 (ForbiddenException) for SUPER_ADMIN_REQUIRED on createAccount', async () => {
+    const service = new AdminAccessService({} as never);
+    const actor = {
+      userId: 'admin-id',
+      email: 'admin@example.test',
+      displayName: 'Admin',
+      role: 'ADMIN' as const,
+      permissions: [],
+      departments: [],
+      sessionId: 'session-id',
+      sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+      requestId: 'request-id',
+    };
+    await expect(
+      service.createAccount(actor, {
+        displayName: 'New admin',
+        email: 'new-admin@example.test',
+        password: 'Aa1-strong-password',
+        role: 'ADMIN',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('returns HTTP 403 (ForbiddenException) for SUPER_ADMIN_REQUIRED on listAssignableProperties', async () => {
+    const service = new AdminAccessService({} as never);
+    const actor = {
+      userId: 'admin-id',
+      email: 'admin@example.test',
+      displayName: 'Admin',
+      role: 'ADMIN' as const,
+      permissions: [],
+      departments: [],
+      sessionId: 'session-id',
+      sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+      requestId: 'request-id',
+    };
+    await expect(service.listAssignableProperties(actor)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  it('returns HTTP 403 (ForbiddenException) for SUPER_ADMIN_REQUIRED on listCustomerAccounts', async () => {
+    const service = new AdminAccessService({} as never);
+    const actor = {
+      userId: 'admin-id',
+      email: 'admin@example.test',
+      displayName: 'Admin',
+      role: 'ADMIN' as const,
+      permissions: [],
+      departments: [],
+      sessionId: 'session-id',
+      sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+      requestId: 'request-id',
+    };
+    await expect(service.listCustomerAccounts(actor)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('compensation deletes dependents BEFORE users (FK-safe order)', async () => {
+    const departmentId = '550e8400-e29b-41d4-a716-446655440099';
+    const callOrder: string[] = [];
+    const dbWithOrdering = {
+      query: {
+        users: { findFirst: vi.fn().mockResolvedValue(undefined) },
+        adminDepartments: {
+          findMany: vi.fn().mockResolvedValue([{ id: departmentId }]),
+        },
+        properties: { findMany: vi.fn().mockResolvedValue([]) },
+      },
+      transaction: vi.fn(async (operation: (tx: unknown) => Promise<unknown>) => {
+        // simulate a downstream insert failure so the catch block runs
+        const tx = {
+          insert: vi.fn(() => ({
+            values: vi.fn(() => {
+              throw new Error('simulated downstream failure');
+            }),
+          })),
+        };
+        return operation(tx);
+      }),
+      delete: vi.fn((table: unknown) => {
+        let name = 'unknown';
+        if (typeof table === 'string') {
+          name = table;
+        } else if (table !== null && typeof table === 'object') {
+          // Drizzle tables expose the database name via Symbol(drizzle:BaseName)
+          const symbols = Object.getOwnPropertySymbols(table);
+          for (const sym of symbols) {
+            const value = (table as Record<symbol, unknown>)[sym];
+            if (
+              typeof value === 'string' &&
+              (sym.toString().includes('BaseName') || sym.toString().includes('Name'))
+            ) {
+              name = value;
+              break;
+            }
+          }
+        }
+        callOrder.push(name);
+        return {
+          where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
+        };
+      }),
+    };
+    // createUser must succeed so the transaction is reached
+    const createUser = vi.fn().mockResolvedValue({ user: { id: 'new-user-id' } });
+    const service = new AdminAccessService(
+      dbWithOrdering as never,
+      { api: { createUser } } as never,
+    );
+    const actor = {
+      userId: 'super-admin-id',
+      email: 'admin@example.test',
+      displayName: 'Super Admin',
+      role: 'SUPER_ADMIN' as const,
+      profileCode: 'SUPER_ADMIN' as const,
+      permissions: [],
+      departments: [],
+      propertyIds: 'ALL' as const,
+      sessionId: 'session-id',
+      sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+      requestId: 'request-id',
+    };
+
+    await expect(
+      service.createAccount(actor, {
+        displayName: 'New admin',
+        email: 'new-admin@example.test',
+        password: 'Aa1-strong-password',
+        role: 'SUPER_ADMIN',
+        departmentIds: [departmentId],
+      }),
+    ).rejects.toThrow(/simulated downstream failure/);
+
+    // FK-safe order: dependents before users
+    expect(callOrder).toEqual([
+      'admin_property_memberships',
+      'admin_memberships',
+      'sessions',
+      'accounts',
+      'users',
+    ]);
+  });
+
+  it('unknown Better Auth failures surface as 500 InternalServerError, not 400', async () => {
+    const departmentId = '550e8400-e29b-41d4-a716-446655440098';
+    const database = {
+      query: {
+        users: { findFirst: vi.fn().mockResolvedValue(undefined) },
+        adminDepartments: { findMany: vi.fn().mockResolvedValue([{ id: departmentId }]) },
+        properties: { findMany: vi.fn().mockResolvedValue([]) },
+      },
+      transaction: vi.fn(async (operation: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          insert: vi.fn(() => ({
+            values: vi.fn(() => Promise.resolve()),
+          })),
+        };
+        return operation(tx);
+      }),
+      delete: vi.fn(() => ({
+        where: vi.fn(() => Promise.resolve({ rowCount: 1 })),
+      })),
+    };
+    const createUser = vi.fn().mockRejectedValue(new Error('database exploded'));
+    const service = new AdminAccessService(database as never, { api: { createUser } } as never);
+    const actor = {
+      userId: 'super-admin-id',
+      email: 'admin@example.test',
+      displayName: 'Super Admin',
+      role: 'SUPER_ADMIN' as const,
+      profileCode: 'SUPER_ADMIN' as const,
+      permissions: [],
+      departments: [],
+      propertyIds: 'ALL' as const,
+      sessionId: 'session-id',
+      sessionExpiresAt: new Date('2027-01-01T00:00:00.000Z'),
+      requestId: 'request-id',
+    };
+
+    await expect(
+      service.createAccount(actor, {
+        displayName: 'New admin',
+        email: 'new-admin@example.test',
+        password: 'Aa1-strong-password',
+        role: 'SUPER_ADMIN',
+        departmentIds: [departmentId],
+      }),
+    ).rejects.toBeInstanceOf(InternalServerErrorException);
   });
 });

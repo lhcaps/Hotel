@@ -11,6 +11,7 @@ import {
 } from '../lib/booking-api';
 import { assertSafePaymentRedirect, type PaymentRedirectRuntime } from '../lib/payment-redirect';
 import { translate, type Locale } from '../lib/i18n/messages';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { useLocale } from './locale-provider';
 
 export interface QuoteContactFormProps {
@@ -196,6 +197,23 @@ export function QuoteContactForm({
       assertSafePaymentRedirect(payment.redirectUrl, PAYMENT_RUNTIME);
       onCheckoutStarted({ bookingCode: response.bookingCode, payment });
     } catch (error) {
+      // The shared form-error adapter is the canonical projection from a
+      // server-side ProblemDetails (RFC 7807 + structured errors[].field) to
+      // per-field UI state. Use it whenever the server's ProblemDetails
+      // explicitly names a field we render, then fall back to the legacy
+      // code-based mapping for everything else.
+      if (error instanceof BookingApiError) {
+        const problemState = fromProblemDetails(error.problem);
+        const fieldError =
+          pickFieldError(problemState, 'fullName') ??
+          pickFieldError(problemState, 'email') ??
+          pickFieldError(problemState, 'phone');
+        if (fieldError !== undefined) {
+          setErrors({ fullName: fieldError });
+          setSubmitError(undefined);
+          return;
+        }
+      }
       setSubmitError(problemToMessage(locale, error, phase));
     } finally {
       inFlight.current = false;

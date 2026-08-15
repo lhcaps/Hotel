@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { XIcon } from 'lucide-react';
 import { AdminApiError, adminApi, type CatalogPage } from '../lib/admin-api';
 import { localizedCatalogSafetyReason } from '../lib/catalog-safety';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -149,7 +150,22 @@ export function RoomTypeManager() {
       setCode('');
       setName('');
       setCreateOpen(false);
-    } catch {
+    } catch (cause) {
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError =
+          pickFieldError(problemState, 'code') ??
+          pickFieldError(problemState, 'name') ??
+          pickFieldError(problemState, 'priceTierId') ??
+          pickFieldError(problemState, 'maxAdults') ??
+          pickFieldError(problemState, 'maxChildren') ??
+          pickFieldError(problemState, 'maxOccupancy');
+        if (fieldError !== undefined) {
+          setMessage(fieldError);
+          setPending(false);
+          return;
+        }
+      }
       setMessage(translate(locale, 'roomType.createError'));
     } finally {
       setPending(false);
@@ -186,7 +202,17 @@ export function RoomTypeManager() {
     try {
       await adminApi.assignAmenity(amenityRoomTypeId, amenityId);
       setMessage(translate(locale, 'roomType.amenityAssigned'));
-    } catch {
+    } catch (cause) {
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError =
+          pickFieldError(problemState, 'roomTypeId') ?? pickFieldError(problemState, 'amenityId');
+        if (fieldError !== undefined) {
+          setMessage(fieldError);
+          setPending(false);
+          return;
+        }
+      }
       setMessage(translate(locale, 'roomType.assignError'));
     } finally {
       setPending(false);
@@ -235,6 +261,21 @@ export function RoomTypeManager() {
       setMessage(translate(locale, 'roomType.updated', { name: updated.name }));
       return true;
     } catch (cause) {
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError =
+          pickFieldError(problemState, 'name') ??
+          pickFieldError(problemState, 'description') ??
+          pickFieldError(problemState, 'priceTierId') ??
+          pickFieldError(problemState, 'maxAdults') ??
+          pickFieldError(problemState, 'maxChildren') ??
+          pickFieldError(problemState, 'maxOccupancy');
+        if (fieldError !== undefined) {
+          setErrors((current) => ({ ...current, [id]: fieldError }));
+          setPending(false);
+          return false;
+        }
+      }
       const text =
         cause instanceof AdminApiError && cause.problem?.code !== undefined
           ? localizedCatalogSafetyReason(locale, cause.problem.code, cause.problem.detail)

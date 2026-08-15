@@ -9,6 +9,7 @@ import type {
 } from '@room/contracts';
 
 import { AdminApiError, adminApi } from '../lib/admin-api';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { formatVnd, translate, type Locale } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
@@ -246,7 +247,24 @@ export function RatePlanManager() {
       setCreateOpen(false);
       setMessage(translate(locale, 'ratePlan.created'));
       load();
-    } catch {
+    } catch (cause) {
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError =
+          pickFieldError(problemState, 'code') ??
+          pickFieldError(problemState, 'name') ??
+          pickFieldError(problemState, 'includedDurationMinutes') ??
+          pickFieldError(problemState, 'priority') ??
+          pickFieldError(problemState, 'minCheckInMinuteInclusive') ??
+          pickFieldError(problemState, 'maxCheckInMinuteExclusive') ??
+          pickFieldError(problemState, 'minDurationMinutesInclusive') ??
+          pickFieldError(problemState, 'maxDurationMinutesInclusive');
+        if (fieldError !== undefined) {
+          setMessage(fieldError);
+          setCreating(false);
+          return;
+        }
+      }
       setMessage(translate(locale, 'ratePlan.createError'));
     } finally {
       setCreating(false);
@@ -263,7 +281,16 @@ export function RatePlanManager() {
     try {
       await adminApi.updateRatePlanPrice(planId, tierId, amountVnd);
       load();
-    } catch {
+    } catch (cause) {
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError = pickFieldError(problemState, 'amountVnd');
+        if (fieldError !== undefined) {
+          setMessage(fieldError);
+          setPending(false);
+          return;
+        }
+      }
       setMessage(translate(locale, 'ratePlan.priceSaveError'));
     } finally {
       setPending(false);
@@ -286,6 +313,20 @@ export function RatePlanManager() {
       setMessage(translate(locale, 'ratePlan.selectionSaved'));
       return true;
     } catch (error) {
+      if (error instanceof AdminApiError) {
+        const problemState = fromProblemDetails(error.problem);
+        const fieldError =
+          pickFieldError(problemState, 'priority') ??
+          pickFieldError(problemState, 'minCheckInMinuteInclusive') ??
+          pickFieldError(problemState, 'maxCheckInMinuteExclusive') ??
+          pickFieldError(problemState, 'minDurationMinutesInclusive') ??
+          pickFieldError(problemState, 'maxDurationMinutesInclusive');
+        if (fieldError !== undefined) {
+          setMessage(fieldError);
+          setPending(false);
+          return false;
+        }
+      }
       setMessage(
         error instanceof AdminApiError
           ? error.problem.detail

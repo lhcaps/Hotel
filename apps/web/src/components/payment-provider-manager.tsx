@@ -8,6 +8,7 @@ import {
   type PaymentProviderAdmin,
   type PaymentProviderUpdate,
 } from '../lib/admin-api';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
@@ -69,6 +70,20 @@ export function PaymentProviderManager() {
       change(provider.provider, editable(updated));
       setMessage(translate(locale, 'admin.providerSaved', { provider: provider.provider }));
     } catch (error) {
+      if (error instanceof AdminApiError) {
+        const problemState = fromProblemDetails(error.problem);
+        const fieldError =
+          pickFieldError(problemState, 'displayName') ??
+          pickFieldError(problemState, 'displayOrder') ??
+          pickFieldError(problemState, 'checkoutExpiryMinutes') ??
+          pickFieldError(problemState, 'maintenanceMessage') ??
+          pickFieldError(problemState, 'enabled');
+        if (fieldError !== undefined) {
+          setMessage(fieldError);
+          setSaving(null);
+          return;
+        }
+      }
       setMessage(
         error instanceof AdminApiError
           ? error.problem.detail

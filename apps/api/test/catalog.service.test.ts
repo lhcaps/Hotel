@@ -581,4 +581,104 @@ describe('CatalogService', () => {
       }),
     ).rejects.toBeInstanceOf(CatalogSafetyError);
   });
+
+  it('listHousekeepingTasks returns the {items:[...]} envelope, not a bare array', async () => {
+    const repository: CatalogRepositoryPort = {
+      getCurrentProperty: vi.fn().mockResolvedValue(property),
+      listHousekeepingTasks: vi.fn().mockResolvedValue([
+        {
+          taskId: '550e8400-e29b-41d4-a716-446655440301',
+          roomId: '550e8400-e29b-41d4-a716-446655440111',
+          roomNumber: '111',
+          physicalRoomCode: '111',
+          roomConcept: 'Garden',
+          roomTier: 'Standard',
+          housekeepingStatus: 'DIRTY' as const,
+          type: 'TURNOVER' as const,
+          status: 'DUE' as const,
+          dueAt: new Date('2026-08-14T11:00:00.000Z'),
+          assigneeId: null,
+          assigneeName: null,
+          version: 0,
+          verifiedAt: null,
+        },
+      ]),
+    } as unknown as CatalogRepositoryPort;
+    const service = new CatalogService(
+      {
+        transaction: async <T>(operation: (transaction: unknown) => Promise<T>): Promise<T> =>
+          operation({}),
+      },
+      repository,
+      { write: vi.fn() },
+    );
+    const result = await service.listHousekeepingTasks(actor);
+    expect(Array.isArray(result)).toBe(false);
+    expect(result).toMatchObject({
+      items: [
+        expect.objectContaining({
+          taskId: '550e8400-e29b-41d4-a716-446655440301',
+          status: 'DUE',
+        }),
+      ],
+    });
+  });
+
+  it('listHousekeepingTasks returns {items: []} when DB has zero tasks', async () => {
+    const repository: CatalogRepositoryPort = {
+      getCurrentProperty: vi.fn().mockResolvedValue(property),
+      listHousekeepingTasks: vi.fn().mockResolvedValue([]),
+    } as unknown as CatalogRepositoryPort;
+    const service = new CatalogService(
+      {
+        transaction: async <T>(operation: (transaction: unknown) => Promise<T>): Promise<T> =>
+          operation({}),
+      },
+      repository,
+      { write: vi.fn() },
+    );
+    const result = await service.listHousekeepingTasks(actor);
+    expect(result).toEqual({ items: [] });
+  });
+
+  it('listHousekeepingTasks returns {items:[...]} where each item contains the canonical fields expected by the workboard', async () => {
+    // This test pins the contract that the frontend reads: list.items === task[]
+    // with propertyId, roomId, type, status, dueAt, etc.
+    const repository: CatalogRepositoryPort = {
+      getCurrentProperty: vi.fn().mockResolvedValue(property),
+      listHousekeepingTasks: vi.fn().mockResolvedValue([
+        {
+          taskId: '550e8400-e29b-41d4-a716-446655440302',
+          roomId: '550e8400-e29b-41d4-a716-446655440303',
+          roomNumber: '101',
+          physicalRoomCode: 'Wabi101',
+          roomConcept: 'Wabi',
+          roomTier: 'Standard',
+          housekeepingStatus: 'CLEAN',
+          type: 'ARRIVAL_PREP',
+          status: 'DUE',
+          dueAt: new Date('2026-08-14T11:00:00.000Z'),
+          assigneeId: null,
+          assigneeName: null,
+          version: 0,
+          verifiedAt: null,
+        },
+      ]),
+    } as unknown as CatalogRepositoryPort;
+    const service = new CatalogService(
+      {
+        transaction: async <T>(operation: (transaction: unknown) => Promise<T>): Promise<T> =>
+          operation({}),
+      },
+      repository,
+      { write: vi.fn() },
+    );
+    const result = await service.listHousekeepingTasks(actor);
+    // Frontend contract: NOT an array
+    expect(Array.isArray(result)).toBe(false);
+    // Frontend contract: items[0].taskId is reachable
+    const firstItem = result.items[0];
+    expect(firstItem).toBeDefined();
+    expect(firstItem?.taskId).toBe('550e8400-e29b-41d4-a716-446655440302');
+  });
 });

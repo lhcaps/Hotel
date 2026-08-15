@@ -4,6 +4,7 @@ import { type FormEvent, useId, useRef, useState } from 'react';
 import type { GuestAccessOtpVerifyResponse } from '@room/contracts';
 
 import { bookingApi, BookingApiError } from '../lib/booking-api';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { translate, type Locale } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 
@@ -16,6 +17,10 @@ const OTP_PATTERN = /^[0-9]{6}$/;
 
 function problemToMessage(locale: Locale, error: unknown): string {
   if (error instanceof BookingApiError) {
+    const problemState = fromProblemDetails(error.problem);
+    const fieldError =
+      pickFieldError(problemState, 'otp') ?? pickFieldError(problemState, 'challengeRef');
+    if (fieldError !== undefined) return fieldError;
     if (error.status >= 500) {
       return translate(locale, 'otp.unavailable');
     }

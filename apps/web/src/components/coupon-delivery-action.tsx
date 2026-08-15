@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { AdminApiError, adminApi } from '../lib/admin-api';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
@@ -55,11 +56,18 @@ export function CouponDeliveryAction({ bookingCode }: { readonly bookingCode: st
       setSelectedCodes([]);
       setConfirmed(false);
     } catch (cause: unknown) {
-      setStatus(
-        cause instanceof AdminApiError
-          ? translate(locale, 'admin.couponQueueError')
-          : translate(locale, 'admin.couponQueueError'),
-      );
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError =
+          pickFieldError(problemState, 'couponCodes') ??
+          pickFieldError(problemState, 'bookingCode');
+        if (fieldError !== undefined) {
+          setStatus(fieldError);
+          setPending(false);
+          return;
+        }
+      }
+      setStatus(translate(locale, 'admin.couponQueueError'));
     } finally {
       setPending(false);
     }

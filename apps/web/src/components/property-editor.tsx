@@ -6,7 +6,12 @@ import { publicContactSchema, type PublicContact } from '@room/contracts';
 
 import { AdminApiError, adminApi } from '../lib/admin-api';
 import { translate } from '../lib/i18n/messages';
-import { fromProblemDetails, fromUnknownError, type FieldErrorState } from '../lib/form-error';
+import {
+  fromProblemDetails,
+  fromUnknownError,
+  pickFieldError,
+  type FieldErrorState,
+} from '../lib/form-error';
 import { useLocale } from './locale-provider';
 import { Alert, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
@@ -107,10 +112,21 @@ export function PropertyEditor() {
       setMessage(translate(locale, 'property.saved'));
     } catch (cause) {
       if (cause instanceof AdminApiError) {
-        setMessage(translate(locale, 'property.saveError'));
-      } else {
-        setMessage(translate(locale, 'property.saveError'));
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError =
+          pickFieldError(problemState, 'code') ??
+          pickFieldError(problemState, 'name') ??
+          pickFieldError(problemState, 'minimumStayMinutes') ??
+          pickFieldError(problemState, 'maximumStayMinutes') ??
+          pickFieldError(problemState, 'minimumLeadTimeMinutes') ??
+          pickFieldError(problemState, 'maximumAdvanceBookingDays') ??
+          pickFieldError(problemState, 'defaultOvernightDurationMinutes');
+        if (fieldError !== undefined) {
+          setMessage(fieldError);
+          return;
+        }
       }
+      setMessage(translate(locale, 'property.saveError'));
     } finally {
       setPending(false);
     }

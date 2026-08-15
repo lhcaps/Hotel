@@ -9,6 +9,7 @@ import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { AdminApiError, adminApi, type HousekeepingTaskList } from '../lib/admin-api';
 import { compareRoomDisplayOrder } from '../lib/admin-natural-sort';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { translate, type MessageKey } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -147,6 +148,26 @@ export function HousekeepingWorkboard() {
     setActionError((current) => ({ ...current, [taskId]: '' }));
   }, []);
 
+  // Project a server-side ProblemDetails into a single user-facing string.
+  // Prefers structured field errors (RFC 7807 + ProblemDetails.errors[].field)
+  // for fields the workboard knows about, then falls back to a status-aware
+  // message and finally to the generic actionError translation.
+  const projectActionError = useCallback(
+    (cause: unknown, fields: readonly string[]): string => {
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        for (const field of fields) {
+          const fieldError = pickFieldError(problemState, field);
+          if (fieldError !== undefined) return fieldError;
+        }
+        if (cause.problem.status === 409) return cause.problem.detail;
+        return cause.message;
+      }
+      return translate(locale, 'admin.actionError');
+    },
+    [locale],
+  );
+
   const setBusy = useCallback((taskId: string, value: boolean) => {
     setPending((current) => ({ ...current, [taskId]: value }));
   }, []);
@@ -165,8 +186,7 @@ export function HousekeepingWorkboard() {
       } catch (cause: unknown) {
         setActionError((current) => ({
           ...current,
-          [task.taskId]:
-            cause instanceof AdminApiError ? cause.message : translate(locale, 'admin.actionError'),
+          [task.taskId]: projectActionError(cause, ['assigneeId', 'expectedVersion']),
         }));
       } finally {
         setBusy(task.taskId, false);
@@ -191,8 +211,7 @@ export function HousekeepingWorkboard() {
       } catch (cause: unknown) {
         setActionError((current) => ({
           ...current,
-          [task.taskId]:
-            cause instanceof AdminApiError ? cause.message : translate(locale, 'admin.actionError'),
+          [task.taskId]: projectActionError(cause, ['expectedVersion']),
         }));
       } finally {
         setBusy(task.taskId, false);
@@ -212,10 +231,7 @@ export function HousekeepingWorkboard() {
         } catch (cause: unknown) {
           setActionError((current) => ({
             ...current,
-            [task.taskId]:
-              cause instanceof AdminApiError
-                ? cause.message
-                : translate(locale, 'admin.actionError'),
+            [task.taskId]: projectActionError(cause, ['expectedVersion']),
           }));
         } finally {
           setBusy(task.taskId, false);
@@ -244,10 +260,7 @@ export function HousekeepingWorkboard() {
         } catch (cause: unknown) {
           setActionError((current) => ({
             ...current,
-            [task.taskId]:
-              cause instanceof AdminApiError
-                ? cause.message
-                : translate(locale, 'admin.actionError'),
+            [task.taskId]: projectActionError(cause, ['reason', 'expectedVersion']),
           }));
         } finally {
           setBusy(task.taskId, false);
@@ -275,14 +288,13 @@ export function HousekeepingWorkboard() {
       } catch (cause: unknown) {
         setActionError((current) => ({
           ...current,
-          [task.taskId]:
-            cause instanceof AdminApiError ? cause.message : translate(locale, 'admin.actionError'),
+          [task.taskId]: projectActionError(cause, ['reason', 'expectedVersion']),
         }));
       } finally {
         setBusy(task.taskId, false);
       }
     },
-    [cancelReason, clearActionError, locale, refresh, reopenReason, setBusy],
+    [cancelReason, clearActionError, locale, projectActionError, refresh, reopenReason, setBusy],
   );
 
   const actionableForManager = (task: HousekeepingTaskRecord): boolean =>

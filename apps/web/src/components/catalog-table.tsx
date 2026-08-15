@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { AdminApiError, type CatalogPage } from '../lib/admin-api';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Button } from './ui/button';
@@ -89,11 +90,16 @@ export function CatalogTable<T extends CatalogRow>({
           : current.map((candidate) => (candidate.id === archived.id ? archived : candidate)),
       );
     } catch (cause) {
-      setError(
-        cause instanceof AdminApiError
-          ? translate(locale, 'catalog.saveError')
-          : translate(locale, 'catalog.saveError'),
-      );
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError = pickFieldError(problemState, 'id');
+        if (fieldError !== undefined) {
+          setError(fieldError);
+          setPendingId(undefined);
+          return;
+        }
+      }
+      setError(translate(locale, 'catalog.saveError'));
     } finally {
       setPendingId(undefined);
     }

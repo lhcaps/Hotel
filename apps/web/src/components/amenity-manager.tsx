@@ -4,6 +4,7 @@ import type { Amenity } from '@room/contracts';
 import { type FormEvent, useEffect, useState } from 'react';
 
 import { AdminApiError, adminApi, type CatalogPage } from '../lib/admin-api';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { translate, translateAdminStatus } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -54,7 +55,17 @@ export function AmenityManager() {
       setCode('');
       setName('');
       setCreateOpen(false);
-    } catch {
+    } catch (cause) {
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError =
+          pickFieldError(problemState, 'code') ?? pickFieldError(problemState, 'name');
+        if (fieldError !== undefined) {
+          setMessage(fieldError);
+          setPending(false);
+          return;
+        }
+      }
       setMessage(translate(locale, 'amenity.createError'));
     } finally {
       setPending(false);
@@ -96,6 +107,15 @@ export function AmenityManager() {
       setMessage(translate(locale, 'amenity.updated', { name: updated.name }));
       return true;
     } catch (cause) {
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError = pickFieldError(problemState, 'name');
+        if (fieldError !== undefined) {
+          setErrors((current) => ({ ...current, [id]: fieldError }));
+          setPending(false);
+          return false;
+        }
+      }
       const text =
         cause instanceof AdminApiError && cause.problem?.detail !== undefined
           ? cause.problem.detail

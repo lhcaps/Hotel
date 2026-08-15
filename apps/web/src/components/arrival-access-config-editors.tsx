@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useState } from 'react';
 import type { PropertyArrivalAccessConfig, RoomArrivalAccessConfig } from '@room/contracts';
 
 import { AdminApiError, adminApi } from '../lib/admin-api';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { translate } from '../lib/i18n/messages';
 import { Alert, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
@@ -16,7 +17,23 @@ import { useLocale } from './locale-provider';
 const MANAGE_PERMISSION = 'arrival.access.manage';
 const READ_PERMISSION = 'arrival.access.read';
 
-function messageFor(locale: ReturnType<typeof useLocale>, error: unknown): string {
+function projectFieldError(error: unknown, fields: readonly string[]): string | undefined {
+  if (!(error instanceof AdminApiError)) return undefined;
+  const problemState = fromProblemDetails(error.problem);
+  for (const field of fields) {
+    const fieldError = pickFieldError(problemState, field);
+    if (fieldError !== undefined) return fieldError;
+  }
+  return undefined;
+}
+
+function messageFor(
+  locale: ReturnType<typeof useLocale>,
+  error: unknown,
+  fields: readonly string[] = [],
+): string {
+  const fieldError = projectFieldError(error, fields);
+  if (fieldError !== undefined) return fieldError;
   return error instanceof AdminApiError
     ? translate(locale, 'arrivalAccess.updateError')
     : translate(locale, 'arrivalAccess.loadError');
@@ -83,7 +100,16 @@ export function PropertyArrivalAccessEditor() {
       hydrate(next);
       setMessage(translate(locale, 'arrivalAccess.propertySaved'));
     } catch (error) {
-      setMessage(messageFor(locale, error));
+      setMessage(
+        messageFor(locale, error, [
+          'gatePass',
+          'wifiPassword',
+          'wifiSsid',
+          'supportContact',
+          'defaultArrivalInstruction',
+          'preparationNote',
+        ]),
+      );
     } finally {
       setPending(false);
     }
@@ -284,7 +310,7 @@ export function RoomArrivalAccessEditor({ roomId }: { readonly roomId: string })
       hydrate(next);
       setMessage(translate(locale, 'arrivalAccess.roomSaved'));
     } catch (error) {
-      setMessage(messageFor(locale, error));
+      setMessage(messageFor(locale, error, ['roomPass', 'roomLocation', 'arrivalInstruction']));
     } finally {
       setPending(false);
     }

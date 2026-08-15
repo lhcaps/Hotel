@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 
 import { BookingApiError, bookingApi } from '../lib/booking-api';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import { formatDateTime, formatVnd, translate } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
 
@@ -36,16 +37,29 @@ export function CustomerBookingActions({
     children: String(children),
   });
 
+  function projectFieldError(cause: unknown, fields: readonly string[]): string | undefined {
+    if (!(cause instanceof BookingApiError)) return undefined;
+    const problemState = fromProblemDetails(cause.problem);
+    for (const field of fields) {
+      const fieldError = pickFieldError(problemState, field);
+      if (fieldError !== undefined) return fieldError;
+    }
+    return undefined;
+  }
+
   async function previewCancellation() {
     setPending('cancel');
     setError(undefined);
     try {
       setCancellation(await bookingApi.getCustomerCancellationPreview(bookingCode));
     } catch (cause) {
+      const fieldError = projectFieldError(cause, ['bookingCode']);
       setError(
-        cause instanceof BookingApiError
-          ? cause.message
-          : translate(locale, 'account.previewError'),
+        fieldError
+          ? fieldError
+          : cause instanceof BookingApiError
+            ? cause.message
+            : translate(locale, 'account.previewError'),
       );
     } finally {
       setPending(undefined);
@@ -66,10 +80,13 @@ export function CustomerBookingActions({
         }),
       );
     } catch (cause) {
+      const fieldError = projectFieldError(cause, ['checkIn', 'checkOut', 'adults', 'children']);
       setError(
-        cause instanceof BookingApiError
-          ? cause.message
-          : translate(locale, 'account.previewError'),
+        fieldError
+          ? fieldError
+          : cause instanceof BookingApiError
+            ? cause.message
+            : translate(locale, 'account.previewError'),
       );
     } finally {
       setPending(undefined);
@@ -131,10 +148,13 @@ export function CustomerBookingActions({
                     window.location.reload();
                   })
                   .catch((cause: unknown) => {
+                    const fieldError = projectFieldError(cause, ['cancellationReason']);
                     setError(
-                      cause instanceof BookingApiError
-                        ? cause.message
-                        : translate(locale, 'account.actionError'),
+                      fieldError
+                        ? fieldError
+                        : cause instanceof BookingApiError
+                          ? cause.message
+                          : translate(locale, 'account.actionError'),
                     );
                   })
                   .finally(() => setPending(undefined));

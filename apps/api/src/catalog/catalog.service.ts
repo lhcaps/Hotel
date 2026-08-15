@@ -14,7 +14,7 @@ import {
   type HousekeepingAssignee,
   type HousekeepingTaskReopenCommand,
   type HousekeepingTaskVersionCommand,
-  type HousekeepingTaskRecord,
+  type HousekeepingTaskList,
   type HousekeepingOverrideCommand,
   type MaintenanceBlockCommand,
   amenityCommandSchema,
@@ -1086,9 +1086,7 @@ export class CatalogService {
     );
   }
 
-  public async listHousekeepingTasks(
-    actor: ActorContext,
-  ): Promise<readonly HousekeepingTaskRecord[]> {
+  public async listHousekeepingTasks(actor: ActorContext): Promise<HousekeepingTaskList> {
     const property = await this.repository.getCurrentProperty(actor);
     if (property === undefined || this.repository.listHousekeepingTasks === undefined)
       throw new CatalogNotFoundError();
@@ -1099,7 +1097,7 @@ export class CatalogService {
         dueAt: item.dueAt.toISOString(),
         verifiedAt: item.verifiedAt?.toISOString() ?? null,
       })),
-    }).items;
+    });
   }
 
   public async assignHousekeepingTask(actor: ActorContext, taskId: string, input: unknown) {
@@ -1258,6 +1256,7 @@ export class CatalogService {
       const property = await this.repository.getCurrentProperty(actor, transaction);
       const override = this.repository.overrideRoomHousekeeping;
       if (property === undefined || override === undefined) throw new CatalogNotFoundError();
+      await this.repository.lockRoom(transaction, property.id, roomId);
       const room = await override.call(
         this.repository,
         transaction,

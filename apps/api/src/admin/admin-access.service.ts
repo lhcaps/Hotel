@@ -30,7 +30,14 @@ import {
   type AdminProfileCode,
   type createRoomAuth,
 } from '@room/auth';
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 
 import type { ActorContext } from '../auth/actor-context.js';
 
@@ -118,7 +125,7 @@ export class AdminAccessService {
 
   public async listAssignableProperties(actor: ActorContext) {
     if (actor.profileCode !== 'SUPER_ADMIN') {
-      throw new BadRequestException({ code: 'SUPER_ADMIN_REQUIRED' });
+      throw new ForbiddenException({ code: 'SUPER_ADMIN_REQUIRED' });
     }
     const rows = await this.database.query.properties.findMany({
       where: (fields, { eq }) => eq(fields.status, 'ACTIVE'),
@@ -367,7 +374,7 @@ export class AdminAccessService {
 
   public async createAccount(actor: ActorContext, input: unknown) {
     if (actor.profileCode !== 'SUPER_ADMIN') {
-      throw new BadRequestException({ code: 'SUPER_ADMIN_REQUIRED' });
+      throw new ForbiddenException({ code: 'SUPER_ADMIN_REQUIRED' });
     }
     const command = adminAccountCreateSchema.parse(input);
     if (this.auth === undefined) {
@@ -446,7 +453,24 @@ export class AdminAccessService {
         if (errorCode === 'INVALID_EMAIL' || errorCode === 'INVALID_PASSWORD') {
           throw new BadRequestException({ code: errorCode });
         }
-        throw new BadRequestException({ code: 'AUTH_ACCOUNT_CREATION_FAILED' });
+        if (errorCode !== undefined) {
+          // Surface known upstream failure codes verbatim; this is still a
+          // client-correctable issue if the auth provider surfaced a known
+          // domain code we did not explicitly handle.
+          throw new BadRequestException({ code: 'AUTH_ACCOUNT_CREATION_FAILED' });
+        }
+        // Unknown Better Auth / database failures must surface as a 5xx so
+        // operators can investigate; mapping to 400 here would silently hide
+        // server faults from monitoring and from the operator's logs.
+        AdminAccessService.compensationLogger.error(
+          'admin-account-create: unknown upstream failure',
+          {
+            requestId: actor.requestId,
+            emailMasked: maskEmail(command.email),
+            role: command.role,
+          },
+        );
+        throw new InternalServerErrorException({ code: 'AUTH_ACCOUNT_CREATION_FAILED' });
       }
     })();
     try {
@@ -479,17 +503,103 @@ export class AdminAccessService {
       // Compensate: remove the orphan user we just created via Better Auth so
       // a downstream membership failure does not leave an un-bootstrapped
       // account in the system.
+      //
+      // The schema declares RESTRICT foreign keys on:
+      //   sessions_user_fk       (sessions -> users)
+      //   accounts_user_fk       (accounts -> users)
+      //   admin_profiles_user_fk
+      //   admin_memberships_user_fk
+      //   admin_property_memberships_user_fk
+      // That means we MUST delete dependents before the parent users row,
+      // otherwise the FK enforcement aborts the cleanup and the user is left
+      // orphaned in the database. The order is the inverse dependency graph.
       try {
-        await this.database.delete(users).where(eq(users.id, created.id));
-        await this.database.delete(sessions).where(eq(sessions.userId, created.id));
-        await this.database.delete(accounts).where(eq(accounts.userId, created.id));
-      } catch {
-        // Best-effort cleanup; surface the original failure to the caller.
+        const compensationSteps: ReadonlyArray<{
+          readonly label: string;
+          readonly run: () => Promise<unknown>;
+        }> = [
+          {
+            label: 'admin_property_memberships',
+            run: () =>
+              this.database
+                .delete(adminPropertyMemberships)
+                .where(eq(adminPropertyMemberships.userId, created.id))
+                .then((result) => result.rowCount ?? 0),
+          },
+          {
+            label: 'admin_memberships',
+            run: () =>
+              this.database
+                .delete(adminMemberships)
+                .where(eq(adminMemberships.userId, created.id))
+                .then((result) => result.rowCount ?? 0),
+          },
+          {
+            label: 'sessions',
+            run: () =>
+              this.database
+                .delete(sessions)
+                .where(eq(sessions.userId, created.id))
+                .then((result) => result.rowCount ?? 0),
+          },
+          {
+            label: 'accounts',
+            run: () =>
+              this.database
+                .delete(accounts)
+                .where(eq(accounts.userId, created.id))
+                .then((result) => result.rowCount ?? 0),
+          },
+          {
+            label: 'users',
+            run: () =>
+              this.database
+                .delete(users)
+                .where(eq(users.id, created.id))
+                .then((result) => result.rowCount ?? 0),
+          },
+        ];
+        for (const step of compensationSteps) {
+          try {
+            await step.run();
+          } catch (stepError) {
+            AdminAccessService.compensationLogger.error(
+              `admin-account-create compensation failed at step=${step.label}`,
+              {
+                requestId: actor.requestId,
+                userId: created.id,
+                emailMasked: maskEmail(command.email),
+              },
+            );
+            throw stepError;
+          }
+        }
+      } catch (compensationError) {
+        // Compensation itself failed. Surface a structured safe log entry so
+        // operators can investigate orphan rows without leaking credentials.
+        AdminAccessService.compensationLogger.error(
+          'admin-account-create compensation aborted with orphan rows',
+          {
+            requestId: actor.requestId,
+            userId: created.id,
+            emailMasked: maskEmail(command.email),
+            originalError:
+              cause instanceof Error
+                ? { name: cause.name, message: cause.message }
+                : { message: 'unknown' },
+            compensationError:
+              compensationError instanceof Error
+                ? { name: compensationError.name, message: compensationError.message }
+                : { message: 'unknown' },
+          },
+        );
       }
       throw cause;
     }
     return this.accountById(created.id);
   }
+
+  private static readonly compensationLogger = new Logger(AdminAccessService.name);
 
   public async updateCustomerAccount(actor: ActorContext, id: string, input: unknown) {
     this.requireSuperAdmin(actor);
@@ -712,7 +822,7 @@ export class AdminAccessService {
 
   private requireSuperAdmin(actor: ActorContext): void {
     if (actor.profileCode !== 'SUPER_ADMIN') {
-      throw new BadRequestException({ code: 'SUPER_ADMIN_REQUIRED' });
+      throw new ForbiddenException({ code: 'SUPER_ADMIN_REQUIRED' });
     }
   }
 

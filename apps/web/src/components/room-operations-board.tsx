@@ -9,6 +9,7 @@ import { Textarea } from './ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { AdminApiError, adminApi, type AdminRoomOperationsResponse } from '../lib/admin-api';
 import { compareRoomDisplayOrder } from '../lib/admin-natural-sort';
+import { fromProblemDetails, pickFieldError } from '../lib/form-error';
 import type { AdminMe } from '@room/contracts';
 import { translate, type MessageKey } from '../lib/i18n/messages';
 import { useLocale } from './locale-provider';
@@ -196,6 +197,18 @@ export function RoomOperationsBoard({ viewerMode = false }: Readonly<{ viewerMod
       setOverrideTarget('CLEAN');
       await refresh();
     } catch (cause: unknown) {
+      if (cause instanceof AdminApiError) {
+        const problemState = fromProblemDetails(cause.problem);
+        const fieldError =
+          pickFieldError(problemState, 'status') ??
+          pickFieldError(problemState, 'reason') ??
+          pickFieldError(problemState, 'expectedVersion');
+        if (fieldError !== undefined) {
+          setOverrideError(fieldError);
+          setOverridePending(false);
+          return;
+        }
+      }
       setOverrideError(
         cause instanceof AdminApiError ? cause.message : translate(locale, 'admin.actionError'),
       );

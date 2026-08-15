@@ -477,6 +477,8 @@ export const housekeepingTaskListSchema = z
   .object({ items: z.array(housekeepingTaskRecordSchema).readonly() })
   .strict();
 
+export type HousekeepingTaskList = z.infer<typeof housekeepingTaskListSchema>;
+
 export const housekeepingOverrideCommandSchema = z
   .object({
     status: roomHousekeepingStatusSchema,
