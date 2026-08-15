@@ -8,9 +8,9 @@
 
 ## Active transfer blocker
 
-| Priority | Blocker | Impact | Required evidence |
-| --- | --- | --- | --- |
-| P0 | Human successor access has not yet been independently proved. | The project must not be marked `READY_FOR_SUCCESSOR`; outgoing access remains intact. | Human verification of GitHub, application admin, SSH, cloud, payment, and domain/DNS access, recorded without credential values. |
+| Priority | Blocker                                                       | Impact                                                                                | Required evidence                                                                                                                |
+| -------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| P0       | Human successor access has not yet been independently proved. | The project must not be marked `READY_FOR_SUCCESSOR`; outgoing access remains intact. | Human verification of GitHub, application admin, SSH, cloud, payment, and domain/DNS access, recorded without credential values. |
 
 ## Historical evidence limitation
 

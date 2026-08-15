@@ -2,13 +2,13 @@
 
 ## Final status
 
-| Field | Current handoff value |
-| --- | --- |
-| `FINAL_SOURCE_SHA` | Exact immutable SHA of the final committed `main` tree, recorded by `git rev-parse HEAD` in the final evidence. This file avoids a self-referential hash. |
-| `FINAL_PRODUCTION_SHA` | The same immutable SHA after the one canonical governed production deployment; strict attestation must show equality. |
-| `HANDOFF_STATUS` | `TECHNICAL_HANDOFF=PASS`; `CREDENTIAL_TRANSFER=PENDING_HUMAN` |
-| Stable production before final cutover | `c7aa4f6daf0c911967a8c63731e0a8408cbd3e43` (historical starting point only) |
-| Credential revocation | Not performed; pending independent successor verification |
+| Field                                  | Current handoff value                                                                                                                                     |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FINAL_SOURCE_SHA`                     | Exact immutable SHA of the final committed `main` tree, recorded by `git rev-parse HEAD` in the final evidence. This file avoids a self-referential hash. |
+| `FINAL_PRODUCTION_SHA`                 | The same immutable SHA after the one canonical governed production deployment; strict attestation must show equality.                                     |
+| `HANDOFF_STATUS`                       | `TECHNICAL_HANDOFF=PASS`; `CREDENTIAL_TRANSFER=PENDING_HUMAN`                                                                                             |
+| Stable production before final cutover | `c7aa4f6daf0c911967a8c63731e0a8408cbd3e43` (historical starting point only)                                                                               |
+| Credential revocation                  | Not performed; pending independent successor verification                                                                                                 |
 
 The final evidence bundle is authoritative for the literal SHA, hosted CI run, release ID, runtime service revisions, public smoke, pricing inspection, workflow checks, archive hash, and clean-room results. No historical report or untracked overlay is current proof.
 
