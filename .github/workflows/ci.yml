@@ -102,7 +102,7 @@ jobs:
           PLAYWRIGHT_TEST_DATABASE_NAME: room_management_test_ci
           PLAYWRIGHT_BETTER_AUTH_SECRET: local-dev-only-secret-with-at-least-thirty-two-characters
           BOOKING_ACCESS_QR_SECRET: test-booking-access-qr-secret-32-chars-aaaa
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
